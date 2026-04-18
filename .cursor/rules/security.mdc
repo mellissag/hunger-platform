@@ -1,0 +1,29 @@
+---
+description: Security checklist для всех изменений.
+apply: always
+---
+
+# Security
+
+- Никогда не возвращай `password_hash`, `api_keys`, `license_key` в API response.
+- Все мутирующие эндпоинты — под `require_roles(...)`.
+- Master-роль видит только свои объекты (бронирования, клиентов-через-бронирования). Enforce на уровне сервиса через `current_user.master_id`.
+- Webhook Telegram: проверяй `X-Telegram-Bot-Api-Secret-Token`.
+- Mini App `initData`: HMAC-проверка обязательна на каждом запросе.
+- Input validation: Pydantic строго, без `Extra.allow`.
+- Rate limiting: slowapi на /auth/login, /auth/refresh, /api/v1/ai/*.
+- SQL: только через ORM — никаких f-string запросов.
+- XSS: Next.js escape по умолчанию; никаких `dangerouslySetInnerHTML` без sanitize.
+- CSP headers в production Caddy.
+- Secrets в `.env`, никогда в git.
+- При любом критичном действии — запись в `audit_log`.
+- PII (телефоны, email клиентов) — маскируется в логах: `+359 88 *** **67`.
+- Перед релизом — security-review agent и `npm audit` / `pip-audit`.
+
+# Booking concurrency
+- `POST /api/v1/bookings` использует `SELECT ... FOR UPDATE` на строке расписания.
+- Параллельные запросы на один слот: второй получает `SlotTakenError` → 409 Conflict.
+
+# Redis Pub/Sub безопасность
+- Channel `services:updates` — внутренний, недоступен снаружи.
+- Redis не экспонируется в Compose — только внутренняя сеть `app-network`.

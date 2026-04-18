@@ -1,0 +1,14 @@
+{
+  "on_file_save": {
+    "when": "backend/**/*.py",
+    "agent": "code-reviewer",
+    "scope": "changes"
+  },
+  "on_commit": {
+    "agent": "test-writer",
+    "scope": "uncovered"
+  },
+  "on_branch_pr": {
+    "agents": ["security-auditor", "i18n-checker"]
+  }
+}

@@ -1,0 +1,35 @@
+---
+description: Правила для frontend-кода.
+apply: auto-attach
+globs:
+  - frontend/**
+---
+
+# Frontend conventions
+
+- TypeScript strict, `noUncheckedIndexedAccess: true`.
+- Server Components по умолчанию. Client Components — только при необходимости ("use client").
+- Data fetching: TanStack Query на клиенте, `fetch` с cache-control на сервере.
+- Формы: `react-hook-form` + `zod`. Никогда не используй uncontrolled inputs без zod schema.
+- Таблицы: `@tanstack/react-table` v8 + server-side pagination.
+- Стилизация: только Tailwind + CSS variables. Никаких inline styles кроме динамических цветов темы.
+- UI-примитивы: shadcn/ui. Если чего-то нет — добавь через `npx shadcn add`.
+- i18n: `next-intl`, все user-facing строки через `t('key')`.
+- Pre-check на новой странице: title в head, empty state, skeleton loader, error boundary.
+- Никогда не рендери `<img>` — только `next/image`.
+- a11y: все интерактивные элементы должны быть доступны с клавиатуры.
+- Темы: 3 пресета через CSS variables, применяются на `:root`.
+
+# Страница Услуги (Services)
+- `frontend/src/app/(admin)/services/page.tsx` — список с карточками.
+- Каждая карточка: название, цена, длительность, кол-во мастеров, брони за 30 дней, тогл «Видна в боте».
+- Тогл — оптимистичный UI: переключается сразу, откатывается при ошибке.
+- При изменении тогла — `PATCH /api/v1/services/{id}` с `{is_active: boolean}`.
+- Синхронизация-бейдж: зелёная точка + «Бот синхронизирован» (обновляется по SSE или polling 5с).
+
+# Mini App (Telegram Web App)
+- Роут: `frontend/src/app/mini-app/`.
+- Аутентификация через `window.Telegram.WebApp.initData` → HMAC проверка на бэкенде.
+- Никаких эмодзи в UI — только SVG иконки (lucide-react или кастомные).
+- Дизайн: Premium тема (`--gold: #C9A84C`, Cormorant Garamond + Inter, 2px border-radius).
+- MainButton Telegram: золотой градиент, uppercase.

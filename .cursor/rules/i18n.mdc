@@ -1,0 +1,29 @@
+---
+description: Правила локализации — 4 языка синхронны всегда.
+apply: always
+---
+
+# i18n
+
+- 4 языка: en, ru, uk, bg.
+- После каждого добавления ключа в `en.json` — **сразу** добавь его в остальные 3 файла (даже если значение временное — «[TODO:ru] Original text»).
+- Никогда не коммить код, где есть хардкоднутая строка, видимая пользователю.
+- Data-level i18n (услуги, рассылки, промпты) — JSONB формата `{en:"...", ru:"...", uk:"...", bg:"..."}`.
+- В UI админки для i18n-полей всегда делай 4 таба (EN/RU/UK/BG) + кнопку «Перевести автоматически» (через Gemini).
+- Форматирование чисел/дат — через Intl API с учётом текущей locale.
+- Множественное число — ICU plural.
+- Всегда проверяй через агента `i18n-checker` после значимых правок.
+
+# Пути к файлам переводов
+- Frontend: `frontend/src/messages/{en,ru,uk,bg}.json`
+- Bot (fluent): `backend/app/bot/texts/{en,ru,uk,bg}/messages.ftl`
+
+# Автоперевод через AI
+```typescript
+// frontend/src/lib/autotranslate.ts
+async function autoTranslate(text: string, fromLang: string, toLangs: string[]) {
+  // Вызывает POST /api/v1/ai/translate
+  // Возвращает {ru: "...", uk: "...", bg: "..."} — черновики
+}
+```
+Результат заполняет поля с пометкой «[AI]» — пользователь видит, что нужна проверка.

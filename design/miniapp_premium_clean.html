@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Hunger Beauty — Telegram Mini App · Premium (No Emoji)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════════ */
+:root {
+  /* Dark variant */
+  --d-bg:      #080808;
+  --d-fg:      #F0EBE0;
+  --d-muted:   #8A7D6A;
+  --d-gold:    #C9A84C;
+  --d-gold-l:  rgba(201,168,76,.12);
+  --d-gold-g:  rgba(201,168,76,.25);
+  --d-card:    #141414;
+  --d-border:  rgba(201,168,76,.14);
+  --d-line:    rgba(255,255,255,.05);
+  --d-dim:     #1C1C1C;
+  --d-ok:      #6FCF97;
+  --d-ok-l:    rgba(111,207,151,.1);
+  --d-err:     #EB5757;
+
+  /* Light variant */
+  --l-bg:      #FAF8F3;
+  --l-fg:      #1C1408;
+  --l-muted:   #7A6E58;
+  --l-gold:    #9A7230;
+  --l-gold-l:  rgba(154,114,48,.1);
+  --l-gold-g:  rgba(154,114,48,.2);
+  --l-card:    #FFFFFF;
+  --l-border:  #E4DDD0;
+  --l-line:    #F0EAE0;
+  --l-dim:     #F5F1E8;
+  --l-ok:      #3A7D44;
+  --l-ok-l:    rgba(58,125,68,.08);
+  --l-err:     #B54040;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: #111;
+  padding: 40px 20px 80px;
+  -webkit-font-smoothing: antialiased;
+}
+.page-title {
+  text-align: center;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: .04em;
+  background: linear-gradient(135deg, #C9A84C, #E8CF80, #9A7230);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 6px;
+}
+.page-sub {
+  text-align: center;
+  font-size: 11px;
+  color: #555;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 50px;
+}
+
+/* ─── Section headers ─── */
+.section-label {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #444;
+  margin-bottom: 28px;
+  margin-top: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.section-label::before, .section-label::after {
+  content: '';
+  height: 1px;
+  width: 60px;
+  background: linear-gradient(90deg, transparent, #333);
+}
+.section-label::after { background: linear-gradient(90deg, #333, transparent); }
+
+/* ─── Variant labels ─── */
+.variant-row {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.variant-col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.variant-tag {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: 4px 14px;
+  border-radius: 2px;
+}
+.vtag-dark  { background: rgba(201,168,76,.1); color: #C9A84C; border: 1px solid rgba(201,168,76,.3); }
+.vtag-light { background: rgba(154,114,48,.08); color: #9A7230; border: 1px solid rgba(154,114,48,.2); }
+
+/* ═══════════════════════════════════════════════
+   PHONE FRAME
+═══════════════════════════════════════════════ */
+.phone {
+  width: 320px;
+  border-radius: 30px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 580px;
+}
+.phone-d {
+  background: var(--d-bg);
+  box-shadow: 0 24px 80px rgba(0,0,0,.85), 0 0 0 1px rgba(201,168,76,.18), inset 0 1px 0 rgba(201,168,76,.12);
+}
+.phone-l {
+  background: var(--l-bg);
+  box-shadow: 0 24px 60px rgba(0,0,0,.25), 0 0 0 1px rgba(154,114,48,.12);
+}
+
+/* Status bar */
+.sb { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 6px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+.sb-d { background: var(--d-card); color: var(--d-muted); border-bottom: 1px solid var(--d-border); }
+.sb-l { background: var(--l-card); color: var(--l-muted); border-bottom: 1px solid var(--l-border); }
+.sb-signal { display: flex; gap: 5px; align-items: center; }
+.sb-bar { height: 10px; border-radius: 1px; }
+
+/* Top nav */
+.tnav { display: flex; align-items: center; padding: 10px 14px; gap: 10px; flex-shrink: 0; }
+.tnav-d { background: var(--d-card); border-bottom: 1px solid var(--d-border); }
+.tnav-l { background: var(--l-card); border-bottom: 1px solid var(--l-border); }
+.back-btn { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
+.back-d { background: var(--d-dim); }
+.back-l { background: var(--l-dim); }
+.back-btn svg { width: 14px; height: 14px; fill: none; stroke-width: 2; }
+.back-d svg { stroke: var(--d-muted); }
+.back-l svg { stroke: var(--l-muted); }
+.tnav-title { flex: 1; font-family: "Cormorant Garamond", serif; font-size: 17px; font-weight: 600; letter-spacing: .03em; }
+.tnav-title-d { color: var(--d-fg); }
+.tnav-title-l { color: var(--l-fg); }
+
+.body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+/* Bottom action button (Telegram MainButton) */
+.main-btn { text-align: center; padding: 14px 20px; font-size: 12px; font-weight: 600; flex-shrink: 0; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+.mbtn-d { background: linear-gradient(135deg, var(--d-gold), #E0CF6A); color: #080808; }
+.mbtn-l { background: linear-gradient(135deg, var(--l-gold), #C9A84C); color: #FAF8F3; }
+
+/* ═══════════════════════════════════════════════
+   SCREEN: MAIN MENU
+═══════════════════════════════════════════════ */
+.menu-hero { padding: 20px 18px 16px; position: relative; flex-shrink: 0; }
+.mh-d { background: var(--d-card); border-bottom: 1px solid var(--d-border); }
+.mh-l { background: linear-gradient(160deg, rgba(154,114,48,.06), transparent); border-bottom: 1px solid var(--l-border); }
+.mh-d::before, .mh-l::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--d-gold), transparent); }
+.mh-l::before { background: linear-gradient(90deg, transparent, var(--l-gold), transparent); }
+.mh-eyebrow { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 4px; }
+.mhey-d { color: var(--d-muted); }
+.mhey-l { color: var(--l-muted); }
+.mh-name { font-family: "Cormorant Garamond", serif; font-size: 22px; font-weight: 600; letter-spacing: .02em; }
+.mhn-d { color: var(--d-fg); }
+.mhn-l { color: var(--l-fg); }
+.mh-status { font-size: 10px; margin-top: 6px; display: inline-flex; align-items: center; gap: 5px; }
+.mhs-d { color: var(--d-gold); }
+.mhs-l { color: var(--l-gold); }
+
+.menu-list { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 7px; }
+.menu-item { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-radius: 2px; cursor: pointer; }
+.mi-d { background: var(--d-card); border: 1px solid var(--d-line); }
+.mi-l { background: var(--l-card); border: 1px solid var(--l-border); box-shadow: 0 1px 3px rgba(28,20,9,.04); }
+.mi-icon {
+  width: 36px; height: 36px; border-radius: 2px;
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.mi-icon svg { width: 16px; height: 16px; fill: none; stroke-width: 1.5; }
+.mi-icon-d { background: var(--d-dim); }
+.mi-icon-d svg { stroke: var(--d-gold); }
+.mi-icon-l { background: var(--l-dim); }
+.mi-icon-l svg { stroke: var(--l-gold); }
+.mi-text { flex: 1; }
+.mi-label { font-size: 13px; font-weight: 500; }
+.mi-label-d { color: var(--d-fg); }
+.mi-label-l { color: var(--l-fg); }
+.mi-sublabel { font-size: 11px; margin-top: 2px; }
+.mi-sub-d { color: var(--d-muted); }
+.mi-sub-l { color: var(--l-muted); }
+.mi-arrow { font-size: 14px; opacity: .5; }
+.mi-arrow-d { color: var(--d-gold); }
+.mi-arrow-l { color: var(--l-gold); }
+.mi-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 2px; }
+.mib-d { background: var(--d-gold-l); color: var(--d-gold); }
+.mib-l { background: var(--l-gold-l); color: var(--l-gold); }
+
+/* ═══════════════════════════════════════════════
+   SCREEN: SERVICE LIST
+═══════════════════════════════════════════════ */
+.cat-strip { display: flex; gap: 5px; padding: 10px 12px; overflow-x: auto; flex-shrink: 0; }
+.cat-strip::-webkit-scrollbar { display: none; }
+.cstrip-d { background: var(--d-card); border-bottom: 1px solid var(--d-border); }
+.cstrip-l { background: var(--l-card); border-bottom: 1px solid var(--l-border); }
+.ctag { padding: 5px 12px; font-size: 11px; font-weight: 500; white-space: nowrap; cursor: pointer; border-radius: 2px; letter-spacing: .06em; text-transform: uppercase; }
+.ctag-d { background: var(--d-dim); color: var(--d-muted); }
+.ctag-d.on { background: var(--d-gold); color: var(--d-bg); }
+.ctag-l { background: var(--l-dim); color: var(--l-muted); }
+.ctag-l.on { background: var(--l-gold); color: var(--l-card); }
+
+.svc-list { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
+.svc-item { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-radius: 2px; cursor: pointer; }
+.svc-d { background: var(--d-card); border: 1px solid var(--d-line); }
+.svc-d.sel { border-color: var(--d-gold); background: var(--d-gold-l); }
+.svc-l { background: var(--l-card); border: 1px solid var(--l-border); box-shadow: 0 1px 2px rgba(28,20,9,.04); }
+.svc-l.sel { border-color: var(--l-gold); background: var(--l-gold-l); }
+.svc-marker { width: 3px; height: 36px; border-radius: 1px; flex-shrink: 0; }
+.svcm-d { background: var(--d-gold); }
+.svcm-l { background: var(--l-gold); }
+.svc-info { flex: 1; }
+.svc-name { font-size: 13px; font-weight: 500; }
+.svn-d { color: var(--d-fg); }
+.svn-l { color: var(--l-fg); }
+.svc-dur { font-size: 11px; margin-top: 2px; }
+.svd-d { color: var(--d-muted); }
+.svd-l { color: var(--l-muted); }
+.svc-price { font-family: "Cormorant Garamond", serif; font-size: 18px; font-weight: 600; flex-shrink: 0; }
+.svp-d { color: var(--d-gold); }
+.svp-l { color: var(--l-gold); }
+
+/* ═══════════════════════════════════════════════
+   SCREEN: MASTER LIST
+═══════════════════════════════════════════════ */
+.master-list { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.master-card { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 2px; cursor: pointer; }
+.mc-d { background: var(--d-card); border: 1px solid var(--d-line); }
+.mc-d.sel { border-color: var(--d-gold); background: var(--d-gold-l); }
+.mc-l { background: var(--l-card); border: 1px solid var(--l-border); box-shadow: 0 1px 2px rgba(28,20,9,.04); }
+.mc-l.sel { border-color: var(--l-gold); background: var(--l-gold-l); }
+.master-avatar {
+  width: 46px; height: 46px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 18px; font-weight: 600;
+  flex-shrink: 0;
+}
+.mav-d { background: var(--d-dim); border: 1px solid var(--d-border); color: var(--d-gold); }
+.mav-d.sel { border-color: var(--d-gold); box-shadow: 0 0 12px var(--d-gold-g); }
+.mav-l { background: var(--l-dim); border: 1px solid var(--l-border); color: var(--l-gold); }
+.mav-l.sel { border-color: var(--l-gold); }
+.master-info { flex: 1; }
+.master-name { font-family: "Cormorant Garamond", serif; font-size: 15px; font-weight: 600; }
+.mn-d { color: var(--d-fg); }
+.mn-l { color: var(--l-fg); }
+.master-role { font-size: 11px; margin-top: 2px; }
+.mr-d { color: var(--d-muted); }
+.mr-l { color: var(--l-muted); }
+.master-rating { font-size: 11px; margin-top: 4px; font-weight: 500; }
+.mrat-d { color: var(--d-gold); }
+.mrat-l { color: var(--l-gold); }
+.master-status { font-size: 10px; font-weight: 600; letter-spacing: .06em; flex-shrink: 0; }
+.mst-d { color: var(--d-ok); }
+.mst-l { color: var(--l-ok); }
+.check-mark {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.chk-d { background: var(--d-gold); }
+.chk-l { background: var(--l-gold); }
+.check-mark svg { width: 11px; height: 11px; fill: none; stroke-width: 2.5; stroke: #080808; }
+
+/* ═══════════════════════════════════════════════
+   SCREEN: CALENDAR
+═══════════════════════════════════════════════ */
+.cal-wrap { padding: 14px 12px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; }
+.cal-month { font-family: "Cormorant Garamond", serif; font-size: 18px; font-weight: 600; letter-spacing: .03em; }
+.cm-d { color: var(--d-fg); }
+.cm-l { color: var(--l-fg); }
+.cal-btn { width: 30px; height: 30px; border-radius: 2px; display: grid; place-items: center; }
+.cb-d { background: var(--d-dim); border: 1px solid var(--d-line); }
+.cb-d svg { stroke: var(--d-muted); }
+.cb-l { background: var(--l-dim); border: 1px solid var(--l-border); }
+.cb-l svg { stroke: var(--l-muted); }
+.cal-btn svg { width: 13px; height: 13px; fill: none; stroke-width: 2.5; }
+.cal-wdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+.cwd { font-size: 9px; font-weight: 600; padding: 3px 0; letter-spacing: .08em; text-transform: uppercase; }
+.cwd-d { color: var(--d-muted); }
+.cwd-l { color: var(--l-muted); }
+.cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cday { aspect-ratio: 1; display: grid; place-items: center; border-radius: 2px; font-size: 12px; font-weight: 400; cursor: pointer; }
+.cd-d { color: var(--d-fg); }
+.cd-l { color: var(--l-fg); }
+.past-d { color: rgba(255,255,255,.1); cursor: default; }
+.past-l { color: rgba(0,0,0,.12); cursor: default; }
+.today-d { border: 1px solid var(--d-gold); color: var(--d-gold); font-weight: 600; }
+.today-l { border: 1px solid var(--l-gold); color: var(--l-gold); font-weight: 600; }
+.sel-d { background: linear-gradient(135deg, var(--d-gold), #E0CF6A); color: #080808; font-weight: 700; }
+.sel-l { background: linear-gradient(135deg, var(--l-gold), #C9A84C); color: #FAF8F3; font-weight: 700; }
+.hs-d { border-bottom: 2px solid var(--d-gold); }
+.hs-l { border-bottom: 2px solid var(--l-gold); }
+.cal-hint { padding: 9px 12px; border-radius: 2px; font-size: 12px; text-align: center; letter-spacing: .04em; }
+.hint-d { background: var(--d-gold-l); border: 1px solid var(--d-border); color: var(--d-gold); }
+.hint-l { background: var(--l-gold-l); border: 1px solid rgba(154,114,48,.2); color: var(--l-gold); }
+
+/* ═══════════════════════════════════════════════
+   SCREEN: CONFIRMATION
+═══════════════════════════════════════════════ */
+.confirm-wrap { padding: 14px 12px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.confirm-card { border-radius: 2px; padding: 16px; }
+.ccard-d { background: var(--d-card); border: 1px solid var(--d-line); }
+.ccard-l { background: var(--l-card); border: 1px solid var(--l-border); box-shadow: 0 1px 3px rgba(28,20,9,.05); }
+.cc-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 12px; }
+.cce-d { color: var(--d-gold); }
+.cce-l { color: var(--l-gold); }
+.cc-divider { height: 1px; margin-bottom: 12px; }
+.ccd-d { background: linear-gradient(90deg, transparent, var(--d-border), transparent); }
+.ccd-l { background: linear-gradient(90deg, transparent, var(--l-border), transparent); }
+.cc-row { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px dotted; }
+.ccr-d { border-bottom-color: var(--d-line); }
+.ccr-l { border-bottom-color: var(--l-border); }
+.cc-row:last-child { border-bottom: none; padding-bottom: 0; }
+.cc-line { width: 2px; height: 100%; min-height: 28px; border-radius: 1px; flex-shrink: 0; align-self: stretch; }
+.ccl-d { background: var(--d-gold-l); border: 1px solid var(--d-border); }
+.ccl-l { background: var(--l-gold-l); border: 1px solid rgba(154,114,48,.2); }
+.cc-key { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 3px; }
+.cck-d { color: var(--d-muted); }
+.cck-l { color: var(--l-muted); }
+.cc-val { font-size: 13px; font-weight: 500; }
+.ccv-d { color: var(--d-fg); }
+.ccv-l { color: var(--l-fg); }
+.confirm-total { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-radius: 2px; }
+.ct-d { background: var(--d-gold-l); border: 1px solid var(--d-border); }
+.ct-l { background: var(--l-gold-l); border: 1px solid rgba(154,114,48,.2); }
+.ct-label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.ctl-d { color: var(--d-muted); }
+.ctl-l { color: var(--l-muted); }
+.ct-value { font-family: "Cormorant Garamond", serif; font-size: 26px; font-weight: 600; }
+.ctv-d { color: var(--d-gold); }
+.ctv-l { color: var(--l-gold); }
+.confirm-note { font-size: 11px; text-align: center; line-height: 1.6; letter-spacing: .02em; }
+.cn-d { color: var(--d-muted); }
+.cn-l { color: var(--l-muted); }
+
+/* ═══════════════════════════════════════════════
+   SCREEN: MY BOOKINGS
+═══════════════════════════════════════════════ */
+.bk-tabs { display: flex; flex-shrink: 0; }
+.bkt-d { background: var(--d-card); border-bottom: 1px solid var(--d-border); }
+.bkt-l { background: var(--l-card); border-bottom: 1px solid var(--l-border); }
+.bk-tab { flex: 1; padding: 10px; text-align: center; font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; border-bottom: 2px solid transparent; }
+.bktab-d { color: var(--d-muted); }
+.bktab-d.on { color: var(--d-gold); border-bottom-color: var(--d-gold); }
+.bktab-l { color: var(--l-muted); }
+.bktab-l.on { color: var(--l-gold); border-bottom-color: var(--l-gold); }
+.bk-list { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.bk-card { border-radius: 2px; overflow: hidden; }
+.bkc-d { background: var(--d-card); border: 1px solid var(--d-line); }
+.bkc-l { background: var(--l-card); border: 1px solid var(--l-border); box-shadow: 0 1px 3px rgba(28,20,9,.04); }
+.bk-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; }
+.bkh-d { border-bottom: 1px solid var(--d-line); }
+.bkh-l { border-bottom: 1px solid var(--l-border); }
+.bk-status { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 1px; letter-spacing: .08em; text-transform: uppercase; }
+.bks-ok-d { background: var(--d-ok-l); color: var(--d-ok); }
+.bks-ok-l { background: var(--l-ok-l); color: var(--l-ok); }
+.bks-done-d { background: var(--d-dim); color: var(--d-muted); }
+.bks-done-l { background: var(--l-dim); color: var(--l-muted); }
+.bk-date { font-size: 11px; }
+.bkd-d { color: var(--d-muted); }
+.bkd-l { color: var(--l-muted); }
+.bk-body { padding: 12px 14px; }
+.bk-service { font-family: "Cormorant Garamond", serif; font-size: 16px; font-weight: 600; }
+.bksv-d { color: var(--d-fg); }
+.bksv-l { color: var(--l-fg); }
+.bk-detail { font-size: 11px; margin-top: 4px; }
+.bkdt-d { color: var(--d-muted); }
+.bkdt-l { color: var(--l-muted); }
+.bk-actions { display: flex; gap: 7px; padding: 0 14px 12px; }
+.bk-action { flex: 1; padding: 8px; font-size: 11px; font-weight: 500; text-align: center; border-radius: 2px; cursor: pointer; letter-spacing: .06em; text-transform: uppercase; }
+.bka-sec-d { background: var(--d-dim); color: var(--d-muted); }
+.bka-sec-l { background: var(--l-dim); color: var(--l-muted); }
+.bka-del-d { background: rgba(235,87,87,.08); color: var(--d-err); }
+.bka-del-l { background: rgba(181,64,64,.06); color: var(--l-err); }
+.bka-gold-d { background: var(--d-gold-l); color: var(--d-gold); border: 1px solid var(--d-border); }
+.bka-gold-l { background: var(--l-gold-l); color: var(--l-gold); border: 1px solid rgba(154,114,48,.2); }
+
+/* ═══════════════════════════════════════════════
+   SCREEN: AI CHAT
+═══════════════════════════════════════════════ */
+.ai-top { padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.ait-d { background: var(--d-card); border-bottom: 1px solid var(--d-border); }
+.ait-l { background: var(--l-card); border-bottom: 1px solid var(--l-border); }
+.ai-icon { width: 36px; height: 36px; border-radius: 2px; display: grid; place-items: center; flex-shrink: 0; }
+.aic-d { background: var(--d-dim); border: 1px solid var(--d-border); }
+.aic-l { background: var(--l-dim); border: 1px solid var(--l-border); }
+.ai-icon svg { width: 18px; height: 18px; fill: none; stroke-width: 1.5; }
+.aic-d svg { stroke: var(--d-gold); }
+.aic-l svg { stroke: var(--l-gold); }
+.ai-top-title { font-family: "Cormorant Garamond", serif; font-size: 15px; font-weight: 600; }
+.att-d { color: var(--d-fg); }
+.att-l { color: var(--l-fg); }
+.ai-top-sub { font-size: 11px; margin-top: 1px; }
+.ats-d { color: var(--d-muted); }
+.ats-l { color: var(--l-muted); }
+.ai-msgs { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 85%; }
+.msg.bot { align-self: flex-start; }
+.msg.usr { align-self: flex-end; }
+.bubble { padding: 10px 13px; font-size: 12px; line-height: 1.6; border-radius: 2px; }
+.bbl-bot-d { background: var(--d-card); color: var(--d-fg); border: 1px solid var(--d-line); border-bottom-left-radius: 0; }
+.bbl-bot-l { background: var(--l-card); color: var(--l-fg); border: 1px solid var(--l-border); border-bottom-left-radius: 0; box-shadow: 0 1px 3px rgba(28,20,9,.05); }
+.bbl-usr-d { background: linear-gradient(135deg, var(--d-gold), #E0CF6A); color: #080808; border-bottom-right-radius: 0; font-weight: 500; }
+.bbl-usr-l { background: linear-gradient(135deg, var(--l-gold), #C9A84C); color: #FAF8F3; border-bottom-right-radius: 0; font-weight: 500; }
+.msg-time { font-size: 9px; margin-top: 3px; }
+.mt-d { color: var(--d-muted); }
+.mt-l { color: var(--l-muted); }
+.msg.usr .msg-time { text-align: right; }
+.ai-suggestions { display: flex; gap: 6px; padding: 0 12px 8px; overflow-x: auto; flex-shrink: 0; }
+.ai-suggestions::-webkit-scrollbar { display: none; }
+.ai-sug { padding: 5px 12px; font-size: 11px; font-weight: 500; white-space: nowrap; cursor: pointer; border-radius: 2px; letter-spacing: .05em; text-transform: uppercase; }
+.asg-d { background: var(--d-gold-l); color: var(--d-gold); border: 1px solid var(--d-border); }
+.asg-l { background: var(--l-gold-l); color: var(--l-gold); border: 1px solid rgba(154,114,48,.2); }
+.ai-input-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; flex-shrink: 0; }
+.air-d { background: var(--d-card); border-top: 1px solid var(--d-border); }
+.air-l { background: var(--l-card); border-top: 1px solid var(--l-border); }
+.ai-input { flex: 1; border-radius: 2px; padding: 9px 13px; font-size: 12px; letter-spacing: .02em; }
+.ainp-d { background: var(--d-dim); color: var(--d-muted); border: 1px solid var(--d-line); }
+.ainp-l { background: var(--l-dim); color: var(--l-muted); border: 1px solid var(--l-border); }
+.send-btn { width: 34px; height: 34px; border-radius: 2px; display: grid; place-items: center; flex-shrink: 0; }
+.send-d { background: linear-gradient(135deg, var(--d-gold), #E0CF6A); }
+.send-l { background: linear-gradient(135deg, var(--l-gold), #C9A84C); }
+.send-btn svg { width: 15px; height: 15px; fill: none; stroke-width: 2; stroke: #080808; }
+
+/* ═══════════════════════════════════════════════
+   SCREEN: PROFILE
+═══════════════════════════════════════════════ */
+.profile-hero { padding: 20px 16px 18px; flex-shrink: 0; position: relative; display: flex; align-items: center; gap: 16px; }
+.ph-d { background: var(--d-card); border-bottom: 1px solid var(--d-border); }
+.ph-d::before { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--d-gold), transparent); }
+.ph-l { background: var(--l-card); border-bottom: 1px solid var(--l-border); }
+.ph-l::before { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--l-gold), transparent); }
+.profile-pic { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; font-family: "Cormorant Garamond", serif; font-size: 20px; font-weight: 600; flex-shrink: 0; }
+.pp-d { background: linear-gradient(135deg, var(--d-gold), #E0CF6A); color: #080808; box-shadow: 0 0 18px var(--d-gold-g); }
+.pp-l { background: linear-gradient(135deg, var(--l-gold), #C9A84C); color: #FAF8F3; }
+.profile-name { font-family: "Cormorant Garamond", serif; font-size: 19px; font-weight: 600; letter-spacing: .02em; }
+.pn-d { color: var(--d-fg); }
+.pn-l { color: var(--l-fg); }
+.profile-phone { font-size: 12px; margin-top: 3px; }
+.pp2-d { color: var(--d-muted); }
+.pp2-l { color: var(--l-muted); }
+.profile-vip { font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; margin-top: 5px; padding: 2px 8px; border-radius: 1px; display: inline-block; }
+.pvip-d { background: var(--d-gold-l); color: var(--d-gold); border: 1px solid var(--d-border); }
+.pvip-l { background: var(--l-gold-l); color: var(--l-gold); border: 1px solid rgba(154,114,48,.2); }
+
+.profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); flex-shrink: 0; }
+.pstats-d { background: var(--d-card); border-bottom: 1px solid var(--d-border); }
+.pstats-l { background: var(--l-card); border-bottom: 1px solid var(--l-border); }
+.pstat { padding: 12px 8px; text-align: center; }
+.pstat-d { border-right: 1px solid var(--d-line); }
+.pstat-l { border-right: 1px solid var(--l-border); }
+.pstat:last-child { border-right: none; }
+.pstat-val { font-family: "Cormorant Garamond", serif; font-size: 20px; font-weight: 600; }
+.psv-d { color: var(--d-fg); }
+.psv-l { color: var(--l-fg); }
+.pstat-key { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; margin-top: 3px; }
+.psk-d { color: var(--d-muted); }
+.psk-l { color: var(--l-muted); }
+
+.profile-menu { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.pm-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 2px; cursor: pointer; }
+.pmi-d { background: var(--d-card); border: 1px solid var(--d-line); }
+.pmi-l { background: var(--l-card); border: 1px solid var(--l-border); box-shadow: 0 1px 2px rgba(28,20,9,.04); }
+.pmi-icon { width: 30px; height: 30px; border-radius: 2px; display: grid; place-items: center; flex-shrink: 0; }
+.pmii-d { background: var(--d-dim); }
+.pmii-l { background: var(--l-dim); }
+.pmi-icon svg { width: 14px; height: 14px; fill: none; stroke-width: 1.5; }
+.pmii-d svg { stroke: var(--d-gold); }
+.pmii-l svg { stroke: var(--l-gold); }
+.pmi-text { flex: 1; font-size: 13px; font-weight: 400; letter-spacing: .01em; }
+.pmit-d { color: var(--d-fg); }
+.pmit-l { color: var(--l-fg); }
+.pmi-arrow { font-size: 13px; opacity: .4; }
+.pma-d { color: var(--d-gold); }
+.pma-l { color: var(--l-gold); }
+.pmi-item.danger .pmi-text { }
+.danger-d { color: var(--d-err) !important; }
+.danger-l { color: var(--l-err) !important; }
+
+/* time slots reuse for profile */
+.time-screen { display: flex; flex-direction: column; flex: 1; padding: 12px; gap: 12px; }
+.time-date { padding: 9px 12px; border-radius: 2px; font-size: 12px; font-weight: 500; text-align: center; letter-spacing: .04em; }
+.td-d { background: var(--d-gold-l); border: 1px solid var(--d-border); color: var(--d-gold); }
+.td-l { background: var(--l-gold-l); border: 1px solid rgba(154,114,48,.2); color: var(--l-gold); }
+.ts-label { font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.tsl-d { color: var(--d-muted); }
+.tsl-l { color: var(--l-muted); }
+.time-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.tslot { padding: 10px 8px; text-align: center; font-size: 13px; font-weight: 400; border-radius: 2px; cursor: pointer; letter-spacing: .04em; }
+.ts-d { background: var(--d-card); border: 1px solid var(--d-line); color: var(--d-fg); }
+.ts-d.on { background: linear-gradient(135deg, var(--d-gold), #E0CF6A); color: #080808; border-color: var(--d-gold); font-weight: 600; }
+.ts-d.off { background: var(--d-dim); color: rgba(255,255,255,.1); cursor: not-allowed; border: 1px solid transparent; text-decoration: line-through; }
+.ts-l { background: var(--l-card); border: 1px solid var(--l-border); color: var(--l-fg); }
+.ts-l.on { background: linear-gradient(135deg, var(--l-gold), #C9A84C); color: #FAF8F3; border-color: var(--l-gold); font-weight: 600; }
+.ts-l.off { background: var(--l-dim); color: rgba(0,0,0,.12); cursor: not-allowed; border: 1px solid transparent; text-decoration: line-through; }
+</style>
+</head>
+<body>
+
+<div class="page-title">Hunger Beauty</div>
+<p class="page-sub">Telegram Mini App · Premium Design · Без эмодзи · Два варианта</p>
+
+<!-- ═══ SCREEN 1: MAIN MENU ═══ -->
+<div class="section-label">Главное меню</div>
+<div class="variant-row">
+
+  <!-- Dark -->
+  <div class="variant-col">
+    <div class="variant-tag vtag-dark">Dark</div>
+    <div class="phone phone-d">
+      <div class="sb sb-d">
+        <span>9:41</span>
+        <div class="sb-signal">
+          <svg width="14" height="10" fill="none"><rect x="0" y="4" width="3" height="6" rx=".5" fill="currentColor" opacity=".3"/><rect x="4" y="2" width="3" height="8" rx=".5" fill="currentColor" opacity=".6"/><rect x="8" y="0" width="3" height="10" rx=".5" fill="currentColor"/></svg>
+        </div>
+      </div>
+      <div class="body">
+        <div class="menu-hero mh-d">
+          <div class="mh-eyebrow mhey-d">Добро пожаловать</div>
+          <div class="mh-name mhn-d">Алексей</div>
+          <div class="mh-status mhs-d">VIP — клиент с 2024</div>
+        </div>
+        <div class="menu-list">
+          <div class="menu-item mi-d">
+            <div class="mi-icon mi-icon-d"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <div class="mi-text"><div class="mi-label mi-label-d">Записаться</div><div class="mi-sublabel mi-sub-d">Выбрать услугу и время</div></div>
+            <div class="mi-arrow mi-arrow-d">›</div>
+          </div>
+          <div class="menu-item mi-d">
+            <div class="mi-icon mi-icon-d"><svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div>
+            <div class="mi-text"><div class="mi-label mi-label-d">Мои записи</div><div class="mi-sublabel mi-sub-d">Завтра в 14:00</div></div>
+            <div class="mi-badge mib-d">1</div>
+          </div>
+          <div class="menu-item mi-d">
+            <div class="mi-icon mi-icon-d"><svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg></div>
+            <div class="mi-text"><div class="mi-label mi-label-d">AI-консультант</div><div class="mi-sublabel mi-sub-d">Подбор услуги</div></div>
+            <div class="mi-arrow mi-arrow-d">›</div>
+          </div>
+          <div class="menu-item mi-d">
+            <div class="mi-icon mi-icon-d"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 16v-4m0-4h.01"/></svg></div>
+            <div class="mi-text"><div class="mi-label mi-label-d">О салоне</div><div class="mi-sublabel mi-sub-d">Адрес и часы работы</div></div>
+            <div class="mi-arrow mi-arrow-d">›</div>
+          </div>
+          <div class="menu-item mi-d">
+            <div class="mi-icon mi-icon-d"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M6 20v-2a6 6 0 0112 0v2"/></svg></div>
+            <div class="mi-text"><div class="mi-label mi-label-d">Мой профиль</div><div class="mi-sublabel mi-sub-d">Данные и история визитов</div></div>
+            <div class="mi-arrow mi-arrow-d">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Light -->
+  <div class="variant-col">
+    <div class="variant-tag vtag-light">Light</div>
+    <div class="phone phone-l">
+      <div class="sb sb-l">
+        <span>9:41</span>
+        <div class="sb-signal">
+          <svg width="14" height="10" fill="none"><rect x="0" y="4" width="3" height="6" rx=".5" fill="currentColor" opacity=".3"/><rect x="4" y="2" width="3" height="8" rx=".5" fill="currentColor" opacity=".6"/><rect x="8" y="0" width="3" height="10" rx=".5" fill="currentColor"/></svg>
+        </div>
+      </div>
+      <div class="body">
+        <div class="menu-hero mh-l">
+          <div class="mh-eyebrow mhey-l">Добро пожаловать</div>
+          <div class="mh-name mhn-l">Алексей</div>
+          <div class="mh-status mhs-l">VIP — клиент с 2024</div>
+        </div>
+        <div class="menu-list">
+          <div class="menu-item mi-l">
+            <div class="mi-icon mi-icon-l"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <div class="mi-text"><div class="mi-label mi-label-l">Записаться</div><div class="mi-sublabel mi-sub-l">Выбрать услугу и время</div></div>
+            <div class="mi-arrow mi-arrow-l">›</div>
+          </div>
+          <div class="menu-item mi-l">
+            <div class="mi-icon mi-icon-l"><svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div>
+            <div class="mi-text"><div class="mi-label mi-label-l">Мои записи</div><div class="mi-sublabel mi-sub-l">Завтра в 14:00</div></div>
+            <div class="mi-badge mib-l">1</div>
+          </div>
+          <div class="menu-item mi-l">
+            <div class="mi-icon mi-icon-l"><svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg></div>
+            <div class="mi-text"><div class="mi-label mi-label-l">AI-консультант</div><div class="mi-sublabel mi-sub-l">Подбор услуги</div></div>
+            <div class="mi-arrow mi-arrow-l">›</div>
+          </div>
+          <div class="menu-item mi-l">
+            <div class="mi-icon mi-icon-l"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 16v-4m0-4h.01"/></svg></div>
+            <div class="mi-text"><div class="mi-label mi-label-l">О салоне</div><div class="mi-sublabel mi-sub-l">Адрес и часы работы</div></div>
+            <div class="mi-arrow mi-arrow-l">›</div>
+          </div>
+          <div class="menu-item mi-l">
+            <div class="mi-icon mi-icon-l"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M6 20v-2a6 6 0 0112 0v2"/></svg></div>
+            <div class="mi-text"><div class="mi-label mi-label-l">Мой профиль</div><div class="mi-sublabel mi-sub-l">Данные и история визитов</div></div>
+            <div class="mi-arrow mi-arrow-l">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ SCREEN 2: SERVICES ═══ -->
+<div class="section-label">Выбор услуги</div>
+<div class="variant-row">
+
+  <div class="variant-col">
+    <div class="variant-tag vtag-dark">Dark</div>
+    <div class="phone phone-d">
+      <div class="sb sb-d"><span>9:41</span><span>◼◼◼</span></div>
+      <div class="tnav tnav-d">
+        <div class="back-btn back-d"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tnav-title tnav-title-d">Выберите услугу</div>
+      </div>
+      <div class="body">
+        <div class="cat-strip cstrip-d">
+          <div class="ctag ctag-d on">Все</div><div class="ctag ctag-d">Волосы</div><div class="ctag ctag-d">Ногти</div><div class="ctag ctag-d">Уход</div>
+        </div>
+        <div class="svc-list">
+          <div class="svc-item svc-d sel"><div class="svc-marker svcm-d"></div><div class="svc-info"><div class="svc-name svn-d">Стрижка и укладка</div><div class="svc-dur svd-d">60 минут · 3 мастера</div></div><div class="svc-price svp-d">35 €</div></div>
+          <div class="svc-item svc-d"><div class="svc-marker" style="background:transparent"></div><div class="svc-info"><div class="svc-name svn-d">Маникюр с покрытием</div><div class="svc-dur svd-d">90 минут · 2 мастера</div></div><div class="svc-price svp-d">28 €</div></div>
+          <div class="svc-item svc-d"><div class="svc-marker" style="background:transparent"></div><div class="svc-info"><div class="svc-name svn-d">Окрашивание волос</div><div class="svc-dur svd-d">120 минут · 2 мастера</div></div><div class="svc-price svp-d">55 €</div></div>
+          <div class="svc-item svc-d"><div class="svc-marker" style="background:transparent"></div><div class="svc-info"><div class="svc-name svn-d">Уход за кожей лица</div><div class="svc-dur svd-d">45 минут · 1 мастер</div></div><div class="svc-price svp-d">40 €</div></div>
+        </div>
+      </div>
+      <div class="main-btn mbtn-d">Стрижка и укладка</div>
+    </div>
+  </div>
+
+  <div class="variant-col">
+    <div class="variant-tag vtag-light">Light</div>
+    <div class="phone phone-l">
+      <div class="sb sb-l"><span>9:41</span><span>◼◼◼</span></div>
+      <div class="tnav tnav-l">
+        <div class="back-btn back-l"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tnav-title tnav-title-l">Выберите услугу</div>
+      </div>
+      <div class="body">
+        <div class="cat-strip cstrip-l">
+          <div class="ctag ctag-l on">Все</div><div class="ctag ctag-l">Волосы</div><div class="ctag ctag-l">Ногти</div><div class="ctag ctag-l">Уход</div>
+        </div>
+        <div class="svc-list">
+          <div class="svc-item svc-l sel"><div class="svc-marker svcm-l"></div><div class="svc-info"><div class="svc-name svn-l">Стрижка и укладка</div><div class="svc-dur svd-l">60 минут · 3 мастера</div></div><div class="svc-price svp-l">35 €</div></div>
+          <div class="svc-item svc-l"><div class="svc-marker" style="background:transparent"></div><div class="svc-info"><div class="svc-name svn-l">Маникюр с покрытием</div><div class="svc-dur svd-l">90 минут · 2 мастера</div></div><div class="svc-price svp-l">28 €</div></div>
+          <div class="svc-item svc-l"><div class="svc-marker" style="background:transparent"></div><div class="svc-info"><div class="svc-name svn-l">Окрашивание волос</div><div class="svc-dur svd-l">120 минут · 2 мастера</div></div><div class="svc-price svp-l">55 €</div></div>
+          <div class="svc-item svc-l"><div class="svc-marker" style="background:transparent"></div><div class="svc-info"><div class="svc-name svn-l">Уход за кожей лица</div><div class="svc-dur svd-l">45 минут · 1 мастер</div></div><div class="svc-price svp-l">40 €</div></div>
+        </div>
+      </div>
+      <div class="main-btn mbtn-l">Стрижка и укладка</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ SCREEN 3: CALENDAR ═══ -->
+<div class="section-label">Выбор даты</div>
+<div class="variant-row">
+
+  <div class="variant-col">
+    <div class="variant-tag vtag-dark">Dark</div>
+    <div class="phone phone-d">
+      <div class="sb sb-d"><span>9:41</span><span>◼◼◼</span></div>
+      <div class="tnav tnav-d">
+        <div class="back-btn back-d"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tnav-title tnav-title-d">Выберите дату</div>
+      </div>
+      <div class="body">
+        <div class="cal-wrap">
+          <div class="cal-nav">
+            <div class="cal-btn cb-d"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+            <div class="cal-month cm-d">Апрель 2026</div>
+            <div class="cal-btn cb-d"><svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg></div>
+          </div>
+          <div class="cal-wdays"><div class="cwd cwd-d">Пн</div><div class="cwd cwd-d">Вт</div><div class="cwd cwd-d">Ср</div><div class="cwd cwd-d">Чт</div><div class="cwd cwd-d">Пт</div><div class="cwd cwd-d">Сб</div><div class="cwd cwd-d">Вс</div></div>
+          <div class="cal-days">
+            <div class="cday"></div>
+            <div class="cday past-d">1</div><div class="cday past-d">2</div><div class="cday past-d">3</div><div class="cday past-d">4</div><div class="cday past-d">5</div><div class="cday past-d">6</div>
+            <div class="cday past-d">7</div><div class="cday past-d">8</div><div class="cday past-d">9</div><div class="cday past-d">10</div><div class="cday past-d">11</div><div class="cday past-d">12</div><div class="cday past-d">13</div>
+            <div class="cday past-d">14</div><div class="cday past-d">15</div><div class="cday past-d">16</div><div class="cday past-d">17</div>
+            <div class="cday today-d">18</div><div class="cday hs-d cd-d">19</div><div class="cday cd-d">20</div>
+            <div class="cday hs-d cd-d">21</div><div class="cday hs-d cd-d">22</div><div class="cday hs-d cd-d">23</div><div class="cday hs-d cd-d">24</div><div class="cday sel-d">25</div><div class="cday cd-d">26</div><div class="cday cd-d">27</div>
+            <div class="cday hs-d cd-d">28</div><div class="cday hs-d cd-d">29</div><div class="cday hs-d cd-d">30</div>
+          </div>
+          <div class="cal-hint hint-d">Пятница, 25 апреля — выбрана</div>
+        </div>
+      </div>
+      <div class="main-btn mbtn-d">Выбрать время</div>
+    </div>
+  </div>
+
+  <div class="variant-col">
+    <div class="variant-tag vtag-light">Light</div>
+    <div class="phone phone-l">
+      <div class="sb sb-l"><span>9:41</span><span>◼◼◼</span></div>
+      <div class="tnav tnav-l">
+        <div class="back-btn back-l"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tnav-title tnav-title-l">Выберите дату</div>
+      </div>
+      <div class="body">
+        <div class="cal-wrap">
+          <div class="cal-nav">
+            <div class="cal-btn cb-l"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+            <div class="cal-month cm-l">Апрель 2026</div>
+            <div class="cal-btn cb-l"><svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg></div>
+          </div>
+          <div class="cal-wdays"><div class="cwd cwd-l">Пн</div><div class="cwd cwd-l">Вт</div><div class="cwd cwd-l">Ср</div><div class="cwd cwd-l">Чт</div><div class="cwd cwd-l">Пт</div><div class="cwd cwd-l">Сб</div><div class="cwd cwd-l">Вс</div></div>
+          <div class="cal-days">
+            <div class="cday"></div>
+            <div class="cday past-l">1</div><div class="cday past-l">2</div><div class="cday past-l">3</div><div class="cday past-l">4</div><div class="cday past-l">5</div><div class="cday past-l">6</div>
+            <div class="cday past-l">7</div><div class="cday past-l">8</div><div class="cday past-l">9</div><div class="cday past-l">10</div><div class="cday past-l">11</div><div class="cday past-l">12</div><div class="cday past-l">13</div>
+            <div class="cday past-l">14</div><div class="cday past-l">15</div><div class="cday past-l">16</div><div class="cday past-l">17</div>
+            <div class="cday today-l">18</div><div class="cday hs-l cd-l">19</div><div class="cday cd-l">20</div>
+            <div class="cday hs-l cd-l">21</div><div class="cday hs-l cd-l">22</div><div class="cday hs-l cd-l">23</div><div class="cday hs-l cd-l">24</div><div class="cday sel-l">25</div><div class="cday cd-l">26</div><div class="cday cd-l">27</div>
+            <div class="cday hs-l cd-l">28</div><div class="cday hs-l cd-l">29</div><div class="cday hs-l cd-l">30</div>
+          </div>
+          <div class="cal-hint hint-l">Пятница, 25 апреля — выбрана</div>
+        </div>
+      </div>
+      <div class="main-btn mbtn-l">Выбрать время</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ SCREEN 4: CONFIRMATION ═══ -->
+<div class="section-label">Подтверждение записи</div>
+<div class="variant-row">
+
+  <div class="variant-col">
+    <div class="variant-tag vtag-dark">Dark</div>
+    <div class="phone phone-d">
+      <div class="sb sb-d"><span>9:41</span><span>◼◼◼</span></div>
+      <div class="tnav tnav-d">
+        <div class="back-btn back-d"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tnav-title tnav-title-d">Подтверждение</div>
+      </div>
+      <div class="body">
+        <div class="confirm-wrap">
+          <div class="confirm-card ccard-d">
+            <div class="cc-eyebrow cce-d">Детали записи</div>
+            <div class="cc-divider ccd-d"></div>
+            <div class="cc-row ccr-d"><div class="cc-line ccl-d"></div><div><div class="cc-key cck-d">Услуга</div><div class="cc-val ccv-d">Стрижка и укладка</div></div></div>
+            <div class="cc-row ccr-d"><div class="cc-line ccl-d"></div><div><div class="cc-key cck-d">Мастер</div><div class="cc-val ccv-d">Анна Иванова</div></div></div>
+            <div class="cc-row ccr-d"><div class="cc-line ccl-d"></div><div><div class="cc-key cck-d">Дата и время</div><div class="cc-val ccv-d">Пт, 25 апреля · 12:00</div></div></div>
+            <div class="cc-row ccr-d"><div class="cc-line ccl-d"></div><div><div class="cc-key cck-d">Длительность</div><div class="cc-val ccv-d">60 минут</div></div></div>
+          </div>
+          <div class="confirm-total ct-d">
+            <div class="ct-label ctl-d">К оплате</div>
+            <div class="ct-value ctv-d">35 €</div>
+          </div>
+          <div class="confirm-note cn-d">Напоминания придут за 24 ч, 2 ч и 30 мин</div>
+        </div>
+      </div>
+      <div class="main-btn mbtn-d">Подтвердить запись</div>
+    </div>
+  </div>
+
+  <div class="variant-col">
+    <div class="variant-tag vtag-light">Light</div>
+    <div class="phone phone-l">
+      <div class="sb sb-l"><span>9:41</span><span>◼◼◼</span></div>
+      <div class="tnav tnav-l">
+        <div class="back-btn back-l"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tnav-title tnav-title-l">Подтверждение</div>
+      </div>
+      <div class="body">
+        <div class="confirm-wrap">
+          <div class="confirm-card ccard-l">
+            <div class="cc-eyebrow cce-l">Детали записи</div>
+            <div class="cc-divider ccd-l"></div>
+            <div class="cc-row ccr-l"><div class="cc-line ccl-l"></div><div><div class="cc-key cck-l">Услуга</div><div class="cc-val ccv-l">Стрижка и укладка</div></div></div>
+            <div class="cc-row ccr-l"><div class="cc-line ccl-l"></div><div><div class="cc-key cck-l">Мастер</div><div class="cc-val ccv-l">Анна Иванова</div></div></div>
+            <div class="cc-row ccr-l"><div class="cc-line ccl-l"></div><div><div class="cc-key cck-l">Дата и время</div><div class="cc-val ccv-l">Пт, 25 апреля · 12:00</div></div></div>
+            <div class="cc-row ccr-l"><div class="cc-line ccl-l"></div><div><div class="cc-key cck-l">Длительность</div><div class="cc-val ccv-l">60 минут</div></div></div>
+          </div>
+          <div class="confirm-total ct-l">
+            <div class="ct-label ctl-l">К оплате</div>
+            <div class="ct-value ctv-l">35 €</div>
+          </div>
+          <div class="confirm-note cn-l">Напоминания придут за 24 ч, 2 ч и 30 мин</div>
+        </div>
+      </div>
+      <div class="main-btn mbtn-l">Подтвердить запись</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ SCREEN 5: AI CHAT ═══ -->
+<div class="section-label">AI-консультант</div>
+<div class="variant-row">
+
+  <div class="variant-col">
+    <div class="variant-tag vtag-dark">Dark</div>
+    <div class="phone phone-d">
+      <div class="sb sb-d"><span>9:41</span><span>◼◼◼</span></div>
+      <div class="tnav tnav-d">
+        <div class="back-btn back-d"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tnav-title tnav-title-d">AI-консультант</div>
+        <div style="font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:3px 8px;border:1px solid rgba(201,168,76,.3);color:#C9A84C;border-radius:1px">Beta</div>
+      </div>
+      <div class="body">
+        <div class="ai-top ait-d">
+          <div class="ai-icon aic-d"><svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3M6.343 6.343l-.707-.707M6.343 17.657l-.707.707M15.657 6.343l.707-.707M17.657 17.657l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg></div>
+          <div><div class="ai-top-title att-d">AI-помощник Hunger</div><div class="ai-top-sub ats-d">Подберу услугу под ваш запрос</div></div>
+        </div>
+        <div class="ai-msgs">
+          <div class="msg bot"><div class="bubble bbl-bot-d">Здравствуйте! Расскажите, что вас интересует — подберу подходящую услугу.</div><div class="msg-time mt-d">09:40</div></div>
+          <div class="msg usr"><div class="bubble bbl-usr-d">Хочу уход за волосами</div><div class="msg-time mt-d">09:41</div></div>
+          <div class="msg bot"><div class="bubble bbl-bot-d">Для ухода за волосами у нас: стрижка (35€), окрашивание (55€), кератиновое выпрямление (70€). Какова длина ваших волос?</div><div class="msg-time mt-d">09:41</div></div>
+        </div>
+        <div class="ai-suggestions">
+          <div class="ai-sug asg-d">Короткие</div>
+          <div class="ai-sug asg-d">Средние</div>
+          <div class="ai-sug asg-d">Длинные</div>
+        </div>
+        <div class="ai-input-row air-d">
+          <div class="ai-input ainp-d">Написать сообщение…</div>
+          <div class="send-btn send-d"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9" fill="#080808"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="variant-col">
+    <div class="variant-tag vtag-light">Light</div>
+    <div class="phone phone-l">
+      <div class="sb sb-l"><span>9:41</span><span>◼◼◼</span></div>
+      <div class="tnav tnav-l">
+        <div class="back-btn back-l"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tnav-title tnav-title-l">AI-консультант</div>
+        <div style="font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:3px 8px;border:1px solid rgba(154,114,48,.3);color:#9A7230;border-radius:1px">Beta</div>
+      </div>
+      <div class="body">
+        <div class="ai-top ait-l">
+          <div class="ai-icon aic-l"><svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3M6.343 6.343l-.707-.707M6.343 17.657l-.707.707M15.657 6.343l.707-.707M17.657 17.657l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg></div>
+          <div><div class="ai-top-title att-l">AI-помощник Hunger</div><div class="ai-top-sub ats-l">Подберу услугу под ваш запрос</div></div>
+        </div>
+        <div class="ai-msgs">
+          <div class="msg bot"><div class="bubble bbl-bot-l">Здравствуйте! Расскажите, что вас интересует — подберу подходящую услугу.</div><div class="msg-time mt-l">09:40</div></div>
+          <div class="msg usr"><div class="bubble bbl-usr-l">Хочу уход за волосами</div><div class="msg-time mt-l">09:41</div></div>
+          <div class="msg bot"><div class="bubble bbl-bot-l">Для ухода за волосами у нас: стрижка (35€), окрашивание (55€), кератиновое выпрямление (70€). Какова длина ваших волос?</div><div class="msg-time mt-l">09:41</div></div>
+        </div>
+        <div class="ai-suggestions">
+          <div class="ai-sug asg-l">Короткие</div>
+          <div class="ai-sug asg-l">Средние</div>
+          <div class="ai-sug asg-l">Длинные</div>
+        </div>
+        <div class="ai-input-row air-l">
+          <div class="ai-input ainp-l">Написать сообщение…</div>
+          <div class="send-btn send-l"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9" fill="#FAF8F3"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ SCREEN 6: PROFILE ═══ -->
+<div class="section-label">Профиль клиента</div>
+<div class="variant-row">
+
+  <div class="variant-col">
+    <div class="variant-tag vtag-dark">Dark</div>
+    <div class="phone phone-d">
+      <div class="sb sb-d"><span>9:41</span><span>◼◼◼</span></div>
+      <div class="tnav tnav-d">
+        <div class="back-btn back-d"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tnav-title tnav-title-d">Профиль</div>
+      </div>
+      <div class="body">
+        <div class="profile-hero ph-d">
+          <div class="profile-pic pp-d">А</div>
+          <div>
+            <div class="profile-name pn-d">Алексей Петров</div>
+            <div class="profile-phone pp2-d">+7 999 123-45-67</div>
+            <div class="profile-vip pvip-d">VIP</div>
+          </div>
+        </div>
+        <div class="profile-stats pstats-d">
+          <div class="pstat pstat-d"><div class="pstat-val psv-d">12</div><div class="pstat-key psk-d">Визитов</div></div>
+          <div class="pstat pstat-d"><div class="pstat-val psv-d">340 €</div><div class="pstat-key psk-d">Потрачено</div></div>
+          <div class="pstat"><div class="pstat-val" style="color:var(--d-gold)">VIP</div><div class="pstat-key psk-d">Статус</div></div>
+        </div>
+        <div class="profile-menu">
+          <div class="pm-item pmi-d"><div class="pmi-icon pmii-d"><svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg></div><div class="pmi-text pmit-d">История визитов</div><div class="pmi-arrow pma-d">›</div></div>
+          <div class="pm-item pmi-d"><div class="pmi-icon pmii-d"><svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></div><div class="pmi-text pmit-d">Редактировать данные</div><div class="pmi-arrow pma-d">›</div></div>
+          <div class="pm-item pmi-d"><div class="pmi-icon pmii-d"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M2 12h20M12 2a15 15 0 010 20"/></svg></div><div class="pmi-text pmit-d">Язык интерфейса</div><div class="pmi-arrow pma-d">›</div></div>
+          <div class="pm-item pmi-d"><div class="pmi-icon pmii-d"><svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></div><div class="pmi-text danger-d">Выйти</div><div class="pmi-arrow" style="color:var(--d-err);opacity:.5">›</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="variant-col">
+    <div class="variant-tag vtag-light">Light</div>
+    <div class="phone phone-l">
+      <div class="sb sb-l"><span>9:41</span><span>◼◼◼</span></div>
+      <div class="tnav tnav-l">
+        <div class="back-btn back-l"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tnav-title tnav-title-l">Профиль</div>
+      </div>
+      <div class="body">
+        <div class="profile-hero ph-l">
+          <div class="profile-pic pp-l">А</div>
+          <div>
+            <div class="profile-name pn-l">Алексей Петров</div>
+            <div class="profile-phone pp2-l">+7 999 123-45-67</div>
+            <div class="profile-vip pvip-l">VIP</div>
+          </div>
+        </div>
+        <div class="profile-stats pstats-l">
+          <div class="pstat pstat-l"><div class="pstat-val psv-l">12</div><div class="pstat-key psk-l">Визитов</div></div>
+          <div class="pstat pstat-l"><div class="pstat-val psv-l">340 €</div><div class="pstat-key psk-l">Потрачено</div></div>
+          <div class="pstat"><div class="pstat-val" style="color:var(--l-gold)">VIP</div><div class="pstat-key psk-l">Статус</div></div>
+        </div>
+        <div class="profile-menu">
+          <div class="pm-item pmi-l"><div class="pmi-icon pmii-l"><svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg></div><div class="pmi-text pmit-l">История визитов</div><div class="pmi-arrow pma-l">›</div></div>
+          <div class="pm-item pmi-l"><div class="pmi-icon pmii-l"><svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></div><div class="pmi-text pmit-l">Редактировать данные</div><div class="pmi-arrow pma-l">›</div></div>
+          <div class="pm-item pmi-l"><div class="pmi-icon pmii-l"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M2 12h20M12 2a15 15 0 010 20"/></svg></div><div class="pmi-text pmit-l">Язык интерфейса</div><div class="pmi-arrow pma-l">›</div></div>
+          <div class="pm-item pmi-l"><div class="pmi-icon pmii-l"><svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></div><div class="pmi-text danger-l">Выйти</div><div class="pmi-arrow" style="color:var(--l-err);opacity:.5">›</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

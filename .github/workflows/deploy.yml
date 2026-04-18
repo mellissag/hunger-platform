@@ -1,0 +1,79 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy & auto-tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Wait for CI to pass
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-name: "Backend — lint, typecheck, test"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 15
+
+      - name: Configure git for tagging
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Auto-tag version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x deploy/scripts/tag_version.sh
+          ./deploy/scripts/tag_version.sh
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+            cd /opt/hunger-platform
+
+            echo "==> Pulling latest code..."
+            git fetch --all --tags
+            git checkout main
+            git pull origin main
+
+            echo "==> Logging in to GHCR..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+              -u ${{ github.actor }} --password-stdin
+
+            echo "==> Pulling new Docker images..."
+            docker compose -f docker-compose.yml \
+                           -f docker-compose.prod.yml pull
+
+            echo "==> Restarting services..."
+            docker compose -f docker-compose.yml \
+                           -f docker-compose.prod.yml \
+                           up -d --build --remove-orphans
+
+            echo "==> Running DB migrations..."
+            docker compose exec -T api alembic upgrade head
+
+            echo "==> Health check..."
+            sleep 5
+            curl -sf http://localhost:8000/healthz || \
+              (echo "Health check FAILED" && docker compose logs api --tail=50 && exit 1)
+
+            echo "==> Deploy complete!"
+            docker compose ps

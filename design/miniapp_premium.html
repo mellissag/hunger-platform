@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Hunger Platform — Telegram Mini App · Premium Theme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080808;
+  --fg: #F5F0E8;
+  --fg-muted: #8A7D6A;
+  --primary: #C9A84C;
+  --primary-dark: #A88535;
+  --primary-light: rgba(201,168,76,.1);
+  --primary-glow: rgba(201,168,76,.25);
+  --card: #141414;
+  --card2: #1C1C1C;
+  --border: rgba(201,168,76,.15);
+  --border-subtle: rgba(255,255,255,.05);
+  --muted: #1A1A1A;
+  --success: #6FCF97;
+  --success-light: rgba(111,207,151,.1);
+  --warning: #F2C94C;
+  --danger: #EB5757;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: #030303;
+  padding: 40px 20px 60px;
+  -webkit-font-smoothing: antialiased;
+}
+h1.page-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--fg);
+  margin-bottom: 6px;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 28px;
+  letter-spacing: .04em;
+}
+.page-subtitle {
+  text-align: center;
+  font-size: 13px;
+  color: var(--fg-muted);
+  margin-bottom: 40px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+.screens-row {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+.screen-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.screen-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.phone {
+  width: 320px;
+  min-height: 580px;
+  background: var(--bg);
+  border-radius: 28px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.8), 0 0 0 1px rgba(201,168,76,.15), inset 0 1px 0 rgba(201,168,76,.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.tg-statusbar {
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+.tg-header {
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  gap: 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+.tg-back {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--muted);
+  border: 1px solid var(--border-subtle);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.tg-back svg { width: 16px; height: 16px; stroke: var(--fg-muted); }
+.tg-title { flex: 1; font-size: 15px; font-weight: 600; color: var(--fg); font-family: "Cormorant Garamond", serif; font-size: 17px; letter-spacing: .02em; }
+.screen-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; background: var(--bg); }
+.tg-main-btn {
+  background: linear-gradient(135deg, var(--primary) 0%, #E0BF6A 100%);
+  color: #0A0800;
+  text-align: center;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  cursor: pointer;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+/* ─── Language ─── */
+.lang-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; gap: 28px; flex: 1; }
+.lang-logo {
+  width: 72px; height: 72px; border-radius: 20px;
+  background: linear-gradient(135deg, var(--primary) 0%, #E0BF6A 100%);
+  display: grid; place-items: center; font-size: 28px;
+  box-shadow: 0 8px 32px var(--primary-glow);
+}
+.lang-welcome { text-align: center; }
+.lang-welcome h2 { font-family: "Cormorant Garamond", serif; font-size: 26px; font-weight: 700; color: var(--fg); margin-bottom: 6px; letter-spacing: .04em; }
+.lang-welcome p { font-size: 12px; color: var(--fg-muted); line-height: 1.6; letter-spacing: .02em; }
+.lang-divider { width: 60px; height: 1px; background: linear-gradient(90deg, transparent, var(--primary), transparent); }
+.lang-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.lang-btn { background: var(--card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 10px; text-align: center; cursor: pointer; }
+.lang-btn.suggested { border-color: var(--primary); background: var(--primary-light); }
+.lang-btn .flag { font-size: 22px; display: block; margin-bottom: 4px; }
+.lang-btn .lang-name { font-size: 12px; font-weight: 600; color: var(--fg); }
+.lang-btn .lang-native { font-size: 11px; color: var(--fg-muted); }
+
+/* ─── Main Menu ─── */
+.main-menu-screen { display: flex; flex-direction: column; flex: 1; }
+.menu-hero {
+  background: linear-gradient(180deg, var(--card) 0%, var(--bg) 100%);
+  padding: 20px 18px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.menu-hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+}
+.menu-hero-avatar {
+  width: 50px; height: 50px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, #E0BF6A 100%);
+  display: grid; place-items: center;
+  font-size: 18px; font-weight: 800; color: #0A0800;
+  box-shadow: 0 0 20px var(--primary-glow);
+}
+.menu-greeting { font-size: 11px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: .08em; }
+.menu-name { font-family: "Cormorant Garamond", serif; font-size: 20px; font-weight: 600; color: var(--fg); letter-spacing: .02em; }
+.menu-status { font-size: 10px; margin-top: 4px; }
+.menu-status span { color: var(--primary); font-weight: 600; letter-spacing: .05em; }
+.menu-buttons { flex: 1; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.menu-btn {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 14px;
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid var(--border-subtle);
+  transition: border-color .2s;
+}
+.menu-btn:hover { border-color: var(--border); }
+.menu-btn-icon-box { width: 36px; height: 36px; border-radius: 10px; background: var(--primary-light); border: 1px solid var(--border); display: grid; place-items: center; font-size: 16px; flex-shrink: 0; }
+.menu-btn-label { font-size: 13px; font-weight: 600; color: var(--fg); letter-spacing: .01em; }
+.menu-btn-desc { font-size: 11px; color: var(--fg-muted); margin-top: 2px; }
+.menu-btn-arrow { color: var(--primary); font-size: 16px; opacity: .7; }
+
+/* ─── Flow Choice ─── */
+.flow-choice-screen { padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; flex: 1; }
+.flow-choice-title { font-family: "Cormorant Garamond", serif; font-size: 22px; font-weight: 600; color: var(--fg); text-align: center; letter-spacing: .02em; }
+.flow-choice-sub { font-size: 12px; color: var(--fg-muted); text-align: center; margin-top: -8px; letter-spacing: .04em; }
+.flow-card { background: var(--card); border-radius: var(--radius); padding: 20px; cursor: pointer; border: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 16px; flex: 1; }
+.flow-card.active { border-color: var(--primary); background: var(--primary-light); box-shadow: 0 0 20px var(--primary-glow); }
+.flow-card-emoji { font-size: 32px; }
+.flow-card-title { font-family: "Cormorant Garamond", serif; font-size: 17px; font-weight: 600; color: var(--fg); margin-bottom: 4px; }
+.flow-card-desc { font-size: 12px; color: var(--fg-muted); line-height: 1.4; }
+
+/* ─── Services ─── */
+.service-screen { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.category-tabs { display: flex; gap: 6px; padding: 10px 14px; overflow-x: auto; flex-shrink: 0; background: var(--card); border-bottom: 1px solid var(--border); }
+.category-tabs::-webkit-scrollbar { display: none; }
+.cat-tab { padding: 5px 12px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; cursor: pointer; background: var(--muted); color: var(--fg-muted); flex-shrink: 0; letter-spacing: .05em; text-transform: uppercase; }
+.cat-tab.active { background: var(--primary); color: #0A0800; }
+.service-list { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.service-item { background: var(--card); border-radius: var(--radius-sm); padding: 13px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; border: 1px solid var(--border-subtle); }
+.service-item.selected { border-color: var(--primary); background: var(--primary-light); box-shadow: 0 0 16px var(--primary-glow); }
+.service-code { width: 38px; height: 38px; border-radius: 8px; background: var(--muted); border: 1px solid var(--border-subtle); display: grid; place-items: center; font-size: 16px; flex-shrink: 0; }
+.service-name { font-size: 13px; font-weight: 600; color: var(--fg); }
+.service-duration { font-size: 11px; color: var(--fg-muted); margin-top: 2px; }
+.service-price { font-size: 14px; font-weight: 700; color: var(--primary); flex-shrink: 0; font-family: "Cormorant Garamond", serif; font-size: 17px; }
+
+/* ─── Masters ─── */
+.master-screen { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.master-list { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.master-card { background: var(--card); border-radius: var(--radius-sm); padding: 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; border: 1px solid var(--border-subtle); }
+.master-card.selected { border-color: var(--primary); background: var(--primary-light); box-shadow: 0 0 20px var(--primary-glow); }
+.master-photo { width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; font-size: 18px; font-weight: 700; color: #0A0800; border: 2px solid transparent; }
+.master-card.selected .master-photo { border-color: var(--primary); }
+.master-name { font-size: 13px; font-weight: 600; color: var(--fg); font-family: "Cormorant Garamond", serif; font-size: 16px; }
+.master-role { font-size: 11px; color: var(--fg-muted); margin-top: 2px; letter-spacing: .02em; }
+.master-rating { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--primary); margin-top: 4px; font-weight: 600; }
+.master-available { font-size: 11px; color: var(--success); font-weight: 600; flex-shrink: 0; }
+.master-check { width: 22px; height: 22px; border-radius: 50%; background: var(--primary); display: grid; place-items: center; flex-shrink: 0; }
+.master-check svg { width: 12px; height: 12px; stroke: #0A0800; stroke-width: 2.5; }
+
+/* ─── Calendar ─── */
+.calendar-screen { display: flex; flex-direction: column; flex: 1; padding: 14px; gap: 14px; overflow: hidden; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; }
+.cal-month { font-family: "Cormorant Garamond", serif; font-size: 18px; font-weight: 600; color: var(--fg); letter-spacing: .03em; }
+.cal-nav-btn { width: 32px; height: 32px; border-radius: 8px; background: var(--muted); border: 1px solid var(--border-subtle); display: grid; place-items: center; cursor: pointer; }
+.cal-nav-btn svg { width: 16px; height: 16px; stroke: var(--fg-muted); }
+.cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.cal-weekday { font-size: 10px; font-weight: 600; color: var(--fg-muted); padding: 4px 0; letter-spacing: .06em; text-transform: uppercase; }
+.cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day { aspect-ratio: 1; display: grid; place-items: center; border-radius: 8px; font-size: 12px; font-weight: 500; color: var(--fg); cursor: pointer; }
+.cal-day.empty { cursor: default; }
+.cal-day.past { color: #2A2A2A; cursor: default; }
+.cal-day.today { border: 1px solid var(--border); font-weight: 700; color: var(--primary); }
+.cal-day.selected { background: linear-gradient(135deg, var(--primary) 0%, #E0BF6A 100%); color: #0A0800; font-weight: 700; box-shadow: 0 0 12px var(--primary-glow); }
+.cal-day.has-slots { position: relative; }
+.cal-day.has-slots::after { content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; background: var(--primary); border-radius: 50%; }
+.cal-day.selected::after { display: none; }
+.cal-hint { background: var(--primary-light); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 12px; color: var(--primary); text-align: center; letter-spacing: .02em; }
+
+/* ─── Time ─── */
+.time-screen { display: flex; flex-direction: column; flex: 1; padding: 14px; gap: 12px; }
+.time-selected-date { background: var(--primary-light); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; font-weight: 600; color: var(--primary); text-align: center; letter-spacing: .02em; }
+.time-section-title { font-size: 10px; font-weight: 600; color: var(--fg-muted); text-transform: uppercase; letter-spacing: .08em; }
+.time-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.time-slot { background: var(--card); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; font-size: 13px; font-weight: 600; color: var(--fg); cursor: pointer; border: 1px solid var(--border-subtle); }
+.time-slot.selected { background: linear-gradient(135deg, var(--primary) 0%, #E0BF6A 100%); color: #0A0800; border-color: var(--primary); box-shadow: 0 0 12px var(--primary-glow); }
+.time-slot.busy { background: var(--muted); color: #2A2A2A; cursor: not-allowed; border-color: transparent; text-decoration: line-through; }
+
+/* ─── Confirm ─── */
+.confirm-screen { display: flex; flex-direction: column; flex: 1; padding: 14px; gap: 12px; overflow: hidden; }
+.confirm-card { background: var(--card); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: 16px; }
+.confirm-card-top { display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+.confirm-card-title { font-family: "Cormorant Garamond", serif; font-size: 17px; font-weight: 600; color: var(--fg); letter-spacing: .04em; }
+.confirm-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin-bottom: 12px; }
+.confirm-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
+.confirm-row:last-child { border-bottom: none; }
+.confirm-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; color: var(--primary); }
+.confirm-key { font-size: 10px; color: var(--fg-muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: .06em; }
+.confirm-val { font-size: 13px; font-weight: 600; color: var(--fg); }
+.confirm-total { background: var(--primary-light); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; display: flex; justify-content: space-between; align-items: center; }
+.confirm-total-label { font-size: 12px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: .06em; }
+.confirm-total-val { font-family: "Cormorant Garamond", serif; font-size: 24px; font-weight: 700; color: var(--primary); }
+.confirm-note { font-size: 11px; color: var(--fg-muted); text-align: center; line-height: 1.5; letter-spacing: .01em; }
+
+/* ─── Bookings ─── */
+.bookings-screen { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.bookings-tabs { display: flex; padding: 8px 14px 0; background: var(--card); border-bottom: 1px solid var(--border); }
+.booking-tab { padding: 8px 16px; font-size: 12px; font-weight: 600; color: var(--fg-muted); border-bottom: 2px solid transparent; cursor: pointer; letter-spacing: .04em; text-transform: uppercase; }
+.booking-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.bookings-list { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.booking-card { background: var(--card); border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-subtle); }
+.booking-card-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); }
+.booking-status { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: .06em; }
+.booking-status.upcoming { background: var(--success-light); color: var(--success); }
+.booking-status.done { background: var(--muted); color: var(--fg-muted); }
+.booking-date { font-size: 11px; font-weight: 600; color: var(--fg-muted); }
+.booking-card-body { padding: 12px 14px; }
+.booking-service { font-family: "Cormorant Garamond", serif; font-size: 16px; font-weight: 600; color: var(--fg); margin-bottom: 4px; }
+.booking-details { font-size: 12px; color: var(--fg-muted); }
+.booking-actions { display: flex; gap: 8px; padding: 0 14px 12px; }
+.booking-action-btn { flex: 1; padding: 8px; border-radius: var(--radius-xs); font-size: 11px; font-weight: 600; text-align: center; cursor: pointer; letter-spacing: .04em; text-transform: uppercase; }
+.booking-action-btn.secondary { background: var(--muted); color: var(--fg-muted); border: 1px solid var(--border-subtle); }
+.booking-action-btn.danger { background: rgba(235,87,87,.08); color: var(--danger); border: 1px solid rgba(235,87,87,.2); }
+
+/* ─── AI Chat ─── */
+.ai-screen { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.ai-banner {
+  background: linear-gradient(135deg, #1A1206 0%, #22180A 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.ai-banner-icon { font-size: 22px; }
+.ai-banner-title { font-family: "Cormorant Garamond", serif; font-size: 16px; font-weight: 600; color: var(--fg); letter-spacing: .02em; }
+.ai-banner-sub { font-size: 11px; color: var(--fg-muted); margin-top: 2px; }
+.ai-chat { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.chat-msg { max-width: 85%; }
+.chat-msg.bot { align-self: flex-start; }
+.chat-msg.user { align-self: flex-end; }
+.chat-bubble { padding: 10px 13px; border-radius: 14px; font-size: 13px; line-height: 1.5; }
+.chat-msg.bot .chat-bubble { background: var(--card); color: var(--fg); border-bottom-left-radius: 4px; border: 1px solid var(--border-subtle); }
+.chat-msg.user .chat-bubble { background: linear-gradient(135deg, var(--primary) 0%, #E0BF6A 100%); color: #0A0800; border-bottom-right-radius: 4px; font-weight: 500; }
+.chat-time { font-size: 10px; color: var(--fg-muted); margin-top: 3px; }
+.chat-msg.user .chat-time { text-align: right; }
+.ai-chips { display: flex; gap: 6px; padding: 0 14px 10px; overflow-x: auto; flex-shrink: 0; }
+.ai-chips::-webkit-scrollbar { display: none; }
+.ai-chip { background: var(--primary-light); border: 1px solid var(--border); color: var(--primary); border-radius: 4px; padding: 5px 12px; font-size: 11px; font-weight: 600; white-space: nowrap; flex-shrink: 0; cursor: pointer; letter-spacing: .04em; text-transform: uppercase; }
+.ai-input-row { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--card); border-top: 1px solid var(--border); flex-shrink: 0; }
+.ai-input { flex: 1; background: var(--muted); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 9px 14px; font-size: 13px; color: var(--fg-muted); }
+.ai-send { width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, var(--primary) 0%, #E0BF6A 100%); display: grid; place-items: center; }
+.ai-send svg { width: 16px; height: 16px; stroke: #0A0800; }
+
+/* ─── Profile ─── */
+.profile-screen { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.profile-hero {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+.profile-hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+}
+.profile-pic {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, #E0BF6A 100%);
+  display: grid; place-items: center;
+  font-size: 20px; font-weight: 800; color: #0A0800;
+  box-shadow: 0 0 20px var(--primary-glow);
+}
+.profile-name { font-family: "Cormorant Garamond", serif; font-size: 20px; font-weight: 600; color: var(--fg); letter-spacing: .02em; }
+.profile-phone { font-size: 12px; color: var(--fg-muted); margin-top: 3px; }
+.profile-badge { display: inline-block; margin-top: 5px; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 3px; background: var(--primary-light); color: var(--primary); border: 1px solid var(--border); letter-spacing: .06em; text-transform: uppercase; }
+.profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.profile-stat { padding: 14px 8px; text-align: center; border-right: 1px solid var(--border-subtle); }
+.profile-stat:last-child { border-right: none; }
+.profile-stat-val { font-family: "Cormorant Garamond", serif; font-size: 20px; font-weight: 700; color: var(--fg); }
+.profile-stat-key { font-size: 10px; color: var(--fg-muted); margin-top: 3px; letter-spacing: .05em; text-transform: uppercase; }
+.profile-menu { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.profile-item { background: var(--card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 13px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.profile-item-icon { font-size: 15px; flex-shrink: 0; }
+.profile-item-text { flex: 1; font-size: 13px; font-weight: 500; color: var(--fg); letter-spacing: .01em; }
+.profile-item-arrow { color: var(--primary); font-size: 14px; opacity: .7; }
+.profile-item.danger .profile-item-text { color: var(--danger); }
+.profile-item.danger .profile-item-arrow { color: var(--danger); opacity: .7; }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">Hunger Beauty Platform</h1>
+<p class="page-subtitle">Тема: Premium · Telegram Mini App · Все экраны</p>
+
+<!-- ROW 1 -->
+<div class="screens-row">
+
+  <div class="screen-group">
+    <div class="screen-label">1 · Выбор языка</div>
+    <div class="phone">
+      <div class="tg-statusbar"><span>9:41</span><div>🔋</div></div>
+      <div class="screen-body">
+        <div class="lang-screen">
+          <div class="lang-logo">✂️</div>
+          <div class="lang-welcome">
+            <h2>Hunger Beauty</h2>
+            <p>Онлайн-запись к мастеру<br>прямо в Telegram</p>
+          </div>
+          <div class="lang-divider"></div>
+          <div class="lang-buttons">
+            <div class="lang-btn suggested"><span class="flag">🇷🇺</span><div class="lang-name">⭐ Русский</div><div class="lang-native">Russian</div></div>
+            <div class="lang-btn"><span class="flag">🇬🇧</span><div class="lang-name">English</div><div class="lang-native">English</div></div>
+            <div class="lang-btn"><span class="flag">🇺🇦</span><div class="lang-name">Українська</div><div class="lang-native">Ukrainian</div></div>
+            <div class="lang-btn"><span class="flag">🇧🇬</span><div class="lang-name">Български</div><div class="lang-native">Bulgarian</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-group">
+    <div class="screen-label">2 · Главное меню</div>
+    <div class="phone">
+      <div class="tg-statusbar"><span>9:41</span><div>🔋</div></div>
+      <div class="screen-body">
+        <div class="main-menu-screen">
+          <div class="menu-hero">
+            <div class="menu-hero-avatar">А</div>
+            <div>
+              <div class="menu-greeting">Добро пожаловать</div>
+              <div class="menu-name">Алексей</div>
+              <div class="menu-status"><span>✦ VIP</span></div>
+            </div>
+          </div>
+          <div class="menu-buttons">
+            <div class="menu-btn"><div class="menu-btn-icon-box">🗓</div><div style="flex:1"><div class="menu-btn-label">Записаться</div><div class="menu-btn-desc">Выбрать услугу и время</div></div><div class="menu-btn-arrow">›</div></div>
+            <div class="menu-btn"><div class="menu-btn-icon-box">📋</div><div style="flex:1"><div class="menu-btn-label">Мои записи</div><div class="menu-btn-desc">Завтра в 14:00</div></div><div class="menu-btn-arrow">›</div></div>
+            <div class="menu-btn"><div class="menu-btn-icon-box">💬</div><div style="flex:1"><div class="menu-btn-label">AI-консультант</div><div class="menu-btn-desc">Подбор услуги</div></div><div class="menu-btn-arrow">›</div></div>
+            <div class="menu-btn"><div class="menu-btn-icon-box">ℹ️</div><div style="flex:1"><div class="menu-btn-label">О салоне</div><div class="menu-btn-desc">Адрес, часы работы</div></div><div class="menu-btn-arrow">›</div></div>
+            <div class="menu-btn"><div class="menu-btn-icon-box">👤</div><div style="flex:1"><div class="menu-btn-label">Мой профиль</div><div class="menu-btn-desc">Данные и история</div></div><div class="menu-btn-arrow">›</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-group">
+    <div class="screen-label">3 · Тип записи</div>
+    <div class="phone">
+      <div class="tg-statusbar"><span>9:41</span><div>🔋</div></div>
+      <div class="tg-header">
+        <div class="tg-back"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title">Запись</div>
+      </div>
+      <div class="screen-body">
+        <div class="flow-choice-screen">
+          <div class="flow-choice-title">Как хочешь записаться?</div>
+          <div class="flow-choice-sub">Выбери удобный способ</div>
+          <div class="flow-card active"><div class="flow-card-emoji">💇</div><div><div class="flow-card-title">Сначала услуга</div><div class="flow-card-desc">Выбери процедуру — увидишь мастеров, которые её делают</div></div></div>
+          <div class="flow-card"><div class="flow-card-emoji">👩‍🎨</div><div><div class="flow-card-title">Сначала мастер</div><div class="flow-card-desc">Выбери любимого мастера — увидишь его услуги и расписание</div></div></div>
+        </div>
+      </div>
+      <div class="tg-main-btn">Продолжить</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ROW 2 -->
+<div class="screens-row">
+
+  <div class="screen-group">
+    <div class="screen-label">4 · Выбор услуги</div>
+    <div class="phone">
+      <div class="tg-statusbar"><span>9:41</span><div>🔋</div></div>
+      <div class="tg-header">
+        <div class="tg-back"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title">Выбери услугу</div>
+      </div>
+      <div class="screen-body">
+        <div class="service-screen">
+          <div class="category-tabs">
+            <div class="cat-tab active">Все</div>
+            <div class="cat-tab">Волосы</div>
+            <div class="cat-tab">Ногти</div>
+            <div class="cat-tab">Уход</div>
+            <div class="cat-tab">Брови</div>
+          </div>
+          <div class="service-list">
+            <div class="service-item selected"><div class="service-code">✂️</div><div><div class="service-name">Стрижка + укладка</div><div class="service-duration">⏱ 60 мин · 3 мастера</div></div><div class="service-price">35 €</div></div>
+            <div class="service-item"><div class="service-code">💅</div><div><div class="service-name">Маникюр с покрытием</div><div class="service-duration">⏱ 90 мин · 2 мастера</div></div><div class="service-price">28 €</div></div>
+            <div class="service-item"><div class="service-code">🎨</div><div><div class="service-name">Окрашивание волос</div><div class="service-duration">⏱ 120 мин · 2 мастера</div></div><div class="service-price">55 €</div></div>
+            <div class="service-item"><div class="service-code">🧖</div><div><div class="service-name">Уход за кожей лица</div><div class="service-duration">⏱ 45 мин · 1 мастер</div></div><div class="service-price">40 €</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="tg-main-btn">Стрижка + укладка</div>
+    </div>
+  </div>
+
+  <div class="screen-group">
+    <div class="screen-label">5 · Выбор мастера</div>
+    <div class="phone">
+      <div class="tg-statusbar"><span>9:41</span><div>🔋</div></div>
+      <div class="tg-header">
+        <div class="tg-back"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title">Выбери мастера</div>
+      </div>
+      <div class="screen-body">
+        <div class="master-screen">
+          <div class="master-list">
+            <div class="master-card selected">
+              <div class="master-photo" style="background:linear-gradient(135deg,var(--primary),#E0BF6A)">А</div>
+              <div style="flex:1"><div class="master-name">Анна Иванова</div><div class="master-role">Стилист-колорист · 5 лет</div><div class="master-rating">✦ 4.9 <span style="color:var(--fg-muted);font-weight:400">(86 отзывов)</span></div></div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><div class="master-available">Свободна</div><div class="master-check"><svg viewBox="0 0 24 24" fill="none"><polyline points="20,6 9,17 4,12"/></svg></div></div>
+            </div>
+            <div class="master-card">
+              <div class="master-photo" style="background:linear-gradient(135deg,#C9A84C80,#C9A84C)">М</div>
+              <div style="flex:1"><div class="master-name">Мария Козлова</div><div class="master-role">Стилист · 3 года</div><div class="master-rating">✦ 4.7 <span style="color:var(--fg-muted);font-weight:400">(54 отзыва)</span></div></div>
+              <div class="master-available">Свободна</div>
+            </div>
+            <div class="master-card">
+              <div class="master-photo" style="background:linear-gradient(135deg,#6FCF9740,#6FCF97)">Е</div>
+              <div style="flex:1"><div class="master-name">Елена Петрова</div><div class="master-role">Парикмахер · 7 лет</div><div class="master-rating">✦ 4.8 <span style="color:var(--fg-muted);font-weight:400">(112 отзывов)</span></div></div>
+              <div style="font-size:11px;color:var(--fg-muted)">Занята до 15:00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tg-main-btn">Анна Иванова</div>
+    </div>
+  </div>
+
+  <div class="screen-group">
+    <div class="screen-label">6 · Выбор даты</div>
+    <div class="phone">
+      <div class="tg-statusbar"><span>9:41</span><div>🔋</div></div>
+      <div class="tg-header">
+        <div class="tg-back"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title">Выбери дату</div>
+      </div>
+      <div class="screen-body">
+        <div class="calendar-screen">
+          <div class="cal-nav">
+            <div class="cal-nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg></div>
+            <div class="cal-month">Апрель 2026</div>
+            <div class="cal-nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="9,18 15,12 9,6"/></svg></div>
+          </div>
+          <div class="cal-weekdays">
+            <div class="cal-weekday">Пн</div><div class="cal-weekday">Вт</div><div class="cal-weekday">Ср</div><div class="cal-weekday">Чт</div><div class="cal-weekday">Пт</div><div class="cal-weekday">Сб</div><div class="cal-weekday">Вс</div>
+          </div>
+          <div class="cal-days">
+            <div class="cal-day empty"></div>
+            <div class="cal-day past">1</div><div class="cal-day past">2</div><div class="cal-day past">3</div><div class="cal-day past">4</div><div class="cal-day past">5</div><div class="cal-day past">6</div>
+            <div class="cal-day past">7</div><div class="cal-day past">8</div><div class="cal-day past">9</div><div class="cal-day past">10</div><div class="cal-day past">11</div><div class="cal-day past">12</div><div class="cal-day past">13</div>
+            <div class="cal-day past">14</div><div class="cal-day past">15</div><div class="cal-day past">16</div><div class="cal-day past">17</div>
+            <div class="cal-day today">18</div>
+            <div class="cal-day has-slots">19</div><div class="cal-day has-slots">20</div>
+            <div class="cal-day has-slots">21</div><div class="cal-day has-slots">22</div><div class="cal-day has-slots">23</div><div class="cal-day has-slots">24</div><div class="cal-day selected">25</div>
+            <div class="cal-day">26</div><div class="cal-day">27</div><div class="cal-day has-slots">28</div><div class="cal-day has-slots">29</div><div class="cal-day has-slots">30</div>
+          </div>
+          <div class="cal-hint">✦ Выбрано: пятница, 25 апреля</div>
+        </div>
+      </div>
+      <div class="tg-main-btn">Выбрать время</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ROW 3 -->
+<div class="screens-row">
+
+  <div class="screen-group">
+    <div class="screen-label">7 · Выбор времени</div>
+    <div class="phone">
+      <div class="tg-statusbar"><span>9:41</span><div>🔋</div></div>
+      <div class="tg-header">
+        <div class="tg-back"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title">Выбери время</div>
+      </div>
+      <div class="screen-body">
+        <div class="time-screen">
+          <div class="time-selected-date">✦ Пятница, 25 апреля · Анна Иванова</div>
+          <div class="time-section-title">Утро</div>
+          <div class="time-slots">
+            <div class="time-slot busy">09:00</div>
+            <div class="time-slot busy">10:00</div>
+            <div class="time-slot">11:00</div>
+          </div>
+          <div class="time-section-title">День</div>
+          <div class="time-slots">
+            <div class="time-slot selected">12:00</div>
+            <div class="time-slot">13:00</div>
+            <div class="time-slot busy">14:00</div>
+            <div class="time-slot">15:00</div>
+            <div class="time-slot">16:00</div>
+            <div class="time-slot busy">17:00</div>
+          </div>
+          <div class="time-section-title">Вечер</div>
+          <div class="time-slots">
+            <div class="time-slot">18:00</div>
+            <div class="time-slot">19:00</div>
+          </div>
+        </div>
+      </div>
+      <div class="tg-main-btn">12:00 — Подтвердить</div>
+    </div>
+  </div>
+
+  <div class="screen-group">
+    <div class="screen-label">8 · Подтверждение</div>
+    <div class="phone">
+      <div class="tg-statusbar"><span>9:41</span><div>🔋</div></div>
+      <div class="tg-header">
+        <div class="tg-back"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title">Подтверждение</div>
+      </div>
+      <div class="screen-body">
+        <div class="confirm-screen">
+          <div class="confirm-card">
+            <div class="confirm-card-top"><div class="confirm-card-title">Детали записи</div></div>
+            <div class="confirm-divider"></div>
+            <div class="confirm-row"><div class="confirm-icon">✂</div><div><div class="confirm-key">Услуга</div><div class="confirm-val">Стрижка + укладка</div></div></div>
+            <div class="confirm-row"><div class="confirm-icon">◆</div><div><div class="confirm-key">Мастер</div><div class="confirm-val">Анна Иванова</div></div></div>
+            <div class="confirm-row"><div class="confirm-icon">◇</div><div><div class="confirm-key">Дата и время</div><div class="confirm-val">Пт, 25 апреля · 12:00</div></div></div>
+            <div class="confirm-row"><div class="confirm-icon">○</div><div><div class="confirm-key">Длительность</div><div class="confirm-val">60 минут</div></div></div>
+          </div>
+          <div class="confirm-total">
+            <div class="confirm-total-label">К оплате</div>
+            <div class="confirm-total-val">35 €</div>
+          </div>
+          <div class="confirm-note">Напоминания придут за 24ч, 2ч и 30 мин до визита</div>
+        </div>
+      </div>
+      <div class="tg-main-btn">✦ Подтвердить запись</div>
+    </div>
+  </div>
+
+  <div class="screen-group">
+    <div class="screen-label">9 · Мои записи</div>
+    <div class="phone">
+      <div class="tg-statusbar"><span>9:41</span><div>🔋</div></div>
+      <div class="tg-header">
+        <div class="tg-back"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title">Мои записи</div>
+      </div>
+      <div class="screen-body">
+        <div class="bookings-screen">
+          <div class="bookings-tabs">
+            <div class="booking-tab active">Предстоящие</div>
+            <div class="booking-tab">История</div>
+          </div>
+          <div class="bookings-list">
+            <div class="booking-card">
+              <div class="booking-card-header"><div class="booking-status upcoming">✓ Подтверждено</div><div class="booking-date">Пт, 25 апр · 12:00</div></div>
+              <div class="booking-card-body"><div class="booking-service">Стрижка + укладка</div><div class="booking-details">Анна Иванова · 60 мин · 35 €</div></div>
+              <div class="booking-actions"><div class="booking-action-btn secondary">Перенести</div><div class="booking-action-btn danger">Отменить</div></div>
+            </div>
+            <div class="booking-card">
+              <div class="booking-card-header"><div class="booking-status done">Завершено</div><div class="booking-date">Пт, 11 апр · 15:00</div></div>
+              <div class="booking-card-body"><div class="booking-service">Маникюр с покрытием</div><div class="booking-details">Мария Козлова · 90 мин · 28 €</div></div>
+              <div class="booking-actions"><div class="booking-action-btn secondary">✦ Оставить отзыв</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ROW 4 -->
+<div class="screens-row">
+
+  <div class="screen-group">
+    <div class="screen-label">10 · AI-консультант</div>
+    <div class="phone">
+      <div class="tg-statusbar"><span>9:41</span><div>🔋</div></div>
+      <div class="tg-header">
+        <div class="tg-back"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title">AI-консультант</div>
+        <div style="font-size:10px;background:var(--primary-light);color:var(--primary);padding:3px 8px;border-radius:3px;font-weight:600;border:1px solid var(--border);letter-spacing:.06em">BETA</div>
+      </div>
+      <div class="screen-body">
+        <div class="ai-screen">
+          <div class="ai-banner">
+            <div class="ai-banner-icon">✨</div>
+            <div><div class="ai-banner-title">AI-помощник Hunger Beauty</div><div class="ai-banner-sub">Подберу услугу и отвечу на вопросы</div></div>
+          </div>
+          <div class="ai-chat">
+            <div class="chat-msg bot"><div class="chat-bubble">Здравствуйте! Я помогу подобрать идеальную услугу. Что вас интересует?</div><div class="chat-time">09:40</div></div>
+            <div class="chat-msg user"><div class="chat-bubble">Хочу сделать уход за волосами</div><div class="chat-time">09:41</div></div>
+            <div class="chat-msg bot"><div class="chat-bubble">Превосходный выбор! Для ухода за волосами у нас есть: стрижка + укладка (35€), окрашивание (55€), кератин (70€). Какова длина ваших волос?</div><div class="chat-time">09:41</div></div>
+          </div>
+          <div class="ai-chips">
+            <div class="ai-chip">Короткие</div>
+            <div class="ai-chip">Средние</div>
+            <div class="ai-chip">Длинные</div>
+            <div class="ai-chip">Записаться</div>
+          </div>
+          <div class="ai-input-row">
+            <div class="ai-input">Написать сообщение…</div>
+            <div class="ai-send"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-group">
+    <div class="screen-label">11 · Мой профиль</div>
+    <div class="phone">
+      <div class="tg-statusbar"><span>9:41</span><div>🔋</div></div>
+      <div class="tg-header">
+        <div class="tg-back"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title">Профиль</div>
+      </div>
+      <div class="screen-body">
+        <div class="profile-screen">
+          <div class="profile-hero">
+            <div class="profile-pic">А</div>
+            <div><div class="profile-name">Алексей Петров</div><div class="profile-phone">+7 999 123-45-67</div><div class="profile-badge">✦ VIP</div></div>
+          </div>
+          <div class="profile-stats">
+            <div class="profile-stat"><div class="profile-stat-val">12</div><div class="profile-stat-key">Визитов</div></div>
+            <div class="profile-stat"><div class="profile-stat-val">340 €</div><div class="profile-stat-key">Потрачено</div></div>
+            <div class="profile-stat"><div class="profile-stat-val" style="color:var(--primary)">VIP</div><div class="profile-stat-key">Статус</div></div>
+          </div>
+          <div class="profile-menu">
+            <div class="profile-item"><div class="profile-item-icon">📋</div><div class="profile-item-text">История визитов</div><div class="profile-item-arrow">›</div></div>
+            <div class="profile-item"><div class="profile-item-icon">✏️</div><div class="profile-item-text">Редактировать данные</div><div class="profile-item-arrow">›</div></div>
+            <div class="profile-item"><div class="profile-item-icon">🌐</div><div class="profile-item-text">Язык интерфейса</div><div class="profile-item-arrow">›</div></div>
+            <div class="profile-item danger"><div class="profile-item-icon">🚪</div><div class="profile-item-text">Выйти</div><div class="profile-item-arrow">›</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

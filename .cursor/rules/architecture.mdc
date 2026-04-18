@@ -1,0 +1,36 @@
+---
+description: Глобальные архитектурные правила Hunger Beauty.
+apply: always
+---
+
+# Архитектура
+
+- Проект — single-tenant: 1 инсталляция = 1 салон. Никогда не добавляй salon_id в WHERE — он один.
+- Backend: Python 3.12 + FastAPI + aiogram 3 + SQLAlchemy 2 async.
+- Frontend: Next.js 14 App Router + TS strict + Tailwind + shadcn/ui.
+- БД PostgreSQL 16, кеш/очереди Redis 7, эмбеддинги pgvector.
+- AI: Google Gemini 1.5 Flash через адаптер. Никогда не зашивай провайдера — только через `ai_service`.
+- Все строковые i18n-поля = JSONB `{en,ru,uk,bg}`.
+- Валюта и ТЗ — из `settings`, никогда не хардкодь.
+- Логи — structured JSON через structlog.
+- Секреты — только через `.env`, никогда в коде.
+- Никаких сторонних админ-тулов (pgAdmin, Adminer) — всё через админку.
+
+# Слои
+- `models/` — только SQLAlchemy-модели, без бизнес-логики.
+- `schemas/` — Pydantic v2, для API и валидации.
+- `services/` — бизнес-логика, принимает `AsyncSession` в конструкторе.
+- `api/v1/` — тонкие роуты, только роутинг + вызов `services`.
+- `bot/routers/` — тонкие хендлеры aiogram.
+- `workers/` — ARQ задачи, идемпотентны.
+
+# Никогда
+- Не делай миграцию руками — только Alembic autogenerate.
+- Не пиши SQL-строки — только SQLAlchemy Core/ORM.
+- Не создавай N+1: используй selectinload/joinedload.
+- Не используй sync-драйверы — только async.
+
+# Синхронизация бот ↔ админка
+- Изменения каталога услуг → Redis Pub/Sub channel `services:updates`.
+- Бот подписан на этот канал и инвалидирует in-memory кеш.
+- Никогда не читай БД напрямую из хендлера — только через кеш-слой `services_cache.py`.

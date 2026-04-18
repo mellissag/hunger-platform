@@ -1,0 +1,35 @@
+---
+description: Как писать тесты.
+apply: auto-attach
+globs:
+  - backend/tests/**
+  - frontend/**/*.test.ts
+  - frontend/**/*.spec.ts
+---
+
+# Testing
+
+- Backend unit: pytest + pytest-asyncio, моки через pytest-mock.
+- Integration: testcontainers-postgres.
+- Bot: aiogram-tests, проверяем full FSM flow.
+- Frontend unit: Vitest + Testing Library.
+- E2E: Playwright, отдельный docker-compose.test.yml.
+- Каждая бизнес-фича — минимум 1 happy path + 1 edge case.
+- Race conditions — явный concurrency test через asyncio.gather.
+- Coverage threshold backend ≥ 70%, ключевые services ≥ 85%.
+- Никогда не пиши тесты с `time.sleep` — только `freezegun`/фиктивное now.
+- Seed-данные — фикстуры `tests/fixtures/`, никогда не завязываемся на prod seed.
+
+# Обязательные тесты для Services CRUD
+- `test_create_service_publishes_redis_event`
+- `test_hide_service_invalidates_bot_cache`
+- `test_delete_service_blocked_when_active_bookings`
+- `test_bot_does_not_show_hidden_service`
+- `test_booking_race_condition_slot_taken`
+
+# Обязательные тесты для бота
+- `test_booking_flow_happy_path` (полный FSM: language → menu → service → master → date → time → confirm)
+- `test_booking_flow_service_hidden_mid_session` (race condition)
+- `test_cancel_booking_within_free_hours`
+- `test_cancel_booking_policy_applied`
+- `test_blacklist_blocked`

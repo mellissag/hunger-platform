@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Hunger Platform — Mini App: 3 темы рядом</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: #111;
+  padding: 40px 20px 60px;
+  -webkit-font-smoothing: antialiased;
+}
+.page-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+.page-header h1 {
+  font-size: 26px; font-weight: 800;
+  background: linear-gradient(135deg, #D97757, #C9A84C, #4F8EF7);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+.page-header p { font-size: 13px; color: #666; }
+
+.section-title {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: #555;
+  margin-bottom: 24px;
+  margin-top: 50px;
+}
+.section-title span { color: #888; margin: 0 10px; }
+
+.variants-row {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 50px;
+}
+
+/* ─── Theme Labels ─── */
+.theme-col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.theme-badge {
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  padding: 5px 14px; border-radius: 20px;
+}
+.badge-friendly { background: #FEEADF; color: #B85E3C; }
+.badge-minimal  { background: rgba(79,142,247,.12); color: #4F8EF7; }
+.badge-premium  { background: rgba(201,168,76,.1); color: #C9A84C; border: 1px solid rgba(201,168,76,.3); }
+
+/* ─── Generic Phone Frame ─── */
+.phone {
+  width: 300px;
+  min-height: 560px;
+  border-radius: 26px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.phone-friendly {
+  background: #FAF7F5;
+  box-shadow: 0 20px 60px rgba(217,119,87,.25), 0 0 0 1.5px rgba(217,119,87,.15);
+}
+.phone-minimal {
+  background: #0F1117;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06);
+}
+.phone-premium {
+  background: #080808;
+  box-shadow: 0 20px 60px rgba(0,0,0,.8), 0 0 0 1px rgba(201,168,76,.2), inset 0 1px 0 rgba(201,168,76,.1);
+}
+
+.tg-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px 5px;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.sb-friendly { background: #fff; color: #2A241F; border-bottom: 1px solid #ECE4DF; }
+.sb-minimal  { background: #1A1D27; color: #6B7280; border-bottom: 1px solid #2A2D3E; }
+.sb-premium  { background: #141414; color: #8A7D6A; border-bottom: 1px solid rgba(201,168,76,.15); }
+
+.tg-header {
+  display: flex; align-items: center; padding: 9px 12px; gap: 8px; flex-shrink: 0;
+}
+.hdr-friendly { background: #fff; border-bottom: 1px solid #ECE4DF; }
+.hdr-minimal  { background: #1A1D27; border-bottom: 1px solid #2A2D3E; }
+.hdr-premium  { background: #141414; border-bottom: 1px solid rgba(201,168,76,.15); }
+
+.tg-back {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.back-friendly { background: #F5EEEA; }
+.back-minimal  { background: #1E2130; }
+.back-premium  { background: #1A1A1A; border: 1px solid rgba(255,255,255,.05); }
+.back-friendly svg { stroke: #7B6F66; }
+.back-minimal svg { stroke: #6B7280; }
+.back-premium svg { stroke: #8A7D6A; }
+.tg-back svg { width: 14px; height: 14px; }
+
+.tg-title { flex: 1; font-size: 14px; font-weight: 600; }
+.title-friendly { color: #2A241F; }
+.title-minimal  { color: #E8EAED; }
+.title-premium  { color: #F5F0E8; font-family: "Cormorant Garamond", serif; font-size: 16px; }
+
+.screen-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+.tg-main-btn {
+  text-align: center; padding: 13px 16px;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+.btn-friendly { background: #D97757; color: #fff; }
+.btn-minimal  { background: #4F8EF7; color: #fff; }
+.btn-premium  { background: linear-gradient(135deg, #C9A84C, #E0BF6A); color: #0A0800; letter-spacing: .05em; text-transform: uppercase; font-size: 12px; }
+
+/* ─── MAIN MENU SCREENS ─── */
+.menu-hero-f {
+  background: linear-gradient(160deg, #D97757, #E89A7D);
+  padding: 18px 16px 20px; color: #fff;
+}
+.menu-hero-m {
+  background: #1A1D27; border-bottom: 1px solid #2A2D3E;
+  padding: 16px 16px;
+  display: flex; align-items: center; gap: 12px;
+}
+.menu-hero-p {
+  background: #141414; border-bottom: 1px solid rgba(201,168,76,.15);
+  padding: 16px 16px;
+  display: flex; align-items: center; gap: 12px;
+  position: relative;
+}
+.menu-hero-p::before { content:''; position:absolute; top:0;left:0;right:0;height:2px; background: linear-gradient(90deg, transparent, #C9A84C, transparent); }
+.menu-greeting-f { font-size: 11px; opacity:.85; }
+.menu-name-f { font-size: 18px; font-weight: 700; }
+
+.menu-avatar-m { width: 42px; height: 42px; border-radius: 12px; background: rgba(79,142,247,.12); border: 1px solid rgba(79,142,247,.3); display:grid;place-items:center; font-size:16px;font-weight:800;color:#4F8EF7; flex-shrink:0; }
+.menu-avatar-p { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg,#C9A84C,#E0BF6A); display:grid;place-items:center; font-size:16px;font-weight:800;color:#0A0800; flex-shrink:0; box-shadow: 0 0 16px rgba(201,168,76,.3); }
+.menu-name-m { font-size: 15px; font-weight: 700; color: #E8EAED; }
+.menu-greeting-m { font-size: 11px; color: #6B7280; }
+.menu-name-p { font-family: "Cormorant Garamond", serif; font-size: 18px; font-weight: 600; color: #F5F0E8; }
+.menu-greeting-p { font-size: 11px; color: #8A7D6A; text-transform: uppercase; letter-spacing: .06em; }
+.menu-vip-p { font-size: 10px; color: #C9A84C; font-weight: 600; margin-top: 3px; }
+
+.menu-list { padding: 10px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.menu-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 10px; }
+.mi-f { background: #fff; box-shadow: 0 1px 3px rgba(42,36,31,.04); }
+.mi-m { background: #1A1D27; border: 1px solid #2A2D3E; }
+.mi-p { background: #141414; border: 1px solid rgba(255,255,255,.05); }
+.mi-icon { width: 34px; height: 34px; border-radius: 10px; display:grid;place-items:center;font-size:15px;flex-shrink:0; }
+.mi-icon-f-1 { background: #FEEADF; } .mi-icon-f-2 { background: #DFF0FE; } .mi-icon-f-3 { background: #EDE0F8; } .mi-icon-f-4 { background: #D9F2E5; } .mi-icon-f-5 { background: #FEF7DC; }
+.mi-icon-m { background: #1E2130; }
+.mi-icon-p { background: rgba(201,168,76,.08); border: 1px solid rgba(201,168,76,.15); }
+.mi-label { font-size: 13px; font-weight: 600; flex: 1; }
+.mi-label-f { color: #2A241F; }
+.mi-label-m { color: #E8EAED; }
+.mi-label-p { color: #F5F0E8; font-size: 12px; }
+.mi-arrow { font-size: 14px; }
+.mi-arrow-f { color: #7B6F66; } .mi-arrow-m { color: #4F8EF7; } .mi-arrow-p { color: #C9A84C; opacity:.7; }
+
+/* ─── SERVICE LIST ─── */
+.cat-row { display: flex; gap: 6px; padding: 8px 10px; overflow-x: auto; flex-shrink: 0; }
+.cat-row::-webkit-scrollbar { display: none; }
+.cat-row-f { background: #fff; border-bottom: 1px solid #ECE4DF; }
+.cat-row-m { background: #1A1D27; border-bottom: 1px solid #2A2D3E; }
+.cat-row-p { background: #141414; border-bottom: 1px solid rgba(201,168,76,.15); }
+.ctag { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.ctag-f { background: #F5EEEA; color: #7B6F66; }
+.ctag-f.on { background: #D97757; color: #fff; }
+.ctag-m { background: #1E2130; color: #6B7280; }
+.ctag-m.on { background: #4F8EF7; color: #fff; }
+.ctag-p { background: #1A1A1A; color: #8A7D6A; text-transform: uppercase; font-size: 10px; letter-spacing: .05em; border-radius: 4px; }
+.ctag-p.on { background: #C9A84C; color: #0A0800; }
+
+.svc-list { flex: 1; overflow-y: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.svc-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 10px; }
+.svc-f { background: #fff; border: 1.5px solid transparent; box-shadow: 0 1px 3px rgba(42,36,31,.04); }
+.svc-f.sel { border-color: #D97757; background: #FFF8F5; }
+.svc-m { background: #1A1D27; border: 1px solid #2A2D3E; }
+.svc-m.sel { border-color: #4F8EF7; background: rgba(79,142,247,.07); }
+.svc-p { background: #141414; border: 1px solid rgba(255,255,255,.04); }
+.svc-p.sel { border-color: #C9A84C; background: rgba(201,168,76,.07); box-shadow: 0 0 14px rgba(201,168,76,.15); }
+.svc-icon { width: 34px; height: 34px; border-radius: 8px; display:grid;place-items:center;font-size:15px;flex-shrink:0; }
+.svc-icon-f { background: #FEF3DC; }
+.svc-icon-m { background: #1E2130; }
+.svc-icon-p { background: #1A1A1A; border: 1px solid rgba(201,168,76,.15); }
+.svc-name-f { font-size: 12px; font-weight: 600; color: #2A241F; }
+.svc-name-m { font-size: 12px; font-weight: 600; color: #E8EAED; }
+.svc-name-p { font-size: 12px; font-weight: 600; color: #F5F0E8; }
+.svc-dur { font-size: 10px; color: #888; margin-top: 2px; }
+.svc-price { font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.svc-price-f { color: #D97757; }
+.svc-price-m { color: #4F8EF7; }
+.svc-price-p { color: #C9A84C; font-family: "Cormorant Garamond", serif; font-size: 16px; }
+
+/* ─── CALENDAR ─── */
+.cal-wrap { padding: 12px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; }
+.cal-month-f { font-size: 14px; font-weight: 700; color: #2A241F; }
+.cal-month-m { font-size: 14px; font-weight: 700; color: #E8EAED; }
+.cal-month-p { font-family: "Cormorant Garamond", serif; font-size: 17px; font-weight: 600; color: #F5F0E8; }
+.cal-btn { width: 28px; height: 28px; border-radius: 7px; display:grid;place-items:center; }
+.cal-btn-f { background: #F5EEEA; } .cal-btn-f svg { stroke: #7B6F66; }
+.cal-btn-m { background: #1E2130; } .cal-btn-m svg { stroke: #6B7280; }
+.cal-btn-p { background: #1A1A1A; border: 1px solid rgba(255,255,255,.05); } .cal-btn-p svg { stroke: #8A7D6A; }
+.cal-btn svg { width: 13px; height: 13px; fill: none; stroke-width: 2.5; }
+.cal-wdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+.wday { font-size: 9px; font-weight: 600; padding: 3px 0; }
+.wday-f { color: #7B6F66; } .wday-m { color: #6B7280; } .wday-p { color: #8A7D6A; letter-spacing:.05em; text-transform:uppercase; }
+.cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cday { aspect-ratio:1; display:grid;place-items:center; border-radius:7px; font-size:11px;font-weight:500; }
+.cday-f { color: #2A241F; }
+.cday-m { color: #E8EAED; }
+.cday-p { color: #F5F0E8; }
+.cday.past-f { color: #ccc; } .cday.past-m { color: #3A3E4F; } .cday.past-p { color: #2A2A2A; }
+.cday.today-f { background: #F4DED0; font-weight:700; }
+.cday.today-m { background: rgba(79,142,247,.12); font-weight:700; color: #4F8EF7; }
+.cday.today-p { border: 1px solid rgba(201,168,76,.4); font-weight:700; color: #C9A84C; }
+.cday.sel-f { background: #D97757; color: #fff; font-weight:700; }
+.cday.sel-m { background: #4F8EF7; color: #fff; font-weight:700; }
+.cday.sel-p { background: linear-gradient(135deg,#C9A84C,#E0BF6A); color: #0A0800; font-weight:700; }
+.cday.hs-f { border-bottom: 2px solid #D97757; }
+.cday.hs-m { border-bottom: 2px solid #4F8EF7; }
+.cday.hs-p { border-bottom: 2px solid #C9A84C; }
+
+/* ─── AI CHAT ─── */
+.ai-wrap { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.ai-top-f { background: linear-gradient(135deg,#7C4DFF,#AA60FF); padding: 10px 12px; display:flex;align-items:center;gap:8px;flex-shrink:0; }
+.ai-top-m { background: #1A1D27; border-bottom: 1px solid #2A2D3E; padding: 10px 12px; display:flex;align-items:center;gap:8px;flex-shrink:0; }
+.ai-top-p { background: linear-gradient(135deg,#1A1206,#22180A); border-bottom: 1px solid rgba(201,168,76,.15); padding: 10px 12px; display:flex;align-items:center;gap:8px;flex-shrink:0; }
+.ai-icon { font-size: 20px; }
+.ai-ttl-f { font-size: 12px; font-weight: 700; color: #fff; }
+.ai-ttl-m { font-size: 12px; font-weight: 700; color: #E8EAED; }
+.ai-ttl-p { font-family:"Cormorant Garamond",serif; font-size: 14px; font-weight: 600; color: #F5F0E8; }
+.ai-sub { font-size: 10px; margin-top: 1px; }
+.ai-sub-f { color: rgba(255,255,255,.75); }
+.ai-sub-m { color: #6B7280; }
+.ai-sub-p { color: #8A7D6A; }
+.ai-msgs { flex: 1; overflow-y: auto; padding: 10px; display:flex;flex-direction:column;gap:8px; }
+.msg { max-width: 85%; }
+.msg.bot { align-self: flex-start; }
+.msg.usr { align-self: flex-end; }
+.bubble { padding: 8px 11px; border-radius: 12px; font-size: 12px; line-height: 1.5; }
+.bubble-bot-f { background: #fff; color: #2A241F; border-bottom-left-radius:4px; box-shadow: 0 1px 3px rgba(42,36,31,.06); }
+.bubble-usr-f { background: #D97757; color: #fff; border-bottom-right-radius: 4px; }
+.bubble-bot-m { background: #1A1D27; color: #E8EAED; border: 1px solid #2A2D3E; border-bottom-left-radius:4px; }
+.bubble-usr-m { background: #4F8EF7; color: #fff; border-bottom-right-radius: 4px; }
+.bubble-bot-p { background: #141414; color: #F5F0E8; border: 1px solid rgba(255,255,255,.05); border-bottom-left-radius:4px; }
+.bubble-usr-p { background: linear-gradient(135deg,#C9A84C,#E0BF6A); color: #0A0800; border-bottom-right-radius: 4px; font-weight: 500; }
+.msg-time { font-size: 9px; margin-top: 2px; color: #888; }
+.msg.usr .msg-time { text-align: right; }
+.ai-chips-row { display:flex;gap:5px;padding:0 10px 8px;overflow-x:auto;flex-shrink:0; }
+.ai-chips-row::-webkit-scrollbar { display: none; }
+.achip { padding: 5px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; white-space: nowrap; flex-shrink: 0; cursor: pointer; }
+.achip-f { background: #F4DED0; color: #B85E3C; }
+.achip-m { background: rgba(79,142,247,.1); color: #4F8EF7; border: 1px solid rgba(79,142,247,.2); border-radius: 6px; }
+.achip-p { background: rgba(201,168,76,.08); color: #C9A84C; border: 1px solid rgba(201,168,76,.2); border-radius: 4px; text-transform: uppercase; letter-spacing:.05em; }
+.ai-inp-row { display:flex;align-items:center;gap:6px;padding:8px 10px;flex-shrink:0; }
+.ai-inp-row-f { background: #fff; border-top: 1px solid #ECE4DF; }
+.ai-inp-row-m { background: #1A1D27; border-top: 1px solid #2A2D3E; }
+.ai-inp-row-p { background: #141414; border-top: 1px solid rgba(201,168,76,.15); }
+.ai-inp { flex:1;border-radius:20px;padding:7px 12px;font-size:12px; }
+.ai-inp-f { background: #F5EEEA; color: #7B6F66; }
+.ai-inp-m { background: #1E2130; color: #6B7280; border-radius: 8px; }
+.ai-inp-p { background: #1A1A1A; color: #8A7D6A; border-radius: 6px; border: 1px solid rgba(255,255,255,.05); }
+.ai-send-btn { width: 32px; height: 32px; border-radius: 50%; display:grid;place-items:center; flex-shrink:0; }
+.ai-send-f { background: #D97757; }
+.ai-send-m { background: #4F8EF7; border-radius: 8px; }
+.ai-send-p { background: linear-gradient(135deg,#C9A84C,#E0BF6A); border-radius: 6px; }
+.ai-send-btn svg { width: 14px; height: 14px; fill: none; stroke-width: 2; }
+.ai-send-f svg { stroke: #fff; }
+.ai-send-m svg { stroke: #fff; }
+.ai-send-p svg { stroke: #0A0800; }
+
+/* comparison section dividers */
+.compare-section { margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Hunger Beauty · Telegram Mini App</h1>
+  <p>Сравнение 3 тем — Friendly / Minimal / Premium</p>
+</div>
+
+<!-- ─── MAIN MENU ─── -->
+<div class="section-title">Экран 1 · <span>Главное меню</span></div>
+<div class="variants-row">
+
+  <div class="theme-col">
+    <div class="theme-badge badge-friendly">Friendly</div>
+    <div class="phone phone-friendly">
+      <div class="tg-statusbar sb-friendly"><span>9:41</span><span>🔋</span></div>
+      <div class="screen-body">
+        <div class="menu-hero-f">
+          <div class="menu-greeting-f">Добро пожаловать 👋</div>
+          <div class="menu-name-f">Алексей</div>
+          <div style="font-size:11px;opacity:.7;margin-top:2px">Студия красоты Hunger</div>
+        </div>
+        <div class="menu-list">
+          <div class="menu-item mi-f"><div class="mi-icon mi-icon-f-1">🗓</div><div class="mi-label mi-label-f">Записаться</div><div class="mi-arrow mi-arrow-f">›</div></div>
+          <div class="menu-item mi-f"><div class="mi-icon mi-icon-f-2">📋</div><div class="mi-label mi-label-f">Мои записи</div><div class="mi-arrow mi-arrow-f">›</div></div>
+          <div class="menu-item mi-f"><div class="mi-icon mi-icon-f-3">💬</div><div class="mi-label mi-label-f">AI-консультант</div><div class="mi-arrow mi-arrow-f">›</div></div>
+          <div class="menu-item mi-f"><div class="mi-icon mi-icon-f-4">ℹ️</div><div class="mi-label mi-label-f">О салоне</div><div class="mi-arrow mi-arrow-f">›</div></div>
+          <div class="menu-item mi-f"><div class="mi-icon mi-icon-f-5">👤</div><div class="mi-label mi-label-f">Мой профиль</div><div class="mi-arrow mi-arrow-f">›</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="theme-col">
+    <div class="theme-badge badge-minimal">Minimal</div>
+    <div class="phone phone-minimal">
+      <div class="tg-statusbar sb-minimal"><span>9:41</span><span>🔋</span></div>
+      <div class="screen-body">
+        <div class="menu-hero-m">
+          <div class="menu-avatar-m">А</div>
+          <div>
+            <div class="menu-greeting-m">Добро пожаловать</div>
+            <div class="menu-name-m">Алексей</div>
+          </div>
+        </div>
+        <div class="menu-list">
+          <div class="menu-item mi-m"><div class="mi-icon mi-icon-m">🗓</div><div class="mi-label mi-label-m">Записаться</div><div class="mi-arrow mi-arrow-m">›</div></div>
+          <div class="menu-item mi-m"><div class="mi-icon mi-icon-m">📋</div><div class="mi-label mi-label-m">Мои записи</div><div style="font-size:10px;background:rgba(79,142,247,.1);color:#4F8EF7;padding:2px 7px;border-radius:20px;font-weight:600">1</div></div>
+          <div class="menu-item mi-m"><div class="mi-icon mi-icon-m">💬</div><div class="mi-label mi-label-m">AI-консультант</div><div class="mi-arrow mi-arrow-m">›</div></div>
+          <div class="menu-item mi-m"><div class="mi-icon mi-icon-m">ℹ️</div><div class="mi-label mi-label-m">О салоне</div><div class="mi-arrow mi-arrow-m">›</div></div>
+          <div class="menu-item mi-m"><div class="mi-icon mi-icon-m">👤</div><div class="mi-label mi-label-m">Мой профиль</div><div class="mi-arrow mi-arrow-m">›</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="theme-col">
+    <div class="theme-badge badge-premium">Premium</div>
+    <div class="phone phone-premium">
+      <div class="tg-statusbar sb-premium"><span>9:41</span><span>🔋</span></div>
+      <div class="screen-body">
+        <div class="menu-hero-p">
+          <div class="menu-avatar-p">А</div>
+          <div>
+            <div class="menu-greeting-p">Добро пожаловать</div>
+            <div class="menu-name-p">Алексей</div>
+            <div class="menu-vip-p">✦ VIP</div>
+          </div>
+        </div>
+        <div class="menu-list">
+          <div class="menu-item mi-p"><div class="mi-icon mi-icon-p">🗓</div><div class="mi-label mi-label-p">Записаться</div><div class="mi-arrow mi-arrow-p">›</div></div>
+          <div class="menu-item mi-p"><div class="mi-icon mi-icon-p">📋</div><div class="mi-label mi-label-p">Мои записи</div><div class="mi-arrow mi-arrow-p">›</div></div>
+          <div class="menu-item mi-p"><div class="mi-icon mi-icon-p">💬</div><div class="mi-label mi-label-p">AI-консультант</div><div class="mi-arrow mi-arrow-p">›</div></div>
+          <div class="menu-item mi-p"><div class="mi-icon mi-icon-p">ℹ️</div><div class="mi-label mi-label-p">О салоне</div><div class="mi-arrow mi-arrow-p">›</div></div>
+          <div class="menu-item mi-p"><div class="mi-icon mi-icon-p">👤</div><div class="mi-label mi-label-p">Мой профиль</div><div class="mi-arrow mi-arrow-p">›</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── SERVICES ─── -->
+<div class="section-title">Экран 2 · <span>Выбор услуги</span></div>
+<div class="variants-row">
+
+  <div class="theme-col">
+    <div class="theme-badge badge-friendly">Friendly</div>
+    <div class="phone phone-friendly">
+      <div class="tg-statusbar sb-friendly"><span>9:41</span><span>🔋</span></div>
+      <div class="tg-header hdr-friendly">
+        <div class="tg-back back-friendly"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title title-friendly">Выбери услугу</div>
+      </div>
+      <div class="screen-body">
+        <div class="cat-row cat-row-f"><div class="ctag ctag-f on">Все</div><div class="ctag ctag-f">Волосы</div><div class="ctag ctag-f">Ногти</div><div class="ctag ctag-f">Уход</div></div>
+        <div class="svc-list">
+          <div class="svc-item svc-f sel"><div class="svc-icon svc-icon-f">✂️</div><div style="flex:1"><div class="svc-name-f">Стрижка + укладка</div><div class="svc-dur">⏱ 60 мин · 3 мастера</div></div><div class="svc-price svc-price-f">35 €</div></div>
+          <div class="svc-item svc-f"><div class="svc-icon svc-icon-f">💅</div><div style="flex:1"><div class="svc-name-f">Маникюр с покрытием</div><div class="svc-dur">⏱ 90 мин · 2 мастера</div></div><div class="svc-price svc-price-f">28 €</div></div>
+          <div class="svc-item svc-f"><div class="svc-icon svc-icon-f">🎨</div><div style="flex:1"><div class="svc-name-f">Окрашивание волос</div><div class="svc-dur">⏱ 120 мин · 2 мастера</div></div><div class="svc-price svc-price-f">55 €</div></div>
+          <div class="svc-item svc-f"><div class="svc-icon svc-icon-f">🧖</div><div style="flex:1"><div class="svc-name-f">Уход за кожей лица</div><div class="svc-dur">⏱ 45 мин · 1 мастер</div></div><div class="svc-price svc-price-f">40 €</div></div>
+        </div>
+      </div>
+      <div class="tg-main-btn btn-friendly">Стрижка + укладка</div>
+    </div>
+  </div>
+
+  <div class="theme-col">
+    <div class="theme-badge badge-minimal">Minimal</div>
+    <div class="phone phone-minimal">
+      <div class="tg-statusbar sb-minimal"><span>9:41</span><span>🔋</span></div>
+      <div class="tg-header hdr-minimal">
+        <div class="tg-back back-minimal"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title title-minimal">Выбери услугу</div>
+      </div>
+      <div class="screen-body">
+        <div class="cat-row cat-row-m"><div class="ctag ctag-m on">Все</div><div class="ctag ctag-m">Волосы</div><div class="ctag ctag-m">Ногти</div><div class="ctag ctag-m">Уход</div></div>
+        <div class="svc-list">
+          <div class="svc-item svc-m sel"><div class="svc-icon svc-icon-m">✂️</div><div style="flex:1"><div class="svc-name-m">Стрижка + укладка</div><div class="svc-dur">⏱ 60 мин · 3 мастера</div></div><div class="svc-price svc-price-m">35 €</div></div>
+          <div class="svc-item svc-m"><div class="svc-icon svc-icon-m">💅</div><div style="flex:1"><div class="svc-name-m">Маникюр с покрытием</div><div class="svc-dur">⏱ 90 мин · 2 мастера</div></div><div class="svc-price svc-price-m">28 €</div></div>
+          <div class="svc-item svc-m"><div class="svc-icon svc-icon-m">🎨</div><div style="flex:1"><div class="svc-name-m">Окрашивание волос</div><div class="svc-dur">⏱ 120 мин · 2 мастера</div></div><div class="svc-price svc-price-m">55 €</div></div>
+          <div class="svc-item svc-m"><div class="svc-icon svc-icon-m">🧖</div><div style="flex:1"><div class="svc-name-m">Уход за кожей лица</div><div class="svc-dur">⏱ 45 мин · 1 мастер</div></div><div class="svc-price svc-price-m">40 €</div></div>
+        </div>
+      </div>
+      <div class="tg-main-btn btn-minimal">Стрижка + укладка</div>
+    </div>
+  </div>
+
+  <div class="theme-col">
+    <div class="theme-badge badge-premium">Premium</div>
+    <div class="phone phone-premium">
+      <div class="tg-statusbar sb-premium"><span>9:41</span><span>🔋</span></div>
+      <div class="tg-header hdr-premium">
+        <div class="tg-back back-premium"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title title-premium">Выбери услугу</div>
+      </div>
+      <div class="screen-body">
+        <div class="cat-row cat-row-p"><div class="ctag ctag-p on">Все</div><div class="ctag ctag-p">Волосы</div><div class="ctag ctag-p">Ногти</div><div class="ctag ctag-p">Уход</div></div>
+        <div class="svc-list">
+          <div class="svc-item svc-p sel"><div class="svc-icon svc-icon-p">✂️</div><div style="flex:1"><div class="svc-name-p">Стрижка + укладка</div><div class="svc-dur">⏱ 60 мин · 3 мастера</div></div><div class="svc-price svc-price-p">35 €</div></div>
+          <div class="svc-item svc-p"><div class="svc-icon svc-icon-p">💅</div><div style="flex:1"><div class="svc-name-p">Маникюр с покрытием</div><div class="svc-dur">⏱ 90 мин · 2 мастера</div></div><div class="svc-price svc-price-p">28 €</div></div>
+          <div class="svc-item svc-p"><div class="svc-icon svc-icon-p">🎨</div><div style="flex:1"><div class="svc-name-p">Окрашивание волос</div><div class="svc-dur">⏱ 120 мин · 2 мастера</div></div><div class="svc-price svc-price-p">55 €</div></div>
+          <div class="svc-item svc-p"><div class="svc-icon svc-icon-p">🧖</div><div style="flex:1"><div class="svc-name-p">Уход за кожей лица</div><div class="svc-dur">⏱ 45 мин · 1 мастер</div></div><div class="svc-price svc-price-p">40 €</div></div>
+        </div>
+      </div>
+      <div class="tg-main-btn btn-premium">Стрижка + укладка</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── CALENDAR ─── -->
+<div class="section-title">Экран 3 · <span>Выбор даты</span></div>
+<div class="variants-row">
+
+  <div class="theme-col">
+    <div class="theme-badge badge-friendly">Friendly</div>
+    <div class="phone phone-friendly">
+      <div class="tg-statusbar sb-friendly"><span>9:41</span><span>🔋</span></div>
+      <div class="tg-header hdr-friendly">
+        <div class="tg-back back-friendly"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title title-friendly">Выбери дату</div>
+      </div>
+      <div class="screen-body">
+        <div class="cal-wrap">
+          <div class="cal-nav"><div class="cal-btn cal-btn-f"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div><div class="cal-month-f">Апрель 2026</div><div class="cal-btn cal-btn-f"><svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg></div></div>
+          <div class="cal-wdays"><div class="wday wday-f">Пн</div><div class="wday wday-f">Вт</div><div class="wday wday-f">Ср</div><div class="wday wday-f">Чт</div><div class="wday wday-f">Пт</div><div class="wday wday-f" style="color:#D64545">Сб</div><div class="wday wday-f" style="color:#D64545">Вс</div></div>
+          <div class="cal-days">
+            <div class="cday"></div>
+            <div class="cday past-f cday-f">1</div><div class="cday past-f cday-f">2</div><div class="cday past-f cday-f">3</div><div class="cday past-f cday-f">4</div><div class="cday past-f cday-f">5</div><div class="cday past-f cday-f">6</div>
+            <div class="cday past-f cday-f">7</div><div class="cday past-f cday-f">8</div><div class="cday past-f cday-f">9</div><div class="cday past-f cday-f">10</div><div class="cday past-f cday-f">11</div><div class="cday past-f cday-f">12</div><div class="cday past-f cday-f">13</div>
+            <div class="cday past-f cday-f">14</div><div class="cday past-f cday-f">15</div><div class="cday past-f cday-f">16</div><div class="cday past-f cday-f">17</div>
+            <div class="cday today-f cday-f">18</div><div class="cday hs-f cday-f">19</div><div class="cday cday-f" style="color:#D64545">20</div>
+            <div class="cday hs-f cday-f">21</div><div class="cday hs-f cday-f">22</div><div class="cday hs-f cday-f">23</div><div class="cday hs-f cday-f">24</div><div class="cday sel-f">25</div><div class="cday cday-f" style="color:#D64545">26</div><div class="cday cday-f" style="color:#D64545">27</div>
+            <div class="cday hs-f cday-f">28</div><div class="cday hs-f cday-f">29</div><div class="cday hs-f cday-f">30</div>
+          </div>
+          <div style="background:#FFF8F5;border-radius:8px;padding:8px 10px;font-size:11px;color:#D97757;font-weight:600;text-align:center;border:1px solid #F4DED0">✅ Пятница, 25 апреля</div>
+        </div>
+      </div>
+      <div class="tg-main-btn btn-friendly">Выбрать время →</div>
+    </div>
+  </div>
+
+  <div class="theme-col">
+    <div class="theme-badge badge-minimal">Minimal</div>
+    <div class="phone phone-minimal">
+      <div class="tg-statusbar sb-minimal"><span>9:41</span><span>🔋</span></div>
+      <div class="tg-header hdr-minimal">
+        <div class="tg-back back-minimal"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title title-minimal">Выбери дату</div>
+      </div>
+      <div class="screen-body">
+        <div class="cal-wrap">
+          <div class="cal-nav"><div class="cal-btn cal-btn-m"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div><div class="cal-month-m">Апрель 2026</div><div class="cal-btn cal-btn-m"><svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg></div></div>
+          <div class="cal-wdays"><div class="wday wday-m">Пн</div><div class="wday wday-m">Вт</div><div class="wday wday-m">Ср</div><div class="wday wday-m">Чт</div><div class="wday wday-m">Пт</div><div class="wday wday-m">Сб</div><div class="wday wday-m">Вс</div></div>
+          <div class="cal-days">
+            <div class="cday"></div>
+            <div class="cday past-m cday-m">1</div><div class="cday past-m">2</div><div class="cday past-m">3</div><div class="cday past-m">4</div><div class="cday past-m">5</div><div class="cday past-m">6</div>
+            <div class="cday past-m">7</div><div class="cday past-m">8</div><div class="cday past-m">9</div><div class="cday past-m">10</div><div class="cday past-m">11</div><div class="cday past-m">12</div><div class="cday past-m">13</div>
+            <div class="cday past-m">14</div><div class="cday past-m">15</div><div class="cday past-m">16</div><div class="cday past-m">17</div>
+            <div class="cday today-m">18</div><div class="cday hs-m cday-m">19</div><div class="cday cday-m">20</div>
+            <div class="cday hs-m cday-m">21</div><div class="cday hs-m cday-m">22</div><div class="cday hs-m cday-m">23</div><div class="cday hs-m cday-m">24</div><div class="cday sel-m">25</div><div class="cday cday-m">26</div><div class="cday cday-m">27</div>
+            <div class="cday hs-m cday-m">28</div><div class="cday hs-m cday-m">29</div><div class="cday hs-m cday-m">30</div>
+          </div>
+          <div style="background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.2);border-radius:8px;padding:8px 10px;font-size:11px;color:#4F8EF7;font-weight:600;text-align:center">Пятница, 25 апреля</div>
+        </div>
+      </div>
+      <div class="tg-main-btn btn-minimal">Выбрать время →</div>
+    </div>
+  </div>
+
+  <div class="theme-col">
+    <div class="theme-badge badge-premium">Premium</div>
+    <div class="phone phone-premium">
+      <div class="tg-statusbar sb-premium"><span>9:41</span><span>🔋</span></div>
+      <div class="tg-header hdr-premium">
+        <div class="tg-back back-premium"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title title-premium">Выбери дату</div>
+      </div>
+      <div class="screen-body">
+        <div class="cal-wrap">
+          <div class="cal-nav"><div class="cal-btn cal-btn-p"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div><div class="cal-month-p">Апрель 2026</div><div class="cal-btn cal-btn-p"><svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg></div></div>
+          <div class="cal-wdays"><div class="wday wday-p">Пн</div><div class="wday wday-p">Вт</div><div class="wday wday-p">Ср</div><div class="wday wday-p">Чт</div><div class="wday wday-p">Пт</div><div class="wday wday-p">Сб</div><div class="wday wday-p">Вс</div></div>
+          <div class="cal-days">
+            <div class="cday"></div>
+            <div class="cday past-p">1</div><div class="cday past-p">2</div><div class="cday past-p">3</div><div class="cday past-p">4</div><div class="cday past-p">5</div><div class="cday past-p">6</div>
+            <div class="cday past-p">7</div><div class="cday past-p">8</div><div class="cday past-p">9</div><div class="cday past-p">10</div><div class="cday past-p">11</div><div class="cday past-p">12</div><div class="cday past-p">13</div>
+            <div class="cday past-p">14</div><div class="cday past-p">15</div><div class="cday past-p">16</div><div class="cday past-p">17</div>
+            <div class="cday today-p">18</div><div class="cday hs-p cday-p">19</div><div class="cday cday-p">20</div>
+            <div class="cday hs-p cday-p">21</div><div class="cday hs-p cday-p">22</div><div class="cday hs-p cday-p">23</div><div class="cday hs-p cday-p">24</div><div class="cday sel-p">25</div><div class="cday cday-p">26</div><div class="cday cday-p">27</div>
+            <div class="cday hs-p cday-p">28</div><div class="cday hs-p cday-p">29</div><div class="cday hs-p cday-p">30</div>
+          </div>
+          <div style="background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:6px;padding:8px 10px;font-size:11px;color:#C9A84C;font-weight:600;text-align:center;letter-spacing:.03em">✦ Пятница, 25 апреля</div>
+        </div>
+      </div>
+      <div class="tg-main-btn btn-premium">Выбрать время</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── AI CHAT ─── -->
+<div class="section-title">Экран 4 · <span>AI-консультант</span></div>
+<div class="variants-row">
+
+  <div class="theme-col">
+    <div class="theme-badge badge-friendly">Friendly</div>
+    <div class="phone phone-friendly">
+      <div class="tg-statusbar sb-friendly"><span>9:41</span><span>🔋</span></div>
+      <div class="tg-header hdr-friendly">
+        <div class="tg-back back-friendly"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title title-friendly">AI-консультант</div>
+      </div>
+      <div class="screen-body">
+        <div class="ai-wrap">
+          <div class="ai-top-f"><div class="ai-icon">✨</div><div><div class="ai-ttl-f">AI-помощник</div><div class="ai-sub ai-sub-f">Подберу идеальную услугу</div></div></div>
+          <div class="ai-msgs">
+            <div class="msg bot"><div class="bubble bubble-bot-f">Привет! Чем могу помочь? 💇‍♀️</div><div class="msg-time">09:40</div></div>
+            <div class="msg usr"><div class="bubble bubble-usr-f">Хочу уход за волосами</div><div class="msg-time">09:41</div></div>
+            <div class="msg bot"><div class="bubble bubble-bot-f">Отлично! У нас есть стрижка (35€), окрашивание (55€), кератин (70€). Какая длина волос?</div><div class="msg-time">09:41</div></div>
+          </div>
+          <div class="ai-chips-row"><div class="achip achip-f">Короткие</div><div class="achip achip-f">Средние</div><div class="achip achip-f">Длинные</div></div>
+          <div class="ai-inp-row ai-inp-row-f"><div class="ai-inp ai-inp-f">Написать…</div><div class="ai-send-btn ai-send-f"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9" fill="#fff"/></svg></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="theme-col">
+    <div class="theme-badge badge-minimal">Minimal</div>
+    <div class="phone phone-minimal">
+      <div class="tg-statusbar sb-minimal"><span>9:41</span><span>🔋</span></div>
+      <div class="tg-header hdr-minimal">
+        <div class="tg-back back-minimal"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title title-minimal">AI-консультант</div>
+      </div>
+      <div class="screen-body">
+        <div class="ai-wrap">
+          <div class="ai-top-m"><div class="ai-icon">🤖</div><div><div class="ai-ttl-m">AI-помощник</div><div class="ai-sub ai-sub-m">Подберу идеальную услугу</div></div></div>
+          <div class="ai-msgs">
+            <div class="msg bot"><div class="bubble bubble-bot-m">Привет! Чем могу помочь? 💇‍♀️</div><div class="msg-time">09:40</div></div>
+            <div class="msg usr"><div class="bubble bubble-usr-m">Хочу уход за волосами</div><div class="msg-time">09:41</div></div>
+            <div class="msg bot"><div class="bubble bubble-bot-m">Отлично! У нас есть стрижка (35€), окрашивание (55€), кератин (70€). Какая длина волос?</div><div class="msg-time">09:41</div></div>
+          </div>
+          <div class="ai-chips-row"><div class="achip achip-m">Короткие</div><div class="achip achip-m">Средние</div><div class="achip achip-m">Длинные</div></div>
+          <div class="ai-inp-row ai-inp-row-m"><div class="ai-inp ai-inp-m">Написать…</div><div class="ai-send-btn ai-send-m"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13" stroke="#fff"/><polygon points="22,2 15,22 11,13 2,9" fill="#fff"/></svg></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="theme-col">
+    <div class="theme-badge badge-premium">Premium</div>
+    <div class="phone phone-premium">
+      <div class="tg-statusbar sb-premium"><span>9:41</span><span>🔋</span></div>
+      <div class="tg-header hdr-premium">
+        <div class="tg-back back-premium"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="tg-title title-premium">AI-консультант</div>
+      </div>
+      <div class="screen-body">
+        <div class="ai-wrap">
+          <div class="ai-top-p"><div class="ai-icon">✨</div><div><div class="ai-ttl-p">AI-помощник</div><div class="ai-sub ai-sub-p">Подберу идеальную услугу</div></div></div>
+          <div class="ai-msgs">
+            <div class="msg bot"><div class="bubble bubble-bot-p">Здравствуйте! Чем могу помочь?</div><div class="msg-time">09:40</div></div>
+            <div class="msg usr"><div class="bubble bubble-usr-p">Хочу уход за волосами</div><div class="msg-time">09:41</div></div>
+            <div class="msg bot"><div class="bubble bubble-bot-p">Превосходный выбор! У нас есть стрижка (35€), окрашивание (55€), кератин (70€). Какова длина ваших волос?</div><div class="msg-time">09:41</div></div>
+          </div>
+          <div class="ai-chips-row"><div class="achip achip-p">Короткие</div><div class="achip achip-p">Средние</div><div class="achip achip-p">Длинные</div></div>
+          <div class="ai-inp-row ai-inp-row-p"><div class="ai-inp ai-inp-p">Написать…</div><div class="ai-send-btn ai-send-p"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13" stroke="#0A0800"/><polygon points="22,2 15,22 11,13 2,9" fill="#0A0800"/></svg></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align:center;margin-top:20px;font-size:12px;color:#444;">
+  Открой полные версии:
+  <a href="miniapp_friendly.html" style="color:#D97757;text-decoration:none;font-weight:600">Friendly (11 экранов)</a> ·
+  <a href="miniapp_minimal.html" style="color:#4F8EF7;text-decoration:none;font-weight:600">Minimal (11 экранов)</a> ·
+  <a href="miniapp_premium.html" style="color:#C9A84C;text-decoration:none;font-weight:600">Premium (11 экранов)</a>
+</div>
+
+</body>
+</html>

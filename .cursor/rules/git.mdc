@@ -1,0 +1,27 @@
+---
+description: Git workflow и правила коммитов.
+apply: always
+---
+
+# Git Rules
+
+- Commit messages: `type: краткое описание` (feat / fix / refactor / docs / style / test / chore / deploy).
+- Примеры: `feat: добавлен CRUD услуг с Redis sync`, `fix: исправлена отмена записи`.
+- Всегда `git add -A` — трекать ВСЕ файлы проекта (docs, designs, configs, specs).
+- Никогда не коммить `.env` и `data/` (они в `.gitignore`).
+
+# Теги
+- Формат: `ver{MAJOR}.{MINOR} — {сообщение коммита}`.
+- Создаются автоматически скриптом `deploy/scripts/tag_version.sh` при push в main.
+- Вручную: `git tag "ver1.2 — описание" && git push origin "ver1.2 — описание"`.
+
+# Ветки
+- `main` — стабильный код, деплой на VPS при каждом push.
+- `dev` — рабочая ветка.
+- `feature/*` — новые функции.
+- `fix/*` — баг-фиксы.
+
+# Push
+- `git push origin main --follow-tags` — пушить с тегами.
+- После merge в main — GitHub Actions автоматически деплоит на VPS по SSH.
+- Подробности: `GIT_DEPLOY_GUIDE.md`.

@@ -1,0 +1,44 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        files: ^backend/app/
+        additional_dependencies: [pydantic, sqlalchemy[asyncio], aiogram]
+
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: bash -c 'cd frontend && npx eslint --fix'
+        language: system
+        files: \.(ts|tsx)$
+
+      - id: tsc
+        name: tsc
+        entry: bash -c 'cd frontend && npx tsc --noEmit'
+        language: system
+        files: \.(ts|tsx)$
+        pass_filenames: false
+
+      - id: i18n-sync
+        name: i18n-sync
+        entry: python deploy/scripts/check_i18n.py
+        language: system
+        files: messages/.*\.json$|texts/.*\.ftl$
+        pass_filenames: false
+
+      - id: no-secrets
+        name: no-secrets (basic check)
+        entry: bash -c 'git diff --cached | grep -iE "(password|secret|api_key|token)\s*=\s*['\''\"]\S{8,}" && echo "Possible secret detected!" && exit 1 || exit 0'
+        language: system
+        pass_filenames: false

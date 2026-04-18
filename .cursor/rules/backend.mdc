@@ -1,0 +1,40 @@
+---
+description: Правила для backend-кода.
+apply: auto-attach
+globs:
+  - backend/**
+---
+
+# Backend conventions
+
+- Async везде. Никогда не вызывай `session.commit()` без `await`.
+- Все эндпоинты имеют response_model из `schemas/`.
+- RBAC через `Depends(require_roles([Role.OWNER, Role.ADMIN]))`.
+- Ошибки доменные — отдельные Exception-классы в `core/exceptions.py`:
+  - `SlotTakenError`, `ClientBlacklistedError`, `InvalidScheduleError`, `LicenseExpiredError`, `ServiceHiddenError` и т.д.
+- Exception handlers в `main.py` мапят эти классы в 4xx/5xx ответы.
+- Тесты pytest + pytest-asyncio, фикстуры в `tests/conftest.py`.
+- Testcontainers для интеграционных тестов.
+- Никогда не используй `print()` — только `logger`.
+- Все таймстампы — UTC в БД, конверсия в timezone салона на уровне представления.
+- Для concurrency-safe операций (booking create) — `SELECT ... FOR UPDATE`.
+
+# Сервисы и кеш
+- `services/service_crud.py` — CRUD для услуг. После каждого изменения:
+  1. `await db.commit()`
+  2. `await redis.publish("services:updates", json.dumps(event))`
+  3. `await redis.delete("services:list:active")`
+- `bot/services_cache.py` — единственная точка входа бота к списку услуг.
+
+# Структура сервисного класса
+```python
+class BookingService:
+    def __init__(self, db: AsyncSession, redis: Redis):
+        self.db = db
+        self.redis = redis
+```
+
+# ARQ Workers
+- Все задачи идемпотентны (перезапуск = безопасно).
+- Контекст: `ctx["db"]`, `ctx["redis"]`.
+- Timeout explicit: `max_tries=3`, `job_timeout=60`.

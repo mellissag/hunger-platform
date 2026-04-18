@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Hunger Platform — Login Variants</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    background: #0F0E0D; min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrapper {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    min-height: 100vh;
+  }
+  .variant {
+    position: relative; display: grid; place-items: center; padding: 40px 30px;
+    border-right: 1px solid rgba(255,255,255,.05);
+  }
+  .variant:last-child { border-right: none; }
+  .variant-label {
+    position: absolute; top: 16px; left: 16px;
+    font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+    color: rgba(255,255,255,.6); padding: 4px 10px;
+    background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 4px; font-weight: 600; backdrop-filter: blur(8px);
+    z-index: 10;
+  }
+
+  /* =========================================== */
+  /* VARIANT 1: FRIENDLY (light, warm) */
+  /* =========================================== */
+  .v-friendly {
+    background: linear-gradient(135deg, #FAF7F5 0%, #F4DED0 100%);
+    color: #2A241F;
+  }
+  .v-friendly .card {
+    width: 100%; max-width: 380px;
+    background: #fff; border-radius: 18px; padding: 36px 32px;
+    box-shadow: 0 20px 60px rgba(42,36,31,.12);
+    border: 1px solid rgba(236,228,223,.8);
+  }
+  .v-friendly .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+  .v-friendly .logo-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: linear-gradient(135deg, #D97757, #E89A7D);
+    display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 18px;
+  }
+  .v-friendly .brand-name { font-weight: 700; font-size: 16px; }
+  .v-friendly .brand-sub { font-size: 12px; color: #7B6F66; }
+  .v-friendly h1 { font-size: 22px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; }
+  .v-friendly .subtitle { font-size: 13px; color: #7B6F66; margin-bottom: 24px; }
+  .v-friendly label { display: block; font-size: 12px; font-weight: 500; color: #2A241F; margin-bottom: 6px; }
+  .v-friendly .input-wrap { position: relative; margin-bottom: 14px; }
+  .v-friendly .input-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: #7B6F66; }
+  .v-friendly input {
+    width: 100%; padding: 12px 12px 12px 40px;
+    background: #F5EEEA; border: 1px solid transparent; border-radius: 10px;
+    font-size: 14px; font-family: inherit; color: #2A241F; outline: none;
+    transition: all .2s;
+  }
+  .v-friendly input:focus { border-color: #D97757; background: #fff; }
+  .v-friendly .meta-row { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 20px; font-size: 12px; }
+  .v-friendly .checkbox { display: flex; align-items: center; gap: 6px; color: #7B6F66; cursor: pointer; }
+  .v-friendly .checkbox input[type=checkbox] { width: 14px; height: 14px; accent-color: #D97757; }
+  .v-friendly .forgot { color: #D97757; text-decoration: none; font-weight: 500; }
+  .v-friendly .btn {
+    width: 100%; padding: 12px; border: none; background: linear-gradient(135deg, #D97757, #C46441);
+    color: #fff; font-weight: 600; font-size: 14px; border-radius: 10px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all .2s; box-shadow: 0 6px 16px rgba(217,119,87,.25);
+    font-family: inherit;
+  }
+  .v-friendly .btn:hover { box-shadow: 0 10px 24px rgba(217,119,87,.35); transform: translateY(-1px); }
+  .v-friendly .divider { display: flex; align-items: center; gap: 10px; margin: 20px 0; color: #7B6F66; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; }
+  .v-friendly .divider::before, .v-friendly .divider::after { content: ''; flex: 1; height: 1px; background: #ECE4DF; }
+  .v-friendly .tg-btn {
+    width: 100%; padding: 10px; background: #F5EEEA; border: 1px solid #ECE4DF;
+    border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 13px; color: #2A241F; cursor: pointer; font-family: inherit;
+  }
+  .v-friendly .tg-btn:hover { background: #ECE4DF; }
+  .v-friendly .footer { text-align: center; font-size: 12px; color: #7B6F66; margin-top: 20px; }
+  .v-friendly .lang-select { position: absolute; top: 24px; right: 24px; background: rgba(255,255,255,.7); backdrop-filter: blur(8px); border: 1px solid rgba(236,228,223,.8); padding: 6px 12px; border-radius: 999px; font-size: 12px; color: #2A241F; cursor: pointer; }
+
+  /* =========================================== */
+  /* VARIANT 2: MINIMAL (dark, tech) */
+  /* =========================================== */
+  .v-minimal {
+    background: #0A0A0C;
+    color: #E8E8EA;
+    font-family: "Inter", sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+  .v-minimal::before {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(99,102,241,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,102,241,.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+  }
+  .v-minimal .card {
+    width: 100%; max-width: 360px;
+    background: #141418; border: 1px solid #22222A; border-radius: 8px;
+    padding: 36px 32px; position: relative;
+    box-shadow: 0 0 80px rgba(99,102,241,.1);
+  }
+  .v-minimal .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; font-family: "JetBrains Mono", monospace; }
+  .v-minimal .logo-icon {
+    width: 32px; height: 32px; border-radius: 6px;
+    background: #E8E8EA; color: #0A0A0C; display: grid; place-items: center;
+    font-weight: 700; font-size: 14px;
+  }
+  .v-minimal .brand-name { font-weight: 600; font-size: 13px; letter-spacing: -.01em; }
+  .v-minimal .brand-sub { font-size: 11px; color: #7A7A82; font-family: "JetBrains Mono", monospace; }
+  .v-minimal h1 { font-size: 20px; font-weight: 600; letter-spacing: -.02em; margin-bottom: 6px; }
+  .v-minimal .subtitle { font-size: 12px; color: #7A7A82; margin-bottom: 28px; font-family: "JetBrains Mono", monospace; }
+  .v-minimal label { display: block; font-size: 11px; font-weight: 500; color: #7A7A82; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .08em; font-family: "JetBrains Mono", monospace; }
+  .v-minimal .input-wrap { position: relative; margin-bottom: 14px; }
+  .v-minimal input {
+    width: 100%; padding: 10px 12px;
+    background: #1C1C24; border: 1px solid #22222A; border-radius: 4px;
+    font-size: 13px; font-family: "JetBrains Mono", monospace; color: #E8E8EA; outline: none;
+    transition: border .2s;
+  }
+  .v-minimal input:focus { border-color: #6366F1; }
+  .v-minimal input::placeholder { color: #4A4A52; }
+  .v-minimal .meta-row { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 24px; font-size: 11px; font-family: "JetBrains Mono", monospace; }
+  .v-minimal .checkbox { display: flex; align-items: center; gap: 6px; color: #7A7A82; cursor: pointer; }
+  .v-minimal .checkbox input[type=checkbox] { width: 12px; height: 12px; accent-color: #6366F1; }
+  .v-minimal .forgot { color: #6366F1; text-decoration: none; font-weight: 500; }
+  .v-minimal .btn {
+    width: 100%; padding: 10px; border: none; background: #6366F1;
+    color: #fff; font-weight: 500; font-size: 13px; border-radius: 4px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: background .2s; font-family: "Inter", sans-serif;
+  }
+  .v-minimal .btn:hover { background: #4F46E5; }
+  .v-minimal .kbd { background: rgba(255,255,255,.1); border-radius: 3px; padding: 1px 5px; font-size: 10px; font-family: "JetBrains Mono", monospace; margin-left: 8px; }
+  .v-minimal .footer { text-align: center; font-size: 10px; color: #4A4A52; margin-top: 24px; font-family: "JetBrains Mono", monospace; }
+  .v-minimal .lang-select { position: absolute; top: 24px; right: 24px; background: #141418; border: 1px solid #22222A; padding: 4px 10px; border-radius: 4px; font-size: 11px; color: #7A7A82; cursor: pointer; font-family: "JetBrains Mono", monospace; }
+  .v-minimal .status-line { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 16px; border-top: 1px dashed #22222A; font-family: "JetBrains Mono", monospace; font-size: 10px; color: #7A7A82; }
+  .v-minimal .status-dot { display: inline-block; width: 6px; height: 6px; background: #34D399; border-radius: 50%; margin-right: 6px; }
+
+  /* =========================================== */
+  /* VARIANT 3: PREMIUM (luxury, gold-dark) */
+  /* =========================================== */
+  .v-premium {
+    background: #0D0B08;
+    color: #EFE6D2;
+    position: relative;
+    overflow: hidden;
+  }
+  .v-premium::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at top left, rgba(201,169,110,.1), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(212,175,55,.05), transparent 50%);
+  }
+  .v-premium::after {
+    content: ''; position: absolute; top: 10%; right: 10%;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(201,169,110,.15), transparent 70%);
+    filter: blur(40px);
+  }
+  .v-premium .card {
+    width: 100%; max-width: 380px;
+    background: #18130E; border: 1px solid #2A2218;
+    border-radius: 2px; padding: 44px 36px; position: relative;
+    z-index: 5;
+  }
+  .v-premium .card::before {
+    content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 1px;
+    background: linear-gradient(90deg, transparent, #C9A96E, transparent);
+  }
+  .v-premium .brand { text-align: center; margin-bottom: 36px; }
+  .v-premium .logo-icon {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: radial-gradient(circle, #D4AF37, #C9A96E);
+    display: grid; place-items: center; color: #0D0B08;
+    font-family: "Playfair Display", serif; font-weight: 700; font-size: 24px;
+    margin: 0 auto 16px;
+    box-shadow: 0 0 30px rgba(201,169,110,.3);
+  }
+  .v-premium .brand-name { font-family: "Playfair Display", serif; font-weight: 500; font-size: 22px; letter-spacing: .02em; }
+  .v-premium .brand-sub { font-size: 10px; color: #C9A96E; letter-spacing: .3em; text-transform: uppercase; margin-top: 6px; }
+  .v-premium .ornament { color: #C9A96E; opacity: .5; text-align: center; letter-spacing: 1em; margin: 8px 0 0; font-size: 12px; }
+  .v-premium h1 {
+    font-family: "Playfair Display", serif; font-size: 20px; font-weight: 500;
+    letter-spacing: -.01em; margin-bottom: 4px; text-align: center;
+  }
+  .v-premium .subtitle { font-size: 11px; color: #8A7F6A; text-align: center; margin-bottom: 30px; letter-spacing: .12em; text-transform: uppercase; }
+  .v-premium label { display: block; font-size: 10px; font-weight: 600; color: #C9A96E; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .2em; }
+  .v-premium .input-wrap { position: relative; margin-bottom: 18px; }
+  .v-premium .input-wrap svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: #C9A96E; }
+  .v-premium input {
+    width: 100%; padding: 13px 14px 13px 42px;
+    background: #1F1A13; border: 1px solid #2A2218; border-radius: 2px;
+    font-size: 13px; font-family: "Inter", sans-serif; color: #EFE6D2; outline: none;
+    transition: border .25s; letter-spacing: .03em;
+  }
+  .v-premium input:focus { border-color: #C9A96E; }
+  .v-premium input::placeholder { color: #5A5040; }
+  .v-premium .meta-row { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 24px; font-size: 11px; }
+  .v-premium .checkbox { display: flex; align-items: center; gap: 8px; color: #8A7F6A; cursor: pointer; letter-spacing: .08em; }
+  .v-premium .checkbox input[type=checkbox] { width: 14px; height: 14px; accent-color: #C9A96E; }
+  .v-premium .forgot { color: #C9A96E; text-decoration: none; font-weight: 500; letter-spacing: .08em; border-bottom: 1px solid transparent; transition: border .2s; padding-bottom: 1px; }
+  .v-premium .forgot:hover { border-bottom-color: #C9A96E; }
+  .v-premium .btn {
+    width: 100%; padding: 14px; border: 1px solid #C9A96E;
+    background: #C9A96E; color: #0D0B08;
+    font-weight: 600; font-size: 11px; border-radius: 2px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    letter-spacing: .22em; text-transform: uppercase;
+    transition: all .3s; font-family: inherit;
+  }
+  .v-premium .btn:hover { background: #D4AF37; box-shadow: 0 0 24px rgba(201,169,110,.35); }
+  .v-premium .divider { text-align: center; margin: 22px 0 18px; color: #8A7F6A; font-size: 10px; letter-spacing: .25em; text-transform: uppercase; position: relative; }
+  .v-premium .divider::before, .v-premium .divider::after { content: ''; position: absolute; top: 50%; width: 30%; height: 1px; background: linear-gradient(90deg, transparent, #2A2218); }
+  .v-premium .divider::before { left: 0; background: linear-gradient(-90deg, #2A2218, transparent); }
+  .v-premium .divider::after { right: 0; }
+  .v-premium .tg-btn {
+    width: 100%; padding: 12px; background: transparent; border: 1px solid #2A2218;
+    border-radius: 2px; display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-size: 11px; color: #EFE6D2; cursor: pointer; letter-spacing: .12em; text-transform: uppercase;
+    transition: border .25s; font-family: inherit;
+  }
+  .v-premium .tg-btn:hover { border-color: #C9A96E; color: #C9A96E; }
+  .v-premium .footer { text-align: center; font-size: 10px; color: #5A5040; margin-top: 28px; letter-spacing: .15em; text-transform: uppercase; }
+  .v-premium .lang-select { position: absolute; top: 24px; right: 24px; background: #18130E; border: 1px solid #2A2218; padding: 6px 14px; border-radius: 2px; font-size: 10px; color: #C9A96E; cursor: pointer; letter-spacing: .2em; text-transform: uppercase; z-index: 10; }
+
+  /* Responsive: stack vertically on narrow screens */
+  @media (max-width: 1200px) {
+    .wrapper { grid-template-columns: 1fr; }
+    .variant { min-height: 100vh; border-right: none; border-bottom: 1px solid rgba(255,255,255,.05); }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- ========== VARIANT 1: FRIENDLY ========== -->
+  <div class="variant v-friendly">
+    <span class="variant-label" style="color:#2A241F;background:rgba(255,255,255,.7);border-color:rgba(236,228,223,.8)">Variant 1 · Friendly</span>
+    <div class="lang-select">🇷🇺 RU ▾</div>
+    <div class="card">
+      <div class="brand">
+        <div class="logo-icon">H</div>
+        <div>
+          <div class="brand-name">Hunger Beauty</div>
+          <div class="brand-sub">Salon management</div>
+        </div>
+      </div>
+
+      <h1>С возвращением 👋</h1>
+      <div class="subtitle">Войдите в свою панель управления</div>
+
+      <div>
+        <label for="email1">Email</label>
+        <div class="input-wrap">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path stroke-linecap="round" d="M22 6l-10 7L2 6"/></svg>
+          <input id="email1" type="email" placeholder="you@salon.com" value="arsen@huger.com">
+        </div>
+
+        <label for="pass1">Пароль</label>
+        <div class="input-wrap">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path stroke-linecap="round" d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          <input id="pass1" type="password" placeholder="••••••••" value="supersecret">
+        </div>
+
+        <div class="meta-row">
+          <label class="checkbox"><input type="checkbox" checked> Запомнить меня</label>
+          <a class="forgot" href="#">Забыли пароль?</a>
+        </div>
+
+        <button class="btn">
+          Войти
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke="#fff" d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+
+        <div class="divider">или</div>
+
+        <button class="tg-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#229ED9"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.57 7.41c-.12.53-.43.66-.87.41l-2.41-1.78-1.16 1.12c-.13.13-.24.24-.49.24l.17-2.44 4.47-4.04c.19-.17-.04-.27-.3-.1l-5.52 3.48-2.38-.74c-.52-.16-.53-.52.11-.78l9.29-3.58c.43-.16.8.1.66.78z"/></svg>
+          Войти через Telegram
+        </button>
+
+        <div class="footer">
+          Нет аккаунта? <a href="#" style="color:#D97757;text-decoration:none;font-weight:500">Свяжитесь с владельцем</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== VARIANT 2: MINIMAL ========== -->
+  <div class="variant v-minimal">
+    <span class="variant-label">Variant 2 · Minimal · Tech</span>
+    <div class="lang-select">en_US ▾</div>
+    <div class="card">
+      <div class="brand">
+        <div class="logo-icon">H</div>
+        <div>
+          <div class="brand-name">hunger-beauty</div>
+          <div class="brand-sub">v1.0.0 · /login</div>
+        </div>
+      </div>
+
+      <h1>Sign in</h1>
+      <div class="subtitle">// auth required to proceed</div>
+
+      <div>
+        <label for="email2">email</label>
+        <div class="input-wrap">
+          <input id="email2" type="email" placeholder="admin@salon.io" value="arsen@hunger.io">
+        </div>
+
+        <label for="pass2">password</label>
+        <div class="input-wrap">
+          <input id="pass2" type="password" placeholder="••••••••" value="supersecret">
+        </div>
+
+        <div class="meta-row">
+          <label class="checkbox"><input type="checkbox"> remember</label>
+          <a class="forgot" href="#">recover →</a>
+        </div>
+
+        <button class="btn">
+          Sign in <span class="kbd">⏎</span>
+        </button>
+
+        <div class="status-line">
+          <span><span class="status-dot"></span>api: healthy · 42ms</span>
+          <span>build: 1a2b3c</span>
+        </div>
+
+        <div class="footer">
+          ? Forgot password — contact system owner
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== VARIANT 3: PREMIUM ========== -->
+  <div class="variant v-premium">
+    <span class="variant-label" style="color:#C9A96E;background:#18130E;border-color:#2A2218">Variant 3 · Premium · Luxury</span>
+    <div class="lang-select">RU ▾</div>
+    <div class="card">
+      <div class="brand">
+        <div class="logo-icon">H</div>
+        <div class="brand-name">Hunger Atelier</div>
+        <div class="brand-sub">Beauty management</div>
+        <div class="ornament">⸻ ✦ ⸻</div>
+      </div>
+
+      <h1>Добро пожаловать</h1>
+      <div class="subtitle">Войдите в вашу панель</div>
+
+      <div>
+        <label for="email3">Электронная почта</label>
+        <div class="input-wrap">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path stroke-linecap="round" d="M22 6l-10 7L2 6"/></svg>
+          <input id="email3" type="email" placeholder="you@atelier.com" value="arsen@hunger.com">
+        </div>
+
+        <label for="pass3">Пароль</label>
+        <div class="input-wrap">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path stroke-linecap="round" d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          <input id="pass3" type="password" placeholder="••••••••" value="supersecret">
+        </div>
+
+        <div class="meta-row">
+          <label class="checkbox"><input type="checkbox"> Запомнить</label>
+          <a class="forgot" href="#">Восстановить</a>
+        </div>
+
+        <button class="btn">
+          Войти в салон
+        </button>
+
+        <div class="divider">— или —</div>
+
+        <button class="tg-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#C9A96E"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+          Войти через Telegram
+        </button>
+
+        <div class="footer">⸺ Protected by license ⸺</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

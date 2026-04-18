@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Hunger Platform — Admin Dashboard · Friendly Theme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAF7F5;
+    --fg: #2A241F;
+    --fg-muted: #7B6F66;
+    --primary: #D97757;
+    --primary-hover: #C46441;
+    --primary-fg: #fff;
+    --card: #fff;
+    --card-hover: #FEFCFB;
+    --border: #ECE4DF;
+    --muted: #F5EEEA;
+    --accent: #F4DED0;
+    --success: #3F9D63;
+    --warning: #E6A23C;
+    --danger: #D64545;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --shadow-sm: 0 1px 2px rgba(42,36,31,.04);
+    --shadow-md: 0 4px 14px rgba(42,36,31,.06);
+    --shadow-lg: 0 10px 30px rgba(42,36,31,.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .layout { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; padding: 0 8px 24px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .logo-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary), #E89A7D);
+    display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 16px;
+  }
+  .logo-text { font-weight: 600; font-size: 15px; }
+  .logo-sub { font-size: 11px; color: var(--fg-muted); }
+
+  .nav-section { margin-bottom: 20px; }
+  .nav-title { font-size: 11px; font-weight: 600; color: var(--fg-muted); text-transform: uppercase; letter-spacing: .06em; padding: 0 8px 8px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: var(--radius-sm);
+    color: var(--fg-muted); text-decoration: none; font-weight: 500;
+    cursor: pointer; transition: all .15s;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--muted); color: var(--fg); }
+  .nav-item.active {
+    background: var(--primary); color: var(--primary-fg);
+    box-shadow: var(--shadow-sm);
+  }
+  .nav-item.active svg { stroke: var(--primary-fg); }
+  .nav-item svg { width: 18px; height: 18px; stroke: var(--fg-muted); }
+  .nav-item.active .badge { background: rgba(255,255,255,.25); color: #fff; }
+  .nav-item .badge {
+    margin-left: auto; background: var(--muted); color: var(--fg-muted);
+    font-size: 11px; padding: 1px 8px; border-radius: 999px; font-weight: 600;
+  }
+
+  /* MAIN */
+  .main { padding: 0; }
+  .topbar {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 12px 28px; display: flex; align-items: center; gap: 16px;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .search {
+    flex: 1; max-width: 480px; position: relative;
+  }
+  .search input {
+    width: 100%; padding: 9px 12px 9px 36px;
+    background: var(--muted); border: 1px solid transparent;
+    border-radius: var(--radius-sm); font-size: 13px; color: var(--fg);
+    font-family: inherit; outline: none;
+  }
+  .search input:focus { background: #fff; border-color: var(--primary); }
+  .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--fg-muted); }
+  .search kbd { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 11px; color: var(--fg-muted); }
+
+  .top-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .icon-btn {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    background: transparent; border: none; cursor: pointer;
+    display: grid; place-items: center; color: var(--fg-muted);
+    transition: background .15s;
+  }
+  .icon-btn:hover { background: var(--muted); color: var(--fg); }
+  .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; }
+  .icon-btn .dot { position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; background: var(--danger); border-radius: 50%; border: 2px solid var(--card); }
+
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #FFD3B5, var(--primary));
+    display: grid; place-items: center; color: #fff; font-weight: 600; font-size: 14px;
+    cursor: pointer;
+  }
+
+  .content { padding: 28px; }
+
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .page-title { font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
+  .page-subtitle { font-size: 13px; color: var(--fg-muted); margin-top: 4px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 14px; border-radius: var(--radius-sm);
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: none; transition: all .15s;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); box-shadow: var(--shadow-md); }
+  .btn-secondary { background: var(--card); color: var(--fg); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--muted); }
+  .btn svg { width: 16px; height: 16px; stroke: currentColor; }
+
+  /* KPI */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .kpi-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    box-shadow: var(--shadow-sm); transition: all .2s;
+  }
+  .kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .kpi-label { font-size: 12px; color: var(--fg-muted); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .kpi-label svg { width: 14px; height: 14px; stroke: var(--fg-muted); }
+  .kpi-value { font-size: 28px; font-weight: 700; margin-top: 8px; letter-spacing: -.01em; }
+  .kpi-trend { font-size: 12px; margin-top: 6px; display: inline-flex; align-items: center; gap: 4px; font-weight: 500; }
+  .kpi-trend.up { color: var(--success); }
+  .kpi-trend.down { color: var(--danger); }
+
+  /* GRID */
+  .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm);
+  }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .card-title { font-size: 15px; font-weight: 600; }
+  .card-menu { font-size: 12px; color: var(--fg-muted); cursor: pointer; }
+
+  /* CHART placeholder */
+  .chart {
+    height: 220px; position: relative;
+    background: linear-gradient(180deg, var(--accent) 0%, transparent 100%);
+    border-radius: var(--radius-sm); overflow: hidden;
+    opacity: .9;
+  }
+  .chart svg { width: 100%; height: 100%; }
+
+  .legend { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--fg-muted); }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  /* Pie */
+  .pie-wrap { display: flex; align-items: center; gap: 20px; }
+  .pie {
+    width: 140px; height: 140px; border-radius: 50%;
+    background: conic-gradient(
+      var(--primary) 0% 38%,
+      #E89A7D 38% 62%,
+      #F4DED0 62% 80%,
+      #C7B8A1 80% 92%,
+      var(--muted) 92% 100%
+    );
+    position: relative;
+  }
+  .pie::after {
+    content: ''; position: absolute; inset: 28px;
+    background: var(--card); border-radius: 50%;
+    display: grid; place-items: center;
+  }
+  .pie-legend { flex: 1; font-size: 13px; }
+  .pie-legend .row { display: flex; align-items: center; gap: 8px; padding: 4px 0; justify-content: space-between; }
+  .pie-legend .row .val { color: var(--fg-muted); font-weight: 500; }
+
+  /* TABLE */
+  .row-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  .table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .table th { text-align: left; padding: 8px 10px; color: var(--fg-muted); font-weight: 500; font-size: 12px; border-bottom: 1px solid var(--border); }
+  .table td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .table tr:last-child td { border-bottom: none; }
+  .table tr:hover td { background: var(--muted); }
+
+  .status { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; display: inline-block; }
+  .status.confirmed { background: #E4F4E9; color: var(--success); }
+  .status.pending { background: #FFF5E0; color: var(--warning); }
+  .status.completed { background: #E6E9F2; color: #4A5B8F; }
+
+  .client-cell { display: flex; align-items: center; gap: 8px; }
+  .client-cell .avatar { width: 28px; height: 28px; font-size: 12px; }
+
+  /* ACTIVITY FEED */
+  .feed-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--muted); display: grid; place-items: center; flex-shrink: 0; color: var(--primary); }
+  .feed-icon svg { width: 16px; height: 16px; stroke: currentColor; }
+  .feed-content { font-size: 13px; }
+  .feed-meta { font-size: 11px; color: var(--fg-muted); margin-top: 2px; }
+
+  /* MINI BADGES */
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 6px; background: var(--accent); color: #8A5A3B; font-size: 11px; font-weight: 500; }
+
+  /* THEME SWITCHER */
+  .theme-chip {
+    position: fixed; right: 20px; bottom: 20px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 14px; font-size: 12px; color: var(--fg-muted);
+    box-shadow: var(--shadow-md);
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">H</div>
+      <div>
+        <div class="logo-text">Hunger Beauty</div>
+        <div class="logo-sub">Salon management</div>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Главное</div>
+      <a class="nav-item active">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
+        Дашборд
+      </a>
+      <a class="nav-item">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/></svg>
+        Бронирования <span class="badge">12</span>
+      </a>
+      <a class="nav-item">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Клиенты
+      </a>
+      <a class="nav-item">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Мастера
+      </a>
+      <a class="nav-item">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.59 13.41L13.42 20.58a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01"/></svg>
+        Услуги
+      </a>
+      <a class="nav-item">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Расписание
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Маркетинг</div>
+      <a class="nav-item">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 11l18-8-8 18-2-8z"/></svg>
+        Рассылки <span class="badge">3</span>
+      </a>
+      <a class="nav-item">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        Статистика
+      </a>
+      <a class="nav-item">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2a5 5 0 015 5v2h-2V7a3 3 0 00-6 0v2H7V7a5 5 0 015-5zM5 9h14v13H5z"/></svg>
+        AI-консультант
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Управление</div>
+      <a class="nav-item">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.72-1.71"/></svg>
+        Блэклист
+      </a>
+      <a class="nav-item">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg>
+        Сотрудники
+      </a>
+      <a class="nav-item">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z"/></svg>
+        Настройки
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="search">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+        <input placeholder="Поиск по клиентам, броням, услугам…">
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" title="Язык">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"/></svg>
+        </button>
+        <button class="icon-btn" title="Тема">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
+        </button>
+        <button class="icon-btn" style="position:relative" title="Уведомления">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M18 16v-5a6 6 0 00-12 0v5l-2 2h16zM9 22h6"/></svg>
+          <span class="dot"></span>
+        </button>
+        <div class="avatar" title="Арсен (Owner)">A</div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Добрый день, Арсен 👋</div>
+          <div class="page-subtitle">Суббота, 18 апреля 2026 · София ☀ +22°</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+            Экспорт
+          </button>
+          <button class="btn btn-primary">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+            Новая запись
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/></svg>
+            Записей сегодня
+          </div>
+          <div class="kpi-value">12</div>
+          <div class="kpi-trend up">▲ +3 vs вчера</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M12 2v20M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
+            Выручка сегодня
+          </div>
+          <div class="kpi-value">€ 540</div>
+          <div class="kpi-trend up">▲ +12% vs среднее</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg>
+            Новых клиентов · 7д
+          </div>
+          <div class="kpi-value">8</div>
+          <div class="kpi-trend up">▲ +2 vs прошлая нед.</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            Посетителей бота
+          </div>
+          <div class="kpi-value">124</div>
+          <div class="kpi-trend down">▼ −4% vs прошлая нед.</div>
+        </div>
+      </div>
+
+      <!-- ROW 1: chart + pie -->
+      <div class="dashboard-grid">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Записи за последние 30 дней</div>
+              <div style="font-size:12px;color:var(--fg-muted);margin-top:4px">Всего: 287 · В среднем 9.6 / день</div>
+            </div>
+            <span class="card-menu">Все мастера ▾</span>
+          </div>
+          <div class="chart">
+            <svg viewBox="0 0 600 220" preserveAspectRatio="none">
+              <path d="M0,180 C60,140 100,160 150,120 C200,80 240,100 290,70 C340,40 380,90 430,60 C480,30 520,80 600,50 L600,220 L0,220 Z" fill="rgba(217,119,87,.18)"/>
+              <path d="M0,180 C60,140 100,160 150,120 C200,80 240,100 290,70 C340,40 380,90 430,60 C480,30 520,80 600,50" fill="none" stroke="#D97757" stroke-width="2.5"/>
+              <g fill="#D97757">
+                <circle cx="150" cy="120" r="4"/><circle cx="290" cy="70" r="4"/><circle cx="430" cy="60" r="4"/><circle cx="600" cy="50" r="4"/>
+              </g>
+            </svg>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><span class="legend-dot" style="background:var(--primary)"></span> Бронирования</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#E89A7D;opacity:.5"></span> Тренд</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Топ услуг</div>
+            <span class="card-menu">Месяц ▾</span>
+          </div>
+          <div class="pie-wrap">
+            <div class="pie"></div>
+            <div class="pie-legend">
+              <div class="row"><span><span class="legend-dot" style="background:var(--primary);display:inline-block;margin-right:6px"></span>Маникюр</span><span class="val">38%</span></div>
+              <div class="row"><span><span class="legend-dot" style="background:#E89A7D;display:inline-block;margin-right:6px"></span>Стрижка</span><span class="val">24%</span></div>
+              <div class="row"><span><span class="legend-dot" style="background:#F4DED0;display:inline-block;margin-right:6px"></span>Окраш.</span><span class="val">18%</span></div>
+              <div class="row"><span><span class="legend-dot" style="background:#C7B8A1;display:inline-block;margin-right:6px"></span>Педикюр</span><span class="val">12%</span></div>
+              <div class="row"><span><span class="legend-dot" style="background:var(--muted);display:inline-block;margin-right:6px"></span>Прочее</span><span class="val">8%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 2: table + activity -->
+      <div class="row-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Ближайшие записи</div>
+            <span class="card-menu">Все →</span>
+          </div>
+          <table class="table">
+            <thead><tr><th>Время</th><th>Клиент</th><th>Мастер</th><th>Услуга</th><th>Статус</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><b>14:30</b></td>
+                <td><div class="client-cell"><div class="avatar">М</div> Мария И.</div></td>
+                <td>Анна</td>
+                <td>Маникюр</td>
+                <td><span class="status confirmed">подтв.</span></td>
+              </tr>
+              <tr>
+                <td><b>15:00</b></td>
+                <td><div class="client-cell"><div class="avatar">О</div> Олег Р.</div></td>
+                <td>Дмитрий</td>
+                <td>Мужская стрижка</td>
+                <td><span class="status pending">ожидает</span></td>
+              </tr>
+              <tr>
+                <td><b>15:30</b></td>
+                <td><div class="client-cell"><div class="avatar">К</div> Катерина Л. <span class="tag">VIP</span></div></td>
+                <td>Анна</td>
+                <td>Окрашивание</td>
+                <td><span class="status confirmed">подтв.</span></td>
+              </tr>
+              <tr>
+                <td><b>17:00</b></td>
+                <td><div class="client-cell"><div class="avatar">И</div> Иван К.</div></td>
+                <td>Ольга</td>
+                <td>Педикюр</td>
+                <td><span class="status confirmed">подтв.</span></td>
+              </tr>
+              <tr>
+                <td><b>18:30</b></td>
+                <td><div class="client-cell"><div class="avatar">Д</div> Даниела С.</div></td>
+                <td>Анна</td>
+                <td>Маникюр + гель</td>
+                <td><span class="status pending">оплата</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Лента активности</div>
+            <span class="card-menu">Все →</span>
+          </div>
+          <div class="feed-item">
+            <div class="feed-icon"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg></div>
+            <div>
+              <div class="feed-content"><b>Иван К.</b> записался на педикюр к Ольге</div>
+              <div class="feed-meta">3 минуты назад · через бот</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-icon" style="background:#FFE4E4;color:var(--danger)"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg></div>
+            <div>
+              <div class="feed-content">Отмена брони: <b>Мария С.</b></div>
+              <div class="feed-meta">18 минут назад · поздняя, штраф 10 €</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-icon" style="background:#FFF5E0;color:var(--warning)"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+            <div>
+              <div class="feed-content">Отзыв <b>5★</b> от Катерины Л. → Анна</div>
+              <div class="feed-meta">1 час назад · «Спасибо, все как всегда 💕»</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-icon"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M12 2a5 5 0 015 5v2h-2V7a3 3 0 00-6 0v2H7V7a5 5 0 015-5zM5 9h14v13H5z"/></svg></div>
+            <div>
+              <div class="feed-content">AI отметил <b>плохой ответ</b> в диалоге с Димой</div>
+              <div class="feed-meta">2 часа назад · открыть для просмотра</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-icon" style="background:#E4F4E9;color:var(--success)"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M5 13l4 4L19 7"/></svg></div>
+            <div>
+              <div class="feed-content">Рассылка <b>«Весенние акции»</b> доставлена 1 243 клиентам</div>
+              <div class="feed-meta">3 часа назад · CTR 12%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="theme-chip">🎨 Friendly Theme (default)</div>
+</body>
+</html>
