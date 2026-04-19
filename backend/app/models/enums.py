@@ -77,6 +77,7 @@ class ClientSource(str, enum.Enum):
 class BookingCreatedVia(str, enum.Enum):
     bot = "bot"
     admin = "admin"
+    mini_app = "mini_app"
 
 
 class AIMessageRole(str, enum.Enum):

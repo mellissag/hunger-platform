@@ -46,3 +46,8 @@ class ProfileStates(StatesGroup):
 
 class AIChatStates(StatesGroup):
     chat = State()
+
+
+class ReviewStates(StatesGroup):
+    await_rating = State()
+    await_comment = State()

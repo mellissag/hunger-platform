@@ -183,6 +183,54 @@ def rate_bucket():
     return str(uuid.uuid4())
 
 
+@pytest_asyncio.fixture
+async def test_master():
+    """Creates an active Master record for Phase 13 tests."""
+    from app.models.master import Master
+
+    factory = get_async_session_factory()
+    async with factory() as session:
+        m = Master(
+            display_name="Test Master",
+            bio={"en": "Test bio", "ru": "Тест"},
+            specialization={"en": "Haircut", "ru": "Стрижка"},
+            is_active=True,
+            sort_order=0,
+        )
+        session.add(m)
+        await session.commit()
+        await session.refresh(m)
+        return m
+
+
+@pytest_asyncio.fixture
+async def test_service():
+    """Creates an active ServiceCategory and Service for Phase 13 tests."""
+    from app.models.catalog import Service, ServiceCategory
+
+    factory = get_async_session_factory()
+    async with factory() as session:
+        cat = ServiceCategory(
+            name_i18n={"en": "Hair", "ru": "Волосы"},
+            sort_order=0,
+        )
+        session.add(cat)
+        await session.flush()
+        svc = Service(
+            category_id=cat.id,
+            name_i18n={"en": "Haircut", "ru": "Стрижка"},
+            description_i18n={"en": "Classic haircut", "ru": "Классическая стрижка"},
+            price=35,
+            duration_minutes=60,
+            is_active=True,
+            sort_order=0,
+        )
+        session.add(svc)
+        await session.commit()
+        await session.refresh(svc)
+        return svc
+
+
 @pytest.fixture
 def fake_now(monkeypatch):
     """Фиксированное UTC-время для детерминизма (патчит `app.core.clock.utc_now`)."""

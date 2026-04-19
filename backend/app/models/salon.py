@@ -129,6 +129,9 @@ class Settings(UUIDPrimaryKeyMixin, Base):
     date_format: Mapped[str] = mapped_column(Text, nullable=False, default="yyyy-MM-dd")
     time_format: Mapped[str] = mapped_column(Text, nullable=False, default="HH:mm")
 
+    admin_notify_chat_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    mini_app_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

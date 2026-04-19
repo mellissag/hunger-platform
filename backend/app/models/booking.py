@@ -97,6 +97,7 @@ class Booking(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     reminder_sent_24h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     reminder_sent_2h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     reminder_sent_30m: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    review_sent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     review: Mapped["Review | None"] = relationship(
         "Review",

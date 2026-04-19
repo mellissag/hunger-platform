@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 from app.bot.fluent_i18n import format_message
 
 
 def main_menu_keyboard(
-    locale: str, *, ai_enabled: bool, prefers_no_ai: bool = False
+    locale: str,
+    *,
+    ai_enabled: bool,
+    prefers_no_ai: bool = False,
+    mini_app_url: str | None = None,
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = [
         [
@@ -38,6 +42,15 @@ def main_menu_keyboard(
                 InlineKeyboardButton(
                     text=format_message(locale, "menu-no-ai"),
                     callback_data="menu:no-ai",
+                ),
+            ]
+        )
+    if mini_app_url:
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=format_message(locale, "menu-mini-app"),
+                    web_app=WebAppInfo(url=mini_app_url),
                 ),
             ]
         )

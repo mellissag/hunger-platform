@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.bot.fluent_i18n import format_message
 from app.bot.keyboards.language import language_keyboard
 from app.bot.keyboards.main_menu import main_menu_keyboard
-from app.bot.salon_context import get_ai_enabled
+from app.bot.salon_context import get_ai_enabled, get_mini_app_enabled, get_mini_app_url
 from app.bot.states import LanguageStates, MainStates
 from app.models.client import Client
 
@@ -39,6 +39,8 @@ async def cmd_start(
         return
 
     ai_enabled = await get_ai_enabled(db)
+    mini_app_enabled = await get_mini_app_enabled(db)
+    mini_app_url = await get_mini_app_url(db) if mini_app_enabled else None
     await state.set_state(MainStates.menu)
     await message.answer(
         format_message(locale, "menu-greeting", {"name": message.from_user.first_name or ""}),
@@ -46,6 +48,7 @@ async def cmd_start(
             locale,
             ai_enabled=ai_enabled,
             prefers_no_ai=tg_client.prefers_no_ai,
+            mini_app_url=mini_app_url,
         ),
     )
 
@@ -72,11 +75,14 @@ async def cb_main_menu(
 
     await state.set_state(MainStates.menu)
     ai_enabled = await get_ai_enabled(db)
+    mini_app_enabled = await get_mini_app_enabled(db)
+    mini_app_url = await get_mini_app_url(db) if mini_app_enabled else None
     await query.message.edit_text(
         format_message(locale, "menu-greeting", {"name": query.from_user.first_name or ""}),
         reply_markup=main_menu_keyboard(
             locale,
             ai_enabled=ai_enabled,
             prefers_no_ai=tg_client.prefers_no_ai,
+            mini_app_url=mini_app_url,
         ),
     )

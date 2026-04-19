@@ -12,7 +12,7 @@ from app.bot.middlewares import (
     ThrottleMiddleware,
     TgUserMiddleware,
 )
-from app.bot.routers import about, ai_consult, booking, language, my_bookings, profile, start
+from app.bot.routers import about, ai_consult, booking, language, my_bookings, profile, review, start
 from app.config import Settings
 
 
@@ -38,6 +38,7 @@ def build_dispatcher(settings: Settings) -> Dispatcher:
     dp.include_router(language.router)
     dp.include_router(booking.router)
     dp.include_router(my_bookings.router)
+    dp.include_router(review.router)
     dp.include_router(profile.router)
     dp.include_router(about.router)
     return dp

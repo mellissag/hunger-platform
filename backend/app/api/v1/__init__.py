@@ -14,6 +14,7 @@ from app.api.v1 import (
     clients,
     knowledge,
     masters,
+    mini_app,
     salon,
     schedule,
     segments,
@@ -42,3 +43,4 @@ api_router.include_router(salon.router)
 api_router.include_router(blacklist.router)
 api_router.include_router(users_admin.router)
 api_router.include_router(audit.router)
+api_router.include_router(mini_app.router)

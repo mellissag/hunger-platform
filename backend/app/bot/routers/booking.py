@@ -36,6 +36,7 @@ from app.models.master import Master
 from app.models.salon import Salon, Settings
 from app.services import schedule_service
 from app.services.bot_booking import create_tg_booking, is_blacklisted, reschedule_tg_booking
+from app.services.notification_service import AdminEvent, get_admin_notify_chat_id, notify_admin
 from app.services.schedule_service import get_schedule_context
 
 router = Router(name="booking")
@@ -663,6 +664,18 @@ async def _finalize_booking(
         await query.message.edit_text(
             format_message(locale, "blacklist-blocked", {"phone": await _salon_phone(db)}),
         )
+        # Admin notification for blacklist attempt
+        from app.config import get_settings
+        cfg = get_settings()
+        admin_chat = await get_admin_notify_chat_id(db)
+        if admin_chat and query.bot:
+            await notify_admin(
+                query.bot,
+                admin_chat_id=admin_chat,
+                event=AdminEvent.blacklist_attempt,
+                app_domain=cfg.app_domain,
+                client=tg_client.first_name or str(tg_client.tg_user_id),
+            )
         await state.clear()
         return
 
@@ -680,6 +693,21 @@ async def _finalize_booking(
         ),
         reply_markup=success_keyboard(locale),
     )
+
+    # Admin notification
+    from app.config import get_settings
+    cfg = get_settings()
+    admin_chat = await get_admin_notify_chat_id(db)
+    if admin_chat and query.bot:
+        await notify_admin(
+            query.bot,
+            admin_chat_id=admin_chat,
+            event=AdminEvent.new_booking,
+            app_domain=cfg.app_domain,
+            client=tg_client.first_name or str(tg_client.tg_user_id),
+            master=m.display_name if m else "—",
+            date=b.starts_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M"),
+        )
 
 
 @router.callback_query(BookingStates.confirm, F.data == "book:confirm:cancel")
