@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,7 +15,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_domain: str = "localhost"
     jwt_secret: str
-    jwt_algorithm: str = "HS256"
+    jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 30
     redis_url: str | None = None

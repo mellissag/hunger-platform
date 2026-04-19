@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
@@ -41,11 +42,29 @@ async def lifespan(app: FastAPI):
         await bot.session.close()
 
 
-app = FastAPI(title="Hunger Beauty API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Hunger Beauty API", version="1.0.0", lifespan=lifespan)
 
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
+
+# CORS: restrict to app_domain in production; allow all in development/test.
+_settings = get_settings()
+_allowed_origins = (
+    ["*"]
+    if _settings.app_env in ("development", "test")
+    else [
+        f"https://{_settings.app_domain}",
+        f"https://www.{_settings.app_domain}",
+    ]
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["Authorization", "Content-Type", "X-Test-Rate-Bucket"],
+)
 
 
 @app.exception_handler(DomainError)
