@@ -3,6 +3,7 @@
 import { NextIntlClientProvider } from "next-intl";
 import type { AbstractIntlMessages } from "next-intl";
 
+import { QueryProvider } from "@/components/providers/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,12 +22,14 @@ export function Providers({
 }) {
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      <TooltipProvider delayDuration={200}>
-        <ThemeProvider initialTheme={initialUiTheme}>
-          {children}
-          <Toaster richColors position="top-center" />
-        </ThemeProvider>
-      </TooltipProvider>
+      <QueryProvider>
+        <TooltipProvider delayDuration={200}>
+          <ThemeProvider initialTheme={initialUiTheme}>
+            {children}
+            <Toaster richColors position="top-center" />
+          </ThemeProvider>
+        </TooltipProvider>
+      </QueryProvider>
     </NextIntlClientProvider>
   );
 }

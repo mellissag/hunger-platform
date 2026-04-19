@@ -99,9 +99,11 @@ async def get_calendar(
                 id=b.id,
                 master_id=b.master_id,
                 client_id=b.client_id,
+                service_id=b.service_id,
                 starts_at=b.starts_at,
                 ends_at=b.ends_at,
                 status=b.status.value,
+                price=b.price,
             )
             for b in bookings
         ],

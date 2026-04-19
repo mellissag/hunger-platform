@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -19,9 +20,11 @@ class CalendarBookingOut(BaseModel):
     id: UUID
     master_id: UUID
     client_id: UUID
+    service_id: UUID
     starts_at: datetime
     ends_at: datetime
     status: str
+    price: Decimal
 
 
 class CalendarSlotOut(BaseModel):

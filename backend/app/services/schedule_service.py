@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -298,9 +299,11 @@ class CalendarBookingRow:
     id: UUID
     master_id: UUID
     client_id: UUID
+    service_id: UUID
     starts_at: datetime
     ends_at: datetime
     status: BookingStatus
+    price: Decimal
 
 
 @dataclass(frozen=True)
@@ -332,9 +335,11 @@ async def get_calendar_bookings(
             id=r.id,
             master_id=r.master_id,
             client_id=r.client_id,
+            service_id=r.service_id,
             starts_at=r.starts_at,
             ends_at=r.ends_at,
             status=r.status,
+            price=r.price,
         )
         for r in rows
     ]

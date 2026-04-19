@@ -33,11 +33,23 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   return res;
 }
 
+function errorMessageFromBody(err: unknown, fallback: string): string {
+  if (typeof err !== "object" || !err) return fallback;
+  const o = err as Record<string, unknown>;
+  if (typeof o.message === "string") return o.message;
+  if (typeof o.detail === "string") return o.detail;
+  if (Array.isArray(o.detail) && o.detail[0] && typeof o.detail[0] === "object") {
+    const d = o.detail[0] as Record<string, unknown>;
+    if (typeof d.msg === "string") return d.msg;
+  }
+  return fallback;
+}
+
 export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await apiFetch(path, init);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(typeof err === "object" && err && "message" in err ? String(err.message) : res.statusText);
+    throw new Error(errorMessageFromBody(err, res.statusText));
   }
   return res.json() as Promise<T>;
 }

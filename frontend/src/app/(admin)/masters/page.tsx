@@ -1,0 +1,11 @@
+import type { Metadata } from "next";
+
+import { MastersList } from "./masters-list";
+
+export const metadata: Metadata = {
+  title: "Masters — Hunger Beauty",
+};
+
+export default function MastersPage() {
+  return <MastersList />;
+}

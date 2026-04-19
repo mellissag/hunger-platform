@@ -24,6 +24,25 @@ async function verifyAccessToken(token: string): Promise<{ role: string } | null
   }
 }
 
+function isAdminSalonPath(pathname: string): boolean {
+  const prefixes = [
+    "/dashboard",
+    "/bookings",
+    "/clients",
+    "/masters",
+    "/services",
+    "/schedule",
+    "/broadcasts",
+    "/statistics",
+    "/ai",
+    "/blacklist",
+    "/users",
+    "/settings",
+    "/audit",
+  ];
+  return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(COOKIE_ACCESS)?.value;
@@ -55,7 +74,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(login);
   }
 
-  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
+  if (isAdminSalonPath(pathname)) {
     if (!ADMIN_ROLES.has(session.role)) {
       return NextResponse.redirect(new URL("/403", request.url));
     }
@@ -73,5 +92,23 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/login", "/dashboard/:path*", "/m/:path*", "/403"],
+  matcher: [
+    "/",
+    "/login",
+    "/dashboard/:path*",
+    "/bookings/:path*",
+    "/clients/:path*",
+    "/masters/:path*",
+    "/services/:path*",
+    "/schedule/:path*",
+    "/broadcasts/:path*",
+    "/statistics/:path*",
+    "/ai/:path*",
+    "/blacklist/:path*",
+    "/users/:path*",
+    "/settings/:path*",
+    "/audit/:path*",
+    "/m/:path*",
+    "/403",
+  ],
 };

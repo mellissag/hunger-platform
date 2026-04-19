@@ -58,18 +58,17 @@ async def list_ai_conversations(
     _user: Annotated[User, Depends(require_roles(*_AI_STAFF))],
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    client_id: UUID | None = None,
 ) -> PaginatedResponse[AIConversationOut]:
-    total = (await db.execute(select(func.count()).select_from(AIConversation))).scalar_one()
+    count_stmt = select(func.count(AIConversation.id)).join(Client, Client.id == AIConversation.client_id)
+    stmt = select(AIConversation, Client).join(Client, Client.id == AIConversation.client_id)
+    if client_id is not None:
+        count_stmt = count_stmt.where(AIConversation.client_id == client_id)
+        stmt = stmt.where(AIConversation.client_id == client_id)
+    total = (await db.execute(count_stmt)).scalar_one()
     offset = (page - 1) * page_size
-    rows = (
-        await db.execute(
-            select(AIConversation, Client)
-            .join(Client, Client.id == AIConversation.client_id)
-            .order_by(AIConversation.started_at.desc())
-            .offset(offset)
-            .limit(page_size)
-        )
-    ).all()
+    stmt = stmt.order_by(AIConversation.started_at.desc()).offset(offset).limit(page_size)
+    rows = (await db.execute(stmt)).all()
 
     items: list[AIConversationOut] = []
     for conv, client in rows:
