@@ -8,6 +8,7 @@ import urllib.parse
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel as _BM
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -25,6 +26,8 @@ from app.schemas.mini_app import (
     MiniAppServiceOut,
     MiniAppSlotsResponse,
 )
+from app.models.booking import Booking
+from app.models.salon import Salon
 from app.services import schedule_service
 from app.services.bot_booking import create_tg_booking
 
@@ -241,3 +244,138 @@ async def create_booking(
         ends_at=booking.ends_at.isoformat(),
         price=float(booking.price),
     )
+
+
+# ─── My bookings ─────────────────────────────────────────────────────────────
+
+
+class MiniAppMyBookingOut(MiniAppBookingOut):
+    service_name: str = ""
+    master_name: str = ""
+
+
+@router.get("/my-bookings", response_model=list[MiniAppMyBookingOut])
+async def list_my_bookings(
+    current_user: MiniAppUser,
+    db: AsyncSession = Depends(get_db),
+) -> list[MiniAppMyBookingOut]:
+    """Authenticated: return client's bookings (last 50)."""
+    from app.models.booking import BookingStatus
+
+    if not current_user.tg_user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
+
+    client = (
+        await db.execute(select(Client).where(Client.tg_user_id == current_user.tg_user_id))
+    ).scalar_one_or_none()
+    if client is None:
+        return []
+
+    stmt = (
+        select(Booking)
+        .where(Booking.client_id == client.id)
+        .order_by(Booking.starts_at.desc())
+        .limit(50)
+        .options(
+            selectinload(Booking.service),
+            selectinload(Booking.master),
+        )
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+
+    result = []
+    for b in rows:
+        svc_name = ""
+        if b.service:
+            n = b.service.name_i18n
+            svc_name = n.get("ru") or n.get("en") or next(iter(n.values()), "") if n else ""
+        master_name = b.master.display_name if b.master else ""
+        result.append(
+            MiniAppMyBookingOut(
+                id=str(b.id),
+                status=b.status.value,
+                starts_at=b.starts_at.isoformat(),
+                ends_at=b.ends_at.isoformat(),
+                price=float(b.price),
+                service_name=svc_name,
+                master_name=master_name,
+            )
+        )
+    return result
+
+
+# ─── Salon info ───────────────────────────────────────────────────────────────
+
+
+class MiniAppSalonInfo(_BM):
+    name: str = ""
+    description: str = ""
+    address: str = ""
+    phone: str = ""
+
+
+@router.get("/salon", response_model=MiniAppSalonInfo)
+async def get_salon_info(db: AsyncSession = Depends(get_db)) -> MiniAppSalonInfo:
+    """Public: return basic salon info."""
+    salon = (await db.execute(select(Salon).limit(1))).scalar_one_or_none()
+    if salon is None:
+        return MiniAppSalonInfo()
+    contacts: dict[str, Any] = salon.contacts or {}
+    desc_dict: dict[str, Any] = salon.description if isinstance(salon.description, dict) else {}
+    desc = desc_dict.get("ru") or desc_dict.get("en") or ""
+    return MiniAppSalonInfo(
+        name=salon.name or "",
+        description=desc,
+        address=contacts.get("address", ""),
+        phone=contacts.get("phone", ""),
+    )
+
+
+# ─── AI chat ─────────────────────────────────────────────────────────────────
+
+
+class MiniAppAiRequest(_BM):
+    message: str
+    conversation_id: str | None = None
+
+
+class MiniAppAiResponse(_BM):
+    reply: str
+    conversation_id: str | None = None
+
+
+@router.post("/ai", response_model=MiniAppAiResponse)
+async def ai_chat(
+    payload: MiniAppAiRequest,
+    current_user: MiniAppUser,
+    db: AsyncSession = Depends(get_db),
+) -> MiniAppAiResponse:
+    """Authenticated: chat with AI assistant."""
+    import uuid
+
+    if not current_user.tg_user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
+
+    client = (
+        await db.execute(select(Client).where(Client.tg_user_id == current_user.tg_user_id))
+    ).scalar_one_or_none()
+    if client is None:
+        return MiniAppAiResponse(
+            reply="Сначала напишите /start боту в Telegram.",
+            conversation_id=None,
+        )
+
+    try:
+        from app.services.ai_service import AIService
+
+        svc = AIService(db=db, redis=None)
+        reply_text, _chunks, _msg_id = await svc.ask(
+            client_id=client.id,
+            question=payload.message,
+        )
+        return MiniAppAiResponse(reply=reply_text, conversation_id=None)
+    except Exception:  # noqa: BLE001
+        return MiniAppAiResponse(
+            reply="Извините, AI-консультант временно недоступен. Попробуйте позже.",
+            conversation_id=None,
+        )
