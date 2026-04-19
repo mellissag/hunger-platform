@@ -83,9 +83,16 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
+      args:
+        # Зашивается в клиентский бандл (canonical URL, ссылки)
+        NEXT_PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      # Server-side fetch из Next (login/BFF) к контейнеру api
+      API_URL: http://api:8000
+      JWT_SECRET: ${JWT_SECRET}
+      NEXT_PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
     depends_on:
       - api
 

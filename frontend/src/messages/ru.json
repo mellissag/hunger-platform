@@ -1,0 +1,82 @@
+{
+  "common": {
+    "brand": "Hunger Beauty",
+    "brandShort": "Hunger",
+    "salonTagline": "Управление салоном"
+  },
+  "login": {
+    "titleWelcomeBack": "С возвращением",
+    "titleSignIn": "Вход",
+    "titlePremium": "Добро пожаловать",
+    "subtitle": "Войдите в свою панель управления",
+    "subtitleMinimal": "// требуется авторизация",
+    "subtitlePremium": "Войдите в панель салона",
+    "email": "Email",
+    "password": "Пароль",
+    "remember": "Запомнить меня",
+    "forgot": "Забыли пароль?",
+    "submit": "Войти",
+    "submitPremium": "Войти в салон",
+    "variantFriendly": "Friendly",
+    "variantMinimal": "Minimal",
+    "variantPremium": "Premium",
+    "error": "Неверный email или пароль",
+    "telegramSoon": "Вход через Telegram — скоро",
+    "contactOwner": "Свяжитесь с владельцем",
+    "noAccount": "Нет аккаунта?"
+  },
+  "layout": {
+    "nav": {
+      "dashboard": "Дашборд",
+      "bookings": "Бронирования",
+      "clients": "Клиенты",
+      "masters": "Мастера",
+      "services": "Услуги",
+      "schedule": "Расписание",
+      "broadcasts": "Рассылки",
+      "statistics": "Статистика",
+      "ai": "AI",
+      "blacklist": "Чёрный список",
+      "users": "Сотрудники",
+      "settings": "Настройки",
+      "audit": "Журнал аудита",
+      "masterDashboard": "Мой день",
+      "masterSchedule": "Моё расписание",
+      "masterClients": "Мои клиенты",
+      "masterBookings": "Мои записи",
+      "masterStats": "Моя статистика",
+      "masterProfile": "Мой профиль"
+    },
+    "topbar": {
+      "search": "Поиск",
+      "searchShortcut": "Поиск…",
+      "theme": "Тема",
+      "language": "Язык",
+      "notifications": "Уведомления",
+      "openMenu": "Открыть меню"
+    },
+    "user": {
+      "profile": "Профиль",
+      "logout": "Выйти"
+    },
+    "panelAdmin": "Админ",
+    "panelMaster": "Мастер",
+    "themeFriendly": "Friendly",
+    "themeMinimal": "Minimal",
+    "themePremium": "Premium"
+  },
+  "dashboard": {
+    "phase": "Фаза 8 — каркас",
+    "adminKpiTitle": "KPI",
+    "adminKpiDesc": "В следующих фазах.",
+    "adminKpiBody": "Пользуйтесь меню слева. Выход — в меню пользователя справа сверху.",
+    "masterTodayTitle": "Сегодня",
+    "masterTodayDesc": "Здесь появятся расписание и быстрые действия.",
+    "masterTodayBody": "Навигация мастера слева. Выход — под аватаром."
+  },
+  "errors": {
+    "forbidden": "У вас нет доступа к этой странице.",
+    "forbiddenTitle": "403",
+    "goHome": "На страницу входа"
+  }
+}

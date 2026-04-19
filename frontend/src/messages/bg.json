@@ -1,0 +1,82 @@
+{
+  "common": {
+    "brand": "Hunger Beauty",
+    "brandShort": "Hunger",
+    "salonTagline": "Управление на салона"
+  },
+  "login": {
+    "titleWelcomeBack": "Добре дошли отново",
+    "titleSignIn": "Вход",
+    "titlePremium": "Добре дошли",
+    "subtitle": "Влезте в таблото си",
+    "subtitleMinimal": "// изисква се удостоверяване",
+    "subtitlePremium": "Влезте в панела на салона",
+    "email": "Имейл",
+    "password": "Парола",
+    "remember": "Запомни ме",
+    "forgot": "Забравена парола?",
+    "submit": "Вход",
+    "submitPremium": "Влез в салона",
+    "variantFriendly": "Friendly",
+    "variantMinimal": "Minimal",
+    "variantPremium": "Premium",
+    "error": "Невалиден имейл или парола",
+    "telegramSoon": "Вход чрез Telegram — предстои",
+    "contactOwner": "Свържете се със собственика",
+    "noAccount": "Нямате акаунт?"
+  },
+  "layout": {
+    "nav": {
+      "dashboard": "Табло",
+      "bookings": "Резервации",
+      "clients": "Клиенти",
+      "masters": "Майстори",
+      "services": "Услуги",
+      "schedule": "График",
+      "broadcasts": "Съобщения",
+      "statistics": "Статистика",
+      "ai": "AI",
+      "blacklist": "Черен списък",
+      "users": "Персонал",
+      "settings": "Настройки",
+      "audit": "Одитен дневник",
+      "masterDashboard": "Моят ден",
+      "masterSchedule": "Моят график",
+      "masterClients": "Моите клиенти",
+      "masterBookings": "Моите резервации",
+      "masterStats": "Моята статистика",
+      "masterProfile": "Моят профил"
+    },
+    "topbar": {
+      "search": "Търсене",
+      "searchShortcut": "Търсене…",
+      "theme": "Тема",
+      "language": "Език",
+      "notifications": "Известия",
+      "openMenu": "Отвори меню"
+    },
+    "user": {
+      "profile": "Профил",
+      "logout": "Изход"
+    },
+    "panelAdmin": "Админ",
+    "panelMaster": "Майстор",
+    "themeFriendly": "Friendly",
+    "themeMinimal": "Minimal",
+    "themePremium": "Premium"
+  },
+  "dashboard": {
+    "phase": "Фаза 8 — скелет",
+    "adminKpiTitle": "KPI",
+    "adminKpiDesc": "В следващите фази.",
+    "adminKpiBody": "Използвайте менюто вляво. Изходът е в менюто на потребителя горе вдясно.",
+    "masterTodayTitle": "Днес",
+    "masterTodayDesc": "Тук ще се появят график и бързи действия.",
+    "masterTodayBody": "Навигацията на майстора е вляво. Изходът е под аватара."
+  },
+  "errors": {
+    "forbidden": "Нямате достъп до тази страница.",
+    "forbiddenTitle": "403",
+    "goHome": "Към входа"
+  }
+}

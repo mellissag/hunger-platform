@@ -1,0 +1,82 @@
+{
+  "common": {
+    "brand": "Hunger Beauty",
+    "brandShort": "Hunger",
+    "salonTagline": "Керування салоном"
+  },
+  "login": {
+    "titleWelcomeBack": "З поверненням",
+    "titleSignIn": "Вхід",
+    "titlePremium": "Ласкаво просимо",
+    "subtitle": "Увійдіть до панелі керування",
+    "subtitleMinimal": "// потрібна авторизація",
+    "subtitlePremium": "Увійдіть до панелі салону",
+    "email": "Email",
+    "password": "Пароль",
+    "remember": "Запам’ятати мене",
+    "forgot": "Забули пароль?",
+    "submit": "Увійти",
+    "submitPremium": "Увійти в салон",
+    "variantFriendly": "Friendly",
+    "variantMinimal": "Minimal",
+    "variantPremium": "Premium",
+    "error": "Невірний email або пароль",
+    "telegramSoon": "Вхід через Telegram — незабаром",
+    "contactOwner": "Зв’яжіться з власником",
+    "noAccount": "Немає облікового запису?"
+  },
+  "layout": {
+    "nav": {
+      "dashboard": "Дашборд",
+      "bookings": "Бронювання",
+      "clients": "Клієнти",
+      "masters": "Майстри",
+      "services": "Послуги",
+      "schedule": "Розклад",
+      "broadcasts": "Розсилки",
+      "statistics": "Статистика",
+      "ai": "AI",
+      "blacklist": "Чорний список",
+      "users": "Персонал",
+      "settings": "Налаштування",
+      "audit": "Журнал аудиту",
+      "masterDashboard": "Мій день",
+      "masterSchedule": "Мій розклад",
+      "masterClients": "Мої клієнти",
+      "masterBookings": "Мої записи",
+      "masterStats": "Моя статистика",
+      "masterProfile": "Мій профіль"
+    },
+    "topbar": {
+      "search": "Пошук",
+      "searchShortcut": "Пошук…",
+      "theme": "Тема",
+      "language": "Мова",
+      "notifications": "Сповіщення",
+      "openMenu": "Відкрити меню"
+    },
+    "user": {
+      "profile": "Профіль",
+      "logout": "Вийти"
+    },
+    "panelAdmin": "Адмін",
+    "panelMaster": "Майстер",
+    "themeFriendly": "Friendly",
+    "themeMinimal": "Minimal",
+    "themePremium": "Premium"
+  },
+  "dashboard": {
+    "phase": "Фаза 8 — каркас",
+    "adminKpiTitle": "KPI",
+    "adminKpiDesc": "У наступних фазах.",
+    "adminKpiBody": "Користуйтеся меню ліворуч. Вихід — у меню користувача праворуч зверху.",
+    "masterTodayTitle": "Сьогодні",
+    "masterTodayDesc": "Тут з’являться розклад і швидкі дії.",
+    "masterTodayBody": "Навігація майстра ліворуч. Вихід — під аватаром."
+  },
+  "errors": {
+    "forbidden": "У вас немає доступу до цієї сторінки.",
+    "forbiddenTitle": "403",
+    "goHome": "На сторінку входу"
+  }
+}

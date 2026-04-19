@@ -1,5 +1,6 @@
 # Reverse proxy: API (FastAPI) и веб (Next.js). См. 01_MASTER_SPEC.md §3.1–3.2.
-# Локально TLS отключён; в проде замените блок на домен с автоматическим HTTPS.
+# Важно: FastAPI только под /api/v1/*; Next — /api/auth/*, /api/bff/* (не смешивать).
+# На VPS: задайте PUBLIC_APP_URL в .env; порты CADDY_HTTP_PORT=80, CADDY_HTTPS_PORT=443.
 
 {
 	auto_https off
@@ -7,6 +8,11 @@
 
 :80 {
 	encode gzip zstd
+
+	# REST API (FastAPI), вебхук Telegram: /api/v1/tg/webhook/...
+	handle /api/v1* {
+		reverse_proxy api:8000
+	}
 
 	handle /healthz {
 		reverse_proxy api:8000
@@ -20,9 +26,12 @@
 	handle /redoc {
 		reverse_proxy api:8000
 	}
-	handle /api* {
-		reverse_proxy api:8000
+
+	# Next.js Route Handlers (логин, BFF)
+	handle /api/* {
+		reverse_proxy web:3000
 	}
+
 	handle {
 		reverse_proxy web:3000
 	}

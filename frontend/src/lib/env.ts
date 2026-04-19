@@ -1,0 +1,17 @@
+/** Server-side backend base URL (no trailing slash). */
+export function getApiBaseUrl(): string {
+  const u = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+  return u.replace(/\/$/, "");
+}
+
+/**
+ * Публичный origin сайта (VPS), без слэша в конце.
+ * В Docker задаётся через PUBLIC_APP_URL / NEXT_PUBLIC_APP_URL при сборке.
+ * В dev без переменной на клиенте можно опереться на window.location.origin.
+ */
+export function getPublicAppUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  if (typeof window !== "undefined") return window.location.origin;
+  return "";
+}

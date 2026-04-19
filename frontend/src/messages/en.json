@@ -1,0 +1,82 @@
+{
+  "common": {
+    "brand": "Hunger Beauty",
+    "brandShort": "Hunger",
+    "salonTagline": "Salon management"
+  },
+  "login": {
+    "titleWelcomeBack": "Welcome back",
+    "titleSignIn": "Sign in",
+    "titlePremium": "Welcome",
+    "subtitle": "Sign in to your dashboard",
+    "subtitleMinimal": "// auth required to proceed",
+    "subtitlePremium": "Enter your salon panel",
+    "email": "Email",
+    "password": "Password",
+    "remember": "Remember me",
+    "forgot": "Forgot password?",
+    "submit": "Sign in",
+    "submitPremium": "Enter salon",
+    "variantFriendly": "Friendly",
+    "variantMinimal": "Minimal",
+    "variantPremium": "Premium",
+    "error": "Invalid email or password",
+    "telegramSoon": "Telegram sign-in — coming soon",
+    "contactOwner": "Contact the salon owner",
+    "noAccount": "No account?"
+  },
+  "layout": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "bookings": "Bookings",
+      "clients": "Clients",
+      "masters": "Masters",
+      "services": "Services",
+      "schedule": "Schedule",
+      "broadcasts": "Broadcasts",
+      "statistics": "Statistics",
+      "ai": "AI",
+      "blacklist": "Blacklist",
+      "users": "Users",
+      "settings": "Settings",
+      "audit": "Audit log",
+      "masterDashboard": "My day",
+      "masterSchedule": "My schedule",
+      "masterClients": "My clients",
+      "masterBookings": "My bookings",
+      "masterStats": "My statistics",
+      "masterProfile": "My profile"
+    },
+    "topbar": {
+      "search": "Search",
+      "searchShortcut": "Search…",
+      "theme": "Theme",
+      "language": "Language",
+      "notifications": "Notifications",
+      "openMenu": "Open menu"
+    },
+    "user": {
+      "profile": "Profile",
+      "logout": "Log out"
+    },
+    "panelAdmin": "Admin",
+    "panelMaster": "Master",
+    "themeFriendly": "Friendly",
+    "themeMinimal": "Minimal",
+    "themePremium": "Premium"
+  },
+  "dashboard": {
+    "phase": "Phase 8 — scaffold",
+    "adminKpiTitle": "KPI",
+    "adminKpiDesc": "Coming in next phases.",
+    "adminKpiBody": "Use the sidebar to navigate. Logout is in the user menu on the top right.",
+    "masterTodayTitle": "Today",
+    "masterTodayDesc": "Schedule and quick actions will appear here.",
+    "masterTodayBody": "Master panel navigation is on the left. Logout is under your avatar."
+  },
+  "errors": {
+    "forbidden": "You do not have access to this page.",
+    "forbiddenTitle": "403",
+    "goHome": "Back to login"
+  }
+}
