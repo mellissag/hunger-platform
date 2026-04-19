@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     redis_url: str | None = None
     telegram_bot_token: str | None = None
     telegram_webhook_secret: str | None = None
+    gemini_api_key: str | None = None
 
 
 @lru_cache

@@ -67,7 +67,7 @@ services:
       context: ../backend
       dockerfile: Dockerfile
     restart: unless-stopped
-    command: ["sleep", "infinity"]
+    command: ["arq", "app.workers.settings.WorkerSettings"]
     env_file:
       - ../.env
     environment:

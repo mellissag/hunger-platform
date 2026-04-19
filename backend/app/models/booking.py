@@ -94,6 +94,10 @@ class Booking(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancellation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    reminder_sent_24h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    reminder_sent_2h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    reminder_sent_30m: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     review: Mapped["Review | None"] = relationship(
         "Review",
         back_populates="booking",
