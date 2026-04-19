@@ -23,7 +23,6 @@ out/
 dist/
 .npm/
 *.tsbuildinfo
-next-env.d.ts
 
 # ── Docker volumes / runtime data ─────────────────────────────
 data/

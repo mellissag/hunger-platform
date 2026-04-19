@@ -1,0 +1,29 @@
+# Reverse proxy: API (FastAPI) и веб (Next.js). См. 01_MASTER_SPEC.md §3.1–3.2.
+# Локально TLS отключён; в проде замените блок на домен с автоматическим HTTPS.
+
+{
+	auto_https off
+}
+
+:80 {
+	encode gzip zstd
+
+	handle /healthz {
+		reverse_proxy api:8000
+	}
+	handle /docs {
+		reverse_proxy api:8000
+	}
+	handle /openapi.json {
+		reverse_proxy api:8000
+	}
+	handle /redoc {
+		reverse_proxy api:8000
+	}
+	handle /api* {
+		reverse_proxy api:8000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}

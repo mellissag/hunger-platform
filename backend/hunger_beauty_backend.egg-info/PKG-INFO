@@ -1,0 +1,41 @@
+Metadata-Version: 2.4
+Name: hunger-beauty-backend
+Version: 0.1.0
+Summary: Hunger Beauty — FastAPI + aiogram backend
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi>=0.115.0
+Requires-Dist: uvicorn[standard]>=0.30.0
+Requires-Dist: aiogram>=3.15.0
+Requires-Dist: sqlalchemy[asyncio]>=2.0.0
+Requires-Dist: asyncpg>=0.29.0
+Requires-Dist: alembic>=1.13.0
+Requires-Dist: arq>=0.26.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: pydantic-settings>=2.0.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: python-jose[cryptography]>=3.3.0
+Requires-Dist: passlib[bcrypt]>=1.7.4
+Requires-Dist: bcrypt<4.1,>=4.0.1
+Requires-Dist: structlog>=24.0.0
+Requires-Dist: loguru>=0.7.0
+Requires-Dist: redis>=5.0.0
+Requires-Dist: babel>=2.16.0
+Requires-Dist: fluent.runtime>=0.4.0
+Requires-Dist: pgvector>=0.3.0
+Requires-Dist: google-generativeai>=0.8.0
+Requires-Dist: psycopg2-binary>=2.9.0
+Requires-Dist: slowapi>=0.1.9
+Requires-Dist: email-validator>=2.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.24.0; extra == "dev"
+Requires-Dist: pytest-cov>=5.0.0; extra == "dev"
+Requires-Dist: testcontainers[postgres]>=4.0.0; extra == "dev"
+Requires-Dist: ruff>=0.7.0; extra == "dev"
+Requires-Dist: mypy>=1.13.0; extra == "dev"
+Requires-Dist: black>=24.0.0; extra == "dev"
+
+# Hunger Beauty — Backend
+
+Python 3.12, FastAPI, aiogram 3, SQLAlchemy 2 (async), ARQ. См. `01_MASTER_SPEC.md`.

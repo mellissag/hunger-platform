@@ -1,0 +1,11 @@
+# Заготовка под публикацию образов по тегу (см. 01_MASTER_SPEC.md §13.5).
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "release.yml stub — настроить build/push при git tag v*"

@@ -7,6 +7,18 @@
 
 ## Быстрый старт
 
+### Docker Compose (локально)
+
+```bash
+cp .env.example .env
+# при необходимости отредактируйте .env
+docker compose -f deploy/docker-compose.yml --env-file .env up -d --build
+```
+
+Точка входа: **http://localhost** (Caddy → Next.js на `/`, FastAPI на `/api`, `/healthz`, `/docs`).
+
+### Установка на VPS (скрипт)
+
 ```bash
 # Установка на чистом Ubuntu 22.04 / 24.04
 curl -fsSL https://raw.githubusercontent.com/YOUR_ORG/hunger-platform/main/deploy/scripts/install.sh | bash
