@@ -36,6 +36,21 @@ async def lifespan(app: FastAPI):
 
             r = Redis.from_url(settings.redis_url, decode_responses=True)
             await subscribe_to_updates(r)
+
+        # Set persistent WebApp menu button (bottom-left of Telegram input field)
+        try:
+            from aiogram.types import MenuButtonWebApp, WebAppInfo
+
+            mini_app_url = f"https://{settings.app_domain}/mini-app"
+            await app.state.bot.set_my_commands([])  # clear old slash commands
+            await app.state.bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="Открыть салон",
+                    web_app=WebAppInfo(url=mini_app_url),
+                )
+            )
+        except Exception:  # noqa: BLE001
+            pass  # non-critical: bot may lack permissions or API unavailable
     yield
     bot = getattr(app.state, "bot", None)
     if bot is not None:

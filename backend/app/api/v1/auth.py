@@ -116,7 +116,7 @@ async def accept_invite(
 
 
 @router.post("/login", response_model=TokenPairResponse)
-@limiter.limit("5 per 15 minutes")
+@limiter.limit("20 per 15 minutes")
 async def login(
     request: Request,
     body: LoginRequest,

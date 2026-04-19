@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Script from "next/script";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 declare global {
   interface Window {
@@ -54,27 +54,20 @@ declare global {
 }
 
 function MiniAppContent({ children }: { children: ReactNode }) {
-  const [isDark, setIsDark] = useState(false);
-
   useEffect(() => {
     if (typeof window === "undefined" || !window.Telegram?.WebApp) return;
-    const twa = window.Telegram.WebApp;
-    twa.ready();
-    twa.expand();
-    setIsDark(twa.colorScheme === "dark");
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
   }, []);
 
   return (
-    <div
-      className={isDark ? "dark" : "light"}
-      style={{
-        fontFamily: "'Inter', system-ui, sans-serif",
-        minHeight: "100vh",
-        backgroundColor: isDark ? "#080808" : "#FAF8F3",
-        color: isDark ? "#F0EBE0" : "#1C1408",
-        WebkitFontSmoothing: "antialiased",
-      }}
-    >
+    <div style={{
+      fontFamily: "'Inter', system-ui, sans-serif",
+      minHeight: "100vh",
+      backgroundColor: "var(--bg)",
+      color: "var(--fg)",
+      WebkitFontSmoothing: "antialiased",
+    }}>
       {children}
     </div>
   );
@@ -103,23 +96,11 @@ export default function MiniAppLayout({ children }: { children: ReactNode }) {
           --border: rgba(201,168,76,.14);
           --dim: #1C1C1C;
           --ok: #6FCF97;
-        }
-        .light {
-          --gold: #9A7230;
-          --gold-l: rgba(154,114,48,.10);
-          --bg: #FAF8F3;
-          --fg: #1C1408;
-          --muted: #7A6E58;
-          --card: #FFFFFF;
-          --border: #E4DDD0;
-          --dim: #F5F1E8;
-          --ok: #3A7D44;
+          --err: #EB5757;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { overflow-x: hidden; }
         .serif { font-family: "Cormorant Garamond", serif; }
-        .gold { color: var(--gold); }
-        .muted { color: var(--muted); }
       `}</style>
       <MiniAppContent>{children}</MiniAppContent>
     </>
