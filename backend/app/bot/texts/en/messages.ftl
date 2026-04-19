@@ -10,6 +10,7 @@ menu-ai = 💬 AI assistant
 menu-about = ℹ️ About
 menu-profile = 👤 Profile
 menu-lang = 🌐 Language
+menu-no-ai = 🔕 Without AI (classic menu)
 
 language-prompt-block =
     🇬🇧 Welcome! Please choose your language.
@@ -18,6 +19,14 @@ language-prompt-block =
     🇧🇬 Добре дошли! Моля, изберете език.
 
 ai-not-implemented = AI assistant is not implemented yet.
+ai-consult-welcome = Ask a question about the salon. I answer from the knowledge base.
+ai-unavailable = AI assistant is not configured yet (missing API key on the server).
+ai-disabled-salon = This feature is disabled in salon settings.
+ai-blocked-pref = You chose the classic menu without AI. Contact the salon if you want to turn AI back on.
+ai-btn-book = 🗓 Book
+ai-btn-bad = 👎 Bad answer
+ai-btn-menu = 🏠 Menu
+ai-bad-thanks = Thanks for the feedback — we’ll review it.
 
 booking-choose-flow = How would you like to choose?
 booking-flow-master-first = Master first

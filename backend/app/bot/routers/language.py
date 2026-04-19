@@ -36,7 +36,11 @@ async def cb_set_language(
     ai_enabled = await get_ai_enabled(db)
     await query.message.edit_text(
         format_message(locale, "menu-greeting", {"name": query.from_user.first_name or ""}),
-        reply_markup=main_menu_keyboard(locale, ai_enabled=ai_enabled),
+        reply_markup=main_menu_keyboard(
+            locale,
+            ai_enabled=ai_enabled,
+            prefers_no_ai=tg_client.prefers_no_ai,
+        ),
     )
 
 

@@ -78,3 +78,17 @@ class InvalidBookingStateError(DomainError):
 
     def __init__(self, message: str = "Invalid booking status") -> None:
         super().__init__(message, code="invalid_booking_state", status_code=409)
+
+
+class AIUnavailableError(DomainError):
+    """Нет GEMINI_API_KEY или AI отключён."""
+
+    def __init__(self, message: str = "AI is temporarily unavailable") -> None:
+        super().__init__(message, code="ai_unavailable", status_code=503)
+
+
+class AIRateLimitError(DomainError):
+    """Слишком много запросов к AI за час."""
+
+    def __init__(self, message: str = "Too many AI requests, try again later") -> None:
+        super().__init__(message, code="ai_rate_limit", status_code=429)

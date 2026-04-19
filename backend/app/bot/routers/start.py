@@ -42,7 +42,11 @@ async def cmd_start(
     await state.set_state(MainStates.menu)
     await message.answer(
         format_message(locale, "menu-greeting", {"name": message.from_user.first_name or ""}),
-        reply_markup=main_menu_keyboard(locale, ai_enabled=ai_enabled),
+        reply_markup=main_menu_keyboard(
+            locale,
+            ai_enabled=ai_enabled,
+            prefers_no_ai=tg_client.prefers_no_ai,
+        ),
     )
 
 
@@ -70,11 +74,9 @@ async def cb_main_menu(
     ai_enabled = await get_ai_enabled(db)
     await query.message.edit_text(
         format_message(locale, "menu-greeting", {"name": query.from_user.first_name or ""}),
-        reply_markup=main_menu_keyboard(locale, ai_enabled=ai_enabled),
+        reply_markup=main_menu_keyboard(
+            locale,
+            ai_enabled=ai_enabled,
+            prefers_no_ai=tg_client.prefers_no_ai,
+        ),
     )
-
-
-@router.callback_query(F.data == "menu:ai")
-async def cb_ai_stub(query: CallbackQuery, locale: str) -> None:
-    await query.answer()
-    await query.message.answer(format_message(locale, "ai-not-implemented"))

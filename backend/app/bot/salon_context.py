@@ -9,9 +9,13 @@ from app.models.salon import Salon, Settings
 
 
 async def get_ai_enabled(db: AsyncSession) -> bool:
+    from app.config import get_settings
+
     row = (
         await db.execute(
             select(Settings.ai_enabled).join(Salon, Salon.id == Settings.salon_id).limit(1)
         )
     ).first()
-    return bool(row and row[0])
+    if not row or not row[0]:
+        return False
+    return bool(get_settings().gemini_api_key)

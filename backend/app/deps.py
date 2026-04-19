@@ -36,6 +36,11 @@ async def get_redis() -> AsyncIterator[Redis | None]:
     yield _redis_singleton()
 
 
+def get_redis_optional() -> Redis | None:
+    """Синхронная зависимость: один экземпляр Redis или None."""
+    return _redis_singleton()
+
+
 async def get_db() -> AsyncIterator[AsyncSession]:
     factory = get_async_session_factory()
     async with factory() as session:

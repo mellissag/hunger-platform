@@ -686,6 +686,7 @@ async def _finalize_booking(
 async def cb_confirm_cancel(
     query: CallbackQuery,
     db: AsyncSession,
+    tg_client: Client,
     locale: str,
     state: FSMContext,
 ) -> None:
@@ -694,5 +695,9 @@ async def cb_confirm_cancel(
     ai = await get_ai_enabled(db)
     await query.message.edit_text(
         format_message(locale, "booking-aborted"),
-        reply_markup=main_menu_keyboard(locale, ai_enabled=ai),
+        reply_markup=main_menu_keyboard(
+            locale,
+            ai_enabled=ai,
+            prefers_no_ai=tg_client.prefers_no_ai,
+        ),
     )

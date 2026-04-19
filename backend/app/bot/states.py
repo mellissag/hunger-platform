@@ -42,3 +42,7 @@ class ProfileStates(StatesGroup):
     edit_name = State()
     edit_phone = State()
     delete_confirm = State()
+
+
+class AIChatStates(StatesGroup):
+    chat = State()

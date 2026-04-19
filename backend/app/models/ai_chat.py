@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Text, Uuid, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text, Uuid, func
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -59,6 +59,9 @@ class AIMessage(UUIDPrimaryKeyMixin, Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    cited_chunks: Mapped[list[int] | None] = mapped_column(ARRAY(Integer), nullable=True)
+    cited_chunks: Mapped[list[uuid.UUID] | None] = mapped_column(
+        ARRAY(Uuid(as_uuid=True)), nullable=True
+    )
+    flagged_negative: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     conversation: Mapped[AIConversation] = relationship("AIConversation", back_populates="messages")

@@ -10,6 +10,7 @@ menu-ai = 💬 AI асистент
 menu-about = ℹ️ За салона
 menu-profile = 👤 Профил
 menu-lang = 🌐 Език
+menu-no-ai = 🔕 Без AI — класическо меню
 
 language-prompt-block =
     🇬🇧 Welcome! Please choose your language.
@@ -18,6 +19,14 @@ language-prompt-block =
     🇧🇬 Добре дошли! Моля, изберете език.
 
 ai-not-implemented = AI асистентът още не е наличен.
+ai-consult-welcome = Задай въпрос за салона — отговарям от базата знания.
+ai-unavailable = Асистентът не е наличен: липсва AI ключ на сървъра.
+ai-disabled-salon = Функцията е изключена в настройките на салона.
+ai-blocked-pref = Избра класическо меню без AI. Свържи се със салона, ако искаш да го върнеш.
+ai-btn-book = 🗓 Записване
+ai-btn-bad = 👎 Лош отговор
+ai-btn-menu = 🏠 Меню
+ai-bad-thanks = Благодарим за обратната връзка.
 
 booking-choose-flow = Как предпочиташ да избереш?
 booking-flow-master-first = Първо майстор

@@ -7,7 +7,9 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from app.bot.fluent_i18n import format_message
 
 
-def main_menu_keyboard(locale: str, *, ai_enabled: bool) -> InlineKeyboardMarkup:
+def main_menu_keyboard(
+    locale: str, *, ai_enabled: bool, prefers_no_ai: bool = False
+) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = [
         [
             InlineKeyboardButton(
@@ -22,12 +24,20 @@ def main_menu_keyboard(locale: str, *, ai_enabled: bool) -> InlineKeyboardMarkup
             ),
         ],
     ]
-    if ai_enabled:
+    if ai_enabled and not prefers_no_ai:
         rows.append(
             [
                 InlineKeyboardButton(
                     text=format_message(locale, "menu-ai"),
                     callback_data="menu:ai",
+                ),
+            ]
+        )
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=format_message(locale, "menu-no-ai"),
+                    callback_data="menu:no-ai",
                 ),
             ]
         )
