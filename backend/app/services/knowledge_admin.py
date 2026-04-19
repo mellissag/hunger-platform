@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.models.enums import KBSourceType
-from app.models.knowledge import KBDocument
+from app.models.knowledge import KBChunk, KBDocument
 
 
 async def enqueue_reindex(doc_id: uuid.UUID) -> None:
@@ -32,13 +32,21 @@ async def list_documents(
     *,
     page: int,
     page_size: int,
-) -> tuple[list[KBDocument], int]:
+) -> tuple[list[tuple[KBDocument, int]], int]:
     total = (await db.execute(select(func.count()).select_from(KBDocument))).scalar_one()
     offset = (page - 1) * page_size
-    res = await db.execute(
-        select(KBDocument).order_by(KBDocument.created_at.desc()).offset(offset).limit(page_size)
+    cnt = func.count(KBChunk.id).label("chunk_count")
+    stmt = (
+        select(KBDocument, cnt)
+        .outerjoin(KBChunk, KBChunk.document_id == KBDocument.id)
+        .group_by(KBDocument.id)
+        .order_by(KBDocument.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
     )
-    return list(res.scalars().all()), int(total)
+    res = await db.execute(stmt)
+    rows = [(d, int(c or 0)) for d, c in res.all()]
+    return rows, int(total)
 
 
 async def get_document(db: AsyncSession, doc_id: uuid.UUID) -> KBDocument | None:

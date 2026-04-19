@@ -14,6 +14,7 @@ from app.models.salon import Salon, Settings
 from app.models.schedule import ScheduleSlot
 from app.models.stats import BotVisitStat
 from app.models.user import AuthSession, User
+from app.models.user_invite import UserInvite
 
 __all__ = [
     "AIConversation",
@@ -38,4 +39,5 @@ __all__ = [
     "ServiceCategory",
     "Settings",
     "User",
+    "UserInvite",
 ]

@@ -22,6 +22,8 @@ class Broadcast(UUIDPrimaryKeyMixin, Base):
     title: Mapped[str] = mapped_column(Text, nullable=False)
     message_i18n: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     media_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    media_type: Mapped[str | None] = mapped_column(Text, nullable=True)
+    inline_keyboard: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     segment: Mapped[dict[str, Any]] = mapped_column(
         JSONB, nullable=False, server_default=text("'{}'::jsonb")
     )

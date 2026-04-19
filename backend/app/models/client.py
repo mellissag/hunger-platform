@@ -63,6 +63,7 @@ class Client(UUIDPrimaryKeyMixin, Base):
         ARRAY(Text), nullable=False, server_default=text("'{}'::text[]")
     )
     prefers_no_ai: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    marketing_opted_out: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

@@ -39,3 +39,4 @@ class KBDocumentOut(KBDocumentBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
+    chunk_count: int = 0

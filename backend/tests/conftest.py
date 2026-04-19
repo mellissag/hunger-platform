@@ -108,6 +108,7 @@ async def _truncate_tables() -> None:
                   master,
                   settings,
                   salon,
+                  user_invite,
                   audit_log,
                   session,
                   "user"

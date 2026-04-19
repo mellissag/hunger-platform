@@ -37,6 +37,10 @@ class Salon(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
     logo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     cover_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    favicon_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    contacts: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
     timezone: Mapped[str] = mapped_column(Text, nullable=False, default="Europe/Sofia")
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="EUR")
     default_lang: Mapped[str] = mapped_column(String(5), nullable=False, default="en")
@@ -109,6 +113,21 @@ class Settings(UUIDPrimaryKeyMixin, Base):
     ai_allow_booking: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     payment_provider_config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+
+    ai_temperature: Mapped[float] = mapped_column(REAL(), nullable=False, default=0.7)
+    ai_few_shot_examples: Mapped[list[Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
+    integrations: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    reminder_message_templates: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    prepayment_min_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    prepayment_skip_min_visits: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    date_format: Mapped[str] = mapped_column(Text, nullable=False, default="yyyy-MM-dd")
+    time_format: Mapped[str] = mapped_column(Text, nullable=False, default="HH:mm")
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

@@ -14,10 +14,12 @@ from app.core.exceptions import AIUnavailableError, NotFoundError
 from app.deps import get_db, get_redis_optional, require_roles
 from app.models.ai_chat import AIConversation, AIMessage
 from app.models.client import Client
-from app.models.enums import UserRole
+from app.models.enums import AIMessageRole, UserRole
 from app.models.user import User
 from app.schemas.ai_api import (
+    AIConversationDetailOut,
     AIConversationOut,
+    AIMessageOut,
     FlagMessageResponse,
     TestChatRequest,
     TestChatResponse,
@@ -90,6 +92,54 @@ async def list_ai_conversations(
         total=int(total or 0),
         page=page,
         page_size=page_size,
+    )
+
+
+@router.get("/conversations/{conv_id}", response_model=AIConversationDetailOut)
+async def get_ai_conversation(
+    conv_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _user: Annotated[User, Depends(require_roles(*_AI_STAFF))],
+) -> AIConversationDetailOut:
+    conv = await db.get(AIConversation, conv_id)
+    if conv is None:
+        raise NotFoundError("Conversation not found")
+    cl = await db.get(Client, conv.client_id)
+    if cl is None:
+        raise NotFoundError("Client not found")
+    msgs = (
+        (
+            await db.execute(
+                select(AIMessage)
+                .where(AIMessage.conversation_id == conv_id)
+                .order_by(AIMessage.created_at.asc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    mout = [
+        AIMessageOut(
+            id=m.id,
+            role=m.role.value if isinstance(m.role, AIMessageRole) else str(m.role),
+            content=m.content,
+            created_at=m.created_at,
+            cited_chunks=list(m.cited_chunks) if m.cited_chunks else None,
+            flagged_negative=m.flagged_negative,
+        )
+        for m in msgs
+    ]
+    return AIConversationDetailOut(
+        id=conv.id,
+        client_id=conv.client_id,
+        client_name=_client_label(cl),
+        started_at=conv.started_at,
+        ended_at=conv.ended_at,
+        lang=conv.lang,
+        token_in=conv.token_in,
+        token_out=conv.token_out,
+        last_message_preview=msgs[-1].content[:200] if msgs else None,
+        messages=mout,
     )
 
 

@@ -11,6 +11,7 @@ from app.db.base import get_async_session_factory
 from app.workers.broadcasts import send_broadcast
 from app.workers.indexer import index_kb_document
 from app.workers.reminders import process_booking_reminders
+from app.workers.stats_job import refresh_bot_visit_stats_yesterday
 
 
 def _redis_settings() -> RedisSettings:
@@ -36,6 +37,13 @@ class WorkerSettings:
             process_booking_reminders,
             minute=set(range(0, 60, 5)),
             timeout=120,
+            max_tries=3,
+        ),
+        cron(
+            refresh_bot_visit_stats_yesterday,
+            hour={1},
+            minute={15},
+            timeout=300,
             max_tries=3,
         ),
     ]

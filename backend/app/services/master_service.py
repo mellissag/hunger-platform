@@ -60,6 +60,7 @@ async def create_master(db: AsyncSession, _user: User, data: MasterCreate) -> Ma
         color_hex=data.color_hex,
         sort_order=data.sort_order,
         is_active=data.is_active,
+        payroll_percent=data.payroll_percent,
     )
     db.add(m)
     await db.flush()

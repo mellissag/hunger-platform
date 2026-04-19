@@ -35,6 +35,13 @@ class TokenPairResponse(BaseModel):
     expires_in: int = Field(description="Срок жизни access-токена в секундах")
 
 
+class InviteAcceptRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    token: str = Field(..., min_length=8, max_length=512)
+    password: str = Field(..., min_length=8, max_length=128)
+
+
 class UserMeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

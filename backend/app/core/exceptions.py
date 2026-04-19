@@ -92,3 +92,17 @@ class AIRateLimitError(DomainError):
 
     def __init__(self, message: str = "Too many AI requests, try again later") -> None:
         super().__init__(message, code="ai_rate_limit", status_code=429)
+
+
+class BroadcastInvalidStateError(DomainError):
+    """Операция недопустима для текущего статуса рассылки."""
+
+    def __init__(self, message: str = "Invalid broadcast state") -> None:
+        super().__init__(message, code="broadcast_invalid_state", status_code=409)
+
+
+class EmptySegmentError(DomainError):
+    """По сегменту нет получателей с Telegram."""
+
+    def __init__(self, message: str = "No recipients for this segment") -> None:
+        super().__init__(message, code="empty_segment", status_code=400)

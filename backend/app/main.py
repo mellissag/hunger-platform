@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request, status
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -54,6 +57,10 @@ async def domain_error_handler(_request: object, exc: DomainError) -> JSONRespon
 
 
 app.include_router(api_router, prefix="/api/v1")
+
+_media_root = Path(os.environ.get("UPLOAD_DIR", "./data/uploads"))
+_media_root.mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(_media_root)), name="media")
 
 
 @app.get("/healthz", response_model=None)

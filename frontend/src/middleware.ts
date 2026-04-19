@@ -78,6 +78,22 @@ export async function middleware(request: NextRequest) {
     if (!ADMIN_ROLES.has(session.role)) {
       return NextResponse.redirect(new URL("/403", request.url));
     }
+    if (
+      (pathname === "/ai" || pathname.startsWith("/ai/")) &&
+      session.role === "reception"
+    ) {
+      return NextResponse.redirect(new URL("/403", request.url));
+    }
+    const ownerOnly =
+      pathname === "/users" ||
+      pathname.startsWith("/users/") ||
+      pathname === "/settings" ||
+      pathname.startsWith("/settings/") ||
+      pathname === "/audit" ||
+      pathname.startsWith("/audit/");
+    if (ownerOnly && session.role !== "owner") {
+      return NextResponse.redirect(new URL("/403", request.url));
+    }
     return NextResponse.next();
   }
 
@@ -102,11 +118,17 @@ export const config = {
     "/services/:path*",
     "/schedule/:path*",
     "/broadcasts/:path*",
+    "/statistics",
     "/statistics/:path*",
+    "/ai",
     "/ai/:path*",
+    "/blacklist",
     "/blacklist/:path*",
+    "/users",
     "/users/:path*",
+    "/settings",
     "/settings/:path*",
+    "/audit",
     "/audit/:path*",
     "/m/:path*",
     "/403",

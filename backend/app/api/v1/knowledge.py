@@ -5,16 +5,17 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
 from app.deps import get_db, require_roles
-from app.models.enums import UserRole
+from app.models.enums import KBSourceType, UserRole
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
 from app.schemas.knowledge import KBDocumentCreate, KBDocumentOut, KBDocumentUpdate
 from app.services import knowledge_admin
+from app.services.knowledge_extract import extract_text_from_upload
 
 router = APIRouter(prefix="/kb", tags=["knowledge"])
 
@@ -29,7 +30,10 @@ async def list_kb_documents(
     page_size: int = Query(20, ge=1, le=100),
 ) -> PaginatedResponse[KBDocumentOut]:
     rows, total = await knowledge_admin.list_documents(db, page=page, page_size=page_size)
-    items = [KBDocumentOut.model_validate(r) for r in rows]
+    items: list[KBDocumentOut] = []
+    for doc, chunk_count in rows:
+        base = KBDocumentOut.model_validate(doc)
+        items.append(base.model_copy(update={"chunk_count": chunk_count}))
     return PaginatedResponse(items=items, total=total, page=page, page_size=page_size)
 
 
@@ -43,6 +47,38 @@ async def get_kb_document(
     if doc is None:
         raise NotFoundError("Document not found")
     return KBDocumentOut.model_validate(doc)
+
+
+@router.post("/documents/upload", response_model=KBDocumentOut)
+async def upload_kb_document(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _user: Annotated[User, Depends(require_roles(*_KB_ROLES))],
+    file: UploadFile = File(...),
+    lang: str = Query("en", min_length=2, max_length=5),
+) -> KBDocumentOut:
+    raw = await file.read()
+    if len(raw) > 12 * 1024 * 1024:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=413, detail="File too large (max 12MB)")
+    try:
+        text = extract_text_from_upload(file.filename or "doc.pdf", raw)
+    except ValueError as e:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    title = (file.filename or "document").rsplit("/", 1)[-1][:500]
+    doc = await knowledge_admin.create_document(
+        db,
+        title=title,
+        source_type=KBSourceType.file,
+        source_ref=file.filename,
+        content=text or None,
+        lang=lang,
+    )
+    return KBDocumentOut.model_validate(doc).model_copy(
+        update={"chunk_count": 0},
+    )
 
 
 @router.post("/documents", response_model=KBDocumentOut)

@@ -33,6 +33,9 @@ class Master(UUIDPrimaryKeyMixin, Base):
     color_hex: Mapped[str] = mapped_column(String(7), nullable=False, default="#D97757")
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    payroll_percent: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), nullable=False, default=Decimal("40.00")
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

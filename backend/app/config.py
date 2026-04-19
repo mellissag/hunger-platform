@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     telegram_bot_token: str | None = None
     telegram_webhook_secret: str | None = None
     gemini_api_key: str | None = None
+    upload_dir: str = "./data/uploads"
 
 
 @lru_cache

@@ -4,7 +4,25 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1 import ai_chat, auth, bookings, clients, knowledge, masters, schedule, service_categories, services, tg
+from app.api.v1 import (
+    ai_chat,
+    audit,
+    auth,
+    blacklist,
+    bookings,
+    broadcasts,
+    clients,
+    knowledge,
+    masters,
+    salon,
+    schedule,
+    segments,
+    service_categories,
+    services,
+    stats,
+    tg,
+    users_admin,
+)
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth")
@@ -16,4 +34,11 @@ api_router.include_router(bookings.router)
 api_router.include_router(schedule.router)
 api_router.include_router(ai_chat.router)
 api_router.include_router(knowledge.router)
+api_router.include_router(segments.router)
+api_router.include_router(broadcasts.router)
+api_router.include_router(stats.router)
 api_router.include_router(tg.router)
+api_router.include_router(salon.router)
+api_router.include_router(blacklist.router)
+api_router.include_router(users_admin.router)
+api_router.include_router(audit.router)

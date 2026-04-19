@@ -59,6 +59,30 @@ async def record_auth_logout(
     )
 
 
+async def record_event(
+    db: AsyncSession,
+    *,
+    user_id: UUID | None,
+    action: str,
+    entity_type: str | None = None,
+    entity_id: UUID | None = None,
+    payload: dict[str, Any] | None = None,
+    ip: str | None = None,
+    user_agent: str | None = None,
+) -> None:
+    db.add(
+        AuditLog(
+            user_id=user_id,
+            action=action,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            payload=payload,
+            ip=ip,
+            user_agent=user_agent,
+        )
+    )
+
+
 async def record_role_change(
     db: AsyncSession,
     *,

@@ -34,5 +34,20 @@ class AIConversationOut(BaseModel):
     last_message_preview: str | None = None
 
 
+class AIMessageOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    role: str
+    content: str
+    created_at: datetime
+    cited_chunks: list[UUID] | None
+    flagged_negative: bool
+
+
+class AIConversationDetailOut(AIConversationOut):
+    messages: list[AIMessageOut]
+
+
 class FlagMessageResponse(BaseModel):
     ok: bool = True

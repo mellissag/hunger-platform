@@ -21,6 +21,7 @@ class MasterBase(BaseModel):
     color_hex: str = Field(default="#D97757", pattern=r"^#[0-9A-Fa-f]{6}$")
     sort_order: int = 0
     is_active: bool = True
+    payroll_percent: Decimal = Field(default=Decimal("40.00"), ge=Decimal("0"), le=Decimal("100"))
 
     @field_validator("bio", "specialization")
     @classmethod
@@ -44,6 +45,7 @@ class MasterUpdate(BaseModel):
     color_hex: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
     sort_order: int | None = None
     is_active: bool | None = None
+    payroll_percent: Decimal | None = Field(default=None, ge=Decimal("0"), le=Decimal("100"))
 
     @field_validator("bio", "specialization")
     @classmethod
