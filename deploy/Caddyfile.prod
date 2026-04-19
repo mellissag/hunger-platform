@@ -1,0 +1,83 @@
+# Caddyfile.prod — production: авто-TLS через Let's Encrypt.
+# Используется docker-compose.prod.yml.
+# Переменные APP_DOMAIN и LETSENCRYPT_EMAIL задаются через environment в docker-compose.prod.yml.
+#
+# Для отладки TLS (staging LE):
+#   acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+
+{
+	email {$LETSENCRYPT_EMAIL}
+
+	# Логировать ошибки Caddy
+	log {
+		level ERROR
+	}
+}
+
+{$APP_DOMAIN} {
+	encode gzip zstd
+
+	# ── Security headers ────────────────────────────────────────
+	header {
+		X-Frame-Options             "SAMEORIGIN"
+		X-Content-Type-Options      "nosniff"
+		X-XSS-Protection            "1; mode=block"
+		Referrer-Policy             "strict-origin-when-cross-origin"
+		Strict-Transport-Security   "max-age=31536000; includeSubDomains; preload"
+		Permissions-Policy          "geolocation=(), microphone=(), camera=(self)"
+		# Скрыть версию Caddy
+		-Server
+		# CSP — не ломает Telegram Mini App
+		Content-Security-Policy     "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://telegram.org; frame-ancestors 'none';"
+	}
+
+	# ── FastAPI: REST + Telegram webhook ─────────────────────────
+	handle /api/v1* {
+		reverse_proxy api:8000 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+		}
+	}
+
+	handle /healthz {
+		reverse_proxy api:8000
+	}
+
+	handle /readyz {
+		reverse_proxy api:8000
+	}
+
+	# Swagger UI (только в dev; в prod — убрать блок handle ниже)
+	handle /docs {
+		reverse_proxy api:8000
+	}
+	handle /openapi.json {
+		reverse_proxy api:8000
+	}
+	handle /redoc {
+		reverse_proxy api:8000
+	}
+
+	# ── Next.js Route Handlers (BFF / auth) ─────────────────────
+	handle /api/* {
+		reverse_proxy web:3000 {
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	# ── Next.js (все остальное) ──────────────────────────────────
+	handle {
+		reverse_proxy web:3000 {
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	# ── Access log ───────────────────────────────────────────────
+	log {
+		output file /data/logs/access.log {
+			roll_size 10mb
+			roll_keep 7
+		}
+		format json
+	}
+}

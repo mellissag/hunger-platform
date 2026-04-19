@@ -1,0 +1,120 @@
+# Production overlay — используется ВМЕСТЕ с docker-compose.yml:
+#   docker compose -f deploy/docker-compose.yml \
+#                  -f deploy/docker-compose.prod.yml \
+#                  --env-file .env up -d
+#
+# Переопределяет:
+#   • порты Caddy → 80:80 и 443:443 (+ HTTP/3 UDP)
+#   • монтирует Caddyfile.prod (авто-TLS Let's Encrypt)
+#   • volumes caddy_data/caddy_config для сертификатов
+#   • контейнеры api/worker/web → pre-built образы из GHCR
+#   • политика логирования json-file с ротацией
+#
+# Переменные (из .env):
+#   GITHUB_REPOSITORY   — owner/repo-name (например: myorg/hunger-beauty)
+#   IMAGE_TAG           — версия образа (latest или vX.Y.Z)
+#   APP_DOMAIN          — домен салона (beauty.example.com)
+#   LETSENCRYPT_EMAIL   — email для Let's Encrypt уведомлений
+
+name: hunger-beauty
+
+services:
+  caddy:
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  api:
+    image: ghcr.io/${GITHUB_REPOSITORY}/backend:${IMAGE_TAG:-latest}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 768M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+  worker:
+    image: ghcr.io/${GITHUB_REPOSITORY}/backend:${IMAGE_TAG:-latest}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 384M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  web:
+    image: ghcr.io/${GITHUB_REPOSITORY}/frontend:${IMAGE_TAG:-latest}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 384M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  postgres:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  redis:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+volumes:
+  caddy_data:
+  caddy_config:
