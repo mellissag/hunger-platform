@@ -17,6 +17,7 @@ app/api/v1/broadcasts.py
 app/api/v1/clients.py
 app/api/v1/knowledge.py
 app/api/v1/masters.py
+app/api/v1/mini_app.py
 app/api/v1/salon.py
 app/api/v1/schedule.py
 app/api/v1/segments.py
@@ -50,6 +51,7 @@ app/bot/routers/booking.py
 app/bot/routers/language.py
 app/bot/routers/my_bookings.py
 app/bot/routers/profile.py
+app/bot/routers/review.py
 app/bot/routers/start.py
 app/core/__init__.py
 app/core/clock.py
@@ -86,6 +88,7 @@ app/schemas/client_note.py
 app/schemas/common.py
 app/schemas/knowledge.py
 app/schemas/master.py
+app/schemas/mini_app.py
 app/schemas/salon_admin.py
 app/schemas/schedule.py
 app/schemas/segment.py
@@ -108,6 +111,7 @@ app/services/knowledge_admin.py
 app/services/knowledge_extract.py
 app/services/master_service.py
 app/services/master_stats_service.py
+app/services/notification_service.py
 app/services/salon_admin_service.py
 app/services/schedule_service.py
 app/services/segment_service.py
@@ -119,6 +123,7 @@ app/workers/__init__.py
 app/workers/broadcasts.py
 app/workers/indexer.py
 app/workers/reminders.py
+app/workers/reviews.py
 app/workers/settings.py
 app/workers/stats_job.py
 hunger_beauty_backend.egg-info/PKG-INFO
@@ -134,6 +139,8 @@ tests/test_bot_phase5.py
 tests/test_broadcast_phase10.py
 tests/test_crud_phase3.py
 tests/test_main.py
+tests/test_phase12.py
+tests/test_phase13_mini_app.py
 tests/test_schedule_phase4.py
 tests/test_segment_service.py
 tests/test_stats_phase11.py

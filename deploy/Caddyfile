@@ -27,8 +27,12 @@
 		reverse_proxy api:8000
 	}
 
-	# Next.js Route Handlers (логин, BFF)
-	handle /api/* {
+	# Next.js Route Handlers (логин, BFF): /api/auth/*, /api/bff/*
+	handle /api/auth* {
+		reverse_proxy web:3000
+	}
+
+	handle /api/bff* {
 		reverse_proxy web:3000
 	}
 
