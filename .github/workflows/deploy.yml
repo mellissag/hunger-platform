@@ -59,22 +59,22 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
               -u ${{ github.actor }} --password-stdin
 
+            # compose-файлы в deploy/ (см. install.sh)
+            DC="docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.prod.yml --env-file .env --project-directory ."
+
             echo "==> Pulling new Docker images..."
-            docker compose -f docker-compose.yml \
-                           -f docker-compose.prod.yml pull
+            ${DC} pull
 
             echo "==> Restarting services..."
-            docker compose -f docker-compose.yml \
-                           -f docker-compose.prod.yml \
-                           up -d --build --remove-orphans
+            ${DC} up -d --remove-orphans
 
             echo "==> Running DB migrations..."
-            docker compose exec -T api alembic upgrade head
+            ${DC} exec -T api alembic upgrade head
 
             echo "==> Health check..."
             sleep 5
             curl -sf http://localhost:8000/healthz || \
-              (echo "Health check FAILED" && docker compose logs api --tail=50 && exit 1)
+              (echo "Health check FAILED" && ${DC} logs api --tail=50 && exit 1)
 
             echo "==> Deploy complete!"
-            docker compose ps
+            ${DC} ps
