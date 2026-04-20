@@ -52,3 +52,15 @@ export function minutesInZone(iso: string, timeZone: string): { minutes: number;
 export function durationMinutes(isoStart: string, isoEnd: string): number {
   return Math.max(0, Math.round((new Date(isoEnd).getTime() - new Date(isoStart).getTime()) / 60000));
 }
+
+/** «N дней назад» через Intl.RelativeTimeFormat. */
+export function formatVisitAgo(iso: string | null, locale: string, neverLabel: string): string {
+  if (!iso) return neverLabel;
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  try {
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+    return rtf.format(-days, "day");
+  } catch {
+    return String(days);
+  }
+}

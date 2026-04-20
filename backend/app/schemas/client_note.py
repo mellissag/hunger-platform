@@ -12,6 +12,7 @@ class ClientNoteCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     content: str = Field(..., min_length=1, max_length=20000)
+    pinned: bool = False
 
 
 class ClientNoteUpdate(BaseModel):

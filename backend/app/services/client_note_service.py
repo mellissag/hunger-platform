@@ -55,7 +55,9 @@ async def list_notes(db: AsyncSession, user: User, client_id: UUID) -> list[Clie
     ]
 
 
-async def create_note(db: AsyncSession, user: User, client_id: UUID, content: str) -> ClientNoteOut:
+async def create_note(
+    db: AsyncSession, user: User, client_id: UUID, content: str, *, pinned: bool = False
+) -> ClientNoteOut:
     await client_service.get_client(db, user, client_id)
 
     if user.role == UserRole.master:
@@ -73,7 +75,7 @@ async def create_note(db: AsyncSession, user: User, client_id: UUID, content: st
         client_id=client_id,
         author_user_id=user.id,
         content=content,
-        pinned=False,
+        pinned=pinned,
     )
     db.add(note)
     await db.flush()

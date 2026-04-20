@@ -48,13 +48,54 @@ export type ClientOut = {
   last_name: string | null;
   phone: string | null;
   tg_username: string | null;
+  birthday?: string | null;
   lang: string;
+  source?: string;
   total_bookings: number;
   total_revenue: string;
   no_show_count: number;
   last_visit_at: string | null;
   tags: string[];
   joined_at: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type ClientStatsOut = {
+  total: number;
+  new_month: number;
+  avg_ltv: number;
+};
+
+export type ClientBookingHistoryOut = {
+  id: string;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  price: string;
+  service_name: string;
+  master_name: string;
+};
+
+export type ClientReviewOut = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  master_name: string;
+};
+
+export type BlacklistEntrySlim = {
+  id: string;
+  reason: string | null;
+  created_at: string;
+};
+
+export type ClientDetailOut = ClientOut & {
+  notes: ClientNoteOut[];
+  bookings: ClientBookingHistoryOut[];
+  reviews: ClientReviewOut[];
+  blacklist_entry: BlacklistEntrySlim | null;
 };
 
 export type MasterOut = {

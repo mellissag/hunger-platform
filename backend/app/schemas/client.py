@@ -9,13 +9,14 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import ClientSource
+from app.schemas.client_note import ClientNoteOut
 
 
 class ClientBase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     phone: str | None = None
-    first_name: str | None = None
+    first_name: str | None = None  # переопределяется в ClientCreate как обязательное
     last_name: str | None = None
     birthday: date | None = None
     lang: str = "en"
@@ -23,6 +24,7 @@ class ClientBase(BaseModel):
 
 
 class ClientCreate(ClientBase):
+    first_name: str = Field(..., min_length=1, max_length=200)
     tg_user_id: int | None = None
     tg_username: str | None = None
     source: ClientSource = ClientSource.manual
@@ -53,3 +55,40 @@ class ClientOut(ClientBase):
     last_visit_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class ClientStatsOut(BaseModel):
+    total: int
+    new_month: int
+    avg_ltv: float
+
+
+class ClientBookingHistoryOut(BaseModel):
+    id: UUID
+    starts_at: datetime
+    ends_at: datetime
+    status: str
+    price: Decimal
+    service_name: str
+    master_name: str
+
+
+class ClientReviewOut(BaseModel):
+    id: UUID
+    rating: int
+    comment: str | None
+    created_at: datetime
+    master_name: str
+
+
+class BlacklistEntrySlimOut(BaseModel):
+    id: UUID
+    reason: str | None
+    created_at: datetime
+
+
+class ClientDetailOut(ClientOut):
+    notes: list[ClientNoteOut]
+    bookings: list[ClientBookingHistoryOut]
+    reviews: list[ClientReviewOut]
+    blacklist_entry: BlacklistEntrySlimOut | None

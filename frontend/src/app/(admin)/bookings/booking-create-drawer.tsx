@@ -54,6 +54,8 @@ type Props = {
   services: ServiceOut[];
   initial?: { date: string; time: string } | null;
   editBookingId?: string | null;
+  /** Создание записи с заранее выбранным клиентом (например, с карточки клиента). */
+  prefilledClient?: { id: string; name: string } | null;
   onSuccess?: () => void;
 };
 
@@ -63,6 +65,7 @@ export function BookingCreateDrawer({
   services,
   initial,
   editBookingId,
+  prefilledClient,
   onSuccess,
 }: Props) {
   const locale = useLocale();
@@ -122,6 +125,13 @@ export function BookingCreateDrawer({
     if (initial?.date) form.setValue("date", initial.date);
     if (initial?.time) form.setValue("time", initial.time);
   }, [initial, form]);
+
+  useEffect(() => {
+    if (prefilledClient && open && !editBookingId) {
+      form.setValue("client_id", prefilledClient.id);
+      setClientLabel(prefilledClient.name);
+    }
+  }, [prefilledClient, open, editBookingId, form]);
 
   useEffect(() => {
     if (!editDetail || !editBookingId) return;
@@ -187,9 +197,9 @@ export function BookingCreateDrawer({
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label>{t("fieldClient")}</Label>
-              {editBookingId ? (
+              {editBookingId || prefilledClient ? (
                 <p className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
-                  {clientLabel || "—"}
+                  {clientLabel || prefilledClient?.name || "—"}
                 </p>
               ) : (
               <Input
@@ -198,7 +208,7 @@ export function BookingCreateDrawer({
                 onChange={(e) => setClientSearch(e.target.value)}
               />
               )}
-              {!editBookingId && clientHits.length > 0 && (
+              {!editBookingId && !prefilledClient && clientHits.length > 0 && (
                 <div className="max-h-40 overflow-auto rounded-md border border-border bg-card text-sm">
                   {clientHits.map((c) => {
                     const label =
@@ -220,7 +230,7 @@ export function BookingCreateDrawer({
                   })}
                 </div>
               )}
-              {!editBookingId && clientLabel && (
+              {!editBookingId && !prefilledClient && clientLabel && (
                 <p className="text-xs text-muted-foreground">
                   {t("selected")}: {clientLabel}
                 </p>
