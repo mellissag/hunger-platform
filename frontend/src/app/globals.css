@@ -65,7 +65,10 @@
 [data-ui-theme="premium_light"] .kpi-card-premium {
   position: relative;
   overflow: hidden;
-  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s,
+    border-color 0.3s;
 }
 
 [data-ui-theme="premium_light"] .kpi-card-premium::before {

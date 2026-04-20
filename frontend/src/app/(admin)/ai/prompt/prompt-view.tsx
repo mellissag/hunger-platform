@@ -117,14 +117,28 @@ export function PromptView() {
         <CardContent className="space-y-4">
           <div>
             <Label>Model id</Label>
-            <Input id="ai-model" defaultValue={settings.ai_model ?? ""} className="mt-1 font-mono text-sm" />
+            <Input
+              id="ai-model"
+              defaultValue={settings.ai_model ?? ""}
+              className="mt-1 font-mono text-sm"
+            />
           </div>
           <div className="flex items-center gap-2">
-            <input type="checkbox" id="ai-on" defaultChecked={settings.ai_enabled} className="h-4 w-4" />
+            <input
+              type="checkbox"
+              id="ai-on"
+              defaultChecked={settings.ai_enabled}
+              className="h-4 w-4"
+            />
             <Label htmlFor="ai-on">{t("aiEnabled")}</Label>
           </div>
           <div className="flex items-center gap-2">
-            <input type="checkbox" id="ai-book" defaultChecked={settings.ai_allow_booking} className="h-4 w-4" />
+            <input
+              type="checkbox"
+              id="ai-book"
+              defaultChecked={settings.ai_allow_booking}
+              className="h-4 w-4"
+            />
             <Label htmlFor="ai-book">{t("allowBooking")}</Label>
           </div>
           <div>
@@ -146,8 +160,11 @@ export function PromptView() {
                 settings: {
                   ai_model: (document.getElementById("ai-model") as HTMLInputElement).value || null,
                   ai_enabled: (document.getElementById("ai-on") as HTMLInputElement).checked,
-                  ai_allow_booking: (document.getElementById("ai-book") as HTMLInputElement).checked,
-                  ai_temperature: Number.parseFloat((document.getElementById("ai-temp") as HTMLInputElement).value),
+                  ai_allow_booking: (document.getElementById("ai-book") as HTMLInputElement)
+                    .checked,
+                  ai_temperature: Number.parseFloat(
+                    (document.getElementById("ai-temp") as HTMLInputElement).value,
+                  ),
                 },
               });
             }}

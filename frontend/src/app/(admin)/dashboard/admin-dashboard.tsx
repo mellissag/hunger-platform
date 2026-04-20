@@ -128,12 +128,7 @@ export function AdminDashboard() {
   });
 
   const { data: cal30, isLoading: calLoading } = useQuery({
-    queryKey: [
-      "schedule",
-      "calendar",
-      range30.from.toISOString(),
-      range30.to.toISOString(),
-    ],
+    queryKey: ["schedule", "calendar", range30.from.toISOString(), range30.to.toISOString()],
     queryFn: () =>
       apiJson<CalendarResponse>(
         `/schedule/calendar?from=${encodeURIComponent(toIsoParam(range30.from))}&to=${encodeURIComponent(toIsoParam(range30.to))}`,
@@ -142,20 +137,17 @@ export function AdminDashboard() {
 
   const { data: clientsPage } = useQuery({
     queryKey: ["clients", "dash"],
-    queryFn: () =>
-      apiJson<Paginated<ClientOut>>("/clients?page=1&page_size=100"),
+    queryFn: () => apiJson<Paginated<ClientOut>>("/clients?page=1&page_size=100"),
   });
 
   const { data: mastersPage } = useQuery({
     queryKey: ["masters", "dash"],
-    queryFn: () =>
-      apiJson<Paginated<MasterOut>>("/masters?page=1&page_size=100"),
+    queryFn: () => apiJson<Paginated<MasterOut>>("/masters?page=1&page_size=100"),
   });
 
   const { data: servicesPage } = useQuery({
     queryKey: ["services", "dash"],
-    queryFn: () =>
-      apiJson<Paginated<ServiceOut>>("/services?page=1&page_size=200"),
+    queryFn: () => apiJson<Paginated<ServiceOut>>("/services?page=1&page_size=200"),
   });
 
   const kpis = useMemo(() => {
@@ -165,15 +157,10 @@ export function AdminDashboard() {
     const monthAgo = utcAddDays(today, -29);
     const weekAgo = utcAddDays(today, -7);
 
-    const active = (b: CalendarBooking) =>
-      b.status === "pending" || b.status === "confirmed";
+    const active = (b: CalendarBooking) => b.status === "pending" || b.status === "confirmed";
 
-    const todayB = bookings.filter(
-      (b) => active(b) && sameUtcDay(b.starts_at, today),
-    );
-    const yestB = bookings.filter(
-      (b) => active(b) && sameUtcDay(b.starts_at, yesterday),
-    );
+    const todayB = bookings.filter((b) => active(b) && sameUtcDay(b.starts_at, today));
+    const yestB = bookings.filter((b) => active(b) && sameUtcDay(b.starts_at, yesterday));
 
     const revMonth = bookings
       .filter((b) => active(b) && new Date(b.starts_at) >= monthAgo)
@@ -188,9 +175,7 @@ export function AdminDashboard() {
       .reduce((s, b) => s + Number.parseFloat(b.price || "0"), 0);
 
     const clients = clientsPage?.items ?? [];
-    const newWeek = clients.filter(
-      (c) => new Date(c.joined_at) >= weekAgo,
-    ).length;
+    const newWeek = clients.filter((c) => new Date(c.joined_at) >= weekAgo).length;
 
     const deltaBookings = todayB.length - yestB.length;
     const deltaRevPct =
@@ -204,13 +189,11 @@ export function AdminDashboard() {
     const clientBookingCount: Record<string, number> = {};
     for (const b of bookings) {
       if (!active(b)) continue;
-      clientBookingCount[b.client_id] =
-        (clientBookingCount[b.client_id] ?? 0) + 1;
+      clientBookingCount[b.client_id] = (clientBookingCount[b.client_id] ?? 0) + 1;
     }
     const retained = Object.values(clientBookingCount).filter((c) => c > 1).length;
     const totalBooked = Object.keys(clientBookingCount).length;
-    const retention =
-      totalBooked > 0 ? Math.round((retained / totalBooked) * 100) : 0;
+    const retention = totalBooked > 0 ? Math.round((retained / totalBooked) * 100) : 0;
 
     const byMaster: Record<string, number> = {};
     for (const b of bookings) {
@@ -245,8 +228,7 @@ export function AdminDashboard() {
 
   const lineData = useMemo(() => {
     const bookings = cal30?.bookings ?? [];
-    const active = (b: CalendarBooking) =>
-      b.status === "pending" || b.status === "confirmed";
+    const active = (b: CalendarBooking) => b.status === "pending" || b.status === "confirmed";
     const map: Record<string, { revenue: number; bookings: number }> = {};
     for (let i = 29; i >= 0; i -= 1) {
       const day = utcAddDays(utcStartOfDay(now), -i);
@@ -271,8 +253,7 @@ export function AdminDashboard() {
   const pieData = useMemo(() => {
     const bookings = cal30?.bookings ?? [];
     const services = servicesPage?.items ?? [];
-    const active = (b: CalendarBooking) =>
-      b.status === "pending" || b.status === "confirmed";
+    const active = (b: CalendarBooking) => b.status === "pending" || b.status === "confirmed";
     const bySvc: Record<string, number> = {};
     for (const b of bookings) {
       if (!active(b)) continue;
@@ -298,56 +279,35 @@ export function AdminDashboard() {
     const today = utcStartOfDay(now);
     return bookings
       .filter((b) => sameUtcDay(b.starts_at, today))
-      .sort(
-        (a, b) =>
-          new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime(),
-      )
+      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
       .slice(0, 8)
       .map((b) => {
         const client = clients.find((c) => c.id === b.client_id);
-        const cn =
-          [client?.first_name, client?.last_name].filter(Boolean).join(" ") ||
-          "—";
-        const mn =
-          masters.find((m) => m.id === b.master_id)?.display_name ?? "—";
+        const cn = [client?.first_name, client?.last_name].filter(Boolean).join(" ") || "—";
+        const mn = masters.find((m) => m.id === b.master_id)?.display_name ?? "—";
         const sn =
           services.find((s) => s.id === b.service_id)?.name_i18n[locale] ??
           services.find((s) => s.id === b.service_id)?.name_i18n.en ??
           "—";
         return { ...b, cn, mn, sn };
       });
-  }, [
-    cal30?.bookings,
-    clientsPage?.items,
-    locale,
-    mastersPage?.items,
-    now,
-    servicesPage?.items,
-  ]);
+  }, [cal30?.bookings, clientsPage?.items, locale, mastersPage?.items, now, servicesPage?.items]);
 
   const activity = useMemo(() => {
     const bookings = cal30?.bookings ?? [];
     const clients = clientsPage?.items ?? [];
     return [...bookings]
-      .sort(
-        (a, b) =>
-          new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime(),
-      )
+      .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime())
       .slice(0, 6)
       .map((b) => {
         const client = clients.find((c) => c.id === b.client_id);
-        const cn =
-          [client?.first_name, client?.last_name].filter(Boolean).join(" ") ||
-          "—";
+        const cn = [client?.first_name, client?.last_name].filter(Boolean).join(" ") || "—";
         return { ...b, cn };
       });
   }, [cal30?.bookings, clientsPage?.items]);
 
   const salonName = me?.email?.split("@")[1]?.split(".")[0] ?? "Salon";
-  const displayName =
-    [me?.first_name, me?.last_name].filter(Boolean).join(" ") ||
-    me?.email ||
-    "";
+  const displayName = [me?.first_name, me?.last_name].filter(Boolean).join(" ") || me?.email || "";
 
   if (meLoading || calLoading) {
     return <DashboardSkeleton />;
@@ -400,17 +360,13 @@ export function AdminDashboard() {
         <div className="flex items-start gap-3 rounded border border-amber-200/60 bg-amber-50/60 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/20">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
-            <strong className="font-semibold text-foreground">
-              {t("alertBroadcastTitle")}
-            </strong>{" "}
+            <strong className="font-semibold text-foreground">{t("alertBroadcastTitle")}</strong>{" "}
             {t("alertBroadcastBody")}
           </p>
         </div>
         <div className="flex items-start gap-3 rounded border border-primary/20 bg-primary/5 px-4 py-3">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            {t("alertBotStatus")}
-          </p>
+          <p className="text-xs leading-relaxed text-muted-foreground">{t("alertBotStatus")}</p>
         </div>
       </div>
 
@@ -475,29 +431,15 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent className="h-[220px]">
             {lineData.every((d) => d.revenue === 0 && d.bookings === 0) ? (
-              <AdminEmptyState
-                title={t("emptyChart")}
-                description={t("emptyChartDesc")}
-              />
+              <AdminEmptyState title={t("emptyChart")} description={t("emptyChartDesc")} />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={lineData}>
-                  <CartesianGrid
-                    strokeDasharray="2 4"
-                    className="stroke-border"
-                  />
-                  <XAxis
-                    dataKey="day"
-                    tick={{ fontSize: 10 }}
-                    tickLine={false}
-                  />
+                  <CartesianGrid strokeDasharray="2 4" className="stroke-border" />
+                  <XAxis dataKey="day" tick={{ fontSize: 10 }} tickLine={false} />
                   <YAxis allowDecimals={false} width={36} tick={{ fontSize: 10 }} />
                   <Tooltip />
-                  <Legend
-                    iconType="circle"
-                    iconSize={8}
-                    wrapperStyle={{ fontSize: 11 }}
-                  />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
                   <Line
                     type="monotone"
                     dataKey="revenue"
@@ -529,10 +471,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent className="h-[220px]">
             {pieData.length === 0 ? (
-              <AdminEmptyState
-                title={t("emptyPie")}
-                description={t("emptyPieDesc")}
-              />
+              <AdminEmptyState title={t("emptyPie")} description={t("emptyPieDesc")} />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -546,18 +485,11 @@ export function AdminDashboard() {
                     outerRadius={72}
                   >
                     {pieData.map((row, i) => (
-                      <Cell
-                        key={`${row.name}-${i}`}
-                        fill={CHART_COLORS[i % CHART_COLORS.length]}
-                      />
+                      <Cell key={`${row.name}-${i}`} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
-                  <Legend
-                    iconType="circle"
-                    iconSize={8}
-                    wrapperStyle={{ fontSize: 11 }}
-                  />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -572,8 +504,8 @@ export function AdminDashboard() {
             <div>
               <CardTitle>{t("upcomingTitle")}</CardTitle>
               <CardDescription>
-                {new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(now)}{" "}
-                · {todayBookings.length} {t("bookingsCount")}
+                {new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(now)} ·{" "}
+                {todayBookings.length} {t("bookingsCount")}
               </CardDescription>
             </div>
             <Link
@@ -585,10 +517,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             {todayBookings.length === 0 ? (
-              <AdminEmptyState
-                title={t("emptyUpcoming")}
-                description={t("emptyUpcomingDesc")}
-              />
+              <AdminEmptyState title={t("emptyUpcoming")} description={t("emptyUpcomingDesc")} />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -628,12 +557,8 @@ export function AdminDashboard() {
                             <span>{r.cn}</span>
                           </div>
                         </td>
-                        <td className="px-3 py-3 text-muted-foreground">
-                          {r.sn}
-                        </td>
-                        <td className="px-3 py-3 text-muted-foreground">
-                          {r.mn}
-                        </td>
+                        <td className="px-3 py-3 text-muted-foreground">{r.sn}</td>
+                        <td className="px-3 py-3 text-muted-foreground">{r.mn}</td>
                         <td className="px-3 py-3">
                           <StatusPill status={r.status} />
                         </td>
@@ -687,12 +612,8 @@ export function AdminDashboard() {
                     className="flex flex-col gap-1.5 rounded border border-border bg-muted/40 p-3 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
                   >
                     <Icon className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-medium leading-tight">
-                      {label}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {sub}
-                    </span>
+                    <span className="text-xs font-medium leading-tight">{label}</span>
+                    <span className="text-[10px] text-muted-foreground">{sub}</span>
                   </Link>
                 ))}
               </div>
@@ -709,14 +630,9 @@ export function AdminDashboard() {
             </CardHeader>
             <CardContent className="space-y-0">
               {activity.length === 0 ? (
-                <AdminEmptyState
-                  title={t("emptyActivity")}
-                  description={t("emptyActivityDesc")}
-                />
+                <AdminEmptyState title={t("emptyActivity")} description={t("emptyActivityDesc")} />
               ) : (
-                activity.map((b) => (
-                  <FeedItem key={b.id} booking={b} locale={locale} t={t} />
-                ))
+                activity.map((b) => <FeedItem key={b.id} booking={b} locale={locale} t={t} />)
               )}
             </CardContent>
           </Card>
@@ -732,10 +648,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent className="text-sm">
             <p>
-              <span className="font-medium text-primary">
-                {kpis.topMasterName}
-              </span>{" "}
-              —{" "}
+              <span className="font-medium text-primary">{kpis.topMasterName}</span> —{" "}
               {t("footerBookingsCount", { count: kpis.topCount })}
             </p>
           </CardContent>
@@ -799,8 +712,7 @@ function FeedItem({
   locale: string;
   t: ReturnType<typeof useTranslations<"pages.dashboard">>;
 }) {
-  const isConfirmed =
-    booking.status === "confirmed" || booking.status === "completed";
+  const isConfirmed = booking.status === "confirmed" || booking.status === "completed";
   const isCancelled =
     booking.status === "cancelled_by_client" ||
     booking.status === "cancelled_by_salon" ||

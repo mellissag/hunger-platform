@@ -32,7 +32,7 @@ export function ServicesChart() {
   const { data } = useServices();
   const [sort, setSort] = useState<SortOption>("bookings");
 
-  const services = data?.items ?? [];
+  const services = useMemo(() => data?.items ?? [], [data?.items]);
 
   const lineData = useMemo(() => {
     const sorted = [...services]
@@ -41,11 +41,7 @@ export function ServicesChart() {
       .slice(0, 6);
 
     return sorted.map((s, i) => ({
-      name:
-        s.name_i18n[locale] ??
-        s.name_i18n.en ??
-        s.name_i18n.ru ??
-        `Услуга ${i + 1}`,
+      name: s.name_i18n[locale] ?? s.name_i18n.en ?? s.name_i18n.ru ?? `Услуга ${i + 1}`,
       value: sort === "bookings" ? (s.bookings_count ?? 0) : Number(s.price),
     }));
   }, [services, locale, sort]);
@@ -73,9 +69,7 @@ export function ServicesChart() {
       <Card className="lg:col-span-2">
         <CardHeader className="flex flex-row items-start justify-between pb-2">
           <div>
-            <CardTitle className="font-playfair text-lg font-medium">
-              Популярность услуг
-            </CardTitle>
+            <CardTitle className="font-playfair text-lg font-medium">Популярность услуг</CardTitle>
             <p className="mt-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
               записей за 30 дней
             </p>
@@ -102,29 +96,12 @@ export function ServicesChart() {
               <AreaChart data={lineData}>
                 <defs>
                   <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="0%"
-                      stopColor="#9A7230"
-                      stopOpacity={0.18}
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor="#9A7230"
-                      stopOpacity={0}
-                    />
+                    <stop offset="0%" stopColor="#9A7230" stopOpacity={0.18} />
+                    <stop offset="100%" stopColor="#9A7230" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid
-                  strokeDasharray="2 4"
-                  stroke="#E4DDD0"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 10 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
+                <CartesianGrid strokeDasharray="2 4" stroke="#E4DDD0" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                 <YAxis
                   allowDecimals={false}
                   width={32}
@@ -157,9 +134,7 @@ export function ServicesChart() {
       {/* Donut chart — 1/3 */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="font-playfair text-lg font-medium">
-            По категориям
-          </CardTitle>
+          <CardTitle className="font-playfair text-lg font-medium">По категориям</CardTitle>
           <p className="mt-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
             Распределение записей
           </p>
@@ -184,10 +159,7 @@ export function ServicesChart() {
                       strokeWidth={0}
                     >
                       {pieData.map((_, i) => (
-                        <Cell
-                          key={i}
-                          fill={CHART_COLORS[i % CHART_COLORS.length]}
-                        />
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                       ))}
                     </Pie>
                   </PieChart>
@@ -200,10 +172,7 @@ export function ServicesChart() {
               </div>
               <div className="flex-1 space-y-0">
                 {pieData.map((row, i) => {
-                  const pct =
-                    totalBookings > 0
-                      ? Math.round((row.value / totalBookings) * 100)
-                      : 0;
+                  const pct = totalBookings > 0 ? Math.round((row.value / totalBookings) * 100) : 0;
                   return (
                     <div
                       key={i}
@@ -213,13 +182,10 @@ export function ServicesChart() {
                         <span
                           className="h-2.5 w-2.5 rounded-full"
                           style={{
-                            background:
-                              CHART_COLORS[i % CHART_COLORS.length],
+                            background: CHART_COLORS[i % CHART_COLORS.length],
                           }}
                         />
-                        <span className="truncate text-foreground">
-                          {row.name}
-                        </span>
+                        <span className="truncate text-foreground">{row.name}</span>
                       </div>
                       <span className="font-playfair text-[14px] font-medium text-primary">
                         {pct}%

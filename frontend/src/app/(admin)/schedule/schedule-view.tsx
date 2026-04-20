@@ -9,7 +9,14 @@ import { AdminEmptyState } from "@/components/admin/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { apiJson } from "@/lib/api";
 import { utcAddDays, utcStartOfDay, toIsoParam } from "@/lib/date-utc";
 import type { CalendarResponse, MasterOut, Paginated } from "@/types/admin-api";
@@ -67,10 +74,18 @@ export function ScheduleView() {
             <CardDescription>{t("weekDesc")}</CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="icon" onClick={() => setWeekStart((w) => utcAddDays(w, -7))}>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setWeekStart((w) => utcAddDays(w, -7))}
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={() => setWeekStart((w) => utcAddDays(w, 7))}>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setWeekStart((w) => utcAddDays(w, 7))}
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -91,7 +106,10 @@ export function ScheduleView() {
                 {rows.map((r) => (
                   <TableRow key={r.master.id}>
                     <TableCell className="font-medium">
-                      <span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: r.master.color_hex }} />
+                      <span
+                        className="mr-2 inline-block h-2 w-2 rounded-full"
+                        style={{ backgroundColor: r.master.color_hex }}
+                      />
                       {r.master.display_name}
                     </TableCell>
                     <TableCell>{r.bookingCount}</TableCell>
@@ -104,7 +122,9 @@ export function ScheduleView() {
           <p className="mt-4 text-xs text-muted-foreground">
             {t("rangeLabel", {
               from: new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(range.from),
-              to: new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(utcAddDays(range.from, 6)),
+              to: new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
+                utcAddDays(range.from, 6),
+              ),
             })}
           </p>
         </CardContent>

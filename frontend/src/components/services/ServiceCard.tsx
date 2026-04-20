@@ -20,18 +20,11 @@ export function ServiceCard({
   onEdit,
   onDelete,
 }: ServiceCardProps) {
-  const name =
-    service.name_i18n[locale] ??
-    service.name_i18n.en ??
-    service.name_i18n.ru ??
-    "—";
+  const name = service.name_i18n[locale] ?? service.name_i18n.en ?? service.name_i18n.ru ?? "—";
 
   const category = categories.find((c) => c.id === service.category_id);
   const catName = category
-    ? (category.name_i18n[locale] ??
-       category.name_i18n.en ??
-       category.name_i18n.ru ??
-       "")
+    ? (category.name_i18n[locale] ?? category.name_i18n.en ?? category.name_i18n.ru ?? "")
     : "";
 
   const price = Number.parseFloat(service.price);
@@ -49,9 +42,7 @@ export function ServiceCard({
       {/* Header: name + buttons */}
       <div className="mb-2.5 flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-playfair truncate text-base font-medium leading-snug">
-            {name}
-          </p>
+          <p className="font-playfair truncate text-base font-medium leading-snug">{name}</p>
           {catName && (
             <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-primary">
               {catName}
@@ -79,32 +70,24 @@ export function ServiceCard({
       </div>
 
       {/* Price */}
-      <p className="font-playfair text-2xl font-medium text-primary">
-        {priceLabel}
-      </p>
+      <p className="font-playfair text-2xl font-medium text-primary">{priceLabel}</p>
 
       {/* Meta */}
       <div className="mt-2.5 flex flex-wrap gap-3.5 border-t border-dashed border-border pt-2.5">
         <span className="text-[11px] text-muted-foreground">
           Длит.:{" "}
-          <strong className="font-semibold text-foreground">
-            {service.duration_minutes} мин
-          </strong>
+          <strong className="font-semibold text-foreground">{service.duration_minutes} мин</strong>
         </span>
         {service.masters_count !== undefined && (
           <span className="text-[11px] text-muted-foreground">
             Мастеров:{" "}
-            <strong className="font-semibold text-foreground">
-              {service.masters_count}
-            </strong>
+            <strong className="font-semibold text-foreground">{service.masters_count}</strong>
           </span>
         )}
         {service.bookings_count !== undefined && (
           <span className="text-[11px] text-muted-foreground">
             Броней:{" "}
-            <strong className="font-semibold text-foreground">
-              {service.bookings_count}
-            </strong>
+            <strong className="font-semibold text-foreground">{service.bookings_count}</strong>
           </span>
         )}
       </div>

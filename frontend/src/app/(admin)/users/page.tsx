@@ -86,7 +86,11 @@ export default function UsersPage() {
               </div>
               <div>
                 <Label>{t("role")}</Label>
-                <select name="role" className="mt-1 flex h-10 w-full rounded-md border px-2 text-sm" defaultValue="admin">
+                <select
+                  name="role"
+                  className="mt-1 flex h-10 w-full rounded-md border px-2 text-sm"
+                  defaultValue="admin"
+                >
                   <option value="admin">admin</option>
                   <option value="reception">reception</option>
                   <option value="master">master</option>
@@ -133,8 +137,18 @@ export default function UsersPage() {
               }}
             >
               <Input name="email" type="email" placeholder="email" required />
-              <Input name="password" type="password" placeholder="password" required minLength={8} />
-              <select name="role" className="flex h-10 w-full rounded-md border px-2 text-sm" defaultValue="admin">
+              <Input
+                name="password"
+                type="password"
+                placeholder="password"
+                required
+                minLength={8}
+              />
+              <select
+                name="role"
+                className="flex h-10 w-full rounded-md border px-2 text-sm"
+                defaultValue="admin"
+              >
                 <option value="admin">admin</option>
                 <option value="reception">reception</option>
                 <option value="master">master</option>

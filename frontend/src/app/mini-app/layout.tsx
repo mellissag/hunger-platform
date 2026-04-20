@@ -61,13 +61,15 @@ function MiniAppContent({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div style={{
-      fontFamily: "'Inter', system-ui, sans-serif",
-      minHeight: "100vh",
-      backgroundColor: "var(--bg)",
-      color: "var(--fg)",
-      WebkitFontSmoothing: "antialiased",
-    }}>
+    <div
+      style={{
+        fontFamily: "'Inter', system-ui, sans-serif",
+        minHeight: "100vh",
+        backgroundColor: "var(--bg)",
+        color: "var(--fg)",
+        WebkitFontSmoothing: "antialiased",
+      }}
+    >
       {children}
     </div>
   );
@@ -76,10 +78,7 @@ function MiniAppContent({ children }: { children: ReactNode }) {
 export default function MiniAppLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <Script
-        src="https://telegram.org/js/telegram-web-app.js"
-        strategy="beforeInteractive"
-      />
+      <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
       <link
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap"
         rel="stylesheet"

@@ -65,11 +65,7 @@ export async function POST(request: Request) {
 
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_ACCESS, tokens.access_token, buildCookieOptions(tokens.expires_in));
-  cookieStore.set(
-    COOKIE_REFRESH,
-    tokens.refresh_token,
-    buildCookieOptions(60 * 60 * 24 * 30),
-  );
+  cookieStore.set(COOKIE_REFRESH, tokens.refresh_token, buildCookieOptions(60 * 60 * 24 * 30));
 
   return NextResponse.json({ ok: true, redirect, role });
 }

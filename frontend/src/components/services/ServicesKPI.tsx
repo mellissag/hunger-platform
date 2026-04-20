@@ -13,9 +13,7 @@ interface KpiItemProps {
 function KpiItem({ label, value, trend, trendUp }: KpiItemProps) {
   return (
     <div className="kpi-card-premium relative overflow-hidden rounded border border-border bg-card p-6 shadow-[0_1px_4px_rgba(28,20,9,.06)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_8px_24px_rgba(28,20,9,.08)]">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">
-        {label}
-      </p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">{label}</p>
       <p className="kpi-value-premium mt-3 text-4xl font-medium tabular-nums leading-none tracking-tight">
         {value}
       </p>
@@ -57,8 +55,7 @@ export function ServicesKPI() {
     );
   }
 
-  const activePercent =
-    data.total > 0 ? Math.round((data.active / data.total) * 100) : 0;
+  const activePercent = data.total > 0 ? Math.round((data.active / data.total) * 100) : 0;
 
   return (
     <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">

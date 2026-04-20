@@ -6,7 +6,14 @@ import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { apiFetch, apiJson } from "@/lib/api";
 import type { StatsFinanceResponse } from "@/types/admin-api";
 
@@ -60,9 +67,10 @@ export function FinanceView() {
         <CardContent>
           <p className="mb-4 text-lg font-medium">
             {t("financeTotal")}:{" "}
-            {new Intl.NumberFormat(locale, { style: "currency", currency: data.currency || "EUR" }).format(
-              data.total_payroll,
-            )}
+            {new Intl.NumberFormat(locale, {
+              style: "currency",
+              currency: data.currency || "EUR",
+            }).format(data.total_payroll)}
           </p>
           <Table>
             <TableHeader>

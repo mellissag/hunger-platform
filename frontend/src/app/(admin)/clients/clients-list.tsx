@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  type ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -31,7 +26,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { apiJson } from "@/lib/api";
 import type { ClientOut, Paginated } from "@/types/admin-api";
 
@@ -72,7 +74,12 @@ export function ClientsList() {
 
   const form = useForm<CreateValues>({
     resolver: zodResolver(createSchema),
-    defaultValues: { first_name: "", last_name: "", phone: "", lang: locale as CreateValues["lang"] },
+    defaultValues: {
+      first_name: "",
+      last_name: "",
+      phone: "",
+      lang: locale as CreateValues["lang"],
+    },
   });
 
   const columns = useMemo<ColumnDef<ClientOut>[]>(
@@ -81,7 +88,10 @@ export function ClientsList() {
         id: "name",
         header: t("colName"),
         cell: ({ row }) => (
-          <Link className="font-medium text-primary hover:underline" href={`/clients/${row.original.id}`}>
+          <Link
+            className="font-medium text-primary hover:underline"
+            href={`/clients/${row.original.id}`}
+          >
             {[row.original.first_name, row.original.last_name].filter(Boolean).join(" ") || "—"}
           </Link>
         ),
@@ -93,7 +103,9 @@ export function ClientsList() {
         accessorKey: "total_revenue",
         header: t("colRevenue"),
         cell: ({ row }) =>
-          new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(Number.parseFloat(row.original.total_revenue)),
+          new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(
+            Number.parseFloat(row.original.total_revenue),
+          ),
       },
     ],
     [locale, t],
@@ -167,7 +179,11 @@ export function ClientsList() {
                 </select>
               </div>
               <DrawerFooter className="px-0">
-                <Button type="submit" disabled={createClient.isPending} data-testid="client-create-submit">
+                <Button
+                  type="submit"
+                  disabled={createClient.isPending}
+                  data-testid="client-create-submit"
+                >
                   {t("submit")}
                 </Button>
                 <DrawerClose asChild>
@@ -196,7 +212,9 @@ export function ClientsList() {
                   {table.getHeaderGroups().map((hg) => (
                     <TableRow key={hg.id}>
                       {hg.headers.map((h) => (
-                        <TableHead key={h.id}>{flexRender(h.column.columnDef.header, h.getContext())}</TableHead>
+                        <TableHead key={h.id}>
+                          {flexRender(h.column.columnDef.header, h.getContext())}
+                        </TableHead>
                       ))}
                     </TableRow>
                   ))}
@@ -205,7 +223,9 @@ export function ClientsList() {
                   {table.getRowModel().rows.map((row) => (
                     <TableRow key={row.id}>
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
                       ))}
                     </TableRow>
                   ))}
@@ -213,13 +233,27 @@ export function ClientsList() {
               </Table>
               <div className="mt-4 flex items-center justify-between gap-2">
                 <p className="text-xs text-muted-foreground">
-                  {t("pagination", { from: (page - 1) * pageSize + 1, to: Math.min(page * pageSize, data.total), total: data.total })}
+                  {t("pagination", {
+                    from: (page - 1) * pageSize + 1,
+                    to: Math.min(page * pageSize, data.total),
+                    total: data.total,
+                  })}
                 </p>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
                     {t("prev")}
                   </Button>
-                  <Button variant="outline" size="sm" disabled={page * pageSize >= data.total} onClick={() => setPage((p) => p + 1)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page * pageSize >= data.total}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
                     {t("next")}
                   </Button>
                 </div>

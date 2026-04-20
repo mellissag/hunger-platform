@@ -17,7 +17,8 @@ export function ConvDetail({ id }: { id: string }) {
   });
 
   const flag = useMutation({
-    mutationFn: (messageId: string) => apiJson<{ ok: boolean }>(`/ai/flag/${messageId}`, { method: "POST" }),
+    mutationFn: (messageId: string) =>
+      apiJson<{ ok: boolean }>(`/ai/flag/${messageId}`, { method: "POST" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ai-conv", id] });
       toast.success("Flagged");

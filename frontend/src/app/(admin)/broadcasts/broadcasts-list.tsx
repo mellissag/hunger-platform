@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  type ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -14,7 +9,14 @@ import { useLocale, useTranslations } from "next-intl";
 import { AdminEmptyState } from "@/components/admin/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { apiJson } from "@/lib/api";
 import type { BroadcastOut, Paginated } from "@/types/admin-api";
 
@@ -61,7 +63,8 @@ export function BroadcastsList() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["broadcasts", page],
-    queryFn: () => apiJson<Paginated<BroadcastOut>>(`/broadcasts?page=${page}&page_size=${pageSize}`),
+    queryFn: () =>
+      apiJson<Paginated<BroadcastOut>>(`/broadcasts?page=${page}&page_size=${pageSize}`),
   });
 
   const columns = useMemo<ColumnDef<BroadcastOut>[]>(
@@ -113,7 +116,10 @@ export function BroadcastsList() {
           const raw = row.original.sent_at ?? row.original.scheduled_at ?? row.original.created_at;
           if (!raw) return "—";
           const d = new Date(raw);
-          return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(d);
+          return new Intl.DateTimeFormat(locale, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }).format(d);
         },
       },
     ],

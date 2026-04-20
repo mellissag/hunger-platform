@@ -49,10 +49,25 @@ import type { UiThemeId } from "@/theme/presets";
 type NavItem = { href: string; labelKey: string; icon: React.ElementType; resource: Resource };
 
 const NAV: NavItem[] = [
-  { href: "/m/dashboard", labelKey: "masterDashboard", icon: LayoutDashboard, resource: "master_dashboard" },
-  { href: "/m/schedule", labelKey: "masterSchedule", icon: CalendarDays, resource: "master_schedule" },
+  {
+    href: "/m/dashboard",
+    labelKey: "masterDashboard",
+    icon: LayoutDashboard,
+    resource: "master_dashboard",
+  },
+  {
+    href: "/m/schedule",
+    labelKey: "masterSchedule",
+    icon: CalendarDays,
+    resource: "master_schedule",
+  },
   { href: "/m/clients", labelKey: "masterClients", icon: UserCircle2, resource: "master_clients" },
-  { href: "/m/bookings", labelKey: "masterBookings", icon: ClipboardList, resource: "master_bookings" },
+  {
+    href: "/m/bookings",
+    labelKey: "masterBookings",
+    icon: ClipboardList,
+    resource: "master_bookings",
+  },
   { href: "/m/statistics", labelKey: "masterStats", icon: LineChart, resource: "master_stats" },
   { href: "/m/profile", labelKey: "masterProfile", icon: UserCircle2, resource: "master_profile" },
 ];
@@ -207,9 +222,15 @@ export function MasterAppShell({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => applyTheme("friendly")}>{t("themeFriendly")}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => applyTheme("minimal")}>{t("themeMinimal")}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => applyTheme("premium")}>{t("themePremium")}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => applyTheme("friendly")}>
+                  {t("themeFriendly")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => applyTheme("minimal")}>
+                  {t("themeMinimal")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => applyTheme("premium")}>
+                  {t("themePremium")}
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -219,7 +240,9 @@ export function MasterAppShell({
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
                     {displayName.slice(0, 2).toUpperCase()}
                   </div>
-                  <span className="hidden max-w-[140px] truncate text-sm font-medium lg:inline">{displayName}</span>
+                  <span className="hidden max-w-[140px] truncate text-sm font-medium lg:inline">
+                    {displayName}
+                  </span>
                   <ChevronDown className="h-4 w-4 opacity-60" />
                 </Button>
               </DropdownMenuTrigger>

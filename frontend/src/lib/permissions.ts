@@ -69,11 +69,7 @@ function allowedResources(role: UserRole): Set<Resource> {
   }
 }
 
-export function can(
-  user: { role: UserRole },
-  action: Action,
-  resource: Resource,
-): boolean {
+export function can(user: { role: UserRole }, action: Action, resource: Resource): boolean {
   const set = allowedResources(user.role);
   if (!set.has(resource)) return false;
 

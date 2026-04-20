@@ -47,8 +47,21 @@ function formatDuration(minutes: number): string {
 
 // ─── Calendar component ──────────────────────────────────────────────────────
 
-const MONTHS_RU = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
-const DAYS_SHORT = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+const MONTHS_RU = [
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
+];
+const DAYS_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
 interface CalendarProps {
   onSelect: (date: string) => void;
@@ -69,7 +82,8 @@ function Calendar({ onSelect, selected, slotsWithAvailability }: CalendarProps) 
   for (let i = 0; i < startWeekday; i++) days.push(null);
   for (let d = 1; d <= lastDay.getDate(); d++) days.push(d);
 
-  const isoDate = (d: number) => `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const isoDate = (d: number) =>
+    `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
   const isPast = (d: number) => new Date(isoDate(d)) < new Date(today.toDateString());
   const isSelected = (d: number) => isoDate(d) === selected;
   const hasSlots = (d: number) => slotsWithAvailability[isoDate(d)] !== false;
@@ -83,34 +97,68 @@ function Calendar({ onSelect, selected, slotsWithAvailability }: CalendarProps) 
       {/* Nav */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <button
-          onClick={() => canPrev && (month === 0 ? (setYear(y => y - 1), setMonth(11)) : setMonth(m => m - 1))}
+          onClick={() =>
+            canPrev &&
+            (month === 0 ? (setYear((y) => y - 1), setMonth(11)) : setMonth((m) => m - 1))
+          }
           disabled={!canPrev}
           style={{
-            width: 30, height: 30, borderRadius: 2,
-            background: "var(--dim)", border: "1px solid var(--border)",
-            cursor: canPrev ? "pointer" : "not-allowed", opacity: canPrev ? 1 : 0.4,
-            display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 16,
+            width: 30,
+            height: 30,
+            borderRadius: 2,
+            background: "var(--dim)",
+            border: "1px solid var(--border)",
+            cursor: canPrev ? "pointer" : "not-allowed",
+            opacity: canPrev ? 1 : 0.4,
+            display: "grid",
+            placeItems: "center",
+            color: "var(--muted)",
+            fontSize: 16,
           }}
-        >‹</button>
+        >
+          ‹
+        </button>
         <div className="serif" style={{ fontSize: 18, fontWeight: 600, color: "var(--fg)" }}>
           {MONTHS_RU[month]} {year}
         </div>
         <button
-          onClick={() => canNext && (month === 11 ? (setYear(y => y + 1), setMonth(0)) : setMonth(m => m + 1))}
+          onClick={() =>
+            canNext &&
+            (month === 11 ? (setYear((y) => y + 1), setMonth(0)) : setMonth((m) => m + 1))
+          }
           disabled={!canNext}
           style={{
-            width: 30, height: 30, borderRadius: 2,
-            background: "var(--dim)", border: "1px solid var(--border)",
-            cursor: canNext ? "pointer" : "not-allowed", opacity: canNext ? 1 : 0.4,
-            display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 16,
+            width: 30,
+            height: 30,
+            borderRadius: 2,
+            background: "var(--dim)",
+            border: "1px solid var(--border)",
+            cursor: canNext ? "pointer" : "not-allowed",
+            opacity: canNext ? 1 : 0.4,
+            display: "grid",
+            placeItems: "center",
+            color: "var(--muted)",
+            fontSize: 16,
           }}
-        >›</button>
+        >
+          ›
+        </button>
       </div>
 
       {/* Weekday headers */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", textAlign: "center" }}>
         {DAYS_SHORT.map((d) => (
-          <div key={d} style={{ fontSize: 9, fontWeight: 600, padding: "3px 0", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--muted)" }}>
+          <div
+            key={d}
+            style={{
+              fontSize: 9,
+              fontWeight: 600,
+              padding: "3px 0",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--muted)",
+            }}
+          >
             {d}
           </div>
         ))}
@@ -131,11 +179,21 @@ function Calendar({ onSelect, selected, slotsWithAvailability }: CalendarProps) 
               key={d}
               onClick={() => !past && avail && onSelect(iso)}
               style={{
-                aspectRatio: "1", display: "grid", placeItems: "center",
-                borderRadius: 2, fontSize: 12, fontWeight: sel ? 700 : 400,
+                aspectRatio: "1",
+                display: "grid",
+                placeItems: "center",
+                borderRadius: 2,
+                fontSize: 12,
+                fontWeight: sel ? 700 : 400,
                 cursor: !past && avail ? "pointer" : "default",
                 background: sel ? "linear-gradient(135deg, var(--gold), #E0CF6A)" : "transparent",
-                color: sel ? "var(--bg)" : past ? "rgba(255,255,255,0.1)" : !avail ? "rgba(255,255,255,0.2)" : "var(--fg)",
+                color: sel
+                  ? "var(--bg)"
+                  : past
+                    ? "rgba(255,255,255,0.1)"
+                    : !avail
+                      ? "rgba(255,255,255,0.2)"
+                      : "var(--fg)",
                 border: isToday && !sel ? "1px solid var(--gold)" : "none",
                 borderBottom: avail && !sel && !past ? "2px solid var(--gold)" : undefined,
                 textDecoration: !avail && !past ? "line-through" : undefined,
@@ -191,7 +249,10 @@ function BookPageContent() {
         const svcId = searchParams.get("service_id");
         if (svcId) {
           const found = data.find((s) => s.id === svcId);
-          if (found) { setSelectedService(found); setStep("master"); }
+          if (found) {
+            setSelectedService(found);
+            setStep("master");
+          }
         }
       })
       .catch(() => {});
@@ -206,7 +267,10 @@ function BookPageContent() {
         const masterId = searchParams.get("master_id");
         if (masterId) {
           const found = data.find((m) => m.id === masterId);
-          if (found) { setSelectedMaster(found); setStep("service"); }
+          if (found) {
+            setSelectedMaster(found);
+            setStep("service");
+          }
         }
       })
       .catch(() => {});
@@ -215,7 +279,9 @@ function BookPageContent() {
   // Load slots when date changes
   useEffect(() => {
     if (!selectedMaster || !selectedService || !selectedDate) return;
-    fetch(`${API_BASE}/api/v1/mini-app/slots?master_id=${selectedMaster.id}&service_id=${selectedService.id}&date=${selectedDate}`)
+    fetch(
+      `${API_BASE}/api/v1/mini-app/slots?master_id=${selectedMaster.id}&service_id=${selectedService.id}&date=${selectedDate}`,
+    )
       .then((r) => r.json())
       .then((data: { slots: string[] }) => setSlots(data.slots))
       .catch(() => setSlots([]));
@@ -267,12 +333,15 @@ function BookPageContent() {
     if (step === "confirm") {
       twa.MainButton.setText("Подтвердить запись");
       twa.MainButton.show();
-      if (loading) twa.MainButton.showProgress(); else twa.MainButton.hideProgress();
+      if (loading) twa.MainButton.showProgress();
+      else twa.MainButton.hideProgress();
       twa.MainButton.onClick(handleBook);
     } else {
       twa.MainButton.hide();
     }
-    return () => { twa.MainButton.offClick(handleBook); };
+    return () => {
+      twa.MainButton.offClick(handleBook);
+    };
   }, [step, loading, handleBook]);
 
   // Back button
@@ -293,7 +362,9 @@ function BookPageContent() {
     } else {
       twa.BackButton.hide();
     }
-    return () => { twa.BackButton.offClick(back); };
+    return () => {
+      twa.BackButton.offClick(back);
+    };
   }, [step]);
 
   const stepTitle: Record<BookStep, string> = {
@@ -305,7 +376,20 @@ function BookPageContent() {
     success: "Запись создана",
   };
 
-  const MONTHS_LONG = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+  const MONTHS_LONG = [
+    "января",
+    "февраля",
+    "марта",
+    "апреля",
+    "мая",
+    "июня",
+    "июля",
+    "августа",
+    "сентября",
+    "октября",
+    "ноября",
+    "декабря",
+  ];
   const formatDateLabel = (iso: string) => {
     const d = new Date(iso + "T00:00:00");
     return `${d.getDate()} ${MONTHS_LONG[d.getMonth()]} ${d.getFullYear()}`;
@@ -314,46 +398,87 @@ function BookPageContent() {
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       {/* Header */}
-      <div style={{
-        display: "flex", alignItems: "center", padding: "10px 14px", gap: 10,
-        background: "var(--card)", borderBottom: "1px solid var(--border)",
-      }}>
-        <Link href="/mini-app" style={{
-          width: 30, height: 30, borderRadius: "50%",
-          display: "grid", placeItems: "center",
-          background: "var(--dim)", textDecoration: "none", color: "var(--muted)",
-          fontSize: 18, lineHeight: 1,
-        }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          padding: "10px 14px",
+          gap: 10,
+          background: "var(--card)",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <Link
+          href="/mini-app"
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: "50%",
+            display: "grid",
+            placeItems: "center",
+            background: "var(--dim)",
+            textDecoration: "none",
+            color: "var(--muted)",
+            fontSize: 18,
+            lineHeight: 1,
+          }}
+        >
           ‹
         </Link>
-        <div className="serif" style={{ flex: 1, fontSize: 17, fontWeight: 600, color: "var(--fg)" }}>
+        <div
+          className="serif"
+          style={{ flex: 1, fontSize: 17, fontWeight: 600, color: "var(--fg)" }}
+        >
           {stepTitle[step]}
         </div>
       </div>
 
       {/* Body */}
       <div style={{ flex: 1, overflowY: "auto" }}>
-
         {/* Step: Service */}
         {step === "service" && (
           <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 7 }}>
             {services.map((svc) => (
               <div
                 key={svc.id}
-                onClick={() => { setSelectedService(svc); setStep("master"); window.Telegram?.WebApp?.HapticFeedback?.selectionChanged(); }}
+                onClick={() => {
+                  setSelectedService(svc);
+                  setStep("master");
+                  window.Telegram?.WebApp?.HapticFeedback?.selectionChanged();
+                }}
                 style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "13px 14px", borderRadius: 2, cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "13px 14px",
+                  borderRadius: 2,
+                  cursor: "pointer",
                   background: selectedService?.id === svc.id ? "var(--gold-l)" : "var(--card)",
                   border: `1px solid ${selectedService?.id === svc.id ? "var(--gold)" : "var(--border)"}`,
                 }}
               >
-                <div style={{ width: 3, height: 36, borderRadius: 1, background: selectedService?.id === svc.id ? "var(--gold)" : "transparent" }} />
+                <div
+                  style={{
+                    width: 3,
+                    height: 36,
+                    borderRadius: 1,
+                    background: selectedService?.id === svc.id ? "var(--gold)" : "transparent",
+                  }}
+                />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{pickI18n(svc.name_i18n, lang)}</div>
-                  <div style={{ fontSize: 11, marginTop: 2, color: "var(--muted)" }}>{formatDuration(svc.duration_minutes)}</div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>
+                    {pickI18n(svc.name_i18n, lang)}
+                  </div>
+                  <div style={{ fontSize: 11, marginTop: 2, color: "var(--muted)" }}>
+                    {formatDuration(svc.duration_minutes)}
+                  </div>
                 </div>
-                <div className="serif" style={{ fontSize: 18, fontWeight: 600, color: "var(--gold)" }}>{svc.price} €</div>
+                <div
+                  className="serif"
+                  style={{ fontSize: 18, fontWeight: 600, color: "var(--gold)" }}
+                >
+                  {svc.price} €
+                </div>
               </div>
             ))}
           </div>
@@ -365,33 +490,67 @@ function BookPageContent() {
             {masters.map((m) => (
               <div
                 key={m.id}
-                onClick={() => { setSelectedMaster(m); setStep("date"); window.Telegram?.WebApp?.HapticFeedback?.selectionChanged(); }}
+                onClick={() => {
+                  setSelectedMaster(m);
+                  setStep("date");
+                  window.Telegram?.WebApp?.HapticFeedback?.selectionChanged();
+                }}
                 style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: 14, borderRadius: 2, cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: 14,
+                  borderRadius: 2,
+                  cursor: "pointer",
                   background: selectedMaster?.id === m.id ? "var(--gold-l)" : "var(--card)",
                   border: `1px solid ${selectedMaster?.id === m.id ? "var(--gold)" : "var(--border)"}`,
                 }}
               >
-                <div style={{
-                  width: 46, height: 46, borderRadius: "50%", flexShrink: 0,
-                  display: "grid", placeItems: "center",
-                  background: "var(--dim)", border: `1px solid ${selectedMaster?.id === m.id ? "var(--gold)" : "var(--border)"}`,
-                }}>
-                  <span className="serif" style={{ fontSize: 18, fontWeight: 600, color: "var(--gold)" }}>
+                <div
+                  style={{
+                    width: 46,
+                    height: 46,
+                    borderRadius: "50%",
+                    flexShrink: 0,
+                    display: "grid",
+                    placeItems: "center",
+                    background: "var(--dim)",
+                    border: `1px solid ${selectedMaster?.id === m.id ? "var(--gold)" : "var(--border)"}`,
+                  }}
+                >
+                  <span
+                    className="serif"
+                    style={{ fontSize: 18, fontWeight: 600, color: "var(--gold)" }}
+                  >
                     {m.display_name.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div className="serif" style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>{m.display_name}</div>
+                  <div
+                    className="serif"
+                    style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}
+                  >
+                    {m.display_name}
+                  </div>
                   {m.rating_avg !== null && (
-                    <div style={{ fontSize: 11, marginTop: 4, color: "var(--gold)", fontWeight: 500 }}>
+                    <div
+                      style={{ fontSize: 11, marginTop: 4, color: "var(--gold)", fontWeight: 500 }}
+                    >
                       {"★".repeat(Math.round(m.rating_avg))} {m.rating_avg.toFixed(1)}
                     </div>
                   )}
                 </div>
                 {selectedMaster?.id === m.id && (
-                  <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--gold)", display: "grid", placeItems: "center" }}>
+                  <div
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: "50%",
+                      background: "var(--gold)",
+                      display: "grid",
+                      placeItems: "center",
+                    }}
+                  >
                     <span style={{ fontSize: 11, color: "var(--bg)" }}>✓</span>
                   </div>
                 )}
@@ -404,16 +563,26 @@ function BookPageContent() {
         {step === "date" && (
           <div style={{ padding: "14px 12px" }}>
             <Calendar
-              onSelect={(d) => { setSelectedDate(d); setStep("time"); }}
+              onSelect={(d) => {
+                setSelectedDate(d);
+                setStep("time");
+              }}
               selected={selectedDate}
               slotsWithAvailability={{}}
             />
             {selectedDate && (
-              <div style={{
-                marginTop: 12, padding: "9px 12px", borderRadius: 2,
-                background: "var(--gold-l)", border: "1px solid var(--border)",
-                fontSize: 12, color: "var(--gold)", textAlign: "center",
-              }}>
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: "9px 12px",
+                  borderRadius: 2,
+                  background: "var(--gold-l)",
+                  border: "1px solid var(--border)",
+                  fontSize: 12,
+                  color: "var(--gold)",
+                  textAlign: "center",
+                }}
+              >
                 {formatDateLabel(selectedDate)} — выбрана
               </div>
             )}
@@ -424,19 +593,35 @@ function BookPageContent() {
         {step === "time" && (
           <div style={{ padding: "14px 12px", display: "flex", flexDirection: "column", gap: 12 }}>
             {selectedDate && (
-              <div style={{
-                padding: "9px 12px", borderRadius: 2,
-                background: "var(--gold-l)", border: "1px solid var(--border)",
-                fontSize: 12, color: "var(--gold)", textAlign: "center",
-              }}>
+              <div
+                style={{
+                  padding: "9px 12px",
+                  borderRadius: 2,
+                  background: "var(--gold-l)",
+                  border: "1px solid var(--border)",
+                  fontSize: 12,
+                  color: "var(--gold)",
+                  textAlign: "center",
+                }}
+              >
                 {formatDateLabel(selectedDate)}
               </div>
             )}
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)" }}>
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--muted)",
+              }}
+            >
               Доступное время
             </div>
             {slots.length === 0 ? (
-              <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 13, padding: 20 }}>
+              <div
+                style={{ textAlign: "center", color: "var(--muted)", fontSize: 13, padding: 20 }}
+              >
                 Нет свободных слотов
               </div>
             ) : (
@@ -446,12 +631,21 @@ function BookPageContent() {
                   return (
                     <div
                       key={slot}
-                      onClick={() => { setSelectedTime(slot); setStep("confirm"); window.Telegram?.WebApp?.HapticFeedback?.selectionChanged(); }}
+                      onClick={() => {
+                        setSelectedTime(slot);
+                        setStep("confirm");
+                        window.Telegram?.WebApp?.HapticFeedback?.selectionChanged();
+                      }}
                       style={{
-                        padding: "10px 8px", textAlign: "center",
-                        fontSize: 13, borderRadius: 2, cursor: "pointer",
+                        padding: "10px 8px",
+                        textAlign: "center",
+                        fontSize: 13,
+                        borderRadius: 2,
+                        cursor: "pointer",
                         letterSpacing: "0.04em",
-                        background: isOn ? "linear-gradient(135deg, var(--gold), #E0CF6A)" : "var(--card)",
+                        background: isOn
+                          ? "linear-gradient(135deg, var(--gold), #E0CF6A)"
+                          : "var(--card)",
                         border: `1px solid ${isOn ? "var(--gold)" : "var(--border)"}`,
                         color: isOn ? "var(--bg)" : "var(--fg)",
                         fontWeight: isOn ? 600 : 400,
@@ -467,83 +661,187 @@ function BookPageContent() {
         )}
 
         {/* Step: Confirm */}
-        {step === "confirm" && selectedService && selectedMaster && selectedDate && selectedTime && (
-          <div style={{ padding: "14px 12px", display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{
-              borderRadius: 2, padding: 16,
-              background: "var(--card)", border: "1px solid var(--border)",
-            }}>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 12 }}>
-                Детали записи
-              </div>
-              <div style={{ height: 1, marginBottom: 12, background: "linear-gradient(90deg, transparent, var(--border), transparent)" }} />
-              {[
-                ["Услуга", pickI18n(selectedService.name_i18n, lang)],
-                ["Мастер", selectedMaster.display_name],
-                ["Дата", formatDateLabel(selectedDate)],
-                ["Время", selectedTime],
-                ["Длительность", formatDuration(selectedService.duration_minutes)],
-              ].map(([key, val]) => (
-                <div key={key} style={{
-                  display: "flex", gap: 12, padding: "8px 0",
-                  borderBottom: "1px dotted var(--border)",
-                }}>
-                  <div style={{ width: 2, borderRadius: 1, background: "var(--gold-l)", border: "1px solid var(--border)", alignSelf: "stretch" }} />
-                  <div>
-                    <div style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 3 }}>{key}</div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{val}</div>
-                  </div>
+        {step === "confirm" &&
+          selectedService &&
+          selectedMaster &&
+          selectedDate &&
+          selectedTime && (
+            <div
+              style={{ padding: "14px 12px", display: "flex", flexDirection: "column", gap: 12 }}
+            >
+              <div
+                style={{
+                  borderRadius: 2,
+                  padding: 16,
+                  background: "var(--card)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "var(--gold)",
+                    marginBottom: 12,
+                  }}
+                >
+                  Детали записи
                 </div>
-              ))}
-            </div>
-
-            {/* Total */}
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "14px 16px", borderRadius: 2,
-              background: "var(--gold-l)", border: "1px solid var(--border)",
-            }}>
-              <div style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)" }}>К оплате</div>
-              <div className="serif" style={{ fontSize: 26, fontWeight: 600, color: "var(--gold)" }}>{selectedService.price} €</div>
-            </div>
-
-            <div style={{ fontSize: 11, textAlign: "center", lineHeight: 1.6, letterSpacing: "0.02em", color: "var(--muted)" }}>
-              Напоминания придут за 24 ч, 2 ч и 30 мин
-            </div>
-
-            {error && (
-              <div style={{ fontSize: 12, color: "#EB5757", textAlign: "center", padding: "8px 0" }}>
-                {error}
+                <div
+                  style={{
+                    height: 1,
+                    marginBottom: 12,
+                    background: "linear-gradient(90deg, transparent, var(--border), transparent)",
+                  }}
+                />
+                {[
+                  ["Услуга", pickI18n(selectedService.name_i18n, lang)],
+                  ["Мастер", selectedMaster.display_name],
+                  ["Дата", formatDateLabel(selectedDate)],
+                  ["Время", selectedTime],
+                  ["Длительность", formatDuration(selectedService.duration_minutes)],
+                ].map(([key, val]) => (
+                  <div
+                    key={key}
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      padding: "8px 0",
+                      borderBottom: "1px dotted var(--border)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 2,
+                        borderRadius: 1,
+                        background: "var(--gold-l)",
+                        border: "1px solid var(--border)",
+                        alignSelf: "stretch",
+                      }}
+                    />
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          color: "var(--muted)",
+                          marginBottom: 3,
+                        }}
+                      >
+                        {key}
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{val}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Total */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "14px 16px",
+                  borderRadius: 2,
+                  background: "var(--gold-l)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    color: "var(--muted)",
+                  }}
+                >
+                  К оплате
+                </div>
+                <div
+                  className="serif"
+                  style={{ fontSize: 26, fontWeight: 600, color: "var(--gold)" }}
+                >
+                  {selectedService.price} €
+                </div>
+              </div>
+
+              <div
+                style={{
+                  fontSize: 11,
+                  textAlign: "center",
+                  lineHeight: 1.6,
+                  letterSpacing: "0.02em",
+                  color: "var(--muted)",
+                }}
+              >
+                Напоминания придут за 24 ч, 2 ч и 30 мин
+              </div>
+
+              {error && (
+                <div
+                  style={{ fontSize: 12, color: "#EB5757", textAlign: "center", padding: "8px 0" }}
+                >
+                  {error}
+                </div>
+              )}
+            </div>
+          )}
 
         {/* Step: Success */}
         {step === "success" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "60px 24px", gap: 20 }}>
-            <div style={{
-              width: 72, height: 72, borderRadius: "50%",
-              background: "linear-gradient(135deg, var(--gold), #E0CF6A)",
-              display: "grid", placeItems: "center",
-              fontSize: 32,
-            }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: "60px 24px",
+              gap: 20,
+            }}
+          >
+            <div
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, var(--gold), #E0CF6A)",
+                display: "grid",
+                placeItems: "center",
+                fontSize: 32,
+              }}
+            >
               ✓
             </div>
-            <div className="serif" style={{ fontSize: 22, fontWeight: 600, color: "var(--fg)", textAlign: "center" }}>
+            <div
+              className="serif"
+              style={{ fontSize: 22, fontWeight: 600, color: "var(--fg)", textAlign: "center" }}
+            >
               Запись создана!
             </div>
-            <div style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", lineHeight: 1.6 }}>
+            <div
+              style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", lineHeight: 1.6 }}
+            >
               Мы пришлём напоминание за 24 часа, 2 часа и 30 минут.
             </div>
             <button
-              onClick={() => { if (typeof window !== "undefined") window.Telegram?.WebApp?.close(); }}
+              onClick={() => {
+                if (typeof window !== "undefined") window.Telegram?.WebApp?.close();
+              }}
               style={{
-                marginTop: 8, padding: "14px 32px",
+                marginTop: 8,
+                padding: "14px 32px",
                 background: "linear-gradient(135deg, var(--gold), #E0CF6A)",
-                color: "var(--bg)", border: "none", borderRadius: 2,
-                fontSize: 12, fontWeight: 600, letterSpacing: "0.1em",
-                textTransform: "uppercase", cursor: "pointer",
+                color: "var(--bg)",
+                border: "none",
+                borderRadius: 2,
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                cursor: "pointer",
               }}
             >
               Готово
@@ -557,7 +855,11 @@ function BookPageContent() {
 
 export default function BookPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Загрузка…</div>}>
+    <Suspense
+      fallback={
+        <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Загрузка…</div>
+      }
+    >
       <BookPageContent />
     </Suspense>
   );

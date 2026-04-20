@@ -13,7 +13,13 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { apiJson } from "@/lib/api";
-import type { BroadcastOut, MasterOut, Paginated, SegmentPreviewResponse, ServiceOut } from "@/types/admin-api";
+import type {
+  BroadcastOut,
+  MasterOut,
+  Paginated,
+  SegmentPreviewResponse,
+  ServiceOut,
+} from "@/types/admin-api";
 
 const LANGS = ["en", "ru", "uk", "bg"] as const;
 
@@ -243,10 +249,11 @@ export function BroadcastWizard() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const previewText = msg[(locale as (typeof LANGS)[number])] || msg.en || msg.ru || msg.uk || msg.bg;
-  const previewTime = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(
-    new Date(),
-  );
+  const previewText = msg[locale as (typeof LANGS)[number]] || msg.en || msg.ru || msg.uk || msg.bg;
+  const previewTime = new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date());
 
   const stepValid = (): boolean => {
     if (step === 1) return title.trim().length > 0;
@@ -286,10 +293,7 @@ export function BroadcastWizard() {
 
       <div className="flex gap-2 text-sm text-muted-foreground">
         {[1, 2, 3, 4].map((s) => (
-          <span
-            key={s}
-            className={s === step ? "font-semibold text-foreground" : undefined}
-          >
+          <span key={s} className={s === step ? "font-semibold text-foreground" : undefined}>
             {s}.{" "}
             {s === 1
               ? t("wizardStepSegment")
@@ -464,7 +468,9 @@ export function BroadcastWizard() {
               {previewLoading ? (
                 <span>{t("recipientCountLoading")}</span>
               ) : previewEnabled ? (
-                <span className="font-medium">{t("recipientCount", { count: preview?.count ?? 0 })}</span>
+                <span className="font-medium">
+                  {t("recipientCount", { count: preview?.count ?? 0 })}
+                </span>
               ) : (
                 <span className="text-muted-foreground">{t("colTitle")}</span>
               )}
@@ -499,7 +505,12 @@ export function BroadcastWizard() {
                 </TabsContent>
               ))}
             </Tabs>
-            <Button type="button" variant="secondary" size="sm" onClick={() => toast.message(t("translateSoon"))}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => toast.message(t("translateSoon"))}
+            >
               {t("translateAuto")}
             </Button>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -562,7 +573,12 @@ export function BroadcastWizard() {
                       />
                     </div>
                   ))}
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setButtonRows((rows) => rows.filter((_, i) => i !== ri))}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setButtonRows((rows) => rows.filter((_, i) => i !== ri))}
+                  >
                     {t("removeRow")}
                   </Button>
                 </div>

@@ -37,17 +37,23 @@ export default function AuditPage() {
         </div>
         <div>
           <Label>From</Label>
-          <Input type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} className="mt-1" />
+          <Input
+            type="datetime-local"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className="mt-1"
+          />
         </div>
         <div>
           <Label>To</Label>
-          <Input type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} className="mt-1" />
+          <Input
+            type="datetime-local"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className="mt-1"
+          />
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => q.refetch()}
-        >
+        <Button type="button" variant="secondary" onClick={() => q.refetch()}>
           Apply
         </Button>
       </div>

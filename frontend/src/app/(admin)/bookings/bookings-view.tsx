@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  type ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, ChevronLeft, ChevronRight, LayoutList, Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -31,7 +26,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { apiJson } from "@/lib/api";
 import { utcAddDays, utcStartOfDay, toIsoParam } from "@/lib/date-utc";
 import type {
@@ -69,7 +71,13 @@ export function BookingsView() {
   }, [weekStart]);
 
   const { data: cal, isLoading: calLoading } = useQuery({
-    queryKey: ["schedule", "calendar", "bookings", range.from.toISOString(), range.to.toISOString()],
+    queryKey: [
+      "schedule",
+      "calendar",
+      "bookings",
+      range.from.toISOString(),
+      range.to.toISOString(),
+    ],
     queryFn: () =>
       apiJson<CalendarResponse>(
         `/schedule/calendar?from=${encodeURIComponent(toIsoParam(range.from))}&to=${encodeURIComponent(toIsoParam(range.to))}`,
@@ -103,9 +111,12 @@ export function BookingsView() {
     const c = clients.find((x) => x.id === id);
     return [c?.first_name, c?.last_name].filter(Boolean).join(" ") || c?.phone || id.slice(0, 8);
   };
-  const nameMaster = (id: string) => masters.find((m) => m.id === id)?.display_name ?? id.slice(0, 8);
+  const nameMaster = (id: string) =>
+    masters.find((m) => m.id === id)?.display_name ?? id.slice(0, 8);
   const nameService = (id: string) =>
-    services.find((s) => s.id === id)?.name_i18n[locale] ?? services.find((s) => s.id === id)?.name_i18n.en ?? id.slice(0, 8);
+    services.find((s) => s.id === id)?.name_i18n[locale] ??
+    services.find((s) => s.id === id)?.name_i18n.en ??
+    id.slice(0, 8);
 
   const weekBookings = useMemo(() => {
     const list = cal?.bookings ?? [];
@@ -131,7 +142,9 @@ export function BookingsView() {
         accessorKey: "starts_at",
         header: t("colWhen"),
         cell: ({ row }) =>
-          new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(row.original.starts_at)),
+          new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(
+            new Date(row.original.starts_at),
+          ),
       },
       {
         id: "client",
@@ -219,11 +232,21 @@ export function BookingsView() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex gap-2">
-            <Button type="button" variant={view === "calendar" ? "default" : "outline"} size="sm" onClick={() => setView("calendar")}>
+            <Button
+              type="button"
+              variant={view === "calendar" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setView("calendar")}
+            >
               <CalendarDays className="mr-1 h-4 w-4" />
               {t("tabCalendar")}
             </Button>
-            <Button type="button" variant={view === "table" ? "default" : "outline"} size="sm" onClick={() => setView("table")}>
+            <Button
+              type="button"
+              variant={view === "table" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setView("table")}
+            >
               <LayoutList className="mr-1 h-4 w-4" />
               {t("tabTable")}
             </Button>
@@ -250,10 +273,20 @@ export function BookingsView() {
               <CardDescription>{t("weekDesc")}</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => setWeekStart((w) => utcAddDays(w, -7))} aria-label="prev">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setWeekStart((w) => utcAddDays(w, -7))}
+                aria-label="prev"
+              >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="icon" onClick={() => setWeekStart((w) => utcAddDays(w, 7))} aria-label="next">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setWeekStart((w) => utcAddDays(w, 7))}
+                aria-label="next"
+              >
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -264,13 +297,19 @@ export function BookingsView() {
             ) : (
               <div className="grid gap-3 md:grid-cols-7">
                 {weekBookings.map(({ day, items }) => (
-                  <div key={day.toISOString()} className="min-h-[120px] rounded-lg border bg-card p-2">
+                  <div
+                    key={day.toISOString()}
+                    className="min-h-[120px] rounded-lg border bg-card p-2"
+                  >
                     <p className="mb-2 text-center text-xs font-semibold text-muted-foreground">
-                      {new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric" }).format(day)}
+                      {new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric" }).format(
+                        day,
+                      )}
                     </p>
                     <div className="space-y-2">
                       {items.map((b: CalendarBooking) => {
-                        const col = masters.find((m) => m.id === b.master_id)?.color_hex ?? "#D97757";
+                        const col =
+                          masters.find((m) => m.id === b.master_id)?.color_hex ?? "#D97757";
                         return (
                           <div
                             key={b.id}
@@ -278,9 +317,13 @@ export function BookingsView() {
                             style={{ borderColor: col }}
                           >
                             <p className="font-medium leading-tight" style={{ color: col }}>
-                              {new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(new Date(b.starts_at))}
+                              {new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(
+                                new Date(b.starts_at),
+                              )}
                             </p>
-                            <p className="truncate text-muted-foreground">{nameClient(b.client_id)}</p>
+                            <p className="truncate text-muted-foreground">
+                              {nameClient(b.client_id)}
+                            </p>
                             <p className="truncate">{nameService(b.service_id)}</p>
                           </div>
                         );
@@ -308,7 +351,9 @@ export function BookingsView() {
                     {table.getHeaderGroups().map((hg) => (
                       <TableRow key={hg.id}>
                         {hg.headers.map((h) => (
-                          <TableHead key={h.id}>{flexRender(h.column.columnDef.header, h.getContext())}</TableHead>
+                          <TableHead key={h.id}>
+                            {flexRender(h.column.columnDef.header, h.getContext())}
+                          </TableHead>
                         ))}
                       </TableRow>
                     ))}
@@ -317,7 +362,9 @@ export function BookingsView() {
                     {table.getRowModel().rows.map((row) => (
                       <TableRow key={row.id}>
                         {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                          <TableCell key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
                         ))}
                       </TableRow>
                     ))}
@@ -325,10 +372,19 @@ export function BookingsView() {
                 </Table>
                 <div className="mt-4 flex items-center justify-between gap-2">
                   <p className="text-xs text-muted-foreground">
-                    {t("pagination", { from: (page - 1) * pageSize + 1, to: Math.min(page * pageSize, tableData.total), total: tableData.total })}
+                    {t("pagination", {
+                      from: (page - 1) * pageSize + 1,
+                      to: Math.min(page * pageSize, tableData.total),
+                      total: tableData.total,
+                    })}
                   </p>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
                       {t("prev")}
                     </Button>
                     <Button
@@ -385,7 +441,10 @@ function BookingCreateDrawer({
         <DrawerHeader>
           <DrawerTitle>{t("createTitle")}</DrawerTitle>
         </DrawerHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="mx-auto w-full max-w-lg space-y-4 px-4 pb-8">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="mx-auto w-full max-w-lg space-y-4 px-4 pb-8"
+        >
           <div className="space-y-2">
             <Label htmlFor="client_id">{t("fieldClient")}</Label>
             <select
@@ -400,11 +459,17 @@ function BookingCreateDrawer({
                 </option>
               ))}
             </select>
-            {errors.client_id && <p className="text-xs text-destructive">{errors.client_id.message}</p>}
+            {errors.client_id && (
+              <p className="text-xs text-destructive">{errors.client_id.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="master_id">{t("fieldMaster")}</Label>
-            <select id="master_id" className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" {...register("master_id")}>
+            <select
+              id="master_id"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              {...register("master_id")}
+            >
               <option value="">{t("selectPlaceholder")}</option>
               {masters.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -412,11 +477,17 @@ function BookingCreateDrawer({
                 </option>
               ))}
             </select>
-            {errors.master_id && <p className="text-xs text-destructive">{errors.master_id.message}</p>}
+            {errors.master_id && (
+              <p className="text-xs text-destructive">{errors.master_id.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="service_id">{t("fieldService")}</Label>
-            <select id="service_id" className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" {...register("service_id")}>
+            <select
+              id="service_id"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              {...register("service_id")}
+            >
               <option value="">{t("selectPlaceholder")}</option>
               {services.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -424,12 +495,16 @@ function BookingCreateDrawer({
                 </option>
               ))}
             </select>
-            {errors.service_id && <p className="text-xs text-destructive">{errors.service_id.message}</p>}
+            {errors.service_id && (
+              <p className="text-xs text-destructive">{errors.service_id.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="starts_at_local">{t("fieldStart")}</Label>
             <Input id="starts_at_local" type="datetime-local" {...register("starts_at_local")} />
-            {errors.starts_at_local && <p className="text-xs text-destructive">{errors.starts_at_local.message}</p>}
+            {errors.starts_at_local && (
+              <p className="text-xs text-destructive">{errors.starts_at_local.message}</p>
+            )}
           </div>
           <DrawerFooter className="px-0">
             <Button type="submit" disabled={pending} data-testid="booking-create-submit">

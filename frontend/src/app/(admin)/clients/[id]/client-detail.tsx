@@ -1,7 +1,17 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Ban, CalendarPlus, Pencil, Pin, Send, StickyNote, Tags, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Ban,
+  CalendarPlus,
+  Pencil,
+  Pin,
+  Send,
+  StickyNote,
+  Tags,
+  Trash2,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -82,7 +92,8 @@ export function ClientDetail({ clientId }: { clientId: string }) {
 
   const { data: aiConvs, isError: aiError } = useQuery({
     queryKey: ["ai", "conversations", clientId],
-    queryFn: () => apiJson<Paginated<AIConversationOut>>(`/ai/conversations?client_id=${clientId}&page_size=50`),
+    queryFn: () =>
+      apiJson<Paginated<AIConversationOut>>(`/ai/conversations?client_id=${clientId}&page_size=50`),
     retry: false,
   });
 
@@ -154,7 +165,8 @@ export function ClientDetail({ clientId }: { clientId: string }) {
     return <AdminEmptyState title={t("notFound")} />;
   }
 
-  const displayName = [client.first_name, client.last_name].filter(Boolean).join(" ") || t("unnamed");
+  const displayName =
+    [client.first_name, client.last_name].filter(Boolean).join(" ") || t("unnamed");
   const lastVisit = client.last_visit_at
     ? Math.max(0, Math.round((Date.now() - new Date(client.last_visit_at).getTime()) / 86400000))
     : null;
@@ -174,7 +186,8 @@ export function ClientDetail({ clientId }: { clientId: string }) {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{displayName}</h1>
           <p className="text-muted-foreground">
-            {client.phone ?? "—"} · {client.tg_username ? `@${client.tg_username}` : "—"} · {client.lang.toUpperCase()}
+            {client.phone ?? "—"} · {client.tg_username ? `@${client.tg_username}` : "—"} ·{" "}
+            {client.lang.toUpperCase()}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -206,10 +219,16 @@ export function ClientDetail({ clientId }: { clientId: string }) {
         <Kpi
           small
           label={t("kpiLtv")}
-          value={new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(Number.parseFloat(client.total_revenue))}
+          value={new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(
+            Number.parseFloat(client.total_revenue),
+          )}
         />
         <Kpi small label={t("kpiNoshow")} value={String(client.no_show_count)} />
-        <Kpi small label={t("kpiLastVisit")} value={lastVisit !== null ? t("kpiDaysAgo", { days: lastVisit }) : "—"} />
+        <Kpi
+          small
+          label={t("kpiLastVisit")}
+          value={lastVisit !== null ? t("kpiDaysAgo", { days: lastVisit }) : "—"}
+        />
       </div>
 
       <Card>
@@ -250,7 +269,13 @@ export function ClientDetail({ clientId }: { clientId: string }) {
                     >
                       <Pin className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setNoteDrawer({ edit: n })} aria-label="edit">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setNoteDrawer({ edit: n })}
+                      aria-label="edit"
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
@@ -265,7 +290,10 @@ export function ClientDetail({ clientId }: { clientId: string }) {
                   </div>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  {n.author_display_name ?? "—"} · {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(n.created_at))}
+                  {n.author_display_name ?? "—"} ·{" "}
+                  {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
+                    new Date(n.created_at),
+                  )}
                 </p>
               </div>
             ))
@@ -299,7 +327,10 @@ export function ClientDetail({ clientId }: { clientId: string }) {
                   {clientBookings.map((b: CalendarBooking) => (
                     <tr key={b.id} className="border-b border-border/60">
                       <td className="p-2 whitespace-nowrap">
-                        {new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(b.starts_at))}
+                        {new Intl.DateTimeFormat(locale, {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        }).format(new Date(b.starts_at))}
                       </td>
                       <td className="p-2">{b.status}</td>
                     </tr>
@@ -323,8 +354,11 @@ export function ClientDetail({ clientId }: { clientId: string }) {
             <ul className="space-y-2 text-sm">
               {aiConvs.items.map((c) => (
                 <li key={c.id} className="rounded-md border px-3 py-2">
-                  {new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(c.started_at))} ·{" "}
-                  {c.client_name ?? "—"}
+                  {new Intl.DateTimeFormat(locale, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }).format(new Date(c.started_at))}{" "}
+                  · {c.client_name ?? "—"}
                 </li>
               ))}
             </ul>
@@ -342,7 +376,8 @@ export function ClientDetail({ clientId }: { clientId: string }) {
         onSave={(content) => {
           const mode = noteDrawer;
           if (mode === "create") createNote.mutate(content);
-          else if (mode && typeof mode === "object" && "edit" in mode) updateNote.mutate({ id: mode.edit.id, content });
+          else if (mode && typeof mode === "object" && "edit" in mode)
+            updateNote.mutate({ id: mode.edit.id, content });
         }}
         pending={createNote.isPending || updateNote.isPending}
         t={t}
@@ -399,7 +434,9 @@ function NoteDrawer({
           onSubmit={form.handleSubmit((v) => onSave(v.content))}
         >
           <Textarea rows={6} {...form.register("content")} data-testid="client-note-input" />
-          {form.formState.errors.content && <p className="text-xs text-destructive">{form.formState.errors.content.message}</p>}
+          {form.formState.errors.content && (
+            <p className="text-xs text-destructive">{form.formState.errors.content.message}</p>
+          )}
           <DrawerFooter className="px-0">
             <Button type="submit" disabled={pending} data-testid="client-note-save">
               {t("noteSave")}

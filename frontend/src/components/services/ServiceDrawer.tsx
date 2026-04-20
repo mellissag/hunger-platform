@@ -44,12 +44,7 @@ interface ServiceDrawerProps {
   onClose: () => void;
 }
 
-export function ServiceDrawer({
-  open,
-  serviceId,
-  service,
-  onClose,
-}: ServiceDrawerProps) {
+export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDrawerProps) {
   const locale = useLocale() as Lang;
   const [activeLang, setActiveLang] = useState<Lang>(locale === "en" ? "en" : "ru");
   const [translating, setTranslating] = useState(false);
@@ -197,12 +192,7 @@ export function ServiceDrawer({
   return (
     <>
       {/* Overlay */}
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-[rgba(28,20,9,.3)]"
-          onClick={onClose}
-        />
-      )}
+      {open && <div className="fixed inset-0 z-40 bg-[rgba(28,20,9,.3)]" onClick={onClose} />}
 
       {/* Panel */}
       <div
@@ -274,10 +264,7 @@ export function ServiceDrawer({
             </div>
 
             {LANGS.map((lang) => (
-              <div
-                key={lang}
-                className={cn("space-y-3", activeLang !== lang && "hidden")}
-              >
+              <div key={lang} className={cn("space-y-3", activeLang !== lang && "hidden")}>
                 <div className="space-y-1.5">
                   <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Название ({lang.toUpperCase()})
@@ -285,14 +272,14 @@ export function ServiceDrawer({
                   <Input
                     {...register(`name_${lang}` as keyof ServiceForm)}
                     placeholder={`Название на ${lang.toUpperCase()}`}
-                    className={cn(
-                      errors[`name_${lang}` as keyof ServiceForm] &&
-                        "border-red-400",
-                    )}
+                    className={cn(errors[`name_${lang}` as keyof ServiceForm] && "border-red-400")}
                   />
                   {errors[`name_${lang}` as keyof ServiceForm] && (
                     <p className="text-[11px] text-red-500">
-                      {(errors[`name_${lang}` as keyof ServiceForm] as { message?: string })?.message}
+                      {
+                        (errors[`name_${lang}` as keyof ServiceForm] as { message?: string })
+                          ?.message
+                      }
                     </p>
                   )}
                 </div>
@@ -335,12 +322,7 @@ export function ServiceDrawer({
               <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
                 Цена (€)
               </Label>
-              <Input
-                type="number"
-                step="0.01"
-                min={0}
-                {...register("price")}
-              />
+              <Input type="number" step="0.01" min={0} {...register("price")} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">

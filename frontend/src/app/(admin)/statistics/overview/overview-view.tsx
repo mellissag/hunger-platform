@@ -98,7 +98,12 @@ export function OverviewView() {
         </CardHeader>
         <CardContent className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data.revenue_trend.map((r) => ({ ...r, revenue: Number.parseFloat(r.revenue) }))}>
+            <LineChart
+              data={data.revenue_trend.map((r) => ({
+                ...r,
+                revenue: Number.parseFloat(r.revenue),
+              }))}
+            >
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
@@ -106,7 +111,13 @@ export function OverviewView() {
                 formatter={(v) => [fmtMoney(String(v ?? 0)), t("kpiRevenue")]}
                 labelFormatter={(l) => String(l)}
               />
-              <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+              <Line
+                type="monotone"
+                dataKey="revenue"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2}
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>

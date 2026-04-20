@@ -181,7 +181,12 @@ export type StatsMastersResponse = {
 
 export type StatsServicesResponse = {
   period: { from: string; to: string };
-  top: { service_id: string; name_i18n: Record<string, string>; revenue: string; completed_bookings: number }[];
+  top: {
+    service_id: string;
+    name_i18n: Record<string, string>;
+    revenue: string;
+    completed_bookings: number;
+  }[];
 };
 
 export type StatsDeadServicesResponse = {

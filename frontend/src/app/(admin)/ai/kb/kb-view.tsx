@@ -41,9 +41,11 @@ export function KbView() {
   const save = useMutation({
     mutationFn: async () => {
       if (!selected || !detail.data) return;
-      const title = (document.getElementById("kb-title") as HTMLInputElement)?.value ?? detail.data.title;
+      const title =
+        (document.getElementById("kb-title") as HTMLInputElement)?.value ?? detail.data.title;
       const content = (document.getElementById("kb-content") as HTMLTextAreaElement)?.value ?? "";
-      const lang = (document.getElementById("kb-lang") as HTMLInputElement)?.value ?? detail.data.lang;
+      const lang =
+        (document.getElementById("kb-lang") as HTMLInputElement)?.value ?? detail.data.lang;
       return apiJson<DocRow>(`/kb/documents/${selected}`, {
         method: "PATCH",
         body: JSON.stringify({ title, content, lang }),
@@ -82,7 +84,11 @@ export function KbView() {
         <div className="mb-3 flex flex-col gap-2">
           <Label className="text-xs">{t("uploadPdfDocx")}</Label>
           <Input id="upload-lang" placeholder="lang=en" defaultValue="en" className="text-xs" />
-          <Input type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => onUpload(e.target.files?.[0] ?? null)} />
+          <Input
+            type="file"
+            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            onChange={(e) => onUpload(e.target.files?.[0] ?? null)}
+          />
         </div>
         <div className="h-[400px] overflow-y-auto pr-2">
           {list.isLoading && <Skeleton className="h-8 w-full" />}
@@ -118,7 +124,11 @@ export function KbView() {
             </div>
             <div>
               <Label htmlFor="kb-content">Content</Label>
-              <Textarea id="kb-content" defaultValue={detail.data.content ?? ""} className="mt-1 min-h-[280px] font-mono text-sm" />
+              <Textarea
+                id="kb-content"
+                defaultValue={detail.data.content ?? ""}
+                className="mt-1 min-h-[280px] font-mono text-sm"
+              />
             </div>
             <p className="text-xs text-muted-foreground">
               {t("chunks")}: {detail.data.chunk_count}

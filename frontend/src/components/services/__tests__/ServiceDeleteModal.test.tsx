@@ -36,40 +36,28 @@ const baseService: ServiceOut = {
 
 describe("ServiceDeleteModal", () => {
   it("renders nothing when service is null", () => {
-    const { container } = render(
-      <ServiceDeleteModal service={null} onClose={vi.fn()} />,
-      { wrapper },
-    );
+    const { container } = render(<ServiceDeleteModal service={null} onClose={vi.fn()} />, {
+      wrapper,
+    });
     expect(container.firstChild).toBeNull();
   });
 
   it("shows service name in title", () => {
-    render(
-      <ServiceDeleteModal service={baseService} onClose={vi.fn()} />,
-      { wrapper },
-    );
+    render(<ServiceDeleteModal service={baseService} onClose={vi.fn()} />, { wrapper });
     expect(screen.getByText(/Удалить «Стрижка»\?/)).toBeInTheDocument();
   });
 
   it("shows two-step confirmation when no bookings", () => {
-    render(
-      <ServiceDeleteModal service={baseService} onClose={vi.fn()} />,
-      { wrapper },
-    );
+    render(<ServiceDeleteModal service={baseService} onClose={vi.fn()} />, { wrapper });
 
     expect(screen.getByText("Отмена")).toBeInTheDocument();
     expect(screen.getByText("Удалить")).toBeInTheDocument();
-    expect(
-      screen.getByText(/Услуга будет скрыта из бота/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Услуга будет скрыта из бота/)).toBeInTheDocument();
   });
 
   it("blocks deletion when service has active bookings", () => {
     const withBookings = { ...baseService, bookings_count: 5 };
-    render(
-      <ServiceDeleteModal service={withBookings} onClose={vi.fn()} />,
-      { wrapper },
-    );
+    render(<ServiceDeleteModal service={withBookings} onClose={vi.fn()} />, { wrapper });
 
     expect(screen.getByText(/5 подтверждённых записей/)).toBeInTheDocument();
     expect(screen.queryByText("Удалить")).not.toBeInTheDocument();
@@ -77,10 +65,7 @@ describe("ServiceDeleteModal", () => {
   });
 
   it("advances to step 2 when Удалить clicked", () => {
-    render(
-      <ServiceDeleteModal service={baseService} onClose={vi.fn()} />,
-      { wrapper },
-    );
+    render(<ServiceDeleteModal service={baseService} onClose={vi.fn()} />, { wrapper });
 
     fireEvent.click(screen.getByText("Удалить"));
     expect(screen.getByText("Подтвердить удаление")).toBeInTheDocument();
@@ -89,10 +74,7 @@ describe("ServiceDeleteModal", () => {
 
   it("calls onClose when Отмена clicked", () => {
     const onClose = vi.fn();
-    render(
-      <ServiceDeleteModal service={baseService} onClose={onClose} />,
-      { wrapper },
-    );
+    render(<ServiceDeleteModal service={baseService} onClose={onClose} />, { wrapper });
 
     fireEvent.click(screen.getByText("Отмена"));
     expect(onClose).toHaveBeenCalled();

@@ -69,7 +69,13 @@ export function MasterDetail({ masterId }: { masterId: string }) {
   });
 
   const saveBlock = useMutation({
-    mutationFn: (body: { starts_at: string; ends_at: string; master_id: string; slot_type: string; note?: string }) =>
+    mutationFn: (body: {
+      starts_at: string;
+      ends_at: string;
+      master_id: string;
+      slot_type: string;
+      note?: string;
+    }) =>
       apiJson<unknown>("/schedule/block", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -166,7 +172,11 @@ export function MasterDetail({ masterId }: { masterId: string }) {
               >
                 <div className="space-y-2">
                   <Label htmlFor="starts">{t("fieldStart")}</Label>
-                  <Input id="starts" type="datetime-local" {...blockForm.register("starts_at_local")} />
+                  <Input
+                    id="starts"
+                    type="datetime-local"
+                    {...blockForm.register("starts_at_local")}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="ends">{t("fieldEnd")}</Label>
@@ -176,7 +186,11 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                   <Label htmlFor="note">{t("fieldNote")}</Label>
                   <Input id="note" {...blockForm.register("note")} />
                 </div>
-                <Button type="submit" disabled={saveBlock.isPending} data-testid="schedule-block-submit">
+                <Button
+                  type="submit"
+                  disabled={saveBlock.isPending}
+                  data-testid="schedule-block-submit"
+                >
                   {t("saveBlock")}
                 </Button>
               </form>

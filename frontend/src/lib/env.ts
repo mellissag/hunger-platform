@@ -11,8 +11,7 @@ export function getApiBaseUrl(): string {
  */
 /** Client + server: backend origin for `<img src>` to /media (not via BFF). */
 export function getPublicApiBaseUrl(): string {
-  const u =
-    process.env.NEXT_PUBLIC_API_URL ?? process.env.API_URL ?? "http://127.0.0.1:8000";
+  const u = process.env.NEXT_PUBLIC_API_URL ?? process.env.API_URL ?? "http://127.0.0.1:8000";
   return u.replace(/\/$/, "");
 }
 

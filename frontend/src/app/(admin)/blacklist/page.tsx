@@ -39,7 +39,8 @@ export default function BlacklistPage() {
   const filtered =
     clients.data?.items.filter((c) => {
       if (q.length < 1) return true;
-      const hay = `${c.first_name ?? ""} ${c.last_name ?? ""} ${c.phone ?? ""} ${c.tg_username ?? ""}`.toLowerCase();
+      const hay =
+        `${c.first_name ?? ""} ${c.last_name ?? ""} ${c.phone ?? ""} ${c.tg_username ?? ""}`.toLowerCase();
       return hay.includes(q.toLowerCase());
     }) ?? [];
 
@@ -119,9 +120,16 @@ export default function BlacklistPage() {
                 <td className="p-2">{r.client_name ?? r.client_id}</td>
                 <td className="p-2">{r.phone}</td>
                 <td className="p-2">{r.reason}</td>
-                <td className="p-2">{r.expires_at ? new Date(r.expires_at).toLocaleString() : "—"}</td>
                 <td className="p-2">
-                  <Button type="button" variant="ghost" size="sm" onClick={() => remove.mutate(r.id)}>
+                  {r.expires_at ? new Date(r.expires_at).toLocaleString() : "—"}
+                </td>
+                <td className="p-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => remove.mutate(r.id)}
+                  >
                     {t("remove")}
                   </Button>
                 </td>

@@ -29,7 +29,9 @@ export function MasterDetailView({ masterId }: { masterId: string }) {
   }
 
   const fmt = (s: string) =>
-    new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(Number.parseFloat(s));
+    new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(
+      Number.parseFloat(s),
+    );
 
   return (
     <div className="space-y-4">

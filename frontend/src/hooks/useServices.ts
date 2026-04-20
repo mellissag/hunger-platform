@@ -6,8 +6,7 @@ import { apiJson } from "@/lib/api";
 import type { Paginated, ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
 
 export const SERVICE_KEYS = {
-  list: (categoryId?: string, search?: string) =>
-    ["services", { categoryId, search }] as const,
+  list: (categoryId?: string, search?: string) => ["services", { categoryId, search }] as const,
   categories: () => ["service-categories"] as const,
 };
 
@@ -66,8 +65,7 @@ export function useUpdateService() {
 export function useDeleteService() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) =>
-      apiJson<void>(`/services/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) => apiJson<void>(`/services/${id}`, { method: "DELETE" }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["services"] });
     },
@@ -89,18 +87,13 @@ export function useToggleService() {
       const previous = qc.getQueriesData<Paginated<ServiceOut>>({
         queryKey: ["services"],
       });
-      qc.setQueriesData<Paginated<ServiceOut>>(
-        { queryKey: ["services"] },
-        (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            items: old.items.map((s) =>
-              s.id === id ? { ...s, is_active } : s,
-            ),
-          };
-        },
-      );
+      qc.setQueriesData<Paginated<ServiceOut>>({ queryKey: ["services"] }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          items: old.items.map((s) => (s.id === id ? { ...s, is_active } : s)),
+        };
+      });
       return { previous };
     },
     onError: (_err, _vars, ctx) => {

@@ -51,8 +51,10 @@ function makeWrapper() {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: qc }, children);
+  function Wrapper({ children }: { children: React.ReactNode }) {
+    return React.createElement(QueryClientProvider, { client: qc }, children);
+  }
+  return Wrapper;
 }
 
 describe("useServices", () => {
@@ -93,17 +95,14 @@ describe("useToggleService optimistic update", () => {
       .mockImplementation(
         () =>
           new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({ ...PAGE.items[0], is_active: false }),
-              100,
-            ),
+            setTimeout(() => resolve({ ...PAGE.items[0], is_active: false }), 100),
           ),
       );
 
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const w = ({ children }: { children: React.ReactNode }) =>
-      React.createElement(QueryClientProvider, { client: qc }, children);
+    function w({ children }: { children: React.ReactNode }) {
+      return React.createElement(QueryClientProvider, { client: qc }, children);
+    }
 
     const { result: listResult } = renderHook(() => useServices(), { wrapper: w });
     await waitFor(() => expect(listResult.current.isSuccess).toBe(true));
@@ -118,9 +117,9 @@ describe("useToggleService optimistic update", () => {
 
     // Optimistic: cache should be updated immediately
     await waitFor(() => {
-      const data = qc.getQueryData<Paginated<ServiceOut>>(
-        [["services", { categoryId: undefined, search: undefined }]],
-      );
+      const data = qc.getQueryData<Paginated<ServiceOut>>([
+        ["services", { categoryId: undefined, search: undefined }],
+      ]);
       // Either the optimistic update applied or query invalidated
       expect(toggleResult.current.isPending || data !== undefined).toBe(true);
     });

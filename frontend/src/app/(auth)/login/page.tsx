@@ -53,7 +53,11 @@ export default function LoginPage() {
       body: JSON.stringify(values),
       credentials: "include",
     });
-    const data = (await res.json().catch(() => ({}))) as { ok?: boolean; redirect?: string; error?: string };
+    const data = (await res.json().catch(() => ({}))) as {
+      ok?: boolean;
+      redirect?: string;
+      error?: string;
+    };
 
     if (!res.ok) {
       setSubmitError(t("error"));
@@ -61,7 +65,8 @@ export default function LoginPage() {
     }
 
     const next = searchParams.get("next");
-    const dest = typeof next === "string" && next.startsWith("/") ? next : data.redirect ?? "/dashboard";
+    const dest =
+      typeof next === "string" && next.startsWith("/") ? next : (data.redirect ?? "/dashboard");
     router.push(dest);
     router.refresh();
   }
@@ -124,7 +129,13 @@ export default function LoginPage() {
                 <CardDescription>{t("subtitle")}</CardDescription>
               </CardHeader>
               <CardContent>
-                <LoginFields form={form} onSubmit={onSubmit} t={t} tab="friendly" error={submitError} />
+                <LoginFields
+                  form={form}
+                  onSubmit={onSubmit}
+                  t={t}
+                  tab="friendly"
+                  error={submitError}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -142,10 +153,18 @@ export default function LoginPage() {
                   </div>
                 </div>
                 <CardTitle className="text-lg">{t("titleSignIn")}</CardTitle>
-                <CardDescription className="font-mono text-xs text-zinc-500">{t("subtitleMinimal")}</CardDescription>
+                <CardDescription className="font-mono text-xs text-zinc-500">
+                  {t("subtitleMinimal")}
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <LoginFields form={form} onSubmit={onSubmit} t={t} tab="minimal" error={submitError} />
+                <LoginFields
+                  form={form}
+                  onSubmit={onSubmit}
+                  t={t}
+                  tab="minimal"
+                  error={submitError}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -157,15 +176,27 @@ export default function LoginPage() {
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#D4AF37] to-[#C9A96E] font-serif text-2xl font-semibold text-[#0D0B08] shadow-[0_0_30px_rgba(201,169,110,.35)]">
                   H
                 </div>
-                <p className="mt-3 font-serif text-xl tracking-wide text-[#EFE6D2]">Hunger Atelier</p>
-                <p className="text-[10px] uppercase tracking-[0.3em] text-[#C9A96E]">{tc("salonTagline")}</p>
-                <CardTitle className="mt-4 font-serif text-xl font-medium">{t("titlePremium")}</CardTitle>
+                <p className="mt-3 font-serif text-xl tracking-wide text-[#EFE6D2]">
+                  Hunger Atelier
+                </p>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-[#C9A96E]">
+                  {tc("salonTagline")}
+                </p>
+                <CardTitle className="mt-4 font-serif text-xl font-medium">
+                  {t("titlePremium")}
+                </CardTitle>
                 <CardDescription className="text-xs uppercase tracking-widest text-[#8A7F6A]">
                   {t("subtitlePremium")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <LoginFields form={form} onSubmit={onSubmit} t={t} tab="premium" error={submitError} />
+                <LoginFields
+                  form={form}
+                  onSubmit={onSubmit}
+                  t={t}
+                  tab="premium"
+                  error={submitError}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -223,7 +254,13 @@ function LoginFields({
               )}
             />
           )}
-          <Input id="email" type="email" autoComplete="email" className={cn(inputClass)} {...register("email")} />
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            className={cn(inputClass)}
+            {...register("email")}
+          />
         </div>
         {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
       </div>
@@ -266,7 +303,8 @@ function LoginFields({
         disabled={isSubmitting}
         className={cn(
           "w-full",
-          tab === "friendly" && "bg-gradient-to-r from-[#D97757] to-[#C46441] text-white shadow-md hover:opacity-95",
+          tab === "friendly" &&
+            "bg-gradient-to-r from-[#D97757] to-[#C46441] text-white shadow-md hover:opacity-95",
           tab === "minimal" && "bg-indigo-500 font-sans hover:bg-indigo-600",
           tab === "premium" &&
             "rounded-sm border border-[#C9A96E] bg-[#C9A96E] text-[11px] font-semibold uppercase tracking-[0.22em] text-[#0D0B08] hover:bg-[#D4AF37]",
@@ -274,7 +312,9 @@ function LoginFields({
       >
         {tab === "premium" ? t("submitPremium") : t("submit")}
         {tab === "friendly" && <ArrowRight className="h-4 w-4" />}
-        {tab === "minimal" && <span className="ml-2 rounded border border-white/20 px-1 font-mono text-[10px]">⏎</span>}
+        {tab === "minimal" && (
+          <span className="ml-2 rounded border border-white/20 px-1 font-mono text-[10px]">⏎</span>
+        )}
       </Button>
     </form>
   );

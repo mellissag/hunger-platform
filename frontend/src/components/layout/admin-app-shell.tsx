@@ -229,9 +229,15 @@ export function AdminAppShell({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => applyTheme("friendly")}>{t("themeFriendly")}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => applyTheme("minimal")}>{t("themeMinimal")}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => applyTheme("premium")}>{t("themePremium")}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => applyTheme("friendly")}>
+                  {t("themeFriendly")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => applyTheme("minimal")}>
+                  {t("themeMinimal")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => applyTheme("premium")}>
+                  {t("themePremium")}
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => applyTheme("premium_light")}>
                   {t("themePremiumLight")}
                 </DropdownMenuItem>
@@ -244,7 +250,9 @@ export function AdminAppShell({
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
                     {displayName.slice(0, 2).toUpperCase()}
                   </div>
-                  <span className="hidden max-w-[140px] truncate text-sm font-medium lg:inline">{displayName}</span>
+                  <span className="hidden max-w-[140px] truncate text-sm font-medium lg:inline">
+                    {displayName}
+                  </span>
                   <ChevronDown className="h-4 w-4 opacity-60" />
                 </Button>
               </DropdownMenuTrigger>

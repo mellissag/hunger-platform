@@ -7,7 +7,14 @@ import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { apiJson } from "@/lib/api";
 import type { StatsMastersResponse } from "@/types/admin-api";
 
@@ -28,7 +35,9 @@ export function MastersStatsView() {
   }
 
   const fmt = (s: string) =>
-    new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(Number.parseFloat(s));
+    new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(
+      Number.parseFloat(s),
+    );
 
   return (
     <Card>

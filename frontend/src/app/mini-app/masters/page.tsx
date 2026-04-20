@@ -61,25 +61,52 @@ export default function MastersPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       {/* Header */}
-      <div style={{
-        display: "flex", alignItems: "center", padding: "10px 14px", gap: 10,
-        background: "var(--card)", borderBottom: "1px solid var(--border)",
-      }}>
-        <Link href="/mini-app" style={{
-          width: 30, height: 30, borderRadius: "50%",
-          display: "grid", placeItems: "center",
-          background: "var(--dim)", textDecoration: "none", color: "var(--muted)",
-          fontSize: 18, lineHeight: 1,
-        }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          padding: "10px 14px",
+          gap: 10,
+          background: "var(--card)",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <Link
+          href="/mini-app"
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: "50%",
+            display: "grid",
+            placeItems: "center",
+            background: "var(--dim)",
+            textDecoration: "none",
+            color: "var(--muted)",
+            fontSize: 18,
+            lineHeight: 1,
+          }}
+        >
           ‹
         </Link>
-        <div className="serif" style={{ flex: 1, fontSize: 17, fontWeight: 600, color: "var(--fg)" }}>
+        <div
+          className="serif"
+          style={{ flex: 1, fontSize: 17, fontWeight: 600, color: "var(--fg)" }}
+        >
           Наши мастера
         </div>
       </div>
 
       {/* List */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "10px 12px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
         {loading && (
           <div style={{ textAlign: "center", padding: 40, color: "var(--muted)", fontSize: 13 }}>
             Загрузка…
@@ -99,18 +126,32 @@ export default function MastersPage() {
               href={`/mini-app/book?master_id=${m.id}`}
               style={{ textDecoration: "none" }}
             >
-              <div style={{
-                display: "flex", alignItems: "center", gap: 12,
-                padding: 14, borderRadius: 2, cursor: "pointer",
-                background: "var(--card)", border: "1px solid var(--border)",
-              }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: 14,
+                  borderRadius: 2,
+                  cursor: "pointer",
+                  background: "var(--card)",
+                  border: "1px solid var(--border)",
+                }}
+              >
                 {/* Avatar */}
-                <div style={{
-                  width: 46, height: 46, borderRadius: "50%",
-                  display: "grid", placeItems: "center",
-                  flexShrink: 0, overflow: "hidden",
-                  background: "var(--dim)", border: "1px solid var(--border)",
-                }}>
+                <div
+                  style={{
+                    width: 46,
+                    height: 46,
+                    borderRadius: "50%",
+                    display: "grid",
+                    placeItems: "center",
+                    flexShrink: 0,
+                    overflow: "hidden",
+                    background: "var(--dim)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
                   {m.photo_url ? (
                     <Image
                       src={m.photo_url}
@@ -120,7 +161,10 @@ export default function MastersPage() {
                       style={{ objectFit: "cover", width: "100%", height: "100%" }}
                     />
                   ) : (
-                    <span className="serif" style={{ fontSize: 18, fontWeight: 600, color: "var(--gold)" }}>
+                    <span
+                      className="serif"
+                      style={{ fontSize: 18, fontWeight: 600, color: "var(--gold)" }}
+                    >
                       {initials(m.display_name)}
                     </span>
                   )}
@@ -128,17 +172,32 @@ export default function MastersPage() {
 
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="serif" style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>
+                  <div
+                    className="serif"
+                    style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}
+                  >
                     {m.display_name}
                   </div>
                   {spec && (
-                    <div style={{ fontSize: 11, marginTop: 2, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        marginTop: 2,
+                        color: "var(--muted)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {spec}
                     </div>
                   )}
                   {m.rating_avg !== null && m.rating_count > 0 && (
-                    <div style={{ fontSize: 11, marginTop: 4, fontWeight: 500, color: "var(--gold)" }}>
-                      {"★".repeat(Math.round(m.rating_avg))} {m.rating_avg.toFixed(1)} ({m.rating_count})
+                    <div
+                      style={{ fontSize: 11, marginTop: 4, fontWeight: 500, color: "var(--gold)" }}
+                    >
+                      {"★".repeat(Math.round(m.rating_avg))} {m.rating_avg.toFixed(1)} (
+                      {m.rating_count})
                     </div>
                   )}
                 </div>

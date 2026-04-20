@@ -47,8 +47,8 @@ export function ServicesAdmin() {
   const { data: catData } = useServiceCategories();
   const { data: svcData, isLoading } = useServices(activeCategoryId, search);
 
-  const categories = catData?.items ?? [];
-  const services = svcData?.items ?? [];
+  const categories = useMemo(() => catData?.items ?? [], [catData?.items]);
+  const services = useMemo(() => svcData?.items ?? [], [svcData?.items]);
 
   const editService = useMemo(
     () => services.find((s) => s.id === editServiceId) ?? null,
@@ -88,8 +88,7 @@ export function ServicesAdmin() {
             · Управление услугами ·
           </p>
           <h1 className="font-playfair mt-1 text-3xl font-medium tracking-tight leading-tight">
-            Коллекция{" "}
-            <span className="italic text-primary">услуг</span>
+            Коллекция <span className="italic text-primary">услуг</span>
           </h1>
           <p className="mt-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
             ⸻ ✦ ⸻
@@ -205,9 +204,8 @@ export function ServicesAdmin() {
             />
           </svg>
           <p className="text-[12px] text-muted-foreground">
-            Изменения синхронизируются с Telegram-ботом мгновенно через Redis
-            Pub/Sub. Переключатель «Скрыта в боте» убирает услугу из меню
-            записи — история записей сохраняется.
+            Изменения синхронизируются с Telegram-ботом мгновенно через Redis Pub/Sub. Переключатель
+            «Скрыта в боте» убирает услугу из меню записи — история записей сохраняется.
           </p>
         </div>
       </div>
@@ -221,10 +219,7 @@ export function ServicesAdmin() {
       />
 
       {/* ── Delete Modal ── */}
-      <ServiceDeleteModal
-        service={deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-      />
+      <ServiceDeleteModal service={deleteTarget} onClose={() => setDeleteTarget(null)} />
     </div>
   );
 }
@@ -235,9 +230,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <div className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-muted">
         <Tag className="h-6 w-6 text-muted-foreground" />
       </div>
-      <p className="font-medium text-foreground">
-        Услуг в этой категории пока нет
-      </p>
+      <p className="font-medium text-foreground">Услуг в этой категории пока нет</p>
       <button
         type="button"
         onClick={onAdd}

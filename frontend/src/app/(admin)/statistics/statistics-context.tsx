@@ -30,11 +30,10 @@ export function StatisticsPeriodProvider({ children }: { children: ReactNode }) 
     () => `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     [from, to],
   );
-  const value = useMemo(
-    () => ({ from, to, setFrom, setTo, qs }),
-    [from, to, qs],
+  const value = useMemo(() => ({ from, to, setFrom, setTo, qs }), [from, to, qs]);
+  return (
+    <StatisticsPeriodContext.Provider value={value}>{children}</StatisticsPeriodContext.Provider>
   );
-  return <StatisticsPeriodContext.Provider value={value}>{children}</StatisticsPeriodContext.Provider>;
 }
 
 export function useStatisticsPeriod() {

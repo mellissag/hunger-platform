@@ -27,30 +27,18 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 describe("ServiceDrawer", () => {
   it("does not render when closed", () => {
-    render(
-      <ServiceDrawer
-        open={false}
-        serviceId={null}
-        service={null}
-        onClose={vi.fn()}
-      />,
-      { wrapper },
-    );
+    render(<ServiceDrawer open={false} serviceId={null} service={null} onClose={vi.fn()} />, {
+      wrapper,
+    });
 
     const panel = document.querySelector("[class*='translate-x-full']");
     expect(panel).not.toBeNull();
   });
 
   it("renders create title when no serviceId", () => {
-    render(
-      <ServiceDrawer
-        open={true}
-        serviceId={null}
-        service={null}
-        onClose={vi.fn()}
-      />,
-      { wrapper },
-    );
+    render(<ServiceDrawer open={true} serviceId={null} service={null} onClose={vi.fn()} />, {
+      wrapper,
+    });
 
     expect(screen.getByText("Новая услуга")).toBeInTheDocument();
   });
@@ -68,45 +56,27 @@ describe("ServiceDrawer", () => {
       photo_url: null,
     };
 
-    render(
-      <ServiceDrawer
-        open={true}
-        serviceId="svc-1"
-        service={svc}
-        onClose={vi.fn()}
-      />,
-      { wrapper },
-    );
+    render(<ServiceDrawer open={true} serviceId="svc-1" service={svc} onClose={vi.fn()} />, {
+      wrapper,
+    });
 
     expect(screen.getByText("Редактировать услугу")).toBeInTheDocument();
   });
 
   it("calls onClose when cancel button clicked", () => {
     const onClose = vi.fn();
-    render(
-      <ServiceDrawer
-        open={true}
-        serviceId={null}
-        service={null}
-        onClose={onClose}
-      />,
-      { wrapper },
-    );
+    render(<ServiceDrawer open={true} serviceId={null} service={null} onClose={onClose} />, {
+      wrapper,
+    });
 
     fireEvent.click(screen.getByText("Отмена"));
     expect(onClose).toHaveBeenCalled();
   });
 
   it("shows validation error when required name_ru is missing", async () => {
-    render(
-      <ServiceDrawer
-        open={true}
-        serviceId={null}
-        service={null}
-        onClose={vi.fn()}
-      />,
-      { wrapper },
-    );
+    render(<ServiceDrawer open={true} serviceId={null} service={null} onClose={vi.fn()} />, {
+      wrapper,
+    });
 
     // Submit with empty fields
     fireEvent.click(screen.getByText("Сохранить"));
@@ -117,15 +87,9 @@ describe("ServiceDrawer", () => {
   });
 
   it("shows language tab buttons", () => {
-    render(
-      <ServiceDrawer
-        open={true}
-        serviceId={null}
-        service={null}
-        onClose={vi.fn()}
-      />,
-      { wrapper },
-    );
+    render(<ServiceDrawer open={true} serviceId={null} service={null} onClose={vi.fn()} />, {
+      wrapper,
+    });
 
     expect(screen.getByText("RU")).toBeInTheDocument();
     expect(screen.getByText("EN")).toBeInTheDocument();

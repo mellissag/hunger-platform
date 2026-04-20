@@ -98,7 +98,9 @@ export function SettingsSection({ section }: { section: string }) {
                 const fd = new FormData(e.currentTarget);
                 const themeRaw = String(fd.get("theme") ?? "friendly");
                 const primary = String(fd.get("primary_color") ?? settings.primary_color);
-                const theme: UiThemeId = isUiThemeId(themeRaw) ? (themeRaw as UiThemeId) : "friendly";
+                const theme: UiThemeId = isUiThemeId(themeRaw)
+                  ? (themeRaw as UiThemeId)
+                  : "friendly";
                 applyPreview(theme, primary);
                 patch.mutate({ settings: { theme, primary_color: primary } });
               }}
@@ -109,7 +111,11 @@ export function SettingsSection({ section }: { section: string }) {
                     { id: "minimal", label: "Minimal", desc: "Dark minimal" },
                     { id: "friendly", label: "Friendly", desc: "Warm light" },
                     { id: "premium", label: "Premium", desc: "Dark gold" },
-                    { id: "premium_light", label: "✦ Premium Light", desc: "Gold · Playfair Display" },
+                    {
+                      id: "premium_light",
+                      label: "✦ Premium Light",
+                      desc: "Gold · Playfair Display",
+                    },
                   ] as const
                 ).map(({ id, label, desc }) => (
                   <label
@@ -212,7 +218,11 @@ export function SettingsSection({ section }: { section: string }) {
                   {salon.logo_url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={salon.logo_url.startsWith("http") ? salon.logo_url : `${mediaBase}${salon.logo_url}`}
+                      src={
+                        salon.logo_url.startsWith("http")
+                          ? salon.logo_url
+                          : `${mediaBase}${salon.logo_url}`
+                      }
                       alt=""
                       className="mt-1 h-14 max-w-[200px] rounded border object-cover"
                     />
@@ -230,7 +240,9 @@ export function SettingsSection({ section }: { section: string }) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={
-                        salon.cover_url.startsWith("http") ? salon.cover_url : `${mediaBase}${salon.cover_url}`
+                        salon.cover_url.startsWith("http")
+                          ? salon.cover_url
+                          : `${mediaBase}${salon.cover_url}`
                       }
                       alt=""
                       className="mt-1 h-14 max-w-[200px] rounded border object-cover"
@@ -335,11 +347,21 @@ export function SettingsSection({ section }: { section: string }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="date_format">Date format</Label>
-                <Input id="date_format" name="date_format" defaultValue={settings.date_format} className="mt-1" />
+                <Input
+                  id="date_format"
+                  name="date_format"
+                  defaultValue={settings.date_format}
+                  className="mt-1"
+                />
               </div>
               <div>
                 <Label htmlFor="time_format">Time format</Label>
-                <Input id="time_format" name="time_format" defaultValue={settings.time_format} className="mt-1" />
+                <Input
+                  id="time_format"
+                  name="time_format"
+                  defaultValue={settings.time_format}
+                  className="mt-1"
+                />
               </div>
             </div>
             <Button type="submit" disabled={busy} data-testid="settings-localization-save">
@@ -372,7 +394,9 @@ export function SettingsSection({ section }: { section: string }) {
             onClick={() => {
               const raw = (document.getElementById("wh-json") as HTMLTextAreaElement).value;
               try {
-                patch.mutate({ settings: { working_hours_default: JSON.parse(raw) as Record<string, unknown> } });
+                patch.mutate({
+                  settings: { working_hours_default: JSON.parse(raw) as Record<string, unknown> },
+                });
               } catch {
                 toast.error("Invalid JSON");
               }
@@ -399,8 +423,13 @@ export function SettingsSection({ section }: { section: string }) {
               const fd = new FormData(e.currentTarget);
               patch.mutate({
                 settings: {
-                  cancellation_free_hours: Number.parseInt(String(fd.get("cancellation_free_hours") ?? "24"), 10),
-                  late_cancellation_policy: String(fd.get("late_cancellation_policy") ?? "no_cancel"),
+                  cancellation_free_hours: Number.parseInt(
+                    String(fd.get("cancellation_free_hours") ?? "24"),
+                    10,
+                  ),
+                  late_cancellation_policy: String(
+                    fd.get("late_cancellation_policy") ?? "no_cancel",
+                  ),
                   fine_amount: String(fd.get("fine_amount") ?? "") || null,
                 },
               });
@@ -429,7 +458,11 @@ export function SettingsSection({ section }: { section: string }) {
             </div>
             <div>
               <Label>Fine amount</Label>
-              <Input name="fine_amount" defaultValue={settings.fine_amount ?? ""} className="mt-1" />
+              <Input
+                name="fine_amount"
+                defaultValue={settings.fine_amount ?? ""}
+                className="mt-1"
+              />
             </div>
             <Button type="submit" disabled={busy}>
               {t("save")}
@@ -456,9 +489,15 @@ export function SettingsSection({ section }: { section: string }) {
               patch.mutate({
                 settings: {
                   prepayment_enabled: enabled,
-                  prepayment_percent: Number.parseInt(String(fd.get("prepayment_percent") ?? "20"), 10),
+                  prepayment_percent: Number.parseInt(
+                    String(fd.get("prepayment_percent") ?? "20"),
+                    10,
+                  ),
                   prepayment_min_amount: String(fd.get("prepayment_min") ?? "") || null,
-                  prepayment_skip_min_visits: Number.parseInt(String(fd.get("prepayment_skip") ?? "0"), 10),
+                  prepayment_skip_min_visits: Number.parseInt(
+                    String(fd.get("prepayment_skip") ?? "0"),
+                    10,
+                  ),
                 },
               });
             }}
@@ -485,7 +524,11 @@ export function SettingsSection({ section }: { section: string }) {
             </div>
             <div>
               <Label>Min amount</Label>
-              <Input name="prepayment_min" defaultValue={settings.prepayment_min_amount ?? ""} className="mt-1" />
+              <Input
+                name="prepayment_min"
+                defaultValue={settings.prepayment_min_amount ?? ""}
+                className="mt-1"
+              />
             </div>
             <div>
               <Label>Skip if visits ≥</Label>
@@ -586,7 +629,9 @@ export function SettingsSection({ section }: { section: string }) {
             onClick={() => {
               const raw = (document.getElementById("pay-json") as HTMLTextAreaElement).value;
               try {
-                patch.mutate({ settings: { payment_provider_config: JSON.parse(raw) as Record<string, unknown> } });
+                patch.mutate({
+                  settings: { payment_provider_config: JSON.parse(raw) as Record<string, unknown> },
+                });
               } catch {
                 toast.error("Invalid JSON");
               }
@@ -609,11 +654,19 @@ export function SettingsSection({ section }: { section: string }) {
         <CardContent className="space-y-3">
           <div>
             <Label>Bot token</Label>
-            <Input defaultValue={tg.bot_token ?? ""} id="tg-token" className="mt-1 font-mono text-sm" />
+            <Input
+              defaultValue={tg.bot_token ?? ""}
+              id="tg-token"
+              className="mt-1 font-mono text-sm"
+            />
           </div>
           <div>
             <Label>Webhook URL</Label>
-            <Input defaultValue={tg.webhook_url ?? ""} id="tg-wh" className="mt-1 font-mono text-xs" />
+            <Input
+              defaultValue={tg.webhook_url ?? ""}
+              id="tg-wh"
+              className="mt-1 font-mono text-xs"
+            />
           </div>
           <div>
             <Label>Admin chat id</Label>
@@ -624,12 +677,16 @@ export function SettingsSection({ section }: { section: string }) {
               type="button"
               variant="secondary"
               onClick={async () => {
-                const res = await apiJson<{ ok: boolean; bot_username?: string }>("/salon/telegram/verify", {
-                  method: "POST",
-                  body: JSON.stringify({
-                    token: (document.getElementById("tg-token") as HTMLInputElement)?.value || null,
-                  }),
-                });
+                const res = await apiJson<{ ok: boolean; bot_username?: string }>(
+                  "/salon/telegram/verify",
+                  {
+                    method: "POST",
+                    body: JSON.stringify({
+                      token:
+                        (document.getElementById("tg-token") as HTMLInputElement)?.value || null,
+                    }),
+                  },
+                );
                 toast.message(res.ok ? "Telegram OK" : "Verify failed", {
                   description: res.bot_username,
                 });
@@ -649,7 +706,8 @@ export function SettingsSection({ section }: { section: string }) {
                         ...tg,
                         bot_token: token,
                         webhook_url: (document.getElementById("tg-wh") as HTMLInputElement).value,
-                        admin_chat_id: (document.getElementById("tg-admin") as HTMLInputElement).value,
+                        admin_chat_id: (document.getElementById("tg-admin") as HTMLInputElement)
+                          .value,
                       },
                     },
                   },
@@ -730,9 +788,11 @@ function BackupsCard() {
   const bq = useQuery({
     queryKey: ["salon-backups"],
     queryFn: () =>
-      apiJson<{ cron: string; retention_days: number; items: { name: string; created_at: string }[] }>(
-        "/salon/backups",
-      ),
+      apiJson<{
+        cron: string;
+        retention_days: number;
+        items: { name: string; created_at: string }[];
+      }>("/salon/backups"),
   });
 
   return (

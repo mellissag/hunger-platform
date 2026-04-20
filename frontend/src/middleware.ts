@@ -78,10 +78,7 @@ export async function middleware(request: NextRequest) {
     if (!ADMIN_ROLES.has(session.role)) {
       return NextResponse.redirect(new URL("/403", request.url));
     }
-    if (
-      (pathname === "/ai" || pathname.startsWith("/ai/")) &&
-      session.role === "reception"
-    ) {
+    if ((pathname === "/ai" || pathname.startsWith("/ai/")) && session.role === "reception") {
       return NextResponse.redirect(new URL("/403", request.url));
     }
     const ownerOnly =
