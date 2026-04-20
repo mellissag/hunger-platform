@@ -18,13 +18,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Wait for CI to pass
+      # Ждём job из ci.yml: образы должны быть в GHCR до pull на VPS.
+      - name: Wait for Docker images (CI)
         uses: lewagon/wait-on-check-action@v1.3.4
         with:
           ref: ${{ github.sha }}
-          check-name: "Backend — lint, typecheck, test"
+          check-name: "Build & push Docker images"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 15
+          wait-interval: 20
 
       - name: Configure git for tagging
         run: |
