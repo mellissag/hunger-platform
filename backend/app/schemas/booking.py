@@ -65,3 +65,36 @@ class BookingOut(BaseModel):
     created_at: datetime
     cancelled_at: datetime | None
     cancellation_reason: str | None
+
+
+class BookingStatsOut(BaseModel):
+    today: int
+    week: int
+    month: int
+    cancellations: int
+
+
+class BookingDetailClientOut(BaseModel):
+    id: UUID
+    first_name: str | None
+    last_name: str | None
+    phone: str | None
+    tg_username: str | None
+
+
+class BookingDetailMasterOut(BaseModel):
+    id: UUID
+    display_name: str
+    color_hex: str
+
+
+class BookingDetailServiceOut(BaseModel):
+    id: UUID
+    name_i18n: dict[str, str]
+    duration_minutes: int
+
+
+class BookingDetailOut(BookingOut):
+    client: BookingDetailClientOut
+    master: BookingDetailMasterOut
+    service: BookingDetailServiceOut

@@ -259,6 +259,53 @@ async def get_available_slots(
     return uniq
 
 
+async def enumerate_slot_candidates(
+    db: AsyncSession,
+    master_id: UUID,
+    day: date,
+    service_duration_minutes: int,
+    *,
+    apply_lead_time: bool = True,
+) -> list[tuple[time, bool]]:
+    """Все кандидаты старта на локальный день с флагом доступности (для UI выбора слота)."""
+    ctx = await get_schedule_context(db)
+    z = ZoneInfo(ctx.timezone)
+    day_start_utc = datetime.combine(day, time.min, tzinfo=z).astimezone(UTC)
+    day_end_utc = day_start_utc + timedelta(days=1)
+
+    windows = await _working_ranges_for_day(db, master_id, day, ctx)
+    bookings = await _bookings_conflicts(db, master_id, day_start_utc, day_end_utc)
+    buf = timedelta(minutes=ctx.buffer_minutes)
+    lead = timedelta(minutes=ctx.lead_time_minutes) if apply_lead_time else timedelta(0)
+    now = clock.utc_now()
+    dur = timedelta(minutes=service_duration_minutes)
+    step = timedelta(minutes=SLOT_STEP_MINUTES)
+
+    out: list[tuple[time, bool]] = []
+    for wa, wb in windows:
+        t = wa
+        while t + dur <= wb + timedelta(seconds=0):
+            ne = t + dur
+            blocked_by_lead = apply_lead_time and t < now + lead
+            conflict = _conflicts_with_bookings(t, ne, buf, bookings, exclude_booking_id=None)
+            local = t.astimezone(z)
+            if local.date() != day:
+                t += step
+                continue
+            tm = local.time()
+            available = not blocked_by_lead and not conflict
+            out.append((tm, available))
+            t += step
+
+    seen: set[time] = set()
+    uniq: list[tuple[time, bool]] = []
+    for tm, av in out:
+        if tm not in seen:
+            seen.add(tm)
+            uniq.append((tm, av))
+    return uniq
+
+
 async def validate_booking_window(
     db: AsyncSession,
     *,

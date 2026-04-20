@@ -11,8 +11,17 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.models.enums import SlotType
 
 
+class SlotTimeOption(BaseModel):
+    time: str = Field(description="HH:MM в timezone салона")
+    available: bool
+
+
 class SlotsResponse(BaseModel):
-    times: list[str] = Field(description="Время начала (HH:MM) в timezone салона")
+    times: list[str] = Field(description="Время начала (HH:MM) в timezone салона — только свободные")
+    slots: list[SlotTimeOption] = Field(
+        default_factory=list,
+        description="Полная сетка кандидатов с флагом доступности",
+    )
 
 
 class CalendarBookingOut(BaseModel):

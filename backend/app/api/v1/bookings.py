@@ -2,20 +2,25 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_roles
 from app.models.enums import UserRole
+from app.models.salon import Salon
 from app.models.user import User
 from app.schemas.booking import (
     BookingCancel,
     BookingCreate,
+    BookingDetailOut,
     BookingOut,
     BookingReschedule,
+    BookingStatsOut,
     BookingUpdate,
 )
 from app.schemas.common import PaginatedResponse
@@ -26,15 +31,45 @@ router = APIRouter(prefix="/bookings", tags=["bookings"])
 STAFF = (UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)
 
 
+async def _salon_timezone(db: AsyncSession) -> str:
+    row = (await db.execute(select(Salon).limit(1))).scalar_one_or_none()
+    return row.timezone if row is not None else "Europe/Sofia"
+
+
+@router.get("/stats", response_model=BookingStatsOut)
+async def booking_stats(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_roles(*STAFF))],
+) -> BookingStatsOut:
+    tz = await _salon_timezone(db)
+    return await booking_service.booking_stats(db, user, timezone_name=tz)
+
+
 @router.get("", response_model=PaginatedResponse[BookingOut])
 async def list_bookings(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(require_roles(*STAFF))],
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=100, alias="limit"),
     q: str | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    master_id: UUID | None = None,
+    service_id: UUID | None = None,
+    status: str | None = None,
 ) -> PaginatedResponse[BookingOut]:
-    rows, total = await booking_service.list_bookings(db, user, q=q, page=page, page_size=page_size)
+    rows, total = await booking_service.list_bookings(
+        db,
+        user,
+        q=q,
+        page=page,
+        page_size=page_size,
+        date_from=date_from,
+        date_to=date_to,
+        master_id=master_id,
+        service_id=service_id,
+        status=status,
+    )
     return PaginatedResponse(
         items=[BookingOut.model_validate(b) for b in rows],
         total=total,
@@ -87,14 +122,13 @@ async def no_show_booking(
     return BookingOut.model_validate(b)
 
 
-@router.get("/{booking_id}", response_model=BookingOut)
+@router.get("/{booking_id}", response_model=BookingDetailOut)
 async def get_booking(
     booking_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(require_roles(*STAFF))],
-) -> BookingOut:
-    b = await booking_service.get_booking(db, user, booking_id)
-    return BookingOut.model_validate(b)
+) -> BookingDetailOut:
+    return await booking_service.get_booking_detail(db, user, booking_id)
 
 
 @router.post("", response_model=BookingOut)

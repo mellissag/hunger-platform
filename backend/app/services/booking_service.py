@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -24,6 +25,7 @@ from app.core.exceptions import (
 from app.core.scope import booking_scope_filter
 from app.models.booking import BlacklistEntry, Booking
 from app.models.catalog import MasterService, Service
+from app.models.client import Client
 from app.models.enums import (
     BookingCreatedVia,
     BookingStatus,
@@ -34,7 +36,16 @@ from app.models.enums import (
 from app.models.master import Master
 from app.models.salon import Settings
 from app.models.user import User
-from app.schemas.booking import BookingCreate, BookingUpdate
+from app.schemas.booking import (
+    BookingCreate,
+    BookingDetailClientOut,
+    BookingDetailMasterOut,
+    BookingDetailOut,
+    BookingDetailServiceOut,
+    BookingOut,
+    BookingStatsOut,
+    BookingUpdate,
+)
 from app.services import schedule_service
 
 _ACTIVE = (BookingStatus.pending, BookingStatus.confirmed)
@@ -168,6 +179,20 @@ async def create_booking(db: AsyncSession, user: User, data: BookingCreate) -> B
     return b
 
 
+def _status_filter_clause(status: str | None):
+    if status is None or status == "" or status == "all":
+        return None
+    if status == "cancelled":
+        return Booking.status.in_(
+            (BookingStatus.cancelled_by_client, BookingStatus.cancelled_by_salon)
+        )
+    try:
+        st = BookingStatus(status)
+    except ValueError:
+        return None
+    return Booking.status == st
+
+
 async def list_bookings(
     db: AsyncSession,
     user: User,
@@ -175,15 +200,67 @@ async def list_bookings(
     q: str | None,
     page: int,
     page_size: int,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    master_id: UUID | None = None,
+    service_id: UUID | None = None,
+    status: str | None = None,
 ) -> tuple[list[Booking], int]:
-    stmt = select(Booking).where(booking_scope_filter(user))
+    base_scope = booking_scope_filter(user)
+    stmt = select(Booking).where(base_scope)
+    count_stmt = select(func.count(Booking.id.distinct())).select_from(Booking).where(base_scope)
+
+    if date_from is not None:
+        stmt = stmt.where(Booking.starts_at >= date_from)
+        count_stmt = count_stmt.where(Booking.starts_at >= date_from)
+    if date_to is not None:
+        stmt = stmt.where(Booking.starts_at < date_to)
+        count_stmt = count_stmt.where(Booking.starts_at < date_to)
+    if master_id is not None:
+        stmt = stmt.where(Booking.master_id == master_id)
+        count_stmt = count_stmt.where(Booking.master_id == master_id)
+    if service_id is not None:
+        stmt = stmt.where(Booking.service_id == service_id)
+        count_stmt = count_stmt.where(Booking.service_id == service_id)
+    st_clause = _status_filter_clause(status)
+    if st_clause is not None:
+        stmt = stmt.where(st_clause)
+        count_stmt = count_stmt.where(st_clause)
     if q:
         pattern = f"%{q.strip()}%"
-        stmt = stmt.where(Booking.notes.ilike(pattern))
-    count_stmt = select(func.count(Booking.id)).where(booking_scope_filter(user))
-    if q:
-        pattern = f"%{q.strip()}%"
-        count_stmt = count_stmt.where(Booking.notes.ilike(pattern))
+        stmt = stmt.join(Client, Client.id == Booking.client_id).where(
+            or_(
+                Booking.notes.ilike(pattern),
+                Client.first_name.ilike(pattern),
+                Client.last_name.ilike(pattern),
+                Client.phone.ilike(pattern),
+            )
+        )
+        count_stmt = (
+            select(func.count(Booking.id.distinct()))
+            .select_from(Booking)
+            .join(Client, Client.id == Booking.client_id)
+            .where(base_scope)
+        )
+        if date_from is not None:
+            count_stmt = count_stmt.where(Booking.starts_at >= date_from)
+        if date_to is not None:
+            count_stmt = count_stmt.where(Booking.starts_at < date_to)
+        if master_id is not None:
+            count_stmt = count_stmt.where(Booking.master_id == master_id)
+        if service_id is not None:
+            count_stmt = count_stmt.where(Booking.service_id == service_id)
+        if st_clause is not None:
+            count_stmt = count_stmt.where(st_clause)
+        count_stmt = count_stmt.where(
+            or_(
+                Booking.notes.ilike(pattern),
+                Client.first_name.ilike(pattern),
+                Client.last_name.ilike(pattern),
+                Client.phone.ilike(pattern),
+            )
+        )
+
     total = int((await db.execute(count_stmt)).scalar_one())
     stmt = (
         stmt.order_by(Booking.starts_at.desc())
@@ -192,6 +269,90 @@ async def list_bookings(
     )
     rows = (await db.execute(stmt)).scalars().all()
     return list(rows), total
+
+
+async def booking_stats(
+    db: AsyncSession,
+    user: User,
+    *,
+    timezone_name: str,
+) -> BookingStatsOut:
+    """KPI: сегодня / неделя (пн–вс) / месяц / отмены за текущий месяц (по cancelled_at)."""
+    z = ZoneInfo(timezone_name)
+    now_local = datetime.now(z)
+    today_start = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
+    weekday = today_start.weekday()
+    week_start = today_start - timedelta(days=weekday)
+    week_end = week_start + timedelta(days=7)
+    month_start = today_start.replace(day=1)
+    if month_start.month == 12:
+        month_end = month_start.replace(year=month_start.year + 1, month=1, day=1)
+    else:
+        month_end = month_start.replace(month=month_start.month + 1, day=1)
+
+    utc_t0 = today_start.astimezone(UTC)
+    utc_t1 = today_end.astimezone(UTC)
+    utc_w0 = week_start.astimezone(UTC)
+    utc_w1 = week_end.astimezone(UTC)
+    utc_m0 = month_start.astimezone(UTC)
+    utc_m1 = month_end.astimezone(UTC)
+
+    scope = booking_scope_filter(user)
+
+    async def _count(where_clause):
+        stmt = select(func.count(Booking.id)).where(scope).where(where_clause)
+        return int((await db.execute(stmt)).scalar_one())
+
+    today_n = await _count(and_(Booking.starts_at >= utc_t0, Booking.starts_at < utc_t1))
+    week_n = await _count(and_(Booking.starts_at >= utc_w0, Booking.starts_at < utc_w1))
+    month_n = await _count(and_(Booking.starts_at >= utc_m0, Booking.starts_at < utc_m1))
+    cancel_n = await _count(
+        and_(
+            Booking.status.in_(
+                (BookingStatus.cancelled_by_client, BookingStatus.cancelled_by_salon)
+            ),
+            Booking.cancelled_at.is_not(None),
+            Booking.cancelled_at >= utc_m0,
+            Booking.cancelled_at < utc_m1,
+        )
+    )
+    return BookingStatsOut(
+        today=today_n,
+        week=week_n,
+        month=month_n,
+        cancellations=cancel_n,
+    )
+
+
+async def get_booking_detail(db: AsyncSession, user: User, booking_id: UUID) -> BookingDetailOut:
+    b = await get_booking(db, user, booking_id)
+    client = await db.get(Client, b.client_id)
+    master = await db.get(Master, b.master_id)
+    service = await db.get(Service, b.service_id)
+    if client is None or master is None or service is None:
+        raise NotFoundError("Booking relation not found")
+    base = BookingOut.model_validate(b)
+    return BookingDetailOut(
+        **base.model_dump(),
+        client=BookingDetailClientOut(
+            id=client.id,
+            first_name=client.first_name,
+            last_name=client.last_name,
+            phone=client.phone,
+            tg_username=client.tg_username,
+        ),
+        master=BookingDetailMasterOut(
+            id=master.id,
+            display_name=master.display_name,
+            color_hex=master.color_hex,
+        ),
+        service=BookingDetailServiceOut(
+            id=service.id,
+            name_i18n=dict(service.name_i18n or {}),
+            duration_minutes=int(service.duration_minutes),
+        ),
+    )
 
 
 async def get_booking(db: AsyncSession, user: User, booking_id: UUID) -> Booking:

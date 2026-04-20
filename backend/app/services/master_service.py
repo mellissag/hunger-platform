@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, ForbiddenScopeError, NotFoundError
 from app.core.scope import ensure_master_own_master_id, master_record_scope_filter
+from app.models.catalog import MasterService
 from app.models.enums import UserRole
 from app.models.master import Master
 from app.models.user import User
@@ -24,12 +25,23 @@ async def list_masters(
     q: str | None,
     page: int,
     page_size: int,
+    service_id: UUID | None = None,
 ) -> tuple[list[Master], int]:
     stmt = select(Master).where(master_record_scope_filter(user))
+    if service_id is not None:
+        stmt = stmt.join(MasterService, MasterService.master_id == Master.id).where(
+            MasterService.service_id == service_id
+        )
     if q:
         pattern = f"%{q.strip()}%"
         stmt = stmt.where(Master.display_name.ilike(pattern))
-    count_stmt = select(func.count(Master.id)).where(master_record_scope_filter(user))
+    count_stmt = select(func.count(Master.id.distinct())).select_from(Master).where(
+        master_record_scope_filter(user)
+    )
+    if service_id is not None:
+        count_stmt = count_stmt.join(MasterService, MasterService.master_id == Master.id).where(
+            MasterService.service_id == service_id
+        )
     if q:
         pattern = f"%{q.strip()}%"
         count_stmt = count_stmt.where(Master.display_name.ilike(pattern))

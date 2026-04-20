@@ -28,16 +28,18 @@ export type CalendarBooking = {
   price: string;
 };
 
+export type CalendarSlotRow = {
+  id: string;
+  master_id: string;
+  slot_type: string;
+  starts_at: string;
+  ends_at: string;
+  note: string | null;
+};
+
 export type CalendarResponse = {
   bookings: CalendarBooking[];
-  slots: {
-    id: string;
-    master_id: string;
-    slot_type: string;
-    starts_at: string;
-    ends_at: string;
-    note: string | null;
-  }[];
+  slots: CalendarSlotRow[];
 };
 
 export type ClientOut = {
@@ -106,7 +108,56 @@ export type BookingOut = {
   ends_at: string;
   status: string;
   price: string;
+  prepayment_amount?: string | null;
+  prepayment_status?: string;
   notes: string | null;
+  created_via?: string;
+  created_at?: string;
+  cancelled_at?: string | null;
+  cancellation_reason?: string | null;
+};
+
+export type BookingDetailClient = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  tg_username: string | null;
+};
+
+export type BookingDetailMaster = {
+  id: string;
+  display_name: string;
+  color_hex: string;
+};
+
+export type BookingDetailService = {
+  id: string;
+  name_i18n: Record<string, string>;
+  duration_minutes: number;
+};
+
+export type BookingDetailOut = BookingOut & {
+  client: BookingDetailClient;
+  master: BookingDetailMaster;
+  service: BookingDetailService;
+};
+
+export type BookingStatsOut = {
+  today: number;
+  week: number;
+  month: number;
+  cancellations: number;
+};
+
+export type SlotTimeOption = {
+  time: string;
+  available: boolean;
+};
+
+export type SlotsResponse = {
+  times: string[];
+  slots: SlotTimeOption[];
 };
 
 export type ClientNoteOut = {

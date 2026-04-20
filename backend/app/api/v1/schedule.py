@@ -23,6 +23,7 @@ from app.schemas.schedule import (
     CalendarSlotOut,
     ScheduleBlockCreate,
     ScheduleBlockOut,
+    SlotTimeOption,
     SlotsResponse,
 )
 from app.services import schedule_service
@@ -71,7 +72,17 @@ async def get_slots(
         duration,
         apply_lead_time=True,
     )
-    return SlotsResponse(times=[_fmt_time(t) for t in times])
+    candidates = await schedule_service.enumerate_slot_candidates(
+        db,
+        master_id,
+        day,
+        duration,
+        apply_lead_time=True,
+    )
+    return SlotsResponse(
+        times=[_fmt_time(t) for t in times],
+        slots=[SlotTimeOption(time=_fmt_time(tm), available=av) for tm, av in candidates],
+    )
 
 
 @router.get("/calendar", response_model=CalendarResponse)

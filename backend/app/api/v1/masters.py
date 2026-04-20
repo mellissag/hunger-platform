@@ -28,8 +28,11 @@ async def list_masters(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     q: str | None = None,
+    service_id: UUID | None = Query(None, description="Только мастера, предлагающие услугу"),
 ) -> PaginatedResponse[MasterOut]:
-    rows, total = await master_service.list_masters(db, user, q=q, page=page, page_size=page_size)
+    rows, total = await master_service.list_masters(
+        db, user, q=q, page=page, page_size=page_size, service_id=service_id
+    )
     return PaginatedResponse(
         items=[MasterOut.model_validate(m) for m in rows],
         total=total,
