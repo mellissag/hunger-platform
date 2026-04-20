@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Download, Plus, Tag } from "lucide-react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { ServiceCard, ServiceCardSkeleton } from "@/components/services/ServiceCard";
 import { ServiceDeleteModal } from "@/components/services/ServiceDeleteModal";
@@ -15,26 +15,25 @@ import { useHealth } from "@/hooks/useServiceStats";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { ServiceOut } from "@/types/admin-api";
 
-function SyncBadge() {
+function SyncBadge({ syncActive, syncInactive }: { syncActive: string; syncInactive: string }) {
   const { data: health } = useHealth();
-
   if (!health) return null;
-
   return health.redis ? (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/60 bg-emerald-50/80 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.1em] text-emerald-700">
       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-      Бот синхронизирован
+      {syncActive}
     </span>
   ) : (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200/60 bg-red-50/80 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.1em] text-red-700">
       <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-      Бот отключён
+      {syncInactive}
     </span>
   );
 }
 
 export function ServicesAdmin() {
   const locale = useLocale();
+  const t = useTranslations("pages.services");
 
   const [activeCategoryId, setActiveCategoryId] = useState<string | undefined>(undefined);
   const [searchRaw, setSearchRaw] = useState("");
@@ -85,13 +84,13 @@ export function ServicesAdmin() {
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div>
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            · Управление услугами ·
+            {t("pageSubtitle")}
           </p>
-          <h1 className="font-playfair mt-1 text-3xl font-medium tracking-tight leading-tight">
-            Коллекция <span className="italic text-primary">услуг</span>
+          <h1 className="font-playfair mt-1 text-3xl font-medium leading-tight tracking-tight">
+            {t("pageTitle")}
           </h1>
           <p className="mt-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
-            ⸻ ✦ ⸻
+            {t("ornament")}
           </p>
           <p className="text-xs text-muted-foreground">
             {dayLabel} · {cityLabel}
@@ -99,13 +98,13 @@ export function ServicesAdmin() {
         </div>
 
         <div className="flex items-center gap-2">
-          <SyncBadge />
+          <SyncBadge syncActive={t("syncActive")} syncInactive={t("syncInactive")} />
           <button
             type="button"
             className="inline-flex items-center gap-2 rounded border border-border px-4 py-2 text-[11px] font-medium uppercase tracking-wider transition-colors hover:border-primary hover:text-primary"
           >
             <Download className="h-3.5 w-3.5" />
-            Экспорт
+            {t("exportBtn")}
           </button>
           <button
             type="button"
@@ -113,7 +112,7 @@ export function ServicesAdmin() {
             className="inline-flex items-center gap-2 rounded bg-primary px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <Plus className="h-3.5 w-3.5" />
-            Добавить услугу
+            {t("addBtn")}
           </button>
         </div>
       </div>
@@ -128,9 +127,9 @@ export function ServicesAdmin() {
       <div className="rounded border border-border bg-card shadow-[0_1px_4px_rgba(28,20,9,.06)]">
         {/* Card header */}
         <div className="border-b border-border px-6 py-5">
-          <h2 className="font-playfair text-lg font-medium">Все услуги</h2>
+          <h2 className="font-playfair text-lg font-medium">{t("allServices")}</h2>
           <p className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-            Изменения мгновенно применяются в боте
+            {t("allServicesSubtitle")}
           </p>
         </div>
 
@@ -156,7 +155,7 @@ export function ServicesAdmin() {
               type="text"
               value={searchRaw}
               onChange={(e) => setSearchRaw(e.target.value)}
-              placeholder="Поиск…"
+              placeholder={t("searchPlaceholder")}
               className="w-60 rounded border border-border bg-muted py-2 pl-8 pr-3 text-[12px] text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
           </div>
@@ -171,7 +170,7 @@ export function ServicesAdmin() {
               ))}
             </div>
           ) : services.length === 0 ? (
-            <EmptyState onAdd={openCreate} />
+            <EmptyState onAdd={openCreate} emptyTitle={t("emptyTitle")} emptyBtn={t("emptyBtn")} />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {services.map((svc) => (
@@ -182,10 +181,11 @@ export function ServicesAdmin() {
                   locale={locale}
                   onEdit={openEdit}
                   onDelete={setDeleteTarget}
+                  activeInBot={t("activeInBot")}
+                  hiddenInBot={t("hiddenInBot")}
                 />
               ))}
-              {/* Add card */}
-              <AddServiceCard onClick={openCreate} />
+              <AddServiceCard onClick={openCreate} label={t("addCard")} />
             </div>
           )}
         </div>
@@ -204,8 +204,7 @@ export function ServicesAdmin() {
             />
           </svg>
           <p className="text-[12px] text-muted-foreground">
-            Изменения синхронизируются с Telegram-ботом мгновенно через Redis Pub/Sub. Переключатель
-            «Скрыта в боте» убирает услугу из меню записи — история записей сохраняется.
+            {t("infoText")}
           </p>
         </div>
       </div>
@@ -224,43 +223,44 @@ export function ServicesAdmin() {
   );
 }
 
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+function EmptyState({
+  onAdd,
+  emptyTitle,
+  emptyBtn,
+}: {
+  onAdd: () => void;
+  emptyTitle: string;
+  emptyBtn: string;
+}) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-muted">
         <Tag className="h-6 w-6 text-muted-foreground" />
       </div>
-      <p className="font-medium text-foreground">Услуг в этой категории пока нет</p>
+      <p className="font-medium text-foreground">{emptyTitle}</p>
       <button
         type="button"
         onClick={onAdd}
         className="mt-1 inline-flex items-center gap-2 rounded bg-primary px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
       >
         <Plus className="h-3.5 w-3.5" />
-        Добавить первую услугу
+        {emptyBtn}
       </button>
     </div>
   );
 }
 
-function AddServiceCard({ onClick }: { onClick: () => void }) {
+function AddServiceCard({ onClick, label }: { onClick: () => void; label: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className="flex min-h-[190px] flex-col items-center justify-center gap-2.5 rounded border-2 border-dashed border-border bg-muted transition-colors hover:border-primary/40"
     >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        strokeWidth={1.5}
-        className="h-7 w-7 stroke-muted-foreground"
-      >
+      <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.5} className="h-7 w-7 stroke-muted-foreground">
         <path strokeLinecap="round" d="M12 4v16m8-8H4" />
       </svg>
-      <span className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
-        Добавить услугу
-      </span>
+      <span className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">{label}</span>
     </button>
   );
 }

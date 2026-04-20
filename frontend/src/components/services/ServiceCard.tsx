@@ -11,6 +11,8 @@ interface ServiceCardProps {
   locale?: string;
   onEdit: (id: string) => void;
   onDelete: (service: ServiceOut) => void;
+  activeInBot?: string;
+  hiddenInBot?: string;
 }
 
 export function ServiceCard({
@@ -19,6 +21,8 @@ export function ServiceCard({
   locale = "ru",
   onEdit,
   onDelete,
+  activeInBot = "Активна в боте",
+  hiddenInBot = "Скрыта в боте",
 }: ServiceCardProps) {
   const name = service.name_i18n[locale] ?? service.name_i18n.en ?? service.name_i18n.ru ?? "—";
 
@@ -96,7 +100,7 @@ export function ServiceCard({
       <div className="mt-3 flex items-center gap-2">
         <ServiceToggle serviceId={service.id} isActive={service.is_active} />
         <span className="text-[11px] uppercase tracking-[0.05em] text-muted-foreground">
-          {service.is_active ? "Активна в боте" : "Скрыта в боте"}
+          {service.is_active ? activeInBot : hiddenInBot}
         </span>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2, Wand2, X } from "lucide-react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { apiJson } from "@/lib/api";
-import { useCreateService, useUpdateService, useServiceCategories } from "@/hooks/useServices";
-import type { ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
+import { useQuery } from "@tanstack/react-query";
+import {
+  useCreateService,
+  useUpdateService,
+  useServiceCategories,
+  useServiceMasters,
+  useSetServiceMasters,
+} from "@/hooks/useServices";
+import type { MasterOut, Paginated, ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
 
 const LANGS = ["ru", "en", "uk", "bg"] as const;
 type Lang = (typeof LANGS)[number];
@@ -26,7 +33,7 @@ const serviceSchema = z.object({
   sort_order: z.coerce.number().int(),
   is_active: z.boolean(),
   name_ru: z.string().min(1, "Обязательное поле"),
-  name_en: z.string().min(1, "Required"),
+  name_en: z.string(),
   name_uk: z.string(),
   name_bg: z.string(),
   desc_ru: z.string(),
@@ -46,12 +53,20 @@ interface ServiceDrawerProps {
 
 export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDrawerProps) {
   const locale = useLocale() as Lang;
+  const t = useTranslations("pages.services");
   const [activeLang, setActiveLang] = useState<Lang>(locale === "en" ? "en" : "ru");
   const [translating, setTranslating] = useState(false);
+  const [selectedMasters, setSelectedMasters] = useState<string[]>([]);
 
   const { data: catData } = useServiceCategories();
+  const { data: mastersData } = useQuery({
+    queryKey: ["masters", "all"],
+    queryFn: () => apiJson<Paginated<MasterOut>>("/masters?page=1&page_size=100"),
+  });
+  const { data: linkedMasters } = useServiceMasters(serviceId);
   const createSvc = useCreateService();
   const updateSvc = useUpdateService();
+  const setMasters = useSetServiceMasters();
 
   const isEdit = Boolean(serviceId);
   const isPending = createSvc.isPending || updateSvc.isPending;
@@ -114,13 +129,26 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
         desc_uk: "",
         desc_bg: "",
       });
+      setSelectedMasters([]);
     }
   }, [open, service, reset]);
+
+  useEffect(() => {
+    if (linkedMasters) {
+      setSelectedMasters(linkedMasters.map(String));
+    }
+  }, [linkedMasters]);
+
+  function toggleMaster(masterId: string) {
+    setSelectedMasters((prev) =>
+      prev.includes(masterId) ? prev.filter((id) => id !== masterId) : [...prev, masterId],
+    );
+  }
 
   async function handleAutoTranslate() {
     const sourceText = watch(`name_${activeLang}` as keyof ServiceForm) as string;
     if (!sourceText?.trim()) {
-      toast.error("Введите название на активном языке");
+      toast.error(t("drawerTranslateEmpty"));
       return;
     }
     setTranslating(true);
@@ -129,20 +157,14 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
       const res = await apiJson<Record<string, string>>("/ai/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: sourceText,
-          source_lang: activeLang,
-          target_langs: targetLangs,
-        }),
+        body: JSON.stringify({ text: sourceText, source_lang: activeLang, target_langs: targetLangs }),
       });
       for (const lang of targetLangs) {
-        if (res[lang]) {
-          setValue(`name_${lang}` as keyof ServiceForm, res[lang]);
-        }
+        if (res[lang]) setValue(`name_${lang}` as keyof ServiceForm, res[lang]);
       }
-      toast.success("Автоперевод выполнен");
+      toast.success(t("drawerTranslateSuccess"));
     } catch {
-      toast.error("Ошибка автоперевода");
+      toast.error(t("drawerTranslateError"));
     } finally {
       setTranslating(false);
     }
@@ -155,12 +177,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
       duration_minutes: values.duration_minutes,
       sort_order: values.sort_order,
       is_active: values.is_active,
-      name_i18n: {
-        ru: values.name_ru,
-        en: values.name_en,
-        uk: values.name_uk,
-        bg: values.name_bg,
-      },
+      name_i18n: { ru: values.name_ru, en: values.name_en, uk: values.name_uk, bg: values.name_bg },
       description_i18n: {
         ru: values.desc_ru ?? "",
         en: values.desc_en ?? "",
@@ -169,32 +186,40 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
       },
     };
 
+    const saveMasters = (savedId: string) => {
+      if (selectedMasters.length > 0 || isEdit) {
+        setMasters.mutate({ serviceId: savedId, masterIds: selectedMasters });
+      }
+    };
+
     if (isEdit && serviceId) {
       updateSvc.mutate(
         { id: serviceId, ...body },
         {
-          onSuccess: () => {
-            toast.success("Услуга обновлена");
+          onSuccess: (saved) => {
+            saveMasters(saved.id.toString());
+            toast.success(t("drawerUpdated"));
             onClose();
           },
         },
       );
     } else {
       createSvc.mutate(body, {
-        onSuccess: () => {
-          toast.success("Услуга создана");
+        onSuccess: (saved) => {
+          saveMasters(saved.id.toString());
+          toast.success(t("drawerCreated"));
           onClose();
         },
       });
     }
   }
 
+  const masters = mastersData?.items ?? [];
+
   return (
     <>
-      {/* Overlay */}
       {open && <div className="fixed inset-0 z-40 bg-[rgba(28,20,9,.3)]" onClick={onClose} />}
 
-      {/* Panel */}
       <div
         className={cn(
           "fixed right-0 top-0 z-50 flex h-full w-full max-w-[480px] flex-col bg-card shadow-[0_0_40px_rgba(28,20,9,.15)] transition-transform duration-300",
@@ -205,16 +230,16 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
         <div className="flex items-center justify-between border-b border-border px-6 py-5">
           <div>
             <h2 className="font-playfair text-xl font-medium">
-              {isEdit ? "Редактировать услугу" : "Новая услуга"}
+              {isEdit ? t("drawerEditTitle") : t("drawerCreateTitle")}
             </h2>
             <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-primary">
-              {isEdit ? "· Изменение данных ·" : "· Добавить в каталог ·"}
+              {isEdit ? t("drawerEditSub") : t("drawerCreateSub")}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded border border-border text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+            className="flex h-8 w-8 items-center justify-center rounded border border-border text-muted-foreground transition-colors hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -236,7 +261,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
                     type="button"
                     onClick={() => setActiveLang(lang)}
                     className={cn(
-                      "rounded px-3 py-1 text-[11px] font-medium uppercase tracking-wider border transition-all",
+                      "rounded border px-3 py-1 text-[11px] font-medium uppercase tracking-wider transition-all",
                       activeLang === lang
                         ? "bg-primary text-primary-foreground border-primary"
                         : "border-border text-muted-foreground hover:border-primary/40 hover:text-primary",
@@ -259,7 +284,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
                 ) : (
                   <Wand2 className="h-3 w-3" />
                 )}
-                Автоперевод AI
+                {t("drawerAutoTranslate")}
               </Button>
             </div>
 
@@ -267,7 +292,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
               <div key={lang} className={cn("space-y-3", activeLang !== lang && "hidden")}>
                 <div className="space-y-1.5">
                   <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Название ({lang.toUpperCase()})
+                    {t("drawerNameLabel")} ({lang.toUpperCase()}){lang === "ru" && ` ${t("drawerNameRequired")}`}
                   </Label>
                   <Input
                     {...register(`name_${lang}` as keyof ServiceForm)}
@@ -276,21 +301,18 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
                   />
                   {errors[`name_${lang}` as keyof ServiceForm] && (
                     <p className="text-[11px] text-red-500">
-                      {
-                        (errors[`name_${lang}` as keyof ServiceForm] as { message?: string })
-                          ?.message
-                      }
+                      {(errors[`name_${lang}` as keyof ServiceForm] as { message?: string })?.message}
                     </p>
                   )}
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Описание ({lang.toUpperCase()})
+                    {t("drawerDescLabel")} ({lang.toUpperCase()})
                   </Label>
                   <textarea
                     {...register(`desc_${lang}` as keyof ServiceForm)}
                     rows={3}
-                    placeholder="Описание услуги…"
+                    placeholder={t("drawerDescPlaceholder")}
                     className="w-full rounded border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                   />
                 </div>
@@ -301,13 +323,13 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
           {/* Category */}
           <div className="space-y-1.5">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              Категория
+              {t("drawerCategory")}
             </Label>
             <select
               {...register("category_id")}
               className="w-full rounded border border-border bg-muted px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
             >
-              <option value="">— Без категории —</option>
+              <option value="">{t("drawerNoCategory")}</option>
               {(catData?.items ?? []).map((c: ServiceCategoryOut) => (
                 <option key={c.id} value={c.id}>
                   {c.name_i18n.ru ?? c.name_i18n.en ?? c.id}
@@ -316,33 +338,81 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
             </select>
           </div>
 
-          {/* Price + Duration row */}
+          {/* Price + Duration */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                Цена (€)
-              </Label>
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              {t("drawerPrice")}
+            </Label>
               <Input type="number" step="0.01" min={0} {...register("price")} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                Длительность (мин)
-              </Label>
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              {t("drawerDuration")}
+            </Label>
               <Input type="number" min={1} {...register("duration_minutes")} />
             </div>
           </div>
 
           {/* Sort order */}
           <div className="space-y-1.5">
-            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              Сортировка
-            </Label>
+          <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            {t("drawerSort")}
+          </Label>
             <Input type="number" {...register("sort_order")} />
           </div>
 
+          {/* Masters multi-select */}
+          {masters.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                {t("drawerMasters")}
+              </Label>
+              <div className="max-h-40 overflow-y-auto rounded border border-border bg-muted/40">
+                {masters.map((m) => {
+                  const checked = selectedMasters.includes(m.id);
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => toggleMaster(m.id)}
+                      className={cn(
+                        "flex w-full items-center gap-3 border-b border-border/50 px-3 py-2.5 text-left text-sm transition-colors last:border-b-0",
+                        checked
+                          ? "bg-primary/8 text-foreground"
+                          : "text-muted-foreground hover:bg-muted",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold",
+                          checked
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-card",
+                        )}
+                      >
+                        {checked && "✓"}
+                      </span>
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ background: m.color_hex }}
+                      />
+                      <span className="flex-1 font-medium">{m.display_name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedMasters.length > 0 && (
+                <p className="text-[11px] text-primary">
+                  {t("drawerMastersSelected", { count: selectedMasters.length })}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Active toggle */}
           <div className="flex items-center justify-between rounded border border-border bg-muted/50 px-4 py-3">
-            <span className="text-sm font-medium">Активна в боте</span>
+            <span className="text-sm font-medium">{t("drawerActiveLabel")}</span>
             <button
               type="button"
               role="switch"
@@ -371,7 +441,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
             onClick={onClose}
             className="flex-1 text-[11px] uppercase tracking-wider"
           >
-            Отмена
+            {t("drawerCancel")}
           </Button>
           <Button
             type="submit"
@@ -380,7 +450,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
             className="flex-1 bg-primary text-[11px] uppercase tracking-wider text-primary-foreground hover:bg-primary/90"
           >
             {isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-            Сохранить
+            {t("drawerSave")}
           </Button>
         </div>
       </div>

@@ -6,6 +6,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +23,10 @@ READ = (UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)
 WRITE = (UserRole.owner, UserRole.admin)
 
 
+class SetMastersBody(BaseModel):
+    master_ids: list[UUID]
+
+
 @router.get("", response_model=PaginatedResponse[ServiceOut])
 async def list_services(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -29,8 +34,11 @@ async def list_services(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     q: str | None = None,
+    category_id: UUID | None = None,
 ) -> PaginatedResponse[ServiceOut]:
-    rows, total = await catalog_service.list_services(db, q=q, page=page, page_size=page_size)
+    rows, total = await catalog_service.list_services(
+        db, q=q, page=page, page_size=page_size, category_id=category_id
+    )
     return PaginatedResponse(
         items=[ServiceOut.model_validate(x) for x in rows],
         total=total,
@@ -80,3 +88,22 @@ async def delete_service(
     redis: Annotated[Redis | None, Depends(get_redis)],
 ) -> None:
     await catalog_service.delete_service(db, redis, service_id)
+
+
+@router.get("/{service_id}/masters", response_model=list[UUID])
+async def get_service_masters(
+    service_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_roles(*READ))],
+) -> list[UUID]:
+    return await catalog_service.get_service_masters(db, service_id)
+
+
+@router.put("/{service_id}/masters", response_model=list[UUID])
+async def set_service_masters(
+    service_id: UUID,
+    body: SetMastersBody,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_roles(*WRITE))],
+) -> list[UUID]:
+    return await catalog_service.set_service_masters(db, service_id, body.master_ids)

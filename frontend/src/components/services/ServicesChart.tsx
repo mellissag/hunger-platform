@@ -13,24 +13,25 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useServices } from "@/hooks/useServices";
 
 const CHART_COLORS = ["#9A7230", "#C9A96E", "#B8A888", "#C8BFA8", "#E4DDD0"];
 
-const SORT_OPTIONS = [
-  { label: "По записям", value: "bookings" },
-  { label: "По выручке", value: "revenue" },
-] as const;
-
-type SortOption = (typeof SORT_OPTIONS)[number]["value"];
+type SortOption = "bookings" | "revenue";
 
 export function ServicesChart() {
   const locale = useLocale();
+  const t = useTranslations("pages.services");
   const { data } = useServices();
   const [sort, setSort] = useState<SortOption>("bookings");
+
+  const SORT_OPTIONS = [
+    { label: t("chartByBookings"), value: "bookings" as const },
+    { label: t("chartByRevenue"), value: "revenue" as const },
+  ];
 
   const services = useMemo(() => data?.items ?? [], [data?.items]);
 
@@ -69,9 +70,9 @@ export function ServicesChart() {
       <Card className="lg:col-span-2">
         <CardHeader className="flex flex-row items-start justify-between pb-2">
           <div>
-            <CardTitle className="font-playfair text-lg font-medium">Популярность услуг</CardTitle>
+            <CardTitle className="font-playfair text-lg font-medium">{t("chartPopularity")}</CardTitle>
             <p className="mt-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-              записей за 30 дней
+              {t("chartSubtitle")}
             </p>
           </div>
           <select
@@ -89,7 +90,7 @@ export function ServicesChart() {
         <CardContent className="h-[220px] pt-0">
           {lineData.length === 0 ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              Нет данных
+              {t("noData")}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
@@ -134,15 +135,15 @@ export function ServicesChart() {
       {/* Donut chart — 1/3 */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="font-playfair text-lg font-medium">По категориям</CardTitle>
+          <CardTitle className="font-playfair text-lg font-medium">{t("chartCategories")}</CardTitle>
           <p className="mt-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-            Распределение записей
+            {t("chartCatSubtitle")}
           </p>
         </CardHeader>
         <CardContent className="pt-0">
           {pieData.length === 0 ? (
             <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-              Нет данных
+              {t("noData")}
             </div>
           ) : (
             <div className="flex items-center gap-5">

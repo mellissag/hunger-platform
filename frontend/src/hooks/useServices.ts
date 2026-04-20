@@ -24,9 +24,33 @@ export function useServices(categoryId?: string, search?: string) {
     queryFn: () => {
       const params = new URLSearchParams({ page: "1", page_size: "200" });
       if (categoryId) params.set("category_id", categoryId);
-      if (search) params.set("search", search);
+      if (search) params.set("q", search);
       return apiJson<Paginated<ServiceOut>>(`/services?${params}`);
     },
+  });
+}
+
+export function useServiceMasters(serviceId: string | null) {
+  return useQuery({
+    queryKey: ["services", serviceId, "masters"],
+    queryFn: () => apiJson<string[]>(`/services/${serviceId}/masters`),
+    enabled: Boolean(serviceId),
+  });
+}
+
+export function useSetServiceMasters() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ serviceId, masterIds }: { serviceId: string; masterIds: string[] }) =>
+      apiJson<string[]>(`/services/${serviceId}/masters`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ master_ids: masterIds }),
+      }),
+    onSuccess: async (_data, { serviceId }) => {
+      await qc.invalidateQueries({ queryKey: ["services", serviceId, "masters"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 }
 
@@ -51,7 +75,7 @@ export function useUpdateService() {
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string } & Record<string, unknown>) =>
       apiJson<ServiceOut>(`/services/${id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       }),
@@ -78,7 +102,7 @@ export function useToggleService() {
   return useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       apiJson<ServiceOut>(`/services/${id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_active }),
       }),
@@ -97,7 +121,7 @@ export function useToggleService() {
       return { previous };
     },
     onError: (_err, _vars, ctx) => {
-      toast.error("Ошибка синхронизации");
+      toast.error("Sync error");
       if (ctx?.previous) {
         for (const [key, data] of ctx.previous) {
           qc.setQueryData(key, data);

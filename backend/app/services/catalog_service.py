@@ -105,7 +105,12 @@ async def delete_category(db: AsyncSession, redis: Redis | None, category_id: UU
 
 
 async def list_services(
-    db: AsyncSession, *, q: str | None, page: int, page_size: int
+    db: AsyncSession,
+    *,
+    q: str | None,
+    page: int,
+    page_size: int,
+    category_id: UUID | None = None,
 ) -> tuple[list[Service], int]:
     filters = []
     if q:
@@ -116,6 +121,8 @@ async def list_services(
                 sa_cast(Service.description_i18n, String).ilike(pattern),
             )
         )
+    if category_id is not None:
+        filters.append(Service.category_id == category_id)
     count_stmt = select(func.count(Service.id))
     if filters:
         count_stmt = count_stmt.where(*filters)
@@ -130,6 +137,29 @@ async def list_services(
     )
     rows = (await db.execute(stmt)).scalars().all()
     return list(rows), total
+
+
+async def get_service_masters(db: AsyncSession, service_id: UUID) -> list[UUID]:
+    """Return list of master_ids linked to a service."""
+    from app.models.catalog import MasterService
+
+    stmt = select(MasterService.master_id).where(MasterService.service_id == service_id)
+    rows = (await db.execute(stmt)).scalars().all()
+    return list(rows)
+
+
+async def set_service_masters(
+    db: AsyncSession, service_id: UUID, master_ids: list[UUID]
+) -> list[UUID]:
+    """Replace all master links for a service."""
+    from app.models.catalog import MasterService
+    from sqlalchemy import delete
+
+    await db.execute(delete(MasterService).where(MasterService.service_id == service_id))
+    for mid in master_ids:
+        db.add(MasterService(master_id=mid, service_id=service_id))
+    await db.flush()
+    return master_ids
 
 
 async def get_service(db: AsyncSession, service_id: UUID) -> Service:

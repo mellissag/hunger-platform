@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { useServiceStats } from "@/hooks/useServiceStats";
 
@@ -44,6 +46,7 @@ function KpiSkeleton() {
 
 export function ServicesKPI() {
   const { data, isLoading } = useServiceStats();
+  const t = useTranslations("pages.services");
 
   if (isLoading || !data) {
     return (
@@ -59,30 +62,20 @@ export function ServicesKPI() {
 
   return (
     <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
+      <KpiItem label={t("kpiTotal")} value={String(data.total)} trend={t("kpiInCatalog")} />
       <KpiItem
-        label="Всего услуг"
-        value={String(data.total)}
-        trend="↗ в каталоге"
-        trendUp={undefined}
-      />
-      <KpiItem
-        label="Активны в боте"
+        label={t("kpiActive")}
         value={String(data.active)}
         trend={`↗ ${activePercent}%`}
         trendUp={activePercent >= 50}
       />
       <KpiItem
-        label="Записей за месяц"
+        label={t("kpiBookings")}
         value={String(data.bookings_month)}
-        trend="↗ за 30 дней"
+        trend={`↗ ${t("chartSubtitle")}`}
         trendUp={data.bookings_month > 0}
       />
-      <KpiItem
-        label="Выручка / услуга"
-        value={`€ ${data.avg_revenue}`}
-        trend="↗ ср. цена"
-        trendUp={undefined}
-      />
+      <KpiItem label={t("kpiRevenue")} value={`€ ${data.avg_revenue}`} trend={t("kpiInCatalog")} />
     </div>
   );
 }
