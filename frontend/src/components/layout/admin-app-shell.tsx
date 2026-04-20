@@ -114,10 +114,15 @@ export function AdminAppShell({
     <div className="flex min-h-screen bg-background text-foreground">
       <aside className="hidden w-60 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
         <div className="flex h-14 items-center border-b border-sidebar-border px-4 font-semibold">
-          {tc("brand")}
-          <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
-            {t("panelAdmin")}
-          </span>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/50 text-sm font-bold text-primary-foreground">
+            {tc("brand").slice(0, 1).toUpperCase()}
+          </div>
+          <div className="ml-2 flex flex-col">
+            <span className="text-sm font-semibold leading-none">{tc("brand")}</span>
+            <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider">
+              {t("panelAdmin")}
+            </span>
+          </div>
         </div>
         <nav className="flex-1 space-y-0.5 p-2">
           {items.map((item) => {
@@ -140,6 +145,12 @@ export function AdminAppShell({
             );
           })}
         </nav>
+        <div className="border-t border-sidebar-border p-3 text-center">
+          <p className="truncate text-[11px] text-muted-foreground">{user.email}</p>
+          <span className="mt-1 inline-block rounded border border-primary/30 px-3 py-0.5 text-[10px] uppercase tracking-wider text-primary">
+            {user.role}
+          </span>
+        </div>
       </aside>
 
       <div className="flex min-h-screen flex-1 flex-col">
@@ -221,6 +232,9 @@ export function AdminAppShell({
                 <DropdownMenuItem onClick={() => applyTheme("friendly")}>{t("themeFriendly")}</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => applyTheme("minimal")}>{t("themeMinimal")}</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => applyTheme("premium")}>{t("themePremium")}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => applyTheme("premium_light")}>
+                  {t("themePremiumLight")}
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 

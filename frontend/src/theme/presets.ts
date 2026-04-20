@@ -3,9 +3,9 @@
  * Applied as inline CSS variables on :root (see theme-provider).
  */
 
-export type UiThemeId = "friendly" | "minimal" | "premium";
+export type UiThemeId = "friendly" | "minimal" | "premium" | "premium_light";
 
-export const uiThemeIds: UiThemeId[] = ["friendly", "minimal", "premium"];
+export const uiThemeIds: UiThemeId[] = ["friendly", "minimal", "premium", "premium_light"];
 
 export const friendlyPreset: Record<string, string> = {
   "--background": "42 36% 97%",
@@ -91,12 +91,46 @@ export const premiumPreset: Record<string, string> = {
   "--topbar": "28 22% 7%",
 };
 
+/**
+ * Premium Light — warm gold tone, Playfair Display headings.
+ * Hex reference: design/01_dashboard.html
+ * #FAF8F3 bg, #9A7230 primary, #1C1409 fg, #E4DDD0 border
+ */
+export const premiumLightPreset: Record<string, string> = {
+  "--background": "42 41% 97%",
+  "--foreground": "34 52% 7%",
+  "--card": "0 0% 100%",
+  "--card-foreground": "34 52% 7%",
+  "--popover": "0 0% 100%",
+  "--popover-foreground": "34 52% 7%",
+  "--primary": "37 53% 40%",
+  "--primary-foreground": "42 41% 97%",
+  "--secondary": "41 40% 94%",
+  "--secondary-foreground": "34 52% 7%",
+  "--muted": "41 40% 94%",
+  "--muted-foreground": "39 16% 41%",
+  "--accent": "41 40% 94%",
+  "--accent-foreground": "34 52% 7%",
+  "--destructive": "0 48% 48%",
+  "--destructive-foreground": "0 0% 100%",
+  "--border": "39 27% 85%",
+  "--input": "39 27% 85%",
+  "--ring": "37 53% 40%",
+  "--radius": "0.125rem",
+  "--sidebar": "0 0% 100%",
+  "--sidebar-foreground": "34 52% 7%",
+  "--sidebar-border": "39 27% 85%",
+  "--sidebar-accent": "41 40% 94%",
+  "--topbar": "42 41% 97%",
+};
+
 export const themePresets: Record<UiThemeId, Record<string, string>> = {
   friendly: friendlyPreset,
   minimal: minimalPreset,
   premium: premiumPreset,
+  premium_light: premiumLightPreset,
 };
 
 export function isUiThemeId(v: string): v is UiThemeId {
-  return v === "friendly" || v === "minimal" || v === "premium";
+  return v === "friendly" || v === "minimal" || v === "premium" || v === "premium_light";
 }

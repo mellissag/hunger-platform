@@ -16,6 +16,7 @@ class ThemePreset(str, enum.Enum):
     minimal = "minimal"
     friendly = "friendly"
     premium = "premium"
+    premium_light = "premium_light"
 
 
 class LateCancellationPolicy(str, enum.Enum):

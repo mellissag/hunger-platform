@@ -98,16 +98,23 @@ export function SettingsSection({ section }: { section: string }) {
                 const fd = new FormData(e.currentTarget);
                 const themeRaw = String(fd.get("theme") ?? "friendly");
                 const primary = String(fd.get("primary_color") ?? settings.primary_color);
-                const theme: UiThemeId = isUiThemeId(themeRaw) ? themeRaw : "friendly";
+                const theme: UiThemeId = isUiThemeId(themeRaw) ? (themeRaw as UiThemeId) : "friendly";
                 applyPreview(theme, primary);
                 patch.mutate({ settings: { theme, primary_color: primary } });
               }}
             >
-              <div className="grid gap-3 sm:grid-cols-3">
-                {(["minimal", "friendly", "premium"] as const).map((id) => (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {(
+                  [
+                    { id: "minimal", label: "Minimal", desc: "Dark minimal" },
+                    { id: "friendly", label: "Friendly", desc: "Warm light" },
+                    { id: "premium", label: "Premium", desc: "Dark gold" },
+                    { id: "premium_light", label: "✦ Premium Light", desc: "Gold · Playfair Display" },
+                  ] as const
+                ).map(({ id, label, desc }) => (
                   <label
                     key={id}
-                    className="flex cursor-pointer flex-col gap-2 rounded-lg border p-3 has-[:checked]:border-primary"
+                    className="flex cursor-pointer flex-col gap-1.5 rounded-lg border p-3 has-[:checked]:border-primary"
                   >
                     <input
                       type="radio"
@@ -116,7 +123,8 @@ export function SettingsSection({ section }: { section: string }) {
                       defaultChecked={settings.theme === id}
                       data-testid={`settings-theme-${id}`}
                     />
-                    <span className="text-sm font-medium capitalize">{id}</span>
+                    <span className="text-sm font-medium">{label}</span>
+                    <span className="text-xs text-muted-foreground">{desc}</span>
                   </label>
                 ))}
               </div>

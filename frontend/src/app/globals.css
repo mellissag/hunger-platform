@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -38,4 +40,52 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+}
+
+/* ─── Premium Light theme overrides ─── */
+[data-ui-theme="premium_light"] body {
+  background-image:
+    radial-gradient(ellipse at top right, rgba(154, 114, 48, 0.04), transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(154, 114, 48, 0.03), transparent 50%);
+}
+
+[data-ui-theme="premium_light"] h1,
+[data-ui-theme="premium_light"] h2,
+[data-ui-theme="premium_light"] h3,
+[data-ui-theme="premium_light"] .font-playfair {
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+[data-ui-theme="premium_light"] .kpi-value-premium,
+[data-ui-theme="premium_light"] [data-slot="card-title"] {
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+/* KPI card hover — gold top line */
+[data-ui-theme="premium_light"] .kpi-card-premium {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+}
+
+[data-ui-theme="premium_light"] .kpi-card-premium::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, hsl(37 53% 40%), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+[data-ui-theme="premium_light"] .kpi-card-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(28, 20, 9, 0.08);
+  border-color: rgba(154, 114, 48, 0.3);
+}
+
+[data-ui-theme="premium_light"] .kpi-card-premium:hover::before {
+  opacity: 1;
 }
