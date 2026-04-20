@@ -42,27 +42,39 @@
   }
 }
 
-/* ─── Premium Light theme overrides ─── */
-[data-ui-theme="premium_light"] body {
+/* ─── Premium Light ─── */
+[data-theme="premium_light"] body {
   background-image:
     radial-gradient(ellipse at top right, rgba(154, 114, 48, 0.04), transparent 50%),
     radial-gradient(ellipse at bottom left, rgba(154, 114, 48, 0.03), transparent 50%);
 }
 
-[data-ui-theme="premium_light"] h1,
-[data-ui-theme="premium_light"] h2,
-[data-ui-theme="premium_light"] h3,
-[data-ui-theme="premium_light"] .font-playfair {
+[data-theme="premium_dark"] body {
+  background-image:
+    radial-gradient(ellipse at top right, rgba(201, 169, 110, 0.03), transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(201, 169, 110, 0.02), transparent 50%);
+}
+
+[data-theme="premium_light"] h1,
+[data-theme="premium_light"] h2,
+[data-theme="premium_light"] h3,
+[data-theme="premium_light"] .font-playfair,
+[data-theme="premium_dark"] h1,
+[data-theme="premium_dark"] h2,
+[data-theme="premium_dark"] h3,
+[data-theme="premium_dark"] .font-playfair {
   font-family: "Playfair Display", Georgia, serif;
 }
 
-[data-ui-theme="premium_light"] .kpi-value-premium,
-[data-ui-theme="premium_light"] [data-slot="card-title"] {
+[data-theme="premium_light"] .kpi-value-premium,
+[data-theme="premium_light"] [data-slot="card-title"],
+[data-theme="premium_dark"] .kpi-value-premium,
+[data-theme="premium_dark"] [data-slot="card-title"] {
   font-family: "Playfair Display", Georgia, serif;
 }
 
 /* KPI card hover — gold top line */
-[data-ui-theme="premium_light"] .kpi-card-premium {
+[data-theme="premium_light"] .kpi-card-premium {
   position: relative;
   overflow: hidden;
   transition:
@@ -71,7 +83,7 @@
     border-color 0.3s;
 }
 
-[data-ui-theme="premium_light"] .kpi-card-premium::before {
+[data-theme="premium_light"] .kpi-card-premium::before {
   content: "";
   position: absolute;
   top: 0;
@@ -83,13 +95,13 @@
   transition: opacity 0.3s;
 }
 
-[data-ui-theme="premium_light"] .kpi-card-premium:hover {
+[data-theme="premium_light"] .kpi-card-premium:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(28, 20, 9, 0.08);
   border-color: rgba(154, 114, 48, 0.3);
 }
 
-[data-ui-theme="premium_light"] .kpi-card-premium:hover::before {
+[data-theme="premium_light"] .kpi-card-premium:hover::before {
   opacity: 1;
 }
 

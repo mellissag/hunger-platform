@@ -62,7 +62,7 @@ async def phase4_seed(owner_headers: dict[str, str]):
         s.add(
             Settings(
                 salon_id=salon.id,
-                theme=ThemePreset.friendly,
+                theme=ThemePreset.premium_light,
                 booking_lead_time_minutes=60,
                 booking_buffer_minutes=5,
             )

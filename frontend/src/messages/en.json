@@ -6,24 +6,11 @@
   },
   "login": {
     "titleWelcomeBack": "Welcome back",
-    "titleSignIn": "Sign in",
-    "titlePremium": "Welcome",
     "subtitle": "Sign in to your dashboard",
-    "subtitleMinimal": "// auth required to proceed",
-    "subtitlePremium": "Enter your salon panel",
     "email": "Email",
     "password": "Password",
-    "remember": "Remember me",
-    "forgot": "Forgot password?",
     "submit": "Sign in",
-    "submitPremium": "Enter salon",
-    "variantFriendly": "Friendly",
-    "variantMinimal": "Minimal",
-    "variantPremium": "Premium",
-    "error": "Invalid email or password",
-    "telegramSoon": "Telegram sign-in — coming soon",
-    "contactOwner": "Contact the salon owner",
-    "noAccount": "No account?"
+    "error": "Invalid email or password"
   },
   "layout": {
     "nav": {
@@ -50,7 +37,6 @@
     "topbar": {
       "search": "Search",
       "searchShortcut": "Search…",
-      "theme": "Theme",
       "language": "Language",
       "notifications": "Notifications",
       "openMenu": "Open menu"
@@ -60,11 +46,7 @@
       "logout": "Log out"
     },
     "panelAdmin": "Admin",
-    "panelMaster": "Master",
-    "themeFriendly": "Friendly",
-    "themeMinimal": "Minimal",
-    "themePremium": "Premium",
-    "themePremiumLight": "✦ Premium Light"
+    "panelMaster": "Master"
   },
   "dashboard": {
     "phase": "Phase 8 — scaffold",
@@ -437,15 +419,13 @@
       "loading": "Loading…",
       "saved": "Saved",
       "save": "Save",
-      "brandHint": "Salon name, descriptions, and brand assets.",
+      "brandHint": "Accent color, salon name, descriptions, and brand assets.",
       "salonName": "Salon name",
       "currency": "Currency",
       "prepaymentEnabled": "Prepayment enabled",
       "telegramVerify": "Check connection",
       "backupRun": "Create backup now",
       "backupDownload": "Download last",
-      "themeTitle": "Theme",
-      "themeHint": "Preset and primary color — preview updates instantly before save.",
       "primaryColor": "Primary color",
       "preview": "Preview",
       "sections": {

@@ -75,7 +75,7 @@ async def test_test_chat_returns_503_without_gemini(
         session.add(
             Settings(
                 salon_id=salon.id,
-                theme=ThemePreset.friendly,
+                theme=ThemePreset.premium_light,
                 cancellation_free_hours=24,
                 late_cancellation_policy=LateCancellationPolicy.no_cancel,
                 ai_enabled=True,

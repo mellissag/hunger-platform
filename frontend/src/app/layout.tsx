@@ -6,7 +6,7 @@ import { Inter } from "next/font/google";
 import { Providers } from "@/app/providers";
 import "./globals.css";
 import { COOKIE_LOCALE, COOKIE_UI_THEME } from "@/lib/cookies";
-import { isUiThemeId, type UiThemeId } from "@/theme/presets";
+import { normalizeLegacyThemeId, type UiThemeId } from "@/theme/presets";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
 
@@ -28,7 +28,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const locale = parseLocale(cookieStore.get(COOKIE_LOCALE)?.value);
   const messages = (await import(`@/messages/${locale}.json`)).default;
   const themeRaw = cookieStore.get(COOKIE_UI_THEME)?.value;
-  const initialUiTheme: UiThemeId = themeRaw && isUiThemeId(themeRaw) ? themeRaw : "friendly";
+  const initialUiTheme: UiThemeId = normalizeLegacyThemeId(themeRaw);
 
   return (
     <html lang={locale} className={inter.variable} suppressHydrationWarning>

@@ -42,7 +42,7 @@ async def test_get_patch_salon_owner(client: AsyncClient, test_user_owner) -> No
         )
         s.add(salon)
         await s.flush()
-        s.add(Settings(salon_id=salon.id, theme=ThemePreset.friendly, primary_color="#D97757"))
+        s.add(Settings(salon_id=salon.id, theme=ThemePreset.premium_light, primary_color="#D97757"))
         await s.commit()
 
     r = await client.get("/api/v1/salon", headers=h)
@@ -104,7 +104,7 @@ async def test_admin_ai_patch_only(client: AsyncClient, test_user_owner) -> None
         )
         s.add(salon)
         await s.flush()
-        s.add(Settings(salon_id=salon.id, theme=ThemePreset.friendly, primary_color="#D97757"))
+        s.add(Settings(salon_id=salon.id, theme=ThemePreset.premium_light, primary_color="#D97757"))
         au = User(
             email="adm12@example.com",
             password_hash=_pwd.hash("secretpass12"),
@@ -121,7 +121,7 @@ async def test_admin_ai_patch_only(client: AsyncClient, test_user_owner) -> None
     bad = await client.patch(
         "/api/v1/salon",
         headers=ah,
-        json={"settings": {"theme": "minimal"}},
+        json={"settings": {"theme": "premium_dark"}},
     )
     assert bad.status_code == 400
 
@@ -132,3 +132,40 @@ async def test_admin_ai_patch_only(client: AsyncClient, test_user_owner) -> None
     )
     assert ok.status_code == 200, ok.text
     assert ok.json()["settings"]["ai_temperature"] == 0.4
+
+
+@pytest.mark.asyncio
+async def test_put_settings_theme_any_authenticated_staff(
+    client: AsyncClient, test_user_owner, test_user_master
+) -> None:
+    """Мастер может менять тему салона (PUT /settings/theme)."""
+    factory = get_async_session_factory()
+    async with factory() as s:
+        salon = Salon(
+            name="S",
+            description={"en": "x"},
+            timezone="Europe/Sofia",
+            currency="EUR",
+            default_lang="en",
+        )
+        s.add(salon)
+        await s.flush()
+        s.add(Settings(salon_id=salon.id, theme=ThemePreset.premium_light, primary_color="#D97757"))
+        await s.commit()
+
+    h = await _auth_headers(client, "master@example.com", "secretpass12")
+    r = await client.put(
+        "/api/v1/settings/theme",
+        headers=h,
+        json={"theme": "premium_dark"},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["theme"] == "premium_dark"
+
+    r2 = await client.put(
+        "/api/v1/settings/theme",
+        headers=h,
+        json={"theme": "premium_light"},
+    )
+    assert r2.status_code == 200, r2.text
+    assert r2.json()["theme"] == "premium_light"

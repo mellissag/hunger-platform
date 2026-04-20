@@ -6,24 +6,11 @@
   },
   "login": {
     "titleWelcomeBack": "Добре дошли отново",
-    "titleSignIn": "Вход",
-    "titlePremium": "Добре дошли",
     "subtitle": "Влезте в таблото си",
-    "subtitleMinimal": "// изисква се удостоверяване",
-    "subtitlePremium": "Влезте в панела на салона",
     "email": "Имейл",
     "password": "Парола",
-    "remember": "Запомни ме",
-    "forgot": "Забравена парола?",
     "submit": "Вход",
-    "submitPremium": "Влез в салона",
-    "variantFriendly": "Friendly",
-    "variantMinimal": "Minimal",
-    "variantPremium": "Premium",
-    "error": "Невалиден имейл или парола",
-    "telegramSoon": "Вход чрез Telegram — предстои",
-    "contactOwner": "Свържете се със собственика",
-    "noAccount": "Нямате акаунт?"
+    "error": "Невалиден имейл или парола"
   },
   "layout": {
     "nav": {
@@ -50,7 +37,6 @@
     "topbar": {
       "search": "Търсене",
       "searchShortcut": "Търсене…",
-      "theme": "Тема",
       "language": "Език",
       "notifications": "Известия",
       "openMenu": "Отвори меню"
@@ -60,11 +46,7 @@
       "logout": "Изход"
     },
     "panelAdmin": "Админ",
-    "panelMaster": "Майстор",
-    "themeFriendly": "Friendly",
-    "themeMinimal": "Minimal",
-    "themePremium": "Premium",
-    "themePremiumLight": "✦ Premium Light"
+    "panelMaster": "Майстор"
   },
   "dashboard": {
     "phase": "Фаза 8 — скелет",
@@ -437,15 +419,13 @@
       "loading": "Зареждане…",
       "saved": "Запазено",
       "save": "Запази",
-      "brandHint": "Име, описания и файлове.",
+      "brandHint": "Акцентен цвят, име, описания и файлове.",
       "salonName": "Име на салона",
       "currency": "Валута",
       "prepaymentEnabled": "Предплащане включено",
       "telegramVerify": "Провери връзката",
       "backupRun": "Създай архив",
       "backupDownload": "Свали последния",
-      "themeTitle": "Тема",
-      "themeHint": "Пресет и основен цвят.",
       "primaryColor": "Основен цвят",
       "preview": "Преглед",
       "sections": {

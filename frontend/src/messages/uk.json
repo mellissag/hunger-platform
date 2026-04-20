@@ -6,24 +6,11 @@
   },
   "login": {
     "titleWelcomeBack": "З поверненням",
-    "titleSignIn": "Вхід",
-    "titlePremium": "Ласкаво просимо",
     "subtitle": "Увійдіть до панелі керування",
-    "subtitleMinimal": "// потрібна авторизація",
-    "subtitlePremium": "Увійдіть до панелі салону",
     "email": "Email",
     "password": "Пароль",
-    "remember": "Запам’ятати мене",
-    "forgot": "Забули пароль?",
     "submit": "Увійти",
-    "submitPremium": "Увійти в салон",
-    "variantFriendly": "Friendly",
-    "variantMinimal": "Minimal",
-    "variantPremium": "Premium",
-    "error": "Невірний email або пароль",
-    "telegramSoon": "Вхід через Telegram — незабаром",
-    "contactOwner": "Зв’яжіться з власником",
-    "noAccount": "Немає облікового запису?"
+    "error": "Невірний email або пароль"
   },
   "layout": {
     "nav": {
@@ -50,7 +37,6 @@
     "topbar": {
       "search": "Пошук",
       "searchShortcut": "Пошук…",
-      "theme": "Тема",
       "language": "Мова",
       "notifications": "Сповіщення",
       "openMenu": "Відкрити меню"
@@ -60,11 +46,7 @@
       "logout": "Вийти"
     },
     "panelAdmin": "Адмін",
-    "panelMaster": "Майстер",
-    "themeFriendly": "Friendly",
-    "themeMinimal": "Minimal",
-    "themePremium": "Premium",
-    "themePremiumLight": "✦ Premium Light"
+    "panelMaster": "Майстер"
   },
   "dashboard": {
     "phase": "Фаза 8 — каркас",
@@ -437,15 +419,13 @@
       "loading": "Завантаження…",
       "saved": "Збережено",
       "save": "Зберегти",
-      "brandHint": "Назва, описи та файли бренду.",
+      "brandHint": "Акцентний колір, назва, описи та файли бренду.",
       "salonName": "Назва салону",
       "currency": "Валюта",
       "prepaymentEnabled": "Передоплата увімкнена",
       "telegramVerify": "Перевірити з'єднання",
       "backupRun": "Створити бекап",
       "backupDownload": "Завантажити останній",
-      "themeTitle": "Тема",
-      "themeHint": "Пресет і основний колір.",
       "primaryColor": "Основний колір",
       "preview": "Перегляд",
       "sections": {

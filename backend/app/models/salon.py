@@ -72,7 +72,7 @@ class Settings(UUIDPrimaryKeyMixin, Base):
             values_callable=lambda x: [e.value for e in x],
         ),
         nullable=False,
-        default=ThemePreset.friendly,
+        default=ThemePreset.premium_light,
     )
     primary_color: Mapped[str] = mapped_column(Text, nullable=False, default="#D97757")
 

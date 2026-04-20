@@ -20,6 +20,7 @@ from app.api.v1 import (
     segments,
     service_categories,
     services,
+    settings as settings_routes,
     stats,
     tg,
     users_admin,
@@ -40,6 +41,7 @@ api_router.include_router(broadcasts.router)
 api_router.include_router(stats.router)
 api_router.include_router(tg.router)
 api_router.include_router(salon.router)
+api_router.include_router(settings_routes.router)
 api_router.include_router(blacklist.router)
 api_router.include_router(users_admin.router)
 api_router.include_router(audit.router)

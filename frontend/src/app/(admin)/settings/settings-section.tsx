@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { setUiTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,11 +14,8 @@ import { apiFetch, apiJson } from "@/lib/api";
 import { hexToPrimaryHsl } from "@/lib/color";
 import { getPublicApiBaseUrl } from "@/lib/env";
 import type { SalonBundle } from "@/types/admin-api";
-import type { UiThemeId } from "@/theme/presets";
-import { isUiThemeId } from "@/theme/presets";
 
-function applyPreview(theme: UiThemeId, primaryHex: string) {
-  setUiTheme(theme);
+function applyPrimaryPreview(primaryHex: string) {
   const hsl = hexToPrimaryHsl(primaryHex);
   if (hsl) document.documentElement.style.setProperty("--primary", hsl);
 }
@@ -87,8 +83,8 @@ export function SettingsSection({ section }: { section: string }) {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>{t("themeTitle")}</CardTitle>
-            <CardDescription>{t("themeHint")}</CardDescription>
+            <CardTitle>{t("sections.brand")}</CardTitle>
+            <CardDescription>{t("brandHint")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form
@@ -96,47 +92,14 @@ export function SettingsSection({ section }: { section: string }) {
               onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
-                const themeRaw = String(fd.get("theme") ?? "friendly");
                 const primary = String(fd.get("primary_color") ?? settings.primary_color);
-                const theme: UiThemeId = isUiThemeId(themeRaw)
-                  ? (themeRaw as UiThemeId)
-                  : "friendly";
-                applyPreview(theme, primary);
-                patch.mutate({ settings: { theme, primary_color: primary } });
+                applyPrimaryPreview(primary);
+                patch.mutate({ settings: { primary_color: primary } });
               }}
             >
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {(
-                  [
-                    { id: "minimal", label: "Minimal", desc: "Dark minimal" },
-                    { id: "friendly", label: "Friendly", desc: "Warm light" },
-                    { id: "premium", label: "Premium", desc: "Dark gold" },
-                    {
-                      id: "premium_light",
-                      label: "✦ Premium Light",
-                      desc: "Gold · Playfair Display",
-                    },
-                  ] as const
-                ).map(({ id, label, desc }) => (
-                  <label
-                    key={id}
-                    className="flex cursor-pointer flex-col gap-1.5 rounded-lg border p-3 has-[:checked]:border-primary"
-                  >
-                    <input
-                      type="radio"
-                      name="theme"
-                      value={id}
-                      defaultChecked={settings.theme === id}
-                      data-testid={`settings-theme-${id}`}
-                    />
-                    <span className="text-sm font-medium">{label}</span>
-                    <span className="text-xs text-muted-foreground">{desc}</span>
-                  </label>
-                ))}
-              </div>
               <div>
                 <Label htmlFor="primary_color">{t("primaryColor")}</Label>
-                <div className="mt-2 flex items-center gap-3">
+                <div className="mt-2 flex flex-wrap items-center gap-3">
                   <Input
                     id="primary_color"
                     name="primary_color"
@@ -145,39 +108,29 @@ export function SettingsSection({ section }: { section: string }) {
                     className="h-10 w-24 cursor-pointer"
                     data-testid="settings-primary-color"
                   />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    data-testid="settings-primary-preview"
+                    onClick={(e) => {
+                      const form = (e.target as HTMLElement).closest("form");
+                      if (!form) return;
+                      const fd = new FormData(form);
+                      const primary = String(fd.get("primary_color") ?? settings.primary_color);
+                      applyPrimaryPreview(primary);
+                    }}
+                  >
+                    {t("preview")}
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={(e) => {
-                    const form = (e.target as HTMLElement).closest("form");
-                    if (!form) return;
-                    const fd = new FormData(form);
-                    const themeRaw = String(fd.get("theme") ?? settings.theme);
-                    const primary = String(fd.get("primary_color") ?? settings.primary_color);
-                    if (isUiThemeId(themeRaw)) applyPreview(themeRaw, primary);
-                  }}
-                >
-                  {t("preview")}
-                </Button>
-                <Button type="submit" disabled={busy} data-testid="settings-theme-save">
-                  {t("save")}
-                </Button>
-              </div>
+              <Button type="submit" disabled={busy} data-testid="settings-primary-save">
+                {t("save")}
+              </Button>
             </form>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("sections.brand")}</CardTitle>
-            <CardDescription>{t("brandHint")}</CardDescription>
-          </CardHeader>
-          <CardContent>
             <form
-              className="space-y-4"
+              className="mt-8 space-y-4"
               onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);

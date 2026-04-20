@@ -51,7 +51,7 @@ async def run() -> None:
 
         settings = Settings(
             salon_id=salon.id,
-            theme=ThemePreset.premium,
+            theme=ThemePreset.premium_light,
             primary_color="#9A7230",
             prepayment_enabled=False,
             cancellation_free_hours=24,

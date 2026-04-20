@@ -13,10 +13,8 @@ class UserRole(str, enum.Enum):
 
 
 class ThemePreset(str, enum.Enum):
-    minimal = "minimal"
-    friendly = "friendly"
-    premium = "premium"
     premium_light = "premium_light"
+    premium_dark = "premium_dark"
 
 
 class LateCancellationPolicy(str, enum.Enum):

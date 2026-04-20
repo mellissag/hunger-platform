@@ -197,10 +197,11 @@ test.describe("§15 Acceptance: Theme switching", () => {
     await login(page);
   });
 
-  test("theme switch minimal/friendly/premium is available in settings", async ({ page }) => {
-    await page.goto("/settings");
-    const themeSection = page.locator("[data-testid='theme-selector'], .theme-selector, [data-testid='brand-theme']");
-    await expect(themeSection.first()).toBeVisible({ timeout: 15_000 });
+  test("theme toggle Sun/Moon is in topbar", async ({ page }) => {
+    await page.goto("/dashboard");
+    const toggle = page.getByRole("button", { name: /переключить тему|toggle theme/i });
+    await expect(toggle).toBeVisible({ timeout: 15_000 });
+    await toggle.click();
   });
 });
 

@@ -9,12 +9,13 @@ import {
   LayoutDashboard,
   Menu,
   MessageSquare,
-  Palette,
+  Moon,
   Scissors,
   Search,
   Settings,
   Shield,
   Sparkles,
+  Sun,
   UserCircle2,
   Users,
 } from "lucide-react";
@@ -23,7 +24,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
-import { setUiTheme } from "@/components/theme-provider";
+import { useTheme } from "@/providers/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -49,8 +50,6 @@ import { can } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/types/user";
 import type { Resource } from "@/lib/permissions";
-import type { UiThemeId } from "@/theme/presets";
-
 type NavItem = { href: string; labelKey: string; icon: React.ElementType; resource: Resource };
 
 const NAV: NavItem[] = [
@@ -90,6 +89,7 @@ export function AdminAppShell({
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isDark, toggleTheme } = useTheme();
 
   const items = NAV.filter((item) => can(user, "read", item.resource));
 
@@ -102,10 +102,6 @@ export function AdminAppShell({
   function setLocale(locale: string) {
     document.cookie = `${COOKIE_LOCALE}=${locale}; path=/; max-age=31536000; samesite=lax`;
     router.refresh();
-  }
-
-  function applyTheme(id: UiThemeId) {
-    setUiTheme(id);
   }
 
   const displayName = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email;
@@ -221,28 +217,34 @@ export function AdminAppShell({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-1">
-                  <Palette className="h-4 w-4" />
-                  <span className="hidden lg:inline">{t("topbar.theme")}</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  className="h-9 w-9"
+                  onClick={toggleTheme}
+                  title={
+                    isDark
+                      ? "Переключить на светлую тему"
+                      : "Переключить на тёмную тему"
+                  }
+                  aria-label="Переключить тему"
+                >
+                  {isDark ? (
+                    <Sun className="h-[17px] w-[17px]" strokeWidth={1.5} />
+                  ) : (
+                    <Moon className="h-[17px] w-[17px]" strokeWidth={1.5} />
+                  )}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => applyTheme("friendly")}>
-                  {t("themeFriendly")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => applyTheme("minimal")}>
-                  {t("themeMinimal")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => applyTheme("premium")}>
-                  {t("themePremium")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => applyTheme("premium_light")}>
-                  {t("themePremiumLight")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isDark
+                  ? "Переключить на светлую тему"
+                  : "Переключить на тёмную тему"}
+              </TooltipContent>
+            </Tooltip>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

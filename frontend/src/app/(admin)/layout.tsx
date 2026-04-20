@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 
 import { AdminAppShell } from "@/components/layout/admin-app-shell";
 import { COOKIE_LOCALE } from "@/lib/cookies";
-import { getSessionUser } from "@/lib/server-session";
+import { getSalonThemeForLayout, getSessionUser } from "@/lib/server-session";
+import { ThemeSync } from "@/providers/ThemeProvider";
 
 const locales = ["en", "ru", "uk", "bg"] as const;
 
@@ -19,10 +20,14 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   const cookieStore = await cookies();
   const locale = parseLocale(cookieStore.get(COOKIE_LOCALE)?.value);
+  const salonTheme = await getSalonThemeForLayout();
 
   return (
-    <AdminAppShell user={user} locale={locale}>
-      {children}
-    </AdminAppShell>
+    <>
+      <ThemeSync theme={salonTheme} />
+      <AdminAppShell user={user} locale={locale}>
+        {children}
+      </AdminAppShell>
+    </>
   );
 }

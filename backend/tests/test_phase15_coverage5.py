@@ -18,7 +18,7 @@ from httpx import ASGITransport, AsyncClient
 from passlib.context import CryptContext
 
 from app.db.base import get_async_session_factory
-from app.models.enums import UserRole
+from app.models.enums import ThemePreset, UserRole
 from app.models.user import User
 
 _pwd = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=4)
@@ -308,7 +308,7 @@ async def test_salon_patch_bundle_service_layer():
         salon = Salon(name="Test Salon", timezone="UTC", currency="EUR", default_lang="en")
         s.add(salon)
         await s.flush()
-        settings = Settings(salon_id=salon.id, theme="minimal")
+        settings = Settings(salon_id=salon.id, theme=ThemePreset.premium_light)
         s.add(settings)
         await s.commit()
         await s.refresh(salon)
@@ -319,9 +319,9 @@ async def test_salon_patch_bundle_service_layer():
             salon=salon,
             settings=settings,
             salon_patch={"name": "Patched Salon"},
-            settings_patch={"theme": "premium"},
+            settings_patch={"theme": ThemePreset.premium_dark},
         )
         await s.commit()
 
     assert result.salon.name == "Patched Salon"
-    assert result.settings.theme == "premium"
+    assert result.settings.theme == ThemePreset.premium_dark

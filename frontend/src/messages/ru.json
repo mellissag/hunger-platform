@@ -6,24 +6,11 @@
   },
   "login": {
     "titleWelcomeBack": "С возвращением",
-    "titleSignIn": "Вход",
-    "titlePremium": "Добро пожаловать",
     "subtitle": "Войдите в свою панель управления",
-    "subtitleMinimal": "// требуется авторизация",
-    "subtitlePremium": "Войдите в панель салона",
     "email": "Email",
     "password": "Пароль",
-    "remember": "Запомнить меня",
-    "forgot": "Забыли пароль?",
     "submit": "Войти",
-    "submitPremium": "Войти в салон",
-    "variantFriendly": "Friendly",
-    "variantMinimal": "Minimal",
-    "variantPremium": "Premium",
-    "error": "Неверный email или пароль",
-    "telegramSoon": "Вход через Telegram — скоро",
-    "contactOwner": "Свяжитесь с владельцем",
-    "noAccount": "Нет аккаунта?"
+    "error": "Неверный email или пароль"
   },
   "layout": {
     "nav": {
@@ -50,7 +37,6 @@
     "topbar": {
       "search": "Поиск",
       "searchShortcut": "Поиск…",
-      "theme": "Тема",
       "language": "Язык",
       "notifications": "Уведомления",
       "openMenu": "Открыть меню"
@@ -60,11 +46,7 @@
       "logout": "Выйти"
     },
     "panelAdmin": "Админ",
-    "panelMaster": "Мастер",
-    "themeFriendly": "Friendly",
-    "themeMinimal": "Minimal",
-    "themePremium": "Premium",
-    "themePremiumLight": "✦ Premium Light"
+    "panelMaster": "Мастер"
   },
   "dashboard": {
     "phase": "Фаза 8 — каркас",
@@ -437,15 +419,13 @@
       "loading": "Загрузка…",
       "saved": "Сохранено",
       "save": "Сохранить",
-      "brandHint": "Название, описания и файлы бренда.",
+      "brandHint": "Акцентный цвет, название, описания и файлы бренда.",
       "salonName": "Название салона",
       "currency": "Валюта",
       "prepaymentEnabled": "Предоплата включена",
       "telegramVerify": "Проверить подключение",
       "backupRun": "Создать бэкап",
       "backupDownload": "Скачать последний",
-      "themeTitle": "Тема",
-      "themeHint": "Пресет и основной цвет — предпросмотр без сохранения.",
       "primaryColor": "Основной цвет",
       "preview": "Предпросмотр",
       "sections": {

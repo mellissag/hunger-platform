@@ -39,11 +39,10 @@ test.describe("Settings phase 12", () => {
     await expect(page.locator("[data-sonner-toast]")).toBeVisible({ timeout: 15_000 });
   });
 
-  test("brand: theme + primary save", async ({ page }) => {
+  test("brand: primary color save", async ({ page }) => {
     await page.goto("/settings/brand");
-    await page.getByTestId("settings-theme-minimal").click();
     await page.getByTestId("settings-primary-color").fill("#3366cc");
-    await page.getByTestId("settings-theme-save").click();
+    await page.getByTestId("settings-primary-save").click();
     await expect(page.locator("[data-sonner-toast]")).toBeVisible({ timeout: 15_000 });
   });
 

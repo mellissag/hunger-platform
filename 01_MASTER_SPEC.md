@@ -291,10 +291,10 @@ hunger-platform/
 │   │   │   ├── ru.json
 │   │   │   ├── uk.json
 │   │   │   └── bg.json
-│   │   ├── theme/                   # 3 presets
-│   │   │   ├── minimal.ts
-│   │   │   ├── friendly.ts
-│   │   │   └── premium.ts
+│   │   ├── theme/                   # Premium Light + Premium Dark
+│   │   │   ├── light.ts
+│   │   │   ├── dark.ts
+│   │   │   └── presets.ts
 │   │   └── types/
 │   ├── package.json
 │   └── Dockerfile
@@ -384,7 +384,7 @@ erDiagram
 - `id`, `name`, `description`, `logo_url`, `cover_url`, `timezone`, `currency` (EUR/USD/UAH), `default_lang`, `license_key`, `created_at`
 
 **settings** (1:1 с salon, JSON + отдельные колонки)
-- `theme` (minimal/friendly/premium), `primary_color`, `prepayment_enabled` (bool), `prepayment_percent`, `cancellation_free_hours` (default 24), `late_cancellation_policy` (enum: `no_cancel`, `fine`, `blacklist`), `fine_amount`, `reminder_intervals` (array: `[24,2,0.5]`), `review_delay_hours` (2), `working_hours_default`, `booking_lead_time_minutes`, `booking_buffer_minutes`, `ai_enabled`, `ai_system_prompt`, `ai_model`, `ai_allow_booking` (false), `payment_provider_config` (jsonb)
+- `theme` (`premium_light` / `premium_dark`), `primary_color`, `prepayment_enabled` (bool), `prepayment_percent`, `cancellation_free_hours` (default 24), `late_cancellation_policy` (enum: `no_cancel`, `fine`, `blacklist`), `fine_amount`, `reminder_intervals` (array: `[24,2,0.5]`), `review_delay_hours` (2), `working_hours_default`, `booking_lead_time_minutes`, `booking_buffer_minutes`, `ai_enabled`, `ai_system_prompt`, `ai_model`, `ai_allow_booking` (false), `payment_provider_config` (jsonb)
 
 **user** (сотрудники: owner/admin/master/reception)
 - `id`, `email`, `password_hash`, `role` (enum), `first_name`, `last_name`, `avatar_url`, `phone`, `master_id` (FK, nullable — линк к записи master), `lang`, `is_active`, `last_login_at`, `created_at`
@@ -500,7 +500,8 @@ Seed не создаёт клиентов, услуг и бронировани�
 | Настройки салона | ✅ | ❌ | ❌ | ❌ |
 | Управление сотрудниками | ✅ | ❌ | ❌ | ❌ |
 | Audit log | ✅ | read | ❌ | ❌ |
-| Смена темы/брендинга | ✅ | ✅ | ❌ | ❌ |
+| Смена темы (светлая/тёмная, topbar) | ✅ | ✅ | ✅ | ✅ |
+| Брендинг салона (лого, акцентный цвет, …) | ✅ | ❌ | ❌ | ❌ |
 | Заметки по клиенту | ✅ | ✅ | свои | ✅ |
 
 **Backend enforcement:** все REST-эндпоинты защищены dep `Depends(require_roles([...]))`. Frontend прячет меню, но проверки дублируются на API.
@@ -571,7 +572,7 @@ Mini App — это Next.js роут `/mini-app/*`, аутентификация
 - **AI** — база знаний, промпт, история диалогов.
 - **Блэклист** — список, добавить/удалить вручную.
 - **Сотрудники** (only owner) — CRUD аккаунтов.
-- **Настройки** (only owner) — бренд, валюта, ТЗ, язык по умолчанию, темы, политика отмен, предоплата, платёжный провайдер, Telegram токен.
+- **Настройки** (only owner) — бренд, валюта, ТЗ, язык по умолчанию, политика отмен, предоплата, платёжный провайдер, Telegram токен. Светлая/тёмная тема UI — отдельно, переключение в topbar (см. §5.1).
 - **Audit log** (only owner) — кто что менял.
 
 ### 7.2. Навигация (master)
@@ -789,7 +790,7 @@ async def get_active_services(redis: Redis, db) -> list:
 ### 7.9. Настройки салона (owner only)
 
 - **Бренд:** название, описание, логотип, обложка, контакты, адрес, соцсети.
-- **Тема:** minimal / friendly / premium + primary color picker + favicon.
+- **Тема отображения:** Premium Light / Premium Dark — переключение иконкой Sun/Moon в topbar (сохраняется в `settings.theme`); акцентный цвет и favicon — в блоке бренда.
 - **Валюта, ТЗ, дефолт-язык.**
 - **Рабочие часы по умолчанию.**
 - **Политика отмен:** free_hours, штраф или блэклист.
@@ -1078,7 +1079,7 @@ MVP готов, когда:
 - [ ] Admin может логиниться, видеть дашборд, создавать мастеров/услуги, видеть все брони, делать рассылку сегменту.
 - [ ] Master логинится, видит только свой календарь и своих клиентов.
 - [ ] Все тексты бота и UI админки доступны на 4 языках.
-- [ ] Смена темы Minimal/Friendly/Premium работает без перезагрузки.
+- [ ] Смена темы Premium Light / Dark (Sun/Moon в topbar) работает без перезагрузки и сохраняется в БД.
 - [ ] AI отвечает на вопрос про услугу, используя KB.
 - [ ] Предоплата включается тумблером и работает через Telegram Payments.
 - [ ] `install.sh` поднимает всё за < 10 минут на чистом Ubuntu.
@@ -1102,4 +1103,4 @@ MVP готов, когда:
 - `06_CURSOR_MEGA_PROMPT.md` — промпт в Cursor.
 - `07_CURSOR_AUTOMATION.md` — правила и агенты.
 - `08_ROADMAP.md` — план релизов.
-- `design/*.html` — 3 варианта темы админки + страницы логина.
+- `design/*.html` — референсы вёрстки (исторически 3 варианта логина; в продукте — единый Premium Light на `/login`).

@@ -91,7 +91,7 @@ async def test_concurrent_slot_race_one_winner(test_user_owner, fake_now) -> Non
         s.add(
             SalonSettings(
                 salon_id=salon.id,
-                theme=ThemePreset.friendly,
+                theme=ThemePreset.premium_light,
                 booking_lead_time_minutes=60,
                 booking_buffer_minutes=5,
             )
@@ -169,7 +169,7 @@ async def test_blacklisted_blocks_booking(test_user_owner) -> None:
         s.add(
             SalonSettings(
                 salon_id=salon.id,
-                theme=ThemePreset.friendly,
+                theme=ThemePreset.premium_light,
                 booking_lead_time_minutes=60,
                 booking_buffer_minutes=5,
             )
