@@ -49,14 +49,23 @@ echo "==> alembic upgrade"
 "${DC[@]}" exec -T api alembic upgrade head
 
 echo "==> healthz (внутри контейнера api)"
-sleep 2
-docker exec hunger-beauty-api-1 python -c \
-  "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz').read()" \
-  && echo " OK" || {
+ok=0
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  if docker exec hunger-beauty-api-1 python -c \
+    "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz').read()" \
+    2>/dev/null; then
+    ok=1
+    break
+  fi
+  sleep 2
+done
+if [[ "${ok}" -eq 1 ]]; then
+  echo " OK"
+else
   echo "Health check failed — см. логи:"
   "${DC[@]}" logs api --tail=40
   exit 1
-}
+fi
 
 echo "==> готово"
 "${DC[@]}" ps
