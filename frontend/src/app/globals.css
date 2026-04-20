@@ -89,3 +89,8 @@
 [data-ui-theme="premium_light"] .kpi-card-premium:hover::before {
   opacity: 1;
 }
+
+/* Services page — font-playfair utility */
+.font-playfair {
+  font-family: "Playfair Display", Georgia, serif;
+}

@@ -1,332 +1,273 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { toast } from "sonner";
+import { useCallback, useMemo, useState } from "react";
+import { Download, Plus, Tag } from "lucide-react";
+import { useLocale } from "next-intl";
 
-import { AdminEmptyState } from "@/components/admin/empty-state";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { apiJson } from "@/lib/api";
-import type { Paginated, ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
+import { ServiceCard, ServiceCardSkeleton } from "@/components/services/ServiceCard";
+import { ServiceDeleteModal } from "@/components/services/ServiceDeleteModal";
+import { ServiceDrawer } from "@/components/services/ServiceDrawer";
+import { ServiceFilterTabs } from "@/components/services/ServiceFilterTabs";
+import { ServicesChart } from "@/components/services/ServicesChart";
+import { ServicesKPI } from "@/components/services/ServicesKPI";
+import { useServiceCategories, useServices } from "@/hooks/useServices";
+import { useHealth } from "@/hooks/useServiceStats";
+import { useDebounce } from "@/hooks/useDebounce";
+import type { ServiceOut } from "@/types/admin-api";
 
-const LANGS = ["en", "ru", "uk", "bg"] as const;
+function SyncBadge() {
+  const { data: health } = useHealth();
 
-const emptyI18n = (): Record<(typeof LANGS)[number], string> => ({ en: "", ru: "", uk: "", bg: "" });
+  if (!health) return null;
 
-const categorySchema = z.object({
-  name_en: z.string().min(1),
-  name_ru: z.string().min(1),
-  name_uk: z.string().min(1),
-  name_bg: z.string().min(1),
-  sort_order: z.coerce.number().int(),
-});
-
-const serviceSchema = z.object({
-  category_id: z.string().uuid().optional().nullable(),
-  duration_minutes: z.coerce.number().int().min(1),
-  price: z.coerce.number().min(0),
-  name_en: z.string().min(1),
-  name_ru: z.string().min(1),
-  name_uk: z.string().min(1),
-  name_bg: z.string().min(1),
-  desc_en: z.string().optional(),
-  desc_ru: z.string().optional(),
-  desc_uk: z.string().optional(),
-  desc_bg: z.string().optional(),
-});
-
-type CategoryForm = z.infer<typeof categorySchema>;
-type ServiceForm = z.infer<typeof serviceSchema>;
+  return health.redis ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/60 bg-emerald-50/80 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.1em] text-emerald-700">
+      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+      Бот синхронизирован
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200/60 bg-red-50/80 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.1em] text-red-700">
+      <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+      Бот отключён
+    </span>
+  );
+}
 
 export function ServicesAdmin() {
-  const t = useTranslations("pages.services");
-  const qc = useQueryClient();
+  const locale = useLocale();
 
-  const { data: catData, isLoading: catLoading } = useQuery({
-    queryKey: ["service-categories"],
-    queryFn: () => apiJson<Paginated<ServiceCategoryOut>>("/service-categories?page=1&page_size=100"),
-  });
+  const [activeCategoryId, setActiveCategoryId] = useState<string | undefined>(undefined);
+  const [searchRaw, setSearchRaw] = useState("");
+  const search = useDebounce(searchRaw, 300);
 
-  const { data: svcData, isLoading: svcLoading } = useQuery({
-    queryKey: ["services"],
-    queryFn: () => apiJson<Paginated<ServiceOut>>("/services?page=1&page_size=200"),
-  });
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editServiceId, setEditServiceId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ServiceOut | null>(null);
 
-  const createCategory = useMutation({
-    mutationFn: (v: CategoryForm) =>
-      apiJson<ServiceCategoryOut>("/service-categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name_i18n: { en: v.name_en, ru: v.name_ru, uk: v.name_uk, bg: v.name_bg },
-          sort_order: v.sort_order,
-        }),
-      }),
-    onSuccess: async () => {
-      toast.success(t("toastSaved"));
-      await qc.invalidateQueries({ queryKey: ["service-categories"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const { data: catData } = useServiceCategories();
+  const { data: svcData, isLoading } = useServices(activeCategoryId, search);
 
-  const createService = useMutation({
-    mutationFn: (v: ServiceForm) =>
-      apiJson<ServiceOut>("/services", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category_id: v.category_id || null,
-          duration_minutes: v.duration_minutes,
-          price: v.price,
-          is_active: true,
-          name_i18n: { en: v.name_en, ru: v.name_ru, uk: v.name_uk, bg: v.name_bg },
-          description_i18n: {
-            en: v.desc_en ?? "",
-            ru: v.desc_ru ?? "",
-            uk: v.desc_uk ?? "",
-            bg: v.desc_bg ?? "",
-          },
-        }),
-      }),
-    onSuccess: async () => {
-      toast.success(t("toastSaved"));
-      await qc.invalidateQueries({ queryKey: ["services"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const categories = catData?.items ?? [];
+  const services = svcData?.items ?? [];
 
-  const catForm = useForm<CategoryForm>({
-    resolver: zodResolver(categorySchema),
-    defaultValues: { name_en: "", name_ru: "", name_uk: "", name_bg: "", sort_order: 0 },
-  });
+  const editService = useMemo(
+    () => services.find((s) => s.id === editServiceId) ?? null,
+    [services, editServiceId],
+  );
 
-  const svcForm = useForm<ServiceForm>({
-    resolver: zodResolver(serviceSchema),
-    defaultValues: {
-      category_id: undefined,
-      duration_minutes: 60,
-      price: 0,
-      name_en: "",
-      name_ru: "",
-      name_uk: "",
-      name_bg: "",
-      desc_en: "",
-      desc_ru: "",
-      desc_uk: "",
-      desc_bg: "",
-    },
-  });
+  const openCreate = useCallback(() => {
+    setEditServiceId(null);
+    setDrawerOpen(true);
+  }, []);
 
-  const loading = (catLoading && !catData) || (svcLoading && !svcData);
+  const openEdit = useCallback((id: string) => {
+    setEditServiceId(id);
+    setDrawerOpen(true);
+  }, []);
 
-  if (loading) {
-    return <Skeleton className="h-96 w-full" />;
-  }
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false);
+    setEditServiceId(null);
+  }, []);
+
+  const now = new Date();
+  const dayLabel = new Intl.DateTimeFormat(locale, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(now);
+  const cityLabel = "Sofia";
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("subtitle")}</p>
+      {/* ── Page Header ── */}
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+            · Управление услугами ·
+          </p>
+          <h1 className="font-playfair mt-1 text-3xl font-medium tracking-tight leading-tight">
+            Коллекция{" "}
+            <span className="italic text-primary">услуг</span>
+          </h1>
+          <p className="mt-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
+            ⸻ ✦ ⸻
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {dayLabel} · {cityLabel}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <SyncBadge />
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded border border-border px-4 py-2 text-[11px] font-medium uppercase tracking-wider transition-colors hover:border-primary hover:text-primary"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Экспорт
+          </button>
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex items-center gap-2 rounded bg-primary px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Добавить услугу
+          </button>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-          <div>
-            <CardTitle>{t("categoriesTitle")}</CardTitle>
-            <CardDescription>{t("categoriesDesc")}</CardDescription>
-          </div>
-          <Drawer>
-            <DrawerTrigger asChild>
-              <Button size="sm">
-                <Plus className="mr-1 h-4 w-4" />
-                {t("categoryAdd")}
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent>
-              <DrawerHeader>
-                <DrawerTitle>{t("categoryCreateTitle")}</DrawerTitle>
-              </DrawerHeader>
-              <form
-                onSubmit={catForm.handleSubmit((v) => createCategory.mutate(v))}
-                className="mx-auto w-full max-w-lg space-y-4 px-4 pb-8"
-              >
-                {LANGS.map((lang) => (
-                  <div key={lang} className="space-y-2">
-                    <Label>{t("labelName", { lang: lang.toUpperCase() })}</Label>
-                    <Input {...catForm.register(`name_${lang}` as keyof CategoryForm)} />
-                  </div>
-                ))}
-                <div className="space-y-2">
-                  <Label>{t("labelSort")}</Label>
-                  <Input type="number" {...catForm.register("sort_order")} />
-                </div>
-                <DrawerFooter className="px-0">
-                  <Button type="submit" disabled={createCategory.isPending}>
-                    {t("save")}
-                  </Button>
-                  <DrawerClose asChild>
-                    <Button variant="outline" type="button">
-                      {t("cancel")}
-                    </Button>
-                  </DrawerClose>
-                </DrawerFooter>
-              </form>
-            </DrawerContent>
-          </Drawer>
-        </CardHeader>
-        <CardContent>
-          {!catData?.items.length ? (
-            <AdminEmptyState title={t("categoriesEmpty")} />
-          ) : (
-            <ul className="divide-y rounded-lg border">
-              {catData.items.map((c) => (
-                <li key={c.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                  <span>{c.name_i18n.en ?? c.id}</span>
-                  <span className="text-muted-foreground">{c.sort_order}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      {/* ── KPI Grid ── */}
+      <ServicesKPI />
 
-      <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-          <div>
-            <CardTitle>{t("servicesTitle")}</CardTitle>
-            <CardDescription>{t("servicesDesc")}</CardDescription>
+      {/* ── Analytics Row ── */}
+      <ServicesChart />
+
+      {/* ── Services CRUD ── */}
+      <div className="rounded border border-border bg-card shadow-[0_1px_4px_rgba(28,20,9,.06)]">
+        {/* Card header */}
+        <div className="border-b border-border px-6 py-5">
+          <h2 className="font-playfair text-lg font-medium">Все услуги</h2>
+          <p className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+            Изменения мгновенно применяются в боте
+          </p>
+        </div>
+
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+          <ServiceFilterTabs
+            categories={categories}
+            activeId={activeCategoryId}
+            onChange={setActiveCategoryId}
+            locale={locale}
+          />
+          <div className="relative">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 stroke-muted-foreground"
+              strokeWidth={2}
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path strokeLinecap="round" d="M21 21l-4.35-4.35" />
+            </svg>
+            <input
+              type="text"
+              value={searchRaw}
+              onChange={(e) => setSearchRaw(e.target.value)}
+              placeholder="Поиск…"
+              className="w-60 rounded border border-border bg-muted py-2 pl-8 pr-3 text-[12px] text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+            />
           </div>
-          <Drawer>
-            <DrawerTrigger asChild>
-              <Button size="sm">
-                <Plus className="mr-1 h-4 w-4" />
-                {t("serviceAdd")}
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent className="max-h-[90vh]">
-              <DrawerHeader>
-                <DrawerTitle>{t("serviceCreateTitle")}</DrawerTitle>
-              </DrawerHeader>
-              <form
-                onSubmit={svcForm.handleSubmit((v) => createService.mutate(v))}
-                className="mx-auto w-full max-w-xl space-y-4 overflow-y-auto px-4 pb-8"
-              >
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>{t("fieldDuration")}</Label>
-                    <Input type="number" {...svcForm.register("duration_minutes")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{t("fieldPrice")}</Label>
-                    <Input type="number" step="0.01" {...svcForm.register("price")} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("fieldCategory")}</Label>
-                  <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    {...svcForm.register("category_id")}
-                  >
-                    <option value="">{t("categoryNone")}</option>
-                    {catData?.items.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name_i18n.en}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <Tabs defaultValue="en">
-                  <TabsList className="flex flex-wrap">
-                    {LANGS.map((l) => (
-                      <TabsTrigger key={l} value={l}>
-                        {l.toUpperCase()}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                  {LANGS.map((l) => (
-                    <TabsContent key={l} value={l} className="space-y-3 pt-3">
-                      <div className="space-y-2">
-                        <Label>{t("fieldName")}</Label>
-                        <Input {...svcForm.register(`name_${l}` as keyof ServiceForm)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{t("fieldDesc")}</Label>
-                        <Input {...svcForm.register(`desc_${l}` as keyof ServiceForm)} />
-                      </div>
-                    </TabsContent>
-                  ))}
-                </Tabs>
-                <Button type="button" variant="secondary" onClick={() => toast.message(t("translateSoon"))}>
-                  {t("translateAuto")}
-                </Button>
-                <DrawerFooter className="px-0">
-                  <Button type="submit" disabled={createService.isPending}>
-                    {t("save")}
-                  </Button>
-                  <DrawerClose asChild>
-                    <Button variant="outline" type="button">
-                      {t("cancel")}
-                    </Button>
-                  </DrawerClose>
-                </DrawerFooter>
-              </form>
-            </DrawerContent>
-          </Drawer>
-        </CardHeader>
-        <CardContent>
-          {!svcData?.items.length ? (
-            <AdminEmptyState title={t("servicesEmpty")} />
+        </div>
+
+        {/* Services Grid */}
+        <div className="px-6 pb-6">
+          {isLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <ServiceCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : services.length === 0 ? (
+            <EmptyState onAdd={openCreate} />
           ) : (
-            <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/40 text-left">
-                    <th className="p-2">{t("colName")}</th>
-                    <th className="p-2">{t("colDuration")}</th>
-                    <th className="p-2">{t("colPrice")}</th>
-                    <th className="p-2">{t("colActive")}</th>
-                    <th className="p-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {svcData.items.map((s) => (
-                    <tr key={s.id} className="border-b border-border/60">
-                      <td className="p-2">{s.name_i18n.en}</td>
-                      <td className="p-2">{s.duration_minutes}</td>
-                      <td className="p-2">{s.price}</td>
-                      <td className="p-2">{s.is_active ? t("yes") : t("no")}</td>
-                      <td className="p-2">
-                        <Button variant="ghost" size="icon" disabled aria-label="edit">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {services.map((svc) => (
+                <ServiceCard
+                  key={svc.id}
+                  service={svc}
+                  categories={categories}
+                  locale={locale}
+                  onEdit={openEdit}
+                  onDelete={setDeleteTarget}
+                />
+              ))}
+              {/* Add card */}
+              <AddServiceCard onClick={openCreate} />
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Info footer */}
+        <div className="flex items-center gap-2 border-t border-border px-6 py-4">
+          <svg
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            className="h-3.5 w-3.5 shrink-0 stroke-primary"
+          >
+            <path
+              strokeLinecap="round"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <p className="text-[12px] text-muted-foreground">
+            Изменения синхронизируются с Telegram-ботом мгновенно через Redis
+            Pub/Sub. Переключатель «Скрыта в боте» убирает услугу из меню
+            записи — история записей сохраняется.
+          </p>
+        </div>
+      </div>
+
+      {/* ── ServiceDrawer ── */}
+      <ServiceDrawer
+        open={drawerOpen}
+        serviceId={editServiceId}
+        service={editService}
+        onClose={closeDrawer}
+      />
+
+      {/* ── Delete Modal ── */}
+      <ServiceDeleteModal
+        service={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+      />
     </div>
+  );
+}
+
+function EmptyState({ onAdd }: { onAdd: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-muted">
+        <Tag className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <p className="font-medium text-foreground">
+        Услуг в этой категории пока нет
+      </p>
+      <button
+        type="button"
+        onClick={onAdd}
+        className="mt-1 inline-flex items-center gap-2 rounded bg-primary px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Добавить первую услугу
+      </button>
+    </div>
+  );
+}
+
+function AddServiceCard({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-[190px] flex-col items-center justify-center gap-2.5 rounded border-2 border-dashed border-border bg-muted transition-colors hover:border-primary/40"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        strokeWidth={1.5}
+        className="h-7 w-7 stroke-muted-foreground"
+      >
+        <path strokeLinecap="round" d="M12 4v16m8-8H4" />
+      </svg>
+      <span className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+        Добавить услугу
+      </span>
+    </button>
   );
 }

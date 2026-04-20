@@ -68,9 +68,26 @@ export type ServiceOut = {
   id: string;
   category_id: string | null;
   name_i18n: Record<string, string>;
+  description_i18n: Record<string, string>;
   duration_minutes: number;
   price: string;
   is_active: boolean;
+  sort_order: number;
+  photo_url: string | null;
+  bookings_count?: number;
+  masters_count?: number;
+};
+
+export type ServiceStatsOut = {
+  total: number;
+  active: number;
+  bookings_month: number;
+  avg_revenue: number;
+};
+
+export type HealthOut = {
+  redis: boolean;
+  status: string;
 };
 
 export type ServiceCategoryOut = {
