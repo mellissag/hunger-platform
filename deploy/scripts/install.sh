@@ -6,13 +6,26 @@
 #   curl -fsSL https://github.com/OWNER/REPO/releases/latest/download/install.sh | sudo bash
 #
 # Требования: Ubuntu 22.04 / 24.04, открытые порты 80/443, домен с A-записью на VPS.
+#
+# Примеры:
+#   Интерактивно (чистый VPS):
+#     sudo bash deploy/scripts/install.sh
+#
+#   Без вопросов (CI / Ansible), из уже клонированного репо:
+#     sudo NONINTERACTIVE=1 SKIP_CLONE=1 INSTALL_DIR=/opt/hunger-platform \
+#       DOMAIN=beauty.example.com LETSENCRYPT_EMAIL=you@mail.com \
+#       TELEGRAM_BOT_TOKEN='123:ABC...' \
+#       bash deploy/scripts/install.sh
+#
+#   Порты 80/443 заняты (только отладка): SKIP_PORT_CHECK=1
+#   Приватные образы GHCR: GITHUB_TOKEN + опционально GHCR_USERNAME
 # =============================================================================
 set -euo pipefail
 
 # ── Настройки (переопределяются переменными среды) ────────────────────────────
-: "${GHCR_REPO:=ghcr.io/hunger-platform/hunger-beauty}"
+: "${GITHUB_REPOSITORY:=mellissag/hunger-platform}"
 : "${IMAGE_TAG:=latest}"
-: "${REPO_URL:=https://github.com/hunger-platform/hunger-beauty.git}"
+: "${REPO_URL:=https://github.com/${GITHUB_REPOSITORY}.git}"
 : "${INSTALL_DIR:=/opt/hunger-platform}"
 : "${LOG_FILE:=/tmp/hunger-install.log}"
 
@@ -75,9 +88,13 @@ check_os() {
 }
 
 check_ports() {
+  if [[ "${SKIP_PORT_CHECK:-}" == "1" ]]; then
+    warn "SKIP_PORT_CHECK=1 — пропускаю проверку портов 80/443"
+    return
+  fi
   for port in 80 443; do
     if ss -tlnp "sport = :${port}" 2>/dev/null | grep -q LISTEN; then
-      die "Порт ${port} уже занят. Освободите его перед установкой."
+      die "Порт ${port} уже занят. Освободите его или задайте SKIP_PORT_CHECK=1 (отладка)."
     fi
   done
   log "Порты 80 и 443 свободны"
@@ -120,12 +137,17 @@ install_docker() {
 
 # ── Clone repo ────────────────────────────────────────────────────────────────
 clone_repo() {
-  step "Клонирование репозитория"
+  step "Клонирование / обновление репозитория"
 
-  if [[ -d "${INSTALL_DIR}/.git" ]]; then
+  if [[ "${SKIP_CLONE:-}" == "1" ]]; then
+    [[ -d "${INSTALL_DIR}/.git" ]] || die "SKIP_CLONE=1: ожидается клон git в ${INSTALL_DIR}"
+    info "SKIP_CLONE=1 — использую дерево ${INSTALL_DIR}"
+    cd "${INSTALL_DIR}"
+    git fetch --all --tags 2>>"${LOG_FILE}" || true
+  elif [[ -d "${INSTALL_DIR}/.git" ]]; then
     warn "Директория ${INSTALL_DIR} уже существует — обновляю..."
     cd "${INSTALL_DIR}"
-    git fetch --all --tags --quiet 2>>"${LOG_FILE}"
+    git fetch --all --tags 2>>"${LOG_FILE}" || true
   else
     info "Клонирую в ${INSTALL_DIR}..."
     mkdir -p "$(dirname "${INSTALL_DIR}")"
@@ -133,19 +155,31 @@ clone_repo() {
     cd "${INSTALL_DIR}"
   fi
 
-  # Checkout latest semver tag
-  LATEST_TAG=$(git tag --list 'v*' --sort=-version:refname 2>/dev/null | head -n1 || true)
-  if [[ -n "${LATEST_TAG}" ]]; then
-    info "Переключаюсь на последний релиз: ${LATEST_TAG}"
-    git checkout --quiet "${LATEST_TAG}" 2>>"${LOG_FILE}"
-    log "Версия: ${LATEST_TAG}"
-  else
-    warn "Теги vX.Y.Z не найдены — использую HEAD"
+  # Актуальный main (образы GHCR собираются с main)
+  if git show-ref --verify --quiet refs/heads/main; then
+    git checkout main 2>>"${LOG_FILE}"
+  elif git show-ref --verify --quiet refs/remotes/origin/main; then
+    git checkout -B main origin/main 2>>"${LOG_FILE}"
   fi
+  git pull --ff-only origin main 2>>"${LOG_FILE}" || git pull --ff-only 2>>"${LOG_FILE}" || true
+  log "Код: main @ $(git rev-parse --short HEAD 2>/dev/null || echo "?")"
 }
 
 # ── Interactive config ─────────────────────────────────────────────────────────
 prompt_config() {
+  if [[ "${NONINTERACTIVE:-}" == "1" ]]; then
+    step "Настройка платформы (NONINTERACTIVE)"
+    DOMAIN="${DOMAIN:-}"
+    LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
+    TG_TOKEN="${TELEGRAM_BOT_TOKEN:-${TG_TOKEN:-}}"
+    GEMINI_KEY="${GEMINI_KEY:-}"
+    [[ -n "${DOMAIN}" ]] || die "NONINTERACTIVE=1: задайте DOMAIN=..."
+    [[ "${LETSENCRYPT_EMAIL}" == *@* ]] || die "NONINTERACTIVE=1: задайте LETSENCRYPT_EMAIL=..."
+    [[ -n "${TG_TOKEN}" ]] || die "NONINTERACTIVE=1: задайте TELEGRAM_BOT_TOKEN=..."
+    export DOMAIN LETSENCRYPT_EMAIL TG_TOKEN GEMINI_KEY
+    return
+  fi
+
   step "Настройка платформы"
   echo ""
   echo "  Для работы необходимы:"
@@ -227,8 +261,7 @@ GEMINI_API_KEY=${GEMINI_KEY}
 SEED_PASSWORD=${OWNER_PASSWORD}
 
 # ── Docker / GHCR ─────────────────────────────────────────────────────────────
-# Установите GITHUB_REPOSITORY = owner/repo-name вашего форка, если собираете сами
-GITHUB_REPOSITORY=hunger-platform/hunger-beauty
+GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
 IMAGE_TAG=${IMAGE_TAG}
 
 # ── SMTP (опционально) ────────────────────────────────────────────────────────
@@ -265,6 +298,13 @@ wait_for_postgres() {
 # ── Pull images ────────────────────────────────────────────────────────────────
 pull_images() {
   step "Загрузка Docker образов"
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    info "docker login ghcr.io (GITHUB_TOKEN)..."
+    # owner — первая часть GITHUB_REPOSITORY, если GHCR_USERNAME не задан
+    : "${GHCR_USERNAME:=${GITHUB_REPOSITORY%%/*}}"
+    echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GHCR_USERNAME}" --password-stdin 2>>"${LOG_FILE}" \
+      || warn "docker login ghcr.io не удался — пробую pull без логина (публичные образы)"
+  fi
   info "Загружаю образы из GHCR (это может занять несколько минут)..."
   dc pull --quiet 2>>"${LOG_FILE}" || {
     warn "Не удалось загрузить pre-built образы — собираю из исходников..."
