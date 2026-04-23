@@ -6,7 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, Text, func, text
+from sqlalchemy import BigInteger, Boolean, DateTime, Integer, Numeric, String, Text, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,6 +14,7 @@ from app.db.base import Base
 from app.models.mixins import UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.catalog import MasterService
     from app.models.user import User
 
 
@@ -36,6 +37,16 @@ class Master(UUIDPrimaryKeyMixin, Base):
     payroll_percent: Mapped[Decimal] = mapped_column(
         Numeric(5, 2), nullable=False, default=Decimal("40.00")
     )
+    working_hours: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    portfolio: Mapped[list[Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
+    tg_user_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    certificates: Mapped[list[Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -45,3 +56,8 @@ class Master(UUIDPrimaryKeyMixin, Base):
     )
 
     users: Mapped[list["User"]] = relationship("User", back_populates="master_profile")
+    master_services: Mapped[list["MasterService"]] = relationship(
+        "MasterService",
+        back_populates="master",
+        passive_deletes=True,
+    )

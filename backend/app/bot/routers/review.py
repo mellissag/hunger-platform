@@ -7,7 +7,7 @@ import uuid
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
-from sqlalchemy import func, select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.fluent_i18n import format_message
@@ -16,7 +16,7 @@ from app.bot.salon_context import get_ai_enabled, get_mini_app_enabled, get_mini
 from app.bot.states import ReviewStates
 from app.models.booking import Booking, Review
 from app.models.client import Client
-from app.models.master import Master
+from app.services.master_phase20 import recalc_master_rating
 
 router = Router(name="review")
 
@@ -129,21 +129,12 @@ async def _save_review(
         master_id=booking.master_id,
         rating=rating,
         comment=comment,
-        is_published=True,
+        source="bot",
+        is_visible=True,
     )
     db.add(review)
-
-    # Update master rating_avg and rating_count atomically
-    await db.execute(
-        update(Master)
-        .where(Master.id == booking.master_id)
-        .values(
-            rating_count=Master.rating_count + 1,
-            rating_avg=(
-                func.coalesce(Master.rating_avg, 0) * Master.rating_count + rating
-            ) / (Master.rating_count + 1),
-        )
-    )
+    await db.flush()
+    await recalc_master_rating(db, booking.master_id)
     await db.commit()
     await state.clear()
 

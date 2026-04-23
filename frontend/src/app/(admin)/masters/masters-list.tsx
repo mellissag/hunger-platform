@@ -1,31 +1,28 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { ChevronRight } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
-import Link from "next/link";
+import { Plus } from "lucide-react";
+import { useState } from "react";
+import { useTranslations } from "next-intl";
 
+import { CreateMasterDrawer } from "@/components/masters/CreateMasterDrawer";
+import { MasterCard } from "@/components/masters/MasterCard";
+import { MastersKPI } from "@/components/masters/MastersKPI";
 import { AdminEmptyState } from "@/components/admin/empty-state";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiJson } from "@/lib/api";
-import type { MasterOut, Paginated } from "@/types/admin-api";
+import { useMastersList } from "@/hooks/useMasters";
 
 export function MastersList() {
   const t = useTranslations("pages.masters");
-  const locale = useLocale();
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["masters", "list"],
-    queryFn: () => apiJson<Paginated<MasterOut>>("/masters?page=1&page_size=100"),
-  });
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const { data, isLoading } = useMastersList();
+  const masters = data?.items ?? [];
 
   if (isLoading && !data) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="masters-grid">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-40" />
+          <Skeleton key={i} className="h-[380px] rounded-md" />
         ))}
       </div>
     );
@@ -33,44 +30,41 @@ export function MastersList() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("subtitle")}</p>
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">{t("pageSubtitle")}</p>
+          <h1 className="font-playfair text-3xl font-semibold tracking-tight">{t("pageTitle")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("ornament")}</p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <Button onClick={() => setDrawerOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t("addMaster")}
+          </Button>
+        </div>
       </div>
-      {!data?.items.length ? (
+
+      {!masters.length ? (
         <AdminEmptyState title={t("empty")} description={t("emptyDesc")} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data.items.map((m) => (
-            <Card key={m.id} className="overflow-hidden">
-              <CardHeader className="space-y-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div
-                    className="h-10 w-10 shrink-0 rounded-full border-2"
-                    style={{ borderColor: m.color_hex, backgroundColor: `${m.color_hex}22` }}
-                  />
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/masters/${m.id}`}>
-                      {t("edit")}
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-                <CardTitle className="text-lg">{m.display_name}</CardTitle>
-                <CardDescription>
-                  {t("rating", {
-                    value: m.rating_avg ? Number.parseFloat(m.rating_avg).toFixed(1) : "—",
-                    count: m.rating_count,
-                  })}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-xs text-muted-foreground">
-                {m.is_active ? t("statusActive") : t("statusInactive")} · {locale.toUpperCase()}
-              </CardContent>
-            </Card>
+        <div className="masters-grid">
+          {masters.map((m) => (
+            <MasterCard key={m.id} master={m} />
           ))}
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-dashed border-muted-foreground/40 bg-muted/30 p-6 text-sm text-muted-foreground transition hover:border-primary hover:text-foreground"
+          >
+            <Plus className="mb-2 h-8 w-8" />
+            {t("addCard")}
+          </button>
         </div>
       )}
+
+      <MastersKPI masters={masters} />
+
+      <CreateMasterDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </div>
   );
 }

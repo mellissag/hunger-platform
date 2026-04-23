@@ -67,6 +67,36 @@ def _parse_hhmm(s: str) -> time:
     return time(h, m)
 
 
+def _ranges_from_master_working_json(
+    day: date, tz_name: str, wh: dict[str, Any]
+) -> list[tuple[datetime, datetime]] | None:
+    """Окна из master.working_hours (Phase 20). None — нет данных для этого дня, использовать слоты/салон."""
+    if not wh:
+        return None
+    wk = _WEEKDAY_KEYS[day.weekday()]
+    if wk not in wh:
+        return None
+    seg = wh.get(wk)
+    if not isinstance(seg, dict):
+        return None
+    if seg.get("enabled") is False:
+        return []
+    z = ZoneInfo(tz_name)
+    open_t = _parse_hhmm(str(seg.get("start") or "10:00"))
+    close_t = _parse_hhmm(str(seg.get("end") or "19:00"))
+    win_start = datetime.combine(day, open_t, tzinfo=z)
+    win_end = datetime.combine(day, close_t, tzinfo=z)
+    if win_end <= win_start:
+        win_end += timedelta(days=1)
+    day_start = datetime.combine(day, time.min, tzinfo=z).astimezone(UTC)
+    day_end = day_start + timedelta(days=1)
+    ra = max(win_start.astimezone(UTC), day_start)
+    rb = min(win_end.astimezone(UTC), day_end)
+    if ra >= rb:
+        return []
+    return [(ra, rb)]
+
+
 def _default_local_window(
     day: date, tz_name: str, working_hours_default: dict[str, Any]
 ) -> tuple[datetime, datetime]:
@@ -126,6 +156,34 @@ async def _working_ranges_for_day(
     z = ZoneInfo(ctx.timezone)
     day_start = datetime.combine(day, time.min, tzinfo=z).astimezone(UTC)
     day_end = day_start + timedelta(days=1)
+
+    m = await db.get(Master, master_id)
+    if m is not None and isinstance(m.working_hours, dict) and m.working_hours:
+        jr = _ranges_from_master_working_json(day, ctx.timezone, m.working_hours)
+        if jr is not None:
+            merged = _merge_ranges(jr) if jr else []
+            block_types = (
+                SlotType.vacation,
+                SlotType.sick,
+                SlotType.block,
+                SlotType.break_,
+            )
+            blocks = (
+                await db.execute(
+                    select(ScheduleSlot).where(
+                        ScheduleSlot.master_id == master_id,
+                        ScheduleSlot.slot_type.in_(block_types),
+                        ScheduleSlot.starts_at < day_end,
+                        ScheduleSlot.ends_at > day_start,
+                    )
+                )
+            ).scalars().all()
+            for b in blocks:
+                ba = max(b.starts_at, day_start)
+                bb = min(b.ends_at, day_end)
+                if ba < bb:
+                    merged = _subtract_range(merged, (ba, bb))
+            return [x for x in merged if x[0] < x[1]]
 
     working_rows = (
         await db.execute(

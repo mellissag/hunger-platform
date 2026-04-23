@@ -53,3 +53,13 @@ export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<
   }
   return res.json() as Promise<T>;
 }
+
+/** Multipart: do not set Content-Type (browser sets boundary). */
+export async function apiFormData<T>(path: string, form: FormData): Promise<T> {
+  const res = await apiFetch(path, { method: "POST", body: form });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(errorMessageFromBody(err, res.statusText));
+  }
+  return res.json() as Promise<T>;
+}

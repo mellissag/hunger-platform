@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, Text, Uuid, func, text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -13,6 +13,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.mixins import UUIDPrimaryKeyMixin
+
+if TYPE_CHECKING:
+    from app.models.master import Master
 
 
 class ServiceCategory(UUIDPrimaryKeyMixin, Base):
@@ -57,6 +60,11 @@ class Service(UUIDPrimaryKeyMixin, Base):
     category: Mapped[ServiceCategory | None] = relationship(
         "ServiceCategory", back_populates="services"
     )
+    master_services: Mapped[list["MasterService"]] = relationship(
+        "MasterService",
+        back_populates="service",
+        passive_deletes=True,
+    )
 
 
 class MasterService(Base):
@@ -74,3 +82,6 @@ class MasterService(Base):
     )
     price_override: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
     duration_override: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    master: Mapped["Master"] = relationship("Master", back_populates="master_services")
+    service: Mapped["Service"] = relationship("Service", back_populates="master_services")

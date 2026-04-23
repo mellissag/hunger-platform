@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
+import os
 from datetime import UTC, datetime, time
 from decimal import Decimal
+from pathlib import Path
 from uuid import UUID
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, KeyboardButton, Message, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from aiogram.types import (
+    CallbackQuery,
+    FSInputFile,
+    InputMediaPhoto,
+    KeyboardButton,
+    Message,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from zoneinfo import ZoneInfo
@@ -41,6 +51,28 @@ from app.services.notification_service import AdminEvent, get_admin_notify_chat_
 from app.services.schedule_service import get_schedule_context
 
 router = Router(name="booking")
+
+
+async def _send_master_portfolio_preview(message: Message, bot, master: Master) -> None:
+    items = list(master.portfolio or [])[:3]
+    if not items:
+        return
+    group: list[InputMediaPhoto] = []
+    upload_root = Path(os.environ.get("UPLOAD_DIR", "./data/uploads"))
+    for p in items:
+        url = str(p.get("url") or "")
+        caption_raw = str(p.get("caption") or "")
+        caption = caption_raw[:900] if caption_raw else None
+        if url.startswith("/media/"):
+            rel = url.replace("/media/", "").lstrip("/")
+            path = upload_root / rel
+            if path.is_file():
+                group.append(InputMediaPhoto(media=FSInputFile(path), caption=caption))
+        elif url.startswith("http"):
+            group.append(InputMediaPhoto(media=url, caption=caption))
+    if not group:
+        return
+    await bot.send_media_group(chat_id=message.chat.id, media=group)
 
 
 async def _salon_phone(db: AsyncSession) -> str:
@@ -125,6 +157,9 @@ async def cb_master_picked(
     await query.answer()
     mid = UUID(query.data.split(":")[-1])
     await state.update_data(master_id=str(mid))
+    m = await db.get(Master, mid)
+    if m is not None:
+        await _send_master_portfolio_preview(query.message, query.bot, m)
     await state.set_state(BookingStates.pick_service_for_master)
     await render_services_for_master(query, db, locale, state)
 
@@ -271,6 +306,9 @@ async def cb_master_picked_sf(
     await query.answer()
     mid = UUID(query.data.split(":")[-1])
     await state.update_data(master_id=str(mid))
+    m = await db.get(Master, mid)
+    if m is not None:
+        await _send_master_portfolio_preview(query.message, query.bot, m)
     await show_date_calendar(query.message, db, state, locale)
 
 
@@ -657,6 +695,7 @@ async def _finalize_booking(
                 master_id=master_id,
                 service_id=service_id,
                 starts_at=starts_at,
+                telegram_bot=query.bot,
             )
     except SlotTakenError:
         await query.message.edit_text(format_message(locale, "error-slot-taken"))

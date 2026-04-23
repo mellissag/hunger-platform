@@ -201,6 +201,7 @@ async def get_slots(
 
 @router.post("/bookings", response_model=MiniAppBookingOut)
 async def create_booking(
+    request: Request,
     payload: MiniAppBookingCreate,
     current_user: MiniAppUser,
     db: AsyncSession = Depends(get_db),
@@ -231,6 +232,7 @@ async def create_booking(
             master_id=_uuid.UUID(payload.master_id),
             service_id=_uuid.UUID(payload.service_id),
             starts_at=_dt.fromisoformat(payload.starts_at),
+            telegram_bot=getattr(request.app.state, "bot", None),
         )
     except ClientBlacklistedError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Client is blacklisted")

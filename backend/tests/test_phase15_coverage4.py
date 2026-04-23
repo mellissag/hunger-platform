@@ -394,10 +394,14 @@ async def test_masters_crud_api(http, owner_email_pass):
         "/api/v1/masters",
         json={
             "display_name": "API Master",
+            "email": "api_master_phase15_test@example.com",
+            "password": "secretpass12",
             "bio": {"en": "bio", "ru": "bio", "uk": "bio", "bg": "bio"},
             "specialization": {"en": "spec", "ru": "spec", "uk": "spec", "bg": "spec"},
             "is_active": True,
             "sort_order": 0,
+            "service_ids": [],
+            "certificates": [],
         },
         headers=headers,
     )

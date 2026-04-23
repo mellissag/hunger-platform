@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import or_, select
@@ -15,6 +16,10 @@ from app.models.enums import BookingCreatedVia
 from app.schemas.booking import BookingCreate
 from app.services import booking_service
 from app.services.bot_actor import get_bot_actor_user
+from app.services.notifications import notify_master_new_booking
+
+if TYPE_CHECKING:
+    from aiogram import Bot
 
 
 async def is_blacklisted(db: AsyncSession, client_id: UUID) -> bool:
@@ -35,6 +40,7 @@ async def create_tg_booking(
     master_id: UUID,
     service_id: UUID,
     starts_at: datetime,
+    telegram_bot: "Bot | None" = None,
 ) -> Booking:
     actor = await get_bot_actor_user(db)
     data = BookingCreate(
@@ -44,7 +50,9 @@ async def create_tg_booking(
         starts_at=starts_at,
         created_via=BookingCreatedVia.bot,
     )
-    return await booking_service.create_booking(db, actor, data)
+    b = await booking_service.create_booking(db, actor, data)
+    await notify_master_new_booking(b.id, telegram_bot, db)
+    return b
 
 
 async def list_client_bookings(db: AsyncSession, client_id: UUID) -> list[Booking]:

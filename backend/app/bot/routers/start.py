@@ -6,10 +6,12 @@ from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, WebAppInfo
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.salon_context import get_mini_app_url
 from app.models.client import Client
+from app.models.master import Master
 from app.services.client_bot_activity import on_command_start_session
 
 router = Router(name="start")
@@ -33,6 +35,18 @@ async def cmd_start(
     await state.clear()
     on_command_start_session(tg_client)
     await db.flush()
+
+    master_row = (
+        await db.execute(select(Master).where(Master.tg_user_id == message.from_user.id))
+    ).scalar_one_or_none()
+    if master_row is not None:
+        await message.answer(
+            f"Здравствуйте, {master_row.display_name}!\n"
+            f"Вы зарегистрированы как мастер. "
+            f"Через этот бот вы будете получать уведомления о новых записях."
+        )
+        return
+
     mini_app_url = await get_mini_app_url(db)
 
     # ReplyKeyboardMarkup with is_persistent=True replaces the text input field

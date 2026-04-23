@@ -537,11 +537,15 @@ async def test_master_list_and_create(owner_user):
         u = await s.get(User, owner_user.id)
         data = MasterCreate(
             display_name="New Master",
+            email="new_master_phase15@example.com",
+            password="secretpass12",
             bio={"en": "bio", "ru": "биo", "uk": "біо", "bg": "биo"},
             specialization={"en": "nails", "ru": "ногти", "uk": "нігті", "bg": "нокти"},
             is_active=True,
             sort_order=0,
             payroll_percent=40,
+            service_ids=[],
+            certificates=[],
         )
         m = await create_master(s, u, data)
         await s.commit()
@@ -655,6 +659,17 @@ async def test_master_delete_not_found(owner_user):
         u = await s.get(User, owner_user.id)
         with pytest.raises(NotFoundError):
             await delete_master(s, u, uuid.uuid4())
+
+
+@pytest.mark.asyncio
+async def test_master_delete_forbidden_for_admin(admin_user, master_record):
+    from app.services.master_service import delete_master
+    from app.core.exceptions import ForbiddenScopeError
+    factory = get_async_session_factory()
+    async with factory() as s:
+        u = await s.get(User, admin_user.id)
+        with pytest.raises(ForbiddenScopeError):
+            await delete_master(s, u, master_record.id)
 
 
 @pytest.mark.asyncio

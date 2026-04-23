@@ -217,7 +217,7 @@ async def get_client_detail(
     r_stmt = (
         select(Review, Master)
         .join(Master, Master.id == Review.master_id)
-        .where(Review.client_id == client_id)
+        .where(Review.client_id == client_id, Review.is_visible.is_(True))
         .order_by(Review.created_at.desc())
     )
     rrows = (await db.execute(r_stmt)).all()

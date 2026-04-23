@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import TYPE_CHECKING
 from datetime import datetime
 from decimal import Decimal
 
@@ -24,6 +25,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from app.models.enums import BookingCreatedVia, BookingStatus, PrepaymentStatus
 from app.models.mixins import CreatedAtMixin, UUIDPrimaryKeyMixin
+
+if TYPE_CHECKING:
+    from app.models.client import Client
+    from app.models.master import Master
 
 
 class Booking(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
@@ -103,7 +108,10 @@ class Booking(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         "Review",
         back_populates="booking",
         uselist=False,
+        foreign_keys="Review.booking_id",
     )
+    master: Mapped["Master"] = relationship("Master", foreign_keys=[master_id])
+    client: Mapped["Client"] = relationship("Client", foreign_keys=[client_id])
 
 
 class Review(UUIDPrimaryKeyMixin, Base):
@@ -113,16 +121,15 @@ class Review(UUIDPrimaryKeyMixin, Base):
         CheckConstraint("rating >= 1 AND rating <= 5", name="ck_review_rating_range"),
     )
 
-    booking_id: Mapped[uuid.UUID] = mapped_column(
+    booking_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),
-        ForeignKey("booking.id", ondelete="CASCADE"),
-        nullable=False,
-        unique=True,
+        ForeignKey("booking.id", ondelete="SET NULL"),
+        nullable=True,
     )
-    client_id: Mapped[uuid.UUID] = mapped_column(
+    client_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),
-        ForeignKey("client.id", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("client.id", ondelete="SET NULL"),
+        nullable=True,
     )
     master_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),
@@ -131,13 +138,18 @@ class Review(UUIDPrimaryKeyMixin, Base):
     )
     rating: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
-    is_published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    source: Mapped[str] = mapped_column(Text, nullable=False, default="bot")
+    is_visible: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    booking: Mapped["Booking"] = relationship("Booking", back_populates="review")
+    booking: Mapped["Booking | None"] = relationship(
+        "Booking",
+        back_populates="review",
+        foreign_keys=[booking_id],
+    )
 
 
 class BlacklistEntry(UUIDPrimaryKeyMixin, Base):

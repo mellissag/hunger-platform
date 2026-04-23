@@ -150,6 +150,15 @@ async def create_booking(db: AsyncSession, user: User, data: BookingCreate) -> B
             created_via=data.created_via,
             exclude_booking_id=None,
         )
+    elif data.created_via in (BookingCreatedVia.admin, BookingCreatedVia.manual):
+        await schedule_service.validate_booking_window(
+            db,
+            master_id=data.master_id,
+            starts_at=data.starts_at,
+            ends_at=ends_at,
+            created_via=BookingCreatedVia.admin,
+            exclude_booking_id=None,
+        )
 
     await _assert_slot_free(
         db,

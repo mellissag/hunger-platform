@@ -131,13 +131,77 @@ export type ClientDetailOut = ClientOut & {
   broadcasts: ClientBroadcastHistoryOut[];
 };
 
+export type MasterServiceSlim = {
+  id: string;
+  name: string;
+};
+
 export type MasterOut = {
   id: string;
   display_name: string;
   color_hex: string;
+  bio: Record<string, string>;
+  specialization: Record<string, string>;
+  photo_url: string | null;
   rating_avg: string | null;
   rating_count: number;
   is_active: boolean;
+  sort_order: number;
+  payroll_percent: string;
+  tg_user_id: number | null;
+  certificates: string[];
+  working_hours: Record<string, { enabled?: boolean; start?: string; end?: string }>;
+  portfolio: { url: string; caption?: string; sort?: number }[];
+  services: MasterServiceSlim[];
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type MasterServiceRow = {
+  service_id: string;
+  price_override: string | null;
+  duration_override: number | null;
+  service_name: string;
+};
+
+export type MastersTodayStats = {
+  bookings_today: number;
+  revenue_month: number;
+};
+
+export type MasterStats = {
+  total_bookings: number;
+  completed_bookings: number;
+  cancelled_bookings: number;
+  revenue: number;
+  avg_check: number | null;
+  no_show_count: number;
+  top_services: { service_name: string; count: number; revenue: number }[];
+  bookings_by_month: { month: string; count: number; revenue: number }[];
+  rating_avg: number | null;
+  rating_count: number;
+  unique_clients: number;
+  repeat_clients: number;
+};
+
+export type ReviewOut = {
+  id: string;
+  master_id: string;
+  client_id: string | null;
+  booking_id: string | null;
+  rating: number;
+  text: string | null;
+  source: string;
+  is_visible: boolean;
+  created_at: string;
+  client: { id: string; name: string | null } | null;
+};
+
+export type ReviewsPage = {
+  items: ReviewOut[];
+  total: number;
+  avg: number | null;
+  breakdown: Record<string, number>;
 };
 
 export type ServiceOut = {

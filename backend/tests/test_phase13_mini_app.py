@@ -247,26 +247,20 @@ async def test_review_saved_and_master_rating_updated(
         db.add(booking)
         await db.flush()
 
-        from sqlalchemy import func, update
         review = Review(
             booking_id=booking.id,
             client_id=client_obj.id,
             master_id=test_master.id,
             rating=5,
             comment="Excellent!",
-            is_published=True,
+            source="bot",
+            is_visible=True,
         )
         db.add(review)
-        await db.execute(
-            update(Master)
-            .where(Master.id == test_master.id)
-            .values(
-                rating_count=Master.rating_count + 1,
-                rating_avg=(
-                    func.coalesce(Master.rating_avg, 0) * Master.rating_count + 5
-                ) / (Master.rating_count + 1),
-            )
-        )
+        await db.flush()
+        from app.services.master_phase20 import recalc_master_rating
+
+        await recalc_master_rating(db, test_master.id)
         await db.commit()
 
         # Re-query master in same session to check updated fields
