@@ -36,6 +36,7 @@ from app.models.master import Master
 from app.models.salon import Salon, Settings
 from app.services import schedule_service
 from app.services.bot_booking import create_tg_booking, is_blacklisted, reschedule_tg_booking
+from app.services.client_bot_activity import bump_client_funnel
 from app.services.notification_service import AdminEvent, get_admin_notify_chat_id, notify_admin
 from app.services.schedule_service import get_schedule_context
 
@@ -64,6 +65,7 @@ async def cb_book_entry(
             format_message(locale, "blacklist-blocked", {"phone": await _salon_phone(db)}),
         )
         return
+    bump_client_funnel(tg_client, "started_booking")
     await state.set_state(BookingStates.start)
     await state.update_data(m_page=0, t_page=0, cal_year=None, cal_month=None)
     await query.message.edit_text(
@@ -680,6 +682,7 @@ async def _finalize_booking(
         return
 
     m = await db.get(Master, b.master_id)
+    bump_client_funnel(tg_client, "completed_booking")
     await state.clear()
     await query.message.edit_text(
         format_message(

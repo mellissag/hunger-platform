@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import (
     BigInteger,
@@ -20,7 +20,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -40,6 +40,7 @@ class Client(UUIDPrimaryKeyMixin, Base):
     phone: Mapped[str | None] = mapped_column(Text, nullable=True)
     first_name: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    city: Mapped[str | None] = mapped_column(Text, nullable=True)
     birthday: Mapped[date | None] = mapped_column(Date, nullable=True)
     lang: Mapped[str] = mapped_column(Text, nullable=False, default="en")
     joined_at: Mapped[datetime] = mapped_column(
@@ -61,6 +62,15 @@ class Client(UUIDPrimaryKeyMixin, Base):
     last_visit_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     tags: Mapped[list[str]] = mapped_column(
         ARRAY(Text), nullable=False, server_default=text("'{}'::text[]")
+    )
+    joined_bot_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_bot_activity_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    total_bot_sessions: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    bot_blocked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    funnel_stats: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
     )
     prefers_no_ai: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     marketing_opted_out: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

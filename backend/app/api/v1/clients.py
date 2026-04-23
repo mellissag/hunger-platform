@@ -6,32 +6,43 @@ from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from aiogram import Bot
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.deps import get_db, require_roles
+from app.deps import get_db, get_telegram_bot, require_roles
 from app.models.enums import UserRole
 from app.models.client import Client as ClientModel
 from app.models.user import User
 from app.schemas.client import (
     BlacklistEntrySlimOut,
+    ClientAIDialogOut,
     ClientBookingHistoryOut,
+    ClientBroadcastHistoryOut,
     ClientCreate,
     ClientDetailOut,
+    ClientFunnelStatsOut,
     ClientOut,
     ClientReviewOut,
     ClientStatsOut,
     ClientUpdate,
+    ResolveTelegramResponse,
+    SendMessageRequest,
+    SendMessageResponse,
 )
 from app.schemas.client_note import ClientNoteCreate, ClientNoteOut, ClientNotePinBody, ClientNoteUpdate
 from app.schemas.common import PaginatedResponse
 from app.services import client_note_service
 from app.services import client_service
+from app.services.audit_log import record_event
+from app.services.bot_booking import is_blacklisted
 
 router = APIRouter(prefix="/clients", tags=["clients"])
 
 STAFF = (UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)
+ADMINS = (UserRole.owner, UserRole.admin)
 
 
 def _to_out(c: ClientModel, tb: int, tr: Decimal) -> ClientOut:
@@ -42,10 +53,15 @@ def _to_out(c: ClientModel, tb: int, tr: Decimal) -> ClientOut:
         phone=c.phone,
         first_name=c.first_name,
         last_name=c.last_name,
+        city=c.city,
         birthday=c.birthday,
         lang=c.lang,
         source=c.source,
         joined_at=c.joined_at,
+        joined_bot_at=c.joined_bot_at,
+        last_bot_activity_at=c.last_bot_activity_at,
+        total_bot_sessions=c.total_bot_sessions,
+        bot_blocked=c.bot_blocked,
         total_bookings=tb,
         total_revenue=tr,
         no_show_count=c.no_show_count,
@@ -72,16 +88,18 @@ async def export_clients(
     search: str | None = Query(None),
     q: str | None = Query(None),
     tag: list[str] | None = Query(None),
+    tags: str | None = Query(None, description="Comma-separated tags (same as multiple tag=)"),
     master_id: UUID | None = None,
     last_visit_days: str | None = Query(None),
     export_format: str = Query("csv", alias="format", description="csv"),
 ) -> Response:
     eff = (search or q or "").strip() or None
+    tag_params = client_service.normalize_client_tag_filters(tag, tags)
     body = await client_service.export_clients_csv_bytes(
         db,
         user,
         q=eff,
-        tags=tag,
+        tags=tag_params,
         master_id=master_id,
         last_visit_days=last_visit_days,
     )
@@ -101,17 +119,19 @@ async def list_clients(
     search: str | None = Query(None),
     q: str | None = Query(None),
     tag: list[str] | None = Query(None),
+    tags: str | None = Query(None, description="Comma-separated tags"),
     master_id: UUID | None = None,
     last_visit_days: str | None = Query(None),
 ) -> PaginatedResponse[ClientOut]:
     eff = (search or q or "").strip() or None
+    tag_params = client_service.normalize_client_tag_filters(tag, tags)
     rows, total = await client_service.list_clients(
         db,
         user,
         q=eff,
         page=page,
         page_size=page_size,
-        tags=tag,
+        tags=tag_params,
         master_id=master_id,
         last_visit_days=last_visit_days,
     )
@@ -164,13 +184,121 @@ async def get_client_detail(
     bl_out: BlacklistEntrySlimOut | None = None
     if be is not None:
         bl_out = BlacklistEntrySlimOut(id=be.id, reason=be.reason, created_at=be.created_at)
+
+    extras = await client_service.client_detail_extras(db, user, client_id, c, tb, tr)
+
     return ClientDetailOut(
         **base.model_dump(),
         notes=notes,
         bookings=bookings,
         reviews=reviews,
         blacklist_entry=bl_out,
+        avg_check=extras["avg_check"],
+        favourite_service=extras["favourite_service"],
+        favourite_master=extras["favourite_master"],
+        funnel_stats=ClientFunnelStatsOut.model_validate(extras["funnel_stats"]),
+        bot_language=extras["bot_language"],
+        ai_dialogs=[ClientAIDialogOut.model_validate(x) for x in extras["ai_dialogs"]],
+        broadcasts=[ClientBroadcastHistoryOut.model_validate(x) for x in extras["broadcasts"]],
     )
+
+
+@router.get("/{client_id}/broadcasts", response_model=list[ClientBroadcastHistoryOut])
+async def list_client_broadcasts(
+    client_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_roles(*STAFF))],
+) -> list[ClientBroadcastHistoryOut]:
+    rows = await client_service.list_client_broadcast_history(db, user, client_id)
+    return [ClientBroadcastHistoryOut.model_validate(x) for x in rows]
+
+
+@router.post("/{client_id}/send-message", response_model=SendMessageResponse)
+async def send_message_to_client(
+    client_id: UUID,
+    data: SendMessageRequest,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_roles(*ADMINS))],
+    bot: Annotated[Bot, Depends(get_telegram_bot)],
+) -> SendMessageResponse:
+    c, _tb, _tr = await client_service.get_client(db, user, client_id)
+    if not c.tg_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="У клиента нет Telegram ID — сообщение отправить невозможно",
+        )
+    if await is_blacklisted(db, client_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Клиент в чёрном списке",
+        )
+    try:
+        await bot.send_message(
+            chat_id=int(c.tg_user_id),
+            text=data.text,
+            parse_mode=data.parse_mode or None,
+        )
+    except TelegramForbiddenError:
+        c.bot_blocked = True
+        await db.flush()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Клиент заблокировал бота — отправка невозможна",
+        ) from None
+    except TelegramBadRequest as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Ошибка Telegram: {e}",
+        ) from e
+
+    c.bot_blocked = False
+    await db.flush()
+
+    await record_event(
+        db,
+        user_id=user.id,
+        action="client_message_sent",
+        entity_type="client",
+        entity_id=client_id,
+        payload={"text_preview": data.text[:100]},
+        ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    return SendMessageResponse(ok=True, message="Сообщение отправлено")
+
+
+@router.post("/{client_id}/resolve-telegram", response_model=ResolveTelegramResponse)
+async def resolve_telegram(
+    client_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_roles(*ADMINS))],
+    bot: Annotated[Bot, Depends(get_telegram_bot)],
+) -> ResolveTelegramResponse:
+    c, _tb, _tr = await client_service.get_client(db, user, client_id)
+    if not c.tg_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="tg_user_id неизвестен — клиент не писал боту",
+        )
+    try:
+        tg_user = await bot.get_chat(int(c.tg_user_id))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Не удалось получить данные: {e!s}",
+        ) from e
+
+    updated: dict[str, str] = {}
+    if getattr(tg_user, "username", None) and not c.tg_username:
+        c.tg_username = str(tg_user.username)
+        updated["tg_username"] = c.tg_username
+    fn = getattr(tg_user, "first_name", None)
+    if fn and not c.first_name:
+        c.first_name = str(fn)
+        updated["first_name"] = c.first_name
+    await db.flush()
+    return ResolveTelegramResponse(ok=True, updated=updated)
 
 
 @router.get("/{client_id}", response_model=ClientOut)
@@ -184,6 +312,7 @@ async def get_client(
 
 
 @router.patch("/{client_id}", response_model=ClientOut)
+@router.put("/{client_id}", response_model=ClientOut)
 async def update_client(
     client_id: UUID,
     body: ClientUpdate,

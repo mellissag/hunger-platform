@@ -79,7 +79,7 @@ async def _retrieve_chunks(db: AsyncSession, embedding: list[float]) -> list[KBC
 
 async def _get_or_create_conversation(
     db: AsyncSession, client_id: uuid.UUID, lang: str | None
-) -> AIConversation:
+) -> tuple[AIConversation, bool]:
     row = await db.execute(
         select(AIConversation)
         .where(AIConversation.client_id == client_id, AIConversation.ended_at.is_(None))
@@ -88,11 +88,11 @@ async def _get_or_create_conversation(
     )
     conv = row.scalar_one_or_none()
     if conv:
-        return conv
+        return conv, False
     conv = AIConversation(client_id=client_id, lang=lang)
     db.add(conv)
     await db.flush()
-    return conv
+    return conv, True
 
 
 async def _load_history(db: AsyncSession, conversation_id: uuid.UUID, limit: int = 10) -> list[AIMessage]:
@@ -166,7 +166,11 @@ class AIService:
         if not salon_settings.ai_allow_booking:
             system += NO_BOOKING_VIA_AI_INSTRUCTION
 
-        conv = await _get_or_create_conversation(self.db, client_id, lang)
+        conv, conv_is_new = await _get_or_create_conversation(self.db, client_id, lang)
+        if conv_is_new:
+            from app.services.client_bot_activity import bump_client_funnel
+
+            bump_client_funnel(client, "ai_sessions")
         hist = await _load_history(self.db, conv.id, limit=10)
         hist_block = _history_block(hist)
 

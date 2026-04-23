@@ -4,10 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Ban,
   CalendarPlus,
+  ChevronDown,
   ChevronRight,
-  MessageCircle,
+  MessageSquare,
   Pencil,
   Pin,
+  RefreshCw,
   Star,
   Trash2,
 } from "lucide-react";
@@ -28,21 +30,29 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ClientEditDrawer } from "@/components/clients/client-edit-drawer";
+import { SendMessageModal } from "@/components/clients/send-message-modal";
 import {
   useAddBlacklist,
   useClientDetail,
   useCreateClientNote,
   useDeleteClientNote,
   useRemoveBlacklist,
+  useResolveTelegram,
+  useUpdateClient,
   useUpdateClientNote,
 } from "@/hooks/useClients";
 import { formatVisitAgo } from "@/lib/date-local";
 import { apiJson } from "@/lib/api";
 import type { ClientNoteOut, ServiceOut, Paginated } from "@/types/admin-api";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const LANG_LABEL: Record<string, string> = { en: "EN", ru: "RU", uk: "UK", bg: "BG" };
+
+const TAG_OPTIONS = ["VIP", "Постоянный", "Новый", "No-show"] as const;
 
 function tagPillClass(tag: string): string {
   if (tag === "VIP") return "border-[hsl(37_53%_40%)]/50 bg-[hsl(37_53%_40%)]/10 text-[hsl(37_40%_25%)]";
@@ -92,22 +102,25 @@ export function ClientDetail({ clientId }: { clientId: string }) {
   const deleteNote = useDeleteClientNote(clientId);
   const removeBl = useRemoveBlacklist(clientId);
   const addBl = useAddBlacklist();
+  const updateMut = useUpdateClient();
+  const resolveMut = useResolveTelegram(clientId);
 
   const [blOpen, setBlOpen] = useState(false);
   const [blReason, setBlReason] = useState("");
+  const [sendOpen, setSendOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [linkTgInput, setLinkTgInput] = useState("");
 
   const displayName = useMemo(() => {
     if (!c) return "";
     return [c.first_name, c.last_name].filter(Boolean).join(" ") || t("unnamed");
   }, [c, t]);
 
-  const handle = c?.tg_username ? `@${c.tg_username.replace(/^@/, "")}` : "";
-  const domain = c?.tg_username?.replace(/^@/, "");
-
   const pinnedNotes = (c?.notes ?? []).filter((n) => n.pinned);
   const otherNotes = (c?.notes ?? []).filter((n) => !n.pinned);
 
-  const bookingsShow = (c?.bookings ?? []).slice(0, 10);
+  const bookingsShow = (c?.bookings ?? []).slice(0, 5);
 
   const daysSinceVisit = useMemo(() => {
     if (!c?.last_visit_at) return t("neverVisitedShort");
@@ -181,9 +194,47 @@ export function ClientDetail({ clientId }: { clientId: string }) {
             {initials(c.first_name, c.last_name)}
           </div>
           <div>
-            <h1 className="font-playfair text-2xl font-medium leading-tight">{displayName}</h1>
-            {handle && <p className="text-sm text-muted-foreground">{handle}</p>}
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-playfair text-2xl font-medium leading-tight">{displayName}</h1>
+              <Button type="button" variant="secondary" size="icon" className="h-8 w-8" onClick={() => setEditOpen(true)}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {!c.tg_user_id ? (
+                <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                  {t("badgeNoTgShort")}
+                </span>
+              ) : null}
+              {c.bot_blocked ? (
+                <span className="rounded-full border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[10px] text-red-800">
+                  {t("badgeBotBlocked")}
+                </span>
+              ) : null}
+              {c.source === "manual" ? (
+                <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-900">
+                  {t("badgeManual")}
+                </span>
+              ) : null}
+            </div>
+            {c.tg_username ? (
+              <button
+                type="button"
+                className="mt-1 block text-sm font-medium text-[hsl(37_53%_38%)] hover:underline"
+                onClick={() =>
+                  window.open(
+                    `tg://resolve?domain=${encodeURIComponent(c.tg_username!.replace(/^@/, ""))}`,
+                    "_blank",
+                  )
+                }
+              >
+                @{c.tg_username.replace(/^@/, "")}
+              </button>
+            ) : c.tg_user_id ? (
+              <p className="mt-1 text-sm text-muted-foreground">tg#{c.tg_user_id}</p>
+            ) : null}
             <p className="text-sm">{c.phone || "—"}</p>
+            {c.city ? <p className="text-xs text-muted-foreground">{c.city}</p> : null}
             {c.birthday && (
               <p className="text-xs text-muted-foreground">
                 {t("birthday")}:{" "}
@@ -194,17 +245,30 @@ export function ClientDetail({ clientId }: { clientId: string }) {
               {LANG_LABEL[c.lang] ?? c.lang}
             </p>
             <div className="mt-2 flex flex-wrap gap-1">
-              {(c.tags ?? []).map((tag) => (
-                <span
-                  key={tag}
-                  className={cn(
-                    "rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                    tagPillClass(tag),
-                  )}
-                >
-                  {tag}
-                </span>
-              ))}
+              {TAG_OPTIONS.map((tag) => {
+                const active = (c.tags ?? []).includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    className={cn(
+                      "rounded-full border px-2 py-0.5 text-[11px] font-medium transition-opacity",
+                      tagPillClass(tag),
+                      active ? "opacity-100" : "opacity-40 hover:opacity-70",
+                    )}
+                    onClick={async () => {
+                      const cur = new Set(c.tags ?? []);
+                      if (cur.has(tag)) cur.delete(tag);
+                      else cur.add(tag);
+                      await updateMut.mutateAsync({ clientId: c.id, body: { tags: Array.from(cur) } });
+                      toast.success(t("toastClientUpdated"));
+                      void detailQ.refetch();
+                    }}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -217,16 +281,10 @@ export function ClientDetail({ clientId }: { clientId: string }) {
             <CalendarPlus className="h-4 w-4" />
             {t("book")}
           </Button>
-          {domain && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => window.open(`tg://resolve?domain=${encodeURIComponent(domain)}`, "_blank")}
-            >
-              <MessageCircle className="h-4 w-4" />
-              {t("writeTg")}
-            </Button>
-          )}
+          <Button type="button" variant="secondary" onClick={() => setSendOpen(true)}>
+            <MessageSquare className="h-4 w-4" />
+            {t("writeViaBot")}
+          </Button>
           {!c.blacklist_entry && (
             <Button
               type="button"
@@ -244,11 +302,138 @@ export function ClientDetail({ clientId }: { clientId: string }) {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi label={t("kpiBookings")} value={String(c.total_bookings)} />
-        <Kpi label={t("kpiRevenue")} value={`€${c.total_revenue}`} />
-        <Kpi label={t("kpiNoshow")} value={String(c.no_show_count)} />
-        <Kpi label={t("kpiLastVisit")} value={daysSinceVisit} small />
+      {c.source === "manual" && !c.tg_user_id ? (
+        <Card className="border-border">
+          <CardHeader>
+            <CardTitle className="font-playfair text-base">{t("linkTgTitle")}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-end gap-2">
+            <div className="min-w-[200px] flex-1 space-y-1">
+              <Label className="text-xs text-muted-foreground">{t("linkTgHint")}</Label>
+              <Input
+                inputMode="numeric"
+                placeholder="123456789"
+                value={linkTgInput}
+                onChange={(e) => setLinkTgInput(e.target.value.replace(/\D/g, ""))}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={!linkTgInput.trim() || updateMut.isPending}
+              onClick={async () => {
+                const id = Number(linkTgInput.trim());
+                if (!Number.isFinite(id)) return;
+                await updateMut.mutateAsync({ clientId: c.id, body: { tg_user_id: id } });
+                toast.success(t("toastClientUpdated"));
+                setLinkTgInput("");
+                void detailQ.refetch();
+              }}
+            >
+              {t("linkTgSave")}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Kpi label={t("kpiBookings")} value={String(c.total_bookings)} />
+          <Kpi label={t("kpiRevenue")} value={`€${c.total_revenue}`} />
+          <Kpi label={t("kpiNoshow")} value={String(c.no_show_count)} />
+          <Kpi label={t("kpiLastVisit")} value={daysSinceVisit} small />
+          <Kpi label={t("avgCheck")} value={`€${c.avg_check}`} small />
+          <Kpi label={t("favouriteService")} value={c.favourite_service || "—"} small />
+          <Kpi label={t("favouriteMaster")} value={c.favourite_master || "—"} small />
+        </div>
+        <Card className="border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="font-playfair text-lg">{tClients("colTelegram")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <p className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "inline-block h-2 w-2 shrink-0 rounded-full",
+                  c.bot_blocked ? "bg-red-500" : c.tg_user_id ? "bg-emerald-500" : "bg-muted-foreground/40",
+                )}
+              />
+              {c.bot_blocked ? t("tgStatusBlocked") : c.tg_user_id ? t("tgStatusActive") : t("tgStatusInactive")}
+            </p>
+            {c.joined_bot_at ? (
+              <p>
+                <span className="text-muted-foreground">{t("tgJoined")}: </span>
+                {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(c.joined_bot_at))}
+              </p>
+            ) : null}
+            {c.last_bot_activity_at ? (
+              <p>
+                <span className="text-muted-foreground">{t("tgLastActivity")}: </span>
+                {new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(
+                  new Date(c.last_bot_activity_at),
+                )}
+              </p>
+            ) : null}
+            <p>
+              <span className="text-muted-foreground">{t("tgSessions")}: </span>
+              {c.total_bot_sessions ?? 0}
+            </p>
+            <p>
+              <span className="text-muted-foreground">{t("tgBotLang")}: </span>
+              {LANG_LABEL[c.bot_language] ?? c.bot_language}
+            </p>
+            {c.tg_user_id && !c.tg_username ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={resolveMut.isPending}
+                onClick={async () => {
+                  const data = await resolveMut.mutateAsync();
+                  const u = data.updated?.tg_username;
+                  if (u) toast.success(t("toastUsernameUpdated", { username: u }));
+                  else toast.success(t("toastTelegramRefreshed"));
+                  void detailQ.refetch();
+                }}
+              >
+                <RefreshCw className="mr-1 h-4 w-4" />
+                {t("resolveTelegram")}
+              </Button>
+            ) : null}
+            <div className="border-t border-border pt-3">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {t("funnelTitle")}
+              </p>
+              {(() => {
+                const fs = c.funnel_stats;
+                const max = Math.max(
+                  1,
+                  fs.started_booking,
+                  fs.completed_booking,
+                  fs.abandoned_booking,
+                  fs.ai_sessions,
+                );
+                return (
+                  <>
+                    <FunnelRow label={t("funnelStarted")} value={fs.started_booking} max={max} />
+                    <FunnelRow label={t("funnelCompleted")} value={fs.completed_booking} max={max} />
+                    <FunnelRow label={t("funnelAbandoned")} value={fs.abandoned_booking} max={max} />
+                    <FunnelRow label={t("funnelAi")} value={fs.ai_sessions} max={max} />
+                  </>
+                );
+              })()}
+              {c.funnel_stats.started_booking > 0 ? (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {t("funnelPct", {
+                    pct: Math.round(
+                      (100 * c.funnel_stats.completed_booking) / c.funnel_stats.started_booking,
+                    ),
+                  })}
+                </p>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card className="border-border">
@@ -408,6 +593,73 @@ export function ClientDetail({ clientId }: { clientId: string }) {
         </CardContent>
       </Card>
 
+      <Card className="border-border">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="font-playfair text-lg">{t("aiSectionTitle")}</CardTitle>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setAiOpen((v) => !v)}>
+            {(c.ai_dialogs ?? []).length}{" "}
+            · {aiOpen ? t("aiToggleHide") : t("aiToggleShow")}
+            <ChevronDown className={cn("ml-1 inline h-4 w-4 transition-transform", aiOpen && "rotate-180")} />
+          </Button>
+        </CardHeader>
+        {aiOpen ? (
+          <CardContent className="space-y-2">
+            {(c.ai_dialogs ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("aiEmpty")}</p>
+            ) : (
+              (c.ai_dialogs ?? []).map((d) => (
+                <div key={d.id} className="rounded-md border border-border bg-muted/10 p-3">
+                  <p className="text-[11px] text-muted-foreground">
+                    {new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(
+                      new Date(d.started_at),
+                    )}
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-sm">{d.preview || "—"}</p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        ) : null}
+      </Card>
+
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="font-playfair text-lg">{t("broadcastsTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(c.broadcasts ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("broadcastsEmpty")}</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="pb-2 pr-2">{t("colBroadcast")}</th>
+                    <th className="pb-2 pr-2">{t("colBroadcastDate")}</th>
+                    <th className="pb-2">{t("colBroadcastStatus")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(c.broadcasts ?? []).map((b) => (
+                    <tr key={b.broadcast_id} className="border-b border-border/60">
+                      <td className="py-2 pr-2">{b.broadcast_title}</td>
+                      <td className="py-2 pr-2">
+                        {b.sent_at
+                          ? new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(
+                              new Date(b.sent_at),
+                            )
+                          : "—"}
+                      </td>
+                      <td className="py-2">{b.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {(c.reviews ?? []).length > 0 && (
         <Card className="border-border">
           <CardHeader>
@@ -446,6 +698,9 @@ export function ClientDetail({ clientId }: { clientId: string }) {
         onSuccess={() => void detailQ.refetch()}
       />
 
+      <SendMessageModal client={c} open={sendOpen} onClose={() => setSendOpen(false)} />
+      <ClientEditDrawer client={c} open={editOpen} onOpenChange={setEditOpen} />
+
       <Dialog open={blOpen} onOpenChange={setBlOpen}>
         <DialogContent>
           <DialogHeader>
@@ -479,6 +734,24 @@ export function ClientDetail({ clientId }: { clientId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function FunnelRow({ label, value, max }: { label: string; value: number; max: number }) {
+  const pct = max > 0 ? Math.round((100 * value) / max) : 0;
+  return (
+    <div className="mb-2">
+      <div className="mb-0.5 flex justify-between text-[11px]">
+        <span>{label}</span>
+        <span className="font-medium">{value}</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-[hsl(37_53%_42%)]"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </div>
   );
 }

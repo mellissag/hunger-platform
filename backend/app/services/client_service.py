@@ -17,13 +17,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, ForbiddenScopeError, NotFoundError
 from app.core.scope import client_scope_filter
+from app.models.ai_chat import AIConversation, AIMessage
 from app.models.booking import BlacklistEntry, Booking, Review
+from app.models.broadcast import Broadcast, BroadcastRecipient
 from app.models.catalog import Service
 from app.models.client import Client
-from app.models.enums import BookingStatus, UserRole
+from app.models.enums import AIMessageRole, BookingStatus, UserRole
 from app.models.master import Master
 from app.models.user import User
 from app.schemas.client import ClientCreate, ClientUpdate
+
+
+def normalize_client_tag_filters(
+    tag: list[str] | None,
+    tags: str | None,
+) -> list[str] | None:
+    merged: list[str] = []
+    if tag:
+        merged.extend(t.strip() for t in tag if t and str(t).strip())
+    if tags:
+        merged.extend(t.strip() for t in str(tags).split(",") if t.strip())
+    if not merged:
+        return None
+    out: list[str] = []
+    seen: set[str] = set()
+    for t in merged:
+        if t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out
 
 
 def _agg_subqueries() -> tuple[Any, Any]:
@@ -66,9 +88,9 @@ def _list_client_filters(
             )
         )
     if tags:
-        tag_conds = [Client.tags.contains([t]) for t in tags if t.strip()]
-        if tag_conds:
-            filters.append(or_(*tag_conds))
+        tag_list = [t.strip() for t in tags if t.strip()]
+        if tag_list:
+            filters.append(Client.tags.overlap(tag_list))
     if master_id is not None:
         filters.append(
             Client.id.in_(select(Booking.client_id).where(Booking.master_id == master_id).distinct())
@@ -153,11 +175,17 @@ async def client_stats(db: AsyncSession, user: User) -> tuple[int, int, float]:
     return total, new_month, float(avg_ltv or 0)
 
 
-def _service_name(svc: Service) -> str:
-    d = dict(svc.name_i18n or {})
+def _service_name_from_i18n(name_i18n: object | None) -> str | None:
+    if not name_i18n or not isinstance(name_i18n, dict):
+        return None
+    d = dict(name_i18n)
     if not d:
-        return ""
+        return None
     return str(d.get("en") or next(iter(d.values())))
+
+
+def _service_name(svc: Service) -> str:
+    return _service_name_from_i18n(svc.name_i18n) or ""
 
 
 async def get_client_detail(
@@ -177,7 +205,7 @@ async def get_client_detail(
         .join(Master, Master.id == Booking.master_id)
         .where(Booking.client_id == client_id)
         .order_by(Booking.starts_at.desc())
-        .limit(11)
+        .limit(5)
     )
     if user.role == UserRole.master and user.master_id is not None:
         b_stmt = b_stmt.where(Booking.master_id == user.master_id)
@@ -200,6 +228,155 @@ async def get_client_detail(
     ).scalar_one_or_none()
 
     return c, tb, tr, notes, bookings_out, reviews_out, be
+
+
+async def client_detail_extras(
+    db: AsyncSession,
+    user: User,
+    client_id: UUID,
+    client: Client,
+    total_bookings: int,
+    total_revenue: Decimal,
+) -> dict[str, Any]:
+    """Доп. поля для карточки клиента (воронка, AI, рассылки, фавориты)."""
+    master_scope = user.master_id if user.role == UserRole.master else None
+    b_where: list[Any] = [
+        Booking.client_id == client_id,
+        Booking.status == BookingStatus.completed,
+    ]
+    if master_scope is not None:
+        b_where.append(Booking.master_id == master_scope)
+
+    fav_svc_row = (
+        await db.execute(
+            select(Service.name_i18n, func.count().label("cnt"))
+            .select_from(Booking)
+            .join(Service, Service.id == Booking.service_id)
+            .where(*b_where)
+            .group_by(Service.id)
+            .order_by(func.count().desc())
+            .limit(1)
+        )
+    ).first()
+    fav_master_row = (
+        await db.execute(
+            select(Master.display_name, func.count().label("cnt"))
+            .select_from(Booking)
+            .join(Master, Master.id == Booking.master_id)
+            .where(*b_where)
+            .group_by(Master.id)
+            .order_by(func.count().desc())
+            .limit(1)
+        )
+    ).first()
+
+    favourite_service = _service_name_from_i18n(fav_svc_row[0]) if fav_svc_row else None
+    favourite_master = str(fav_master_row[0]) if fav_master_row and fav_master_row[0] else None
+
+    avg_check = (total_revenue / Decimal(total_bookings)) if total_bookings else Decimal(0)
+
+    raw_fs = client.funnel_stats if isinstance(client.funnel_stats, dict) else {}
+    started = int(raw_fs.get("started_booking") or 0)
+    completed = int(raw_fs.get("completed_booking") or 0)
+    abandoned = max(0, started - completed)
+    funnel_stats = {
+        "started_booking": started,
+        "completed_booking": completed,
+        "abandoned_booking": abandoned,
+        "ai_sessions": int(raw_fs.get("ai_sessions") or 0),
+    }
+
+    convs = (
+        (
+            await db.execute(
+                select(AIConversation)
+                .where(AIConversation.client_id == client_id)
+                .order_by(AIConversation.started_at.desc())
+                .limit(12)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    ai_dialogs: list[dict[str, Any]] = []
+    for conv in convs:
+        preview_msg = (
+            await db.execute(
+                select(AIMessage)
+                .where(
+                    AIMessage.conversation_id == conv.id,
+                    AIMessage.role == AIMessageRole.user,
+                )
+                .order_by(AIMessage.created_at.asc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        preview: str | None = None
+        if preview_msg and preview_msg.content:
+            text = preview_msg.content.strip()
+            preview = text if len(text) <= 160 else text[:160] + "…"
+        ai_dialogs.append(
+            {
+                "id": conv.id,
+                "started_at": conv.started_at,
+                "preview": preview,
+            }
+        )
+
+    bcast_rows = (
+        await db.execute(
+            select(Broadcast.id, Broadcast.title, BroadcastRecipient.status, BroadcastRecipient.sent_at)
+            .join(BroadcastRecipient, BroadcastRecipient.broadcast_id == Broadcast.id)
+            .where(BroadcastRecipient.client_id == client_id)
+            .order_by(BroadcastRecipient.sent_at.desc().nulls_last())
+            .limit(50)
+        )
+    ).all()
+    broadcasts = [
+        {
+            "broadcast_id": bid,
+            "broadcast_title": title,
+            "status": st.value if hasattr(st, "value") else str(st),
+            "sent_at": sent_at,
+        }
+        for bid, title, st, sent_at in bcast_rows
+    ]
+
+    return {
+        "avg_check": avg_check,
+        "favourite_service": favourite_service,
+        "favourite_master": favourite_master,
+        "funnel_stats": funnel_stats,
+        "ai_dialogs": ai_dialogs,
+        "broadcasts": broadcasts,
+        "bot_language": client.lang or "en",
+    }
+
+
+async def list_client_broadcast_history(
+    db: AsyncSession,
+    user: User,
+    client_id: UUID,
+) -> list[dict[str, Any]]:
+    await get_client(db, user, client_id)
+    rows = (
+        await db.execute(
+            select(Broadcast.id, Broadcast.title, BroadcastRecipient.status, BroadcastRecipient.sent_at)
+            .join(BroadcastRecipient, BroadcastRecipient.broadcast_id == Broadcast.id)
+            .where(BroadcastRecipient.client_id == client_id)
+            .order_by(BroadcastRecipient.sent_at.desc().nulls_last())
+            .limit(100)
+        )
+    ).all()
+    return [
+        {
+            "broadcast_id": bid,
+            "broadcast_title": title,
+            "status": st.value if hasattr(st, "value") else str(st),
+            "sent_at": sent_at,
+        }
+        for bid, title, st, sent_at in rows
+    ]
 
 
 async def export_clients_csv_bytes(
@@ -285,6 +462,7 @@ async def create_client(db: AsyncSession, user: User, data: ClientCreate) -> Cli
         phone=data.phone,
         first_name=data.first_name,
         last_name=data.last_name,
+        city=data.city,
         birthday=data.birthday,
         lang=data.lang,
         source=data.source,
@@ -325,6 +503,9 @@ async def update_client(db: AsyncSession, user: User, client_id: UUID, data: Cli
         if not ok:
             raise ForbiddenScopeError()
     payload = data.model_dump(exclude_unset=True)
+    if "tg_username" in payload and payload["tg_username"] is not None:
+        raw = str(payload["tg_username"]).strip().lstrip("@")
+        payload["tg_username"] = raw or None
     for k, v in payload.items():
         setattr(row, k, v)
     row.updated_at = datetime.now(tz=UTC)

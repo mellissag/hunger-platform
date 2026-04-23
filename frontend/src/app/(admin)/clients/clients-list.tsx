@@ -4,7 +4,7 @@ import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tan
 import { useQuery } from "@tanstack/react-query";
 import {
   Eye,
-  MessageCircle,
+  MessageSquare,
   Plus,
   Search,
   ShieldOff,
@@ -52,6 +52,8 @@ import { formatVisitAgo } from "@/lib/date-local";
 import { apiJson } from "@/lib/api";
 import type { ClientOut, MasterOut, Paginated } from "@/types/admin-api";
 import { cn } from "@/lib/utils";
+import { SendMessageModal } from "@/components/clients/send-message-modal";
+import { TagMultiSelect } from "@/components/clients/tag-multi-select";
 
 const TAG_OPTIONS = ["VIP", "Постоянный", "Новый", "No-show"] as const;
 
@@ -84,6 +86,21 @@ function initials(c: ClientOut): string {
   const a = c.first_name?.[0] ?? "";
   const b = c.last_name?.[0] ?? "";
   return (a + b).toUpperCase() || "?";
+}
+
+function botActivityDot(c: ClientOut): "green" | "yellow" | "gray" {
+  const ts = c.last_bot_activity_at;
+  if (!ts) return "gray";
+  const days = (Date.now() - new Date(ts).getTime()) / 86400000;
+  if (days <= 30) return "green";
+  if (days <= 90) return "yellow";
+  return "gray";
+}
+
+function dotClass(kind: "green" | "yellow" | "gray"): string {
+  if (kind === "green") return "bg-emerald-500";
+  if (kind === "yellow") return "bg-amber-400";
+  return "bg-muted-foreground/40";
 }
 
 function tagPillClass(tag: string): string {
@@ -127,6 +144,7 @@ export function ClientsList() {
   const [blOpen, setBlOpen] = useState(false);
   const [blClient, setBlClient] = useState<ClientOut | null>(null);
   const [blReason, setBlReason] = useState("");
+  const [msgClient, setMsgClient] = useState<ClientOut | null>(null);
 
   const createMut = useCreateClient();
   const blMut = useAddBlacklist();
@@ -159,9 +177,13 @@ export function ClientsList() {
         header: t("colClient"),
         cell: ({ row }) => {
           const c = row.original;
-          const handle = c.tg_username ? `@${c.tg_username.replace(/^@/, "")}` : "";
+          const dot = botActivityDot(c);
           return (
             <div className="flex items-center gap-2">
+              <span
+                className={cn("inline-block h-2 w-2 shrink-0 rounded-full", dotClass(dot))}
+                title={t("activityLegend")}
+              />
               <div
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-primary-foreground"
                 style={{
@@ -174,9 +196,42 @@ export function ClientsList() {
                 <p className="truncate font-semibold leading-tight">
                   {[c.first_name, c.last_name].filter(Boolean).join(" ") || "—"}
                 </p>
-                {handle && <p className="truncate text-[11px] text-muted-foreground">{handle}</p>}
               </div>
             </div>
+          );
+        },
+      },
+      {
+        id: "telegram",
+        header: t("colTelegram"),
+        cell: ({ row }) => {
+          const c = row.original;
+          const un = c.tg_username?.replace(/^@/, "");
+          if (un) {
+            return (
+              <button
+                type="button"
+                className="text-left text-[13px] font-medium text-[hsl(37_53%_38%)] underline-offset-2 hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`tg://resolve?domain=${encodeURIComponent(un)}`, "_blank");
+                }}
+              >
+                @{un}
+              </button>
+            );
+          }
+          if (c.tg_user_id) {
+            return (
+              <span className="text-[12px] text-muted-foreground">
+                tg#{c.tg_user_id}
+              </span>
+            );
+          }
+          return (
+            <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] text-muted-foreground">
+              {t("badgeNoTg")}
+            </span>
           );
         },
       },
@@ -226,7 +281,7 @@ export function ClientsList() {
         header: "",
         cell: ({ row }) => {
           const c = row.original;
-          const domain = c.tg_username?.replace(/^@/, "");
+          const canBotMsg = Boolean(c.tg_user_id) && !c.bot_blocked;
           return (
             <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
               <Button type="button" variant="ghost" size="icon" className="h-8 w-8" asChild>
@@ -234,18 +289,18 @@ export function ClientsList() {
                   <Eye className="h-4 w-4" />
                 </Link>
               </Button>
-              {domain && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  aria-label="tg"
-                  onClick={() => window.open(`tg://resolve?domain=${encodeURIComponent(domain)}`, "_blank")}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                </Button>
-              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                aria-label="message-bot"
+                disabled={!canBotMsg}
+                title={t("sendViaBot")}
+                onClick={() => setMsgClient(c)}
+              >
+                <MessageSquare className="h-4 w-4" />
+              </Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -350,24 +405,12 @@ export function ClientsList() {
                 onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
               />
             </div>
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">{t("filterTags")}</Label>
-              <select
-                multiple
-                className="min-h-[72px] min-w-[160px] rounded-md border border-input bg-background px-2 py-1 text-sm"
-                value={filters.tags}
-                onChange={(e) => {
-                  const selected = Array.from(e.target.selectedOptions).map((o) => o.value);
-                  setFilters((f) => ({ ...f, tags: selected }));
-                }}
-              >
-                {TAG_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <TagMultiSelect
+              label={t("filterTags")}
+              options={TAG_OPTIONS}
+              value={filters.tags}
+              onChange={(tags) => setFilters((f) => ({ ...f, tags }))}
+            />
             <div className="space-y-1">
               <Label className="text-[11px] text-muted-foreground">{t("filterMaster")}</Label>
               <select
@@ -579,6 +622,8 @@ export function ClientsList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SendMessageModal client={msgClient} open={Boolean(msgClient)} onClose={() => setMsgClient(null)} />
     </div>
   );
 }

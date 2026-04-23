@@ -47,16 +47,22 @@ export type ClientOut = {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  tg_user_id?: number | null;
   tg_username: string | null;
+  city?: string | null;
   birthday?: string | null;
   lang: string;
   source?: string;
+  joined_at: string;
+  joined_bot_at?: string | null;
+  last_bot_activity_at?: string | null;
+  total_bot_sessions?: number;
+  bot_blocked?: boolean;
   total_bookings: number;
   total_revenue: string;
   no_show_count: number;
   last_visit_at: string | null;
   tags: string[];
-  joined_at: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -91,11 +97,38 @@ export type BlacklistEntrySlim = {
   created_at: string;
 };
 
+export type ClientFunnelStatsOut = {
+  started_booking: number;
+  completed_booking: number;
+  abandoned_booking: number;
+  ai_sessions: number;
+};
+
+export type ClientAIDialogOut = {
+  id: string;
+  started_at: string;
+  preview: string | null;
+};
+
+export type ClientBroadcastHistoryOut = {
+  broadcast_id: string;
+  broadcast_title: string;
+  sent_at: string | null;
+  status: string;
+};
+
 export type ClientDetailOut = ClientOut & {
   notes: ClientNoteOut[];
   bookings: ClientBookingHistoryOut[];
   reviews: ClientReviewOut[];
   blacklist_entry: BlacklistEntrySlim | null;
+  avg_check: string;
+  favourite_service: string | null;
+  favourite_master: string | null;
+  funnel_stats: ClientFunnelStatsOut;
+  bot_language: string;
+  ai_dialogs: ClientAIDialogOut[];
+  broadcasts: ClientBroadcastHistoryOut[];
 };
 
 export type MasterOut = {

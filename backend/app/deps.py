@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from functools import lru_cache
 from typing import Annotated, cast
 
+from aiogram import Bot
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
@@ -22,6 +23,22 @@ from app.models.user import User
 security_bearer = HTTPBearer(auto_error=False)
 
 _redis: Redis | None = None
+_telegram_bot: Bot | None | bool = False  # False = not initialized
+
+
+def get_telegram_bot() -> Bot:
+    """Один экземпляр Bot для вызовов Telegram Bot API из HTTP-хэндлеров."""
+    global _telegram_bot
+    if _telegram_bot is False:
+        settings = get_settings()
+        token = settings.telegram_bot_token
+        _telegram_bot = Bot(token=token) if token else None
+    if _telegram_bot is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Telegram bot is not configured",
+        )
+    return _telegram_bot
 
 
 @lru_cache

@@ -24,8 +24,9 @@ function buildClientsListUrl(filters: ClientsFiltersState, page: number): string
   p.set("limit", "20");
   const s = filters.search.trim();
   if (s) p.set("search", s);
-  for (const t of filters.tags) {
-    if (t.trim()) p.append("tag", t.trim());
+  const tagList = filters.tags.map((t) => t.trim()).filter(Boolean);
+  if (tagList.length) {
+    p.set("tags", tagList.join(","));
   }
   if (filters.master_id) p.set("master_id", filters.master_id);
   if (filters.last_visit_days) p.set("last_visit_days", filters.last_visit_days);
@@ -37,8 +38,9 @@ function buildExportUrl(filters: ClientsFiltersState): string {
   p.set("format", "csv");
   const s = filters.search.trim();
   if (s) p.set("search", s);
-  for (const t of filters.tags) {
-    if (t.trim()) p.append("tag", t.trim());
+  const tagList = filters.tags.map((t) => t.trim()).filter(Boolean);
+  if (tagList.length) {
+    p.set("tags", tagList.join(","));
   }
   if (filters.master_id) p.set("master_id", filters.master_id);
   if (filters.last_visit_days) p.set("last_visit_days", filters.last_visit_days);
@@ -187,6 +189,44 @@ export function useAddBlacklist() {
     onSuccess: async (_, v) => {
       await qc.invalidateQueries({ queryKey: ["clients", v.client_id, "detail"] });
       await qc.invalidateQueries({ queryKey: ["clients"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useUpdateClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      clientId,
+      body,
+    }: {
+      clientId: string;
+      body: Record<string, unknown>;
+    }) =>
+      apiJson<ClientOut>(`/clients/${clientId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    onSuccess: async (_, v) => {
+      invalidateClientQueries(qc, v.clientId);
+      await qc.invalidateQueries({ queryKey: ["clients"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useResolveTelegram(clientId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () =>
+      apiJson<{ ok: boolean; updated: Record<string, string> }>(
+        `/clients/${clientId}/resolve-telegram`,
+        { method: "POST" },
+      ),
+    onSuccess: async () => {
+      invalidateClientQueries(qc, clientId);
     },
     onError: (e: Error) => toast.error(e.message),
   });
