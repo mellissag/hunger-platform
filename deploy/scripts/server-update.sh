@@ -10,6 +10,7 @@ set -euo pipefail
 
 : "${INSTALL_DIR:=/opt/hunger-platform}"
 cd "${INSTALL_DIR}"
+PROJECT_DIR="${INSTALL_DIR}/deploy"
 
 [[ -f .env ]] || { echo "Нет ${INSTALL_DIR}/.env"; exit 1; }
 
@@ -29,6 +30,7 @@ if [[ "${uses_ghcr}" == true ]]; then
     -f deploy/docker-compose.yml
     -f deploy/docker-compose.prod.yml
     --env-file .env
+    --project-directory "${PROJECT_DIR}"
   )
   if [[ -n "${GITHUB_TOKEN:-}" ]]; then
     echo "==> docker login ghcr.io"
@@ -40,7 +42,11 @@ if [[ "${uses_ghcr}" == true ]]; then
   "${DC[@]}" up -d --remove-orphans
 else
   echo "==> режим локальной сборки (без GITHUB_REPOSITORY в .env)"
-  DC=(docker compose -f deploy/docker-compose.yml --env-file .env)
+  DC=(docker compose
+    -f deploy/docker-compose.yml
+    --env-file .env
+    --project-directory "${PROJECT_DIR}"
+  )
   "${DC[@]}" build web api worker
   "${DC[@]}" up -d --remove-orphans
 fi
