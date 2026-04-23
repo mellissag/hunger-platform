@@ -1,0 +1,81 @@
+# Caddyfile — production за внешним reverse-proxy (nginx на 80/443).
+# Без редиректа HTTP→HTTPS в Caddy: иначе при проксировании nginx → http://caddy:80
+# получается петля (ERR_TOO_MANY_REDIRECTS). TLS — на nginx.
+# В .env: CADDY_CADDYFILE=Caddyfile.prod.behind-proxy
+#
+# nginx: proxy_set_header Host $host; X-Real-IP $remote_addr; X-Forwarded-For $proxy_add_x_forwarded_for;
+#        X-Forwarded-Proto $scheme;
+
+{
+	log {
+		level ERROR
+	}
+}
+
+http://{$APP_DOMAIN} {
+	encode gzip zstd
+
+	header {
+		X-Frame-Options             "SAMEORIGIN"
+		X-Content-Type-Options      "nosniff"
+		X-XSS-Protection            "1; mode=block"
+		Referrer-Policy             "strict-origin-when-cross-origin"
+		Permissions-Policy          "geolocation=(), microphone=(), camera=(self)"
+		-Server
+		Content-Security-Policy     "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://telegram.org; frame-ancestors 'none';"
+	}
+
+	handle /api/v1* {
+		reverse_proxy api:8000 {
+			header_up X-Real-IP {header.X-Real-IP}
+			header_up X-Forwarded-For {header.X-Forwarded-For}
+			header_up X-Forwarded-Proto "https"
+		}
+	}
+
+	handle /healthz {
+		reverse_proxy api:8000 {
+			header_up X-Forwarded-Proto "https"
+		}
+	}
+
+	handle /readyz {
+		reverse_proxy api:8000 {
+			header_up X-Forwarded-Proto "https"
+		}
+	}
+
+	handle /docs {
+		reverse_proxy api:8000
+	}
+	handle /openapi.json {
+		reverse_proxy api:8000
+	}
+	handle /redoc {
+		reverse_proxy api:8000
+	}
+
+	handle /api/* {
+		reverse_proxy web:3000 {
+			header_up X-Real-IP {header.X-Real-IP}
+			header_up X-Forwarded-For {header.X-Forwarded-For}
+			header_up X-Forwarded-Proto "https"
+		}
+	}
+
+	handle {
+		reverse_proxy web:3000 {
+			header_up X-Real-IP {header.X-Real-IP}
+			header_up X-Forwarded-For {header.X-Forwarded-For}
+			header_up X-Forwarded-Proto "https"
+		}
+	}
+
+	log {
+		output file /data/logs/access.log {
+			roll_size 10mb
+			roll_keep 7
+		}
+		format json
+	}
+}

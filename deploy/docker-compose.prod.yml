@@ -17,6 +17,7 @@
 #   LETSENCRYPT_EMAIL   — email для Let's Encrypt уведомлений
 #   CADDY_HTTP_PORT     — хост-порт HTTP (по умолчанию 80)
 #   CADDY_HTTPS_PORT    — хост-порт HTTPS + HTTP/3 UDP (по умолчанию 443)
+#   CADDY_CADDYFILE     — имя файла в deploy/ (Caddyfile.prod | Caddyfile.prod.behind-proxy за nginx)
 
 name: hunger-beauty
 
@@ -27,7 +28,7 @@ services:
       - "${CADDY_HTTPS_PORT:-443}:443"
       - "${CADDY_HTTPS_PORT:-443}:443/udp"   # HTTP/3
     volumes:
-      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - ./${CADDY_CADDYFILE:-Caddyfile.prod}:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     environment:
