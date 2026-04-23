@@ -227,7 +227,7 @@ class MasterOut(MasterBase):
             name_i18n = svc.name_i18n if isinstance(svc.name_i18n, dict) else {}
             name = str(name_i18n.get(locale) or name_i18n.get("en") or name_i18n.get("ru") or "—")
             services.append(MasterServiceSlimOut(id=svc.id, name=name))
-        base = MasterBase.model_validate(m)
+        base = MasterBase.model_validate(m, from_attributes=True)
         return cls(
             **base.model_dump(),
             id=m.id,
