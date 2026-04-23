@@ -264,6 +264,11 @@ SEED_PASSWORD=${OWNER_PASSWORD}
 GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
 IMAGE_TAG=${IMAGE_TAG}
 
+# ── Caddy (docker-compose.prod): по умолчанию 8080/8443 — не пересекается с nginx на 80/443
+CADDY_HTTP_PORT=8080
+CADDY_HTTPS_PORT=8443
+CADDY_CADDYFILE=Caddyfile.prod.behind-proxy
+
 # ── SMTP (опционально) ────────────────────────────────────────────────────────
 SMTP_HOST=
 SMTP_PORT=587

@@ -75,3 +75,8 @@ fi
 
 echo "==> готово"
 "${DC[@]}" ps
+
+if [[ -f "${INSTALL_DIR}/deploy/scripts/verify-stack.sh" ]]; then
+  echo ""
+  bash "${INSTALL_DIR}/deploy/scripts/verify-stack.sh"
+fi
