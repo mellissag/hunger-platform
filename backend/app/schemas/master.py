@@ -5,9 +5,9 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.common import validate_i18n_dict
 
@@ -39,6 +39,54 @@ class MasterServiceSlimOut(BaseModel):
     name: str
 
 
+class CertificateItem(BaseModel):
+    """Квалификация / сертификат (JSONB)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1, max_length=64)
+    title: str = Field(min_length=1, max_length=500)
+    photo_url: str | None = None
+    year: int | None = Field(default=None, ge=1900, le=2100)
+
+
+def _normalize_certificates_list(raw: list[Any] | None) -> list[dict[str, Any]]:
+    """Старые данные: массив строк; новый формат: объекты."""
+    if not raw:
+        return []
+    out: list[dict[str, Any]] = []
+    for item in raw:
+        if isinstance(item, CertificateItem):
+            out.append(item.model_dump())
+            continue
+        if isinstance(item, str):
+            title = item.strip()
+            if not title:
+                continue
+            c = CertificateItem(
+                id=uuid4().hex,
+                title=title,
+                photo_url=None,
+                year=None,
+            )
+            out.append(c.model_dump())
+        elif isinstance(item, dict):
+            cid = str(item.get("id") or "").strip() or uuid4().hex
+            title = (item.get("title") or "").strip() if "title" in item else str(item.get("name") or "").strip()
+            if not title and isinstance(item.get("t"), str):
+                title = item["t"].strip()  # legacy
+            if not title:
+                continue
+            c = CertificateItem(
+                id=cid,
+                title=title,
+                photo_url=item.get("photo_url"),
+                year=item.get("year"),
+            )
+            out.append(c.model_dump())
+    return out
+
+
 class MasterBase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -63,8 +111,20 @@ class MasterCreate(MasterBase):
     email: str = Field(min_length=3, max_length=320)
     password: str = Field(min_length=8, max_length=128)
     tg_user_id: int | None = None
-    certificates: list[str] = Field(default_factory=list)
+    certificates: list[CertificateItem] = Field(default_factory=list)
     service_ids: list[UUID] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _certs_from_legacy(cls, data: Any) -> Any:  # noqa: ANN401
+        if not isinstance(data, dict):
+            return data
+        certs = data.get("certificates")
+        if certs is None:
+            return data
+        d = dict(data)
+        d["certificates"] = _normalize_certificates_list(certs)  # type: ignore[assignment]
+        return d
 
 
 class MasterUpdate(BaseModel):
@@ -79,7 +139,18 @@ class MasterUpdate(BaseModel):
     is_active: bool | None = None
     payroll_percent: Decimal | None = Field(default=None, ge=Decimal("0"), le=Decimal("100"))
     tg_user_id: int | None = None
-    certificates: list[str] | None = None
+    certificates: list[CertificateItem] | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _certs_from_legacy_update(cls, data: Any) -> Any:  # noqa: ANN401
+        if not isinstance(data, dict):
+            return data
+        if "certificates" not in data or data["certificates"] is None:
+            return data
+        d = dict(data)
+        d["certificates"] = _normalize_certificates_list(data["certificates"])  # type: ignore[assignment]
+        return d
 
     @field_validator("bio", "specialization")
     @classmethod

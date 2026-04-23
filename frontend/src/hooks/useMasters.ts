@@ -3,7 +3,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch, apiFormData, apiJson } from "@/lib/api";
-import type { MasterOut, Paginated, ServiceOut } from "@/types/admin-api";
+import type { MasterCertificateItem, MasterOut, Paginated, ServiceOut } from "@/types/admin-api";
+
+export type CertificateItemOut = MasterCertificateItem;
 
 export type MasterCreateForm = {
   display_name: string;
@@ -12,7 +14,7 @@ export type MasterCreateForm = {
   color_hex: string;
   payroll_percent?: number;
   tg_user_id?: number | null;
-  certificates: string[];
+  certificates: MasterCertificateItem[];
   service_ids: string[];
   is_active: boolean;
   bio?: Record<string, string>;
@@ -26,7 +28,7 @@ export type MasterUpdateForm = Partial<{
   specialization: Record<string, string>;
   payroll_percent: number;
   tg_user_id: number | null;
-  certificates: string[];
+  certificates: MasterCertificateItem[];
   is_active: boolean;
 }>;
 
@@ -59,18 +61,23 @@ export function useMastersList() {
 export function useCreateMaster() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: MasterCreateForm) =>
-      apiJson<MasterOut>("/masters", {
+    mutationFn: (data: MasterCreateForm) => {
+      const { payroll_percent: pp, ...rest } = data;
+      const body: Record<string, unknown> = {
+        ...rest,
+        bio: data.bio ?? { en: "", ru: "", uk: "", bg: "" },
+        specialization: data.specialization ?? { en: "", ru: "", uk: "", bg: "" },
+        sort_order: 0,
+      };
+      if (pp !== undefined) {
+        body.payroll_percent = pp;
+      }
+      return apiJson<MasterOut>("/masters", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          bio: data.bio ?? { en: "", ru: "", uk: "", bg: "" },
-          specialization: data.specialization ?? { en: "", ru: "", uk: "", bg: "" },
-          sort_order: 0,
-          payroll_percent: data.payroll_percent ?? 40,
-        }),
-      }),
+        body: JSON.stringify(body),
+      });
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["masters"] });
     },

@@ -230,3 +230,21 @@
   font-size: 11px;
   color: hsl(var(--muted-foreground));
 }
+
+/* Forms — Premium Light (Phase 21) */
+@layer components {
+  .form-input-premium {
+    @apply w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground antialiased transition-colors;
+    @apply focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15;
+  }
+  .form-input-premium--error {
+    border-color: hsl(var(--destructive));
+  }
+  .form-input-premium--error:focus {
+    border-color: hsl(var(--destructive));
+    box-shadow: 0 0 0 2px hsl(var(--destructive) / 0.15);
+  }
+  .photo-upload-placeholder {
+    @apply transition-colors;
+  }
+}

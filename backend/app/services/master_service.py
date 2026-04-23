@@ -102,7 +102,7 @@ async def create_master(db: AsyncSession, _user: User, data: MasterCreate) -> Ma
         is_active=data.is_active,
         payroll_percent=data.payroll_percent,
         tg_user_id=data.tg_user_id,
-        certificates=list(data.certificates),
+        certificates=[c.model_dump() for c in data.certificates],
     )
     db.add(m)
     await db.flush()

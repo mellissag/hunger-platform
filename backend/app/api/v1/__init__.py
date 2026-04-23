@@ -23,6 +23,7 @@ from app.api.v1 import (
     settings as settings_routes,
     stats,
     tg,
+    upload,
     users_admin,
 )
 
@@ -46,3 +47,4 @@ api_router.include_router(blacklist.router)
 api_router.include_router(users_admin.router)
 api_router.include_router(audit.router)
 api_router.include_router(mini_app.router)
+api_router.include_router(upload.router)

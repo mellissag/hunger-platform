@@ -45,11 +45,23 @@ function errorMessageFromBody(err: unknown, fallback: string): string {
   return fallback;
 }
 
+export class HttpError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+    public body: unknown = undefined,
+  ) {
+    super(message);
+    this.name = "HttpError";
+  }
+}
+
 export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await apiFetch(path, init);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(errorMessageFromBody(err, res.statusText));
+    const msg = errorMessageFromBody(err, res.statusText);
+    throw new HttpError(res.status, msg, err);
   }
   return res.json() as Promise<T>;
 }
@@ -59,7 +71,16 @@ export async function apiFormData<T>(path: string, form: FormData): Promise<T> {
   const res = await apiFetch(path, { method: "POST", body: form });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(errorMessageFromBody(err, res.statusText));
+    throw new HttpError(res.status, errorMessageFromBody(err, res.statusText), err);
   }
   return res.json() as Promise<T>;
+}
+
+/** Загрузка картинки; возвращает `url` вида `/media/...`. */
+export async function uploadImageFile(file: File, folder: string): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  const q = new URLSearchParams({ folder });
+  const out = await apiFormData<{ url: string }>(`/upload/image?${q.toString()}`, form);
+  return out.url;
 }

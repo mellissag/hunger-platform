@@ -136,6 +136,13 @@ export type MasterServiceSlim = {
   name: string;
 };
 
+export type MasterCertificateItem = {
+  id: string;
+  title: string;
+  photo_url: string | null;
+  year: number | null;
+};
+
 export type MasterOut = {
   id: string;
   display_name: string;
@@ -149,7 +156,8 @@ export type MasterOut = {
   sort_order: number;
   payroll_percent: string;
   tg_user_id: number | null;
-  certificates: string[];
+  /** Строки — легаси-формат, объекты — Phase 21 */
+  certificates: (string | MasterCertificateItem)[];
   working_hours: Record<string, { enabled?: boolean; start?: string; end?: string }>;
   portfolio: { url: string; caption?: string; sort?: number }[];
   services: MasterServiceSlim[];
