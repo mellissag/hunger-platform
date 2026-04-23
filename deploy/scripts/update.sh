@@ -22,7 +22,9 @@ set -euo pipefail
 TARGET_TAG="${1:-}"   # Если не указан — берём последний
 
 COMPOSE_FILES="-f ${INSTALL_DIR}/deploy/docker-compose.yml -f ${INSTALL_DIR}/deploy/docker-compose.prod.yml"
-COMPOSE_OPTS="--env-file ${INSTALL_DIR}/.env --project-directory ${INSTALL_DIR}"
+# project-directory = deploy/: build contexts ../backend и ../frontend из docker-compose.yml
+# резолвятся в ${INSTALL_DIR}/backend и ${INSTALL_DIR}/frontend (не в /opt/backend).
+COMPOSE_OPTS="--env-file ${INSTALL_DIR}/.env --project-directory ${INSTALL_DIR}/deploy"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 log()  { echo -e "\033[32m[✓]\033[0m $*"; }
@@ -121,7 +123,7 @@ log "Миграции применены"
 # ── Step 6: Health check ──────────────────────────────────────────────────────
 step "6/6  Проверка работоспособности"
 sleep 5
-if dc exec -T api curl -sf http://localhost:8000/healthz > /dev/null 2>&1; then
+if dc exec -T api python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5).read()" > /dev/null 2>&1; then
   log "API healthcheck: OK"
 else
   warn "Healthcheck не прошёл"

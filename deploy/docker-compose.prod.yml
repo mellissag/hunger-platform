@@ -4,7 +4,7 @@
 #                  --env-file .env up -d
 #
 # Переопределяет:
-#   • порты Caddy → 80:80 и 443:443 (+ HTTP/3 UDP)
+#   • порты Caddy → CADDY_HTTP_PORT:80 и CADDY_HTTPS_PORT:443 (по умолчанию 80/443; при nginx на хосте — 8080/8443)
 #   • монтирует Caddyfile.prod (авто-TLS Let's Encrypt)
 #   • volumes caddy_data/caddy_config для сертификатов
 #   • контейнеры api/worker/web → pre-built образы из GHCR
@@ -15,22 +15,25 @@
 #   IMAGE_TAG           — версия образа (latest или vX.Y.Z)
 #   APP_DOMAIN          — домен салона (beauty.example.com)
 #   LETSENCRYPT_EMAIL   — email для Let's Encrypt уведомлений
+#   CADDY_HTTP_PORT     — хост-порт HTTP (по умолчанию 80)
+#   CADDY_HTTPS_PORT    — хост-порт HTTPS + HTTP/3 UDP (по умолчанию 443)
 
 name: hunger-beauty
 
 services:
   caddy:
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"   # HTTP/3
+      - "${CADDY_HTTP_PORT:-80}:80"
+      - "${CADDY_HTTPS_PORT:-443}:443"
+      - "${CADDY_HTTPS_PORT:-443}:443/udp"   # HTTP/3
     volumes:
       - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
-      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+      # Пустая строка ломает `email` в Caddyfile; LE отклоняет @example.com — по умолчанию webmaster@$APP_DOMAIN.
+      LETSENCRYPT_EMAIL: "${LETSENCRYPT_EMAIL:-webmaster@${APP_DOMAIN}}"
     logging:
       driver: "json-file"
       options:
