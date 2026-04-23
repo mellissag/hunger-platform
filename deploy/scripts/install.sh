@@ -280,8 +280,10 @@ COMPOSE_FILES="-f ${INSTALL_DIR}/deploy/docker-compose.yml -f ${INSTALL_DIR}/dep
 COMPOSE_OPTS="--env-file ${INSTALL_DIR}/.env"
 
 dc() {
+  # Контексты build в deploy/docker-compose.yml: ../backend — относительны к каталогу deploy/.
+  # --project-directory=корень репо ломал путь (../backend → /root/backend). См. README: compose из корня.
   # shellcheck disable=SC2086
-  docker compose ${COMPOSE_FILES} ${COMPOSE_OPTS} --project-directory "${INSTALL_DIR}" "$@"
+  docker compose ${COMPOSE_FILES} ${COMPOSE_OPTS} --project-directory "${INSTALL_DIR}/deploy" "$@"
 }
 
 wait_for_postgres() {
