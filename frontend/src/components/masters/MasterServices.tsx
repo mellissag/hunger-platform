@@ -36,7 +36,7 @@ export function MasterServices({ masterId }: { masterId: string }) {
 
   const { data: allServices, isLoading: loadingAll } = useQuery({
     queryKey: ["services", "all"],
-    queryFn: () => apiJson<{ items?: Service[] } | Service[]>("/services?page_size=200&is_active=true"),
+    queryFn: () => apiJson<{ items?: Service[] } | Service[]>("/services?page=1&page_size=100&is_active=true"),
     staleTime: 60_000,
   });
 

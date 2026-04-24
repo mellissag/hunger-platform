@@ -3,10 +3,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import timeGridPlugin from "@fullcalendar/timegrid";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -527,32 +523,9 @@ export function MasterDetail({ masterId }: { masterId: string }) {
               ) : null}
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="rounded-md border p-3">
-                <FullCalendar
-                  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                  initialView="timeGridWeek"
-                  headerToolbar={{
-                    left: "prev,next today",
-                    center: "title",
-                    right: "dayGridMonth,timeGridWeek,timeGridDay",
-                  }}
-                  buttonText={{ today: "Сегодня", month: "Месяц", week: "Неделя", day: "День" }}
-                  firstDay={1}
-                  slotMinTime="08:00:00"
-                  slotMaxTime="22:00:00"
-                  allDaySlot={false}
-                  events={(masterBookings?.items ?? []).map((b: any) => ({
-                    id: `b-${b.id}`,
-                    title: `${b.client?.first_name || "Клиент"} · ${b.service?.name_i18n?.ru || b.service?.name || "Услуга"}`,
-                    start: b.starts_at,
-                    end: b.ends_at,
-                    backgroundColor: master.color_hex || "#9A7230",
-                    borderColor: "transparent",
-                    textColor: "#fff",
-                  }))}
-                  height="auto"
-                  nowIndicator
-                />
+              <div className="rounded-md border p-3 text-sm text-muted-foreground">
+                Календарный вид временно отключен для текущей политики безопасности браузера (CSP). Данные расписания
+                и блоков ниже работают в штатном режиме.
               </div>
               <div className="flex items-center gap-2">
                 <Label className="w-24">Month</Label>
