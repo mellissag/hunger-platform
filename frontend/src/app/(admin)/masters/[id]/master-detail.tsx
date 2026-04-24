@@ -44,16 +44,6 @@ const profileSchema = z.object({
 });
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
-const DAY_LABELS: Record<(typeof DAYS)[number], string> = {
-  mon: "Mon",
-  tue: "Tue",
-  wed: "Wed",
-  thu: "Thu",
-  fri: "Fri",
-  sat: "Sat",
-  sun: "Sun",
-};
-
 function defaultWorkingHours(): WorkingHoursForm {
   return {
     mon: { enabled: true, start: "10:00", end: "19:00" },
@@ -186,6 +176,18 @@ export function MasterDetail({ masterId }: { masterId: string }) {
       end: "19:00",
     }),
     [],
+  );
+  const dayLabels: Record<(typeof DAYS)[number], string> = useMemo(
+    () => ({
+      mon: t("monday"),
+      tue: t("tuesday"),
+      wed: t("wednesday"),
+      thu: t("thursday"),
+      fri: t("friday"),
+      sat: t("saturday"),
+      sun: t("sunday"),
+    }),
+    [t],
   );
 
   const handleCredentialsSave = async () => {
@@ -406,7 +408,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Working hours</CardTitle>
+                  <CardTitle className="text-base">{t("workingHours")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {DAYS.map((day) => (
@@ -422,7 +424,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                             }))
                           }
                         />
-                        {DAY_LABELS[day]}
+                        {dayLabels[day]}
                       </label>
                       {hours[day]?.enabled !== false ? (
                         <>
@@ -451,7 +453,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                           />
                         </>
                       ) : (
-                        <span className="text-muted-foreground">Off</span>
+                        <span className="text-muted-foreground">{t("dayOff")}</span>
                       )}
                     </div>
                   ))}
@@ -465,7 +467,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                     }
                     disabled={updateHours.isPending}
                   >
-                    Save hours
+                    {t("saveHours")}
                   </Button>
                 </CardContent>
               </Card>

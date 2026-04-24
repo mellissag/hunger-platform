@@ -31,6 +31,7 @@ from app.models.booking import Booking
 from app.models.salon import Salon
 from app.services import schedule_service
 from app.services.bot_booking import create_tg_booking
+from app.utils.datetime_utils import ensure_aware
 
 router = APIRouter(prefix="/mini-app", tags=["mini-app"])
 
@@ -264,7 +265,10 @@ async def get_availability(
 
     real_month = month + 1 if 0 <= month <= 11 else month
     _, days_in_month = monthrange(year, real_month)
-    today = _date.today()
+    ctx = await schedule_service.get_schedule_context(db)
+    from zoneinfo import ZoneInfo
+    import app.core.clock as clock
+    today = clock.utc_now().astimezone(ZoneInfo(ctx.timezone)).date()
     working_hours = (
         master.working_hours
         if isinstance(master.working_hours, dict) and master.working_hours
@@ -314,7 +318,7 @@ async def create_booking(
             client_id=client.id,
             master_id=_uuid.UUID(payload.master_id),
             service_id=_uuid.UUID(payload.service_id),
-            starts_at=_dt.fromisoformat(payload.starts_at),
+            starts_at=ensure_aware(_dt.fromisoformat(payload.starts_at)),
             telegram_bot=getattr(request.app.state, "bot", None),
         )
     except ClientBlacklistedError:

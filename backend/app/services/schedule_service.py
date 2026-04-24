@@ -28,6 +28,14 @@ _ACTIVE_BOOKING = (BookingStatus.pending, BookingStatus.confirmed)
 _WEEKDAY_KEYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 
 
+def _weekday_lookup_keys(day: date) -> tuple[str, str, str]:
+    """Return tuple of keys: named, ISO, JS-style."""
+    iso = day.isoweekday()  # 1..7
+    named = _WEEKDAY_KEYS[iso - 1]
+    js = "0" if iso == 7 else str(iso)  # JS getDay: Sunday is 0
+    return named, str(iso), js
+
+
 @dataclass(frozen=True)
 class SalonScheduleContext:
     timezone: str
@@ -73,11 +81,10 @@ def _ranges_from_master_working_json(
     """Окна из master.working_hours (Phase 20). None — нет данных для этого дня, использовать слоты/салон."""
     if not wh:
         return None
-    wk = _WEEKDAY_KEYS[day.weekday()]
-    iso_wk = str(day.isoweekday())
-    if wk not in wh and iso_wk not in wh:
+    wk, iso_wk, js_wk = _weekday_lookup_keys(day)
+    if wk not in wh and iso_wk not in wh and js_wk not in wh:
         return None
-    seg = wh.get(wk) if wk in wh else wh.get(iso_wk)
+    seg = wh.get(wk) or wh.get(iso_wk) or wh.get(js_wk)
     if not isinstance(seg, dict):
         return None
     if seg.get("enabled") is False:
@@ -105,8 +112,12 @@ def _default_local_window(
     z = ZoneInfo(tz_name)
     day_start = datetime.combine(day, time.min, tzinfo=z)
     day_end = day_start + timedelta(days=1)
-    wk = _WEEKDAY_KEYS[day.weekday()]
-    seg = working_hours_default.get(wk) or working_hours_default.get(str(day.isoweekday()))
+    wk, iso_wk, js_wk = _weekday_lookup_keys(day)
+    seg = (
+        working_hours_default.get(iso_wk)
+        or working_hours_default.get(wk)
+        or working_hours_default.get(js_wk)
+    )
     if not seg:
         return day_start, day_end
     open_t = _parse_hhmm(str(seg.get("open") or seg.get("start") or "09:00"))

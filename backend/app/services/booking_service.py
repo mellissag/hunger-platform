@@ -16,6 +16,7 @@ import app.core.clock as clock
 from app.core.exceptions import (
     ClientBlacklistedError,
     ForbiddenScopeError,
+    InvalidScheduleError,
     InvalidBookingStateError,
     LateCancellationDeniedError,
     MasterDoesNotOfferServiceError,
@@ -47,6 +48,7 @@ from app.schemas.booking import (
     BookingUpdate,
 )
 from app.services import schedule_service
+from app.utils.datetime_utils import ensure_aware
 
 _ACTIVE = (BookingStatus.pending, BookingStatus.confirmed)
 
@@ -131,11 +133,15 @@ async def _resolve_pricing(
 
 
 async def create_booking(db: AsyncSession, user: User, data: BookingCreate) -> Booking:
+    starts_at = ensure_aware(data.starts_at)
+    if starts_at is None:
+        raise InvalidScheduleError("starts_at is required")
+
     if await _is_blacklisted(db, data.client_id):
         raise ClientBlacklistedError()
 
     price, duration_min = await _resolve_pricing(db, data.master_id, data.service_id)
-    ends_at = data.starts_at + timedelta(minutes=duration_min)
+    ends_at = starts_at + timedelta(minutes=duration_min)
 
     if user.role == UserRole.master:
         if user.master_id != data.master_id:
@@ -145,7 +151,7 @@ async def create_booking(db: AsyncSession, user: User, data: BookingCreate) -> B
         await schedule_service.validate_booking_window(
             db,
             master_id=data.master_id,
-            starts_at=data.starts_at,
+            starts_at=starts_at,
             ends_at=ends_at,
             created_via=data.created_via,
             exclude_booking_id=None,
@@ -154,7 +160,7 @@ async def create_booking(db: AsyncSession, user: User, data: BookingCreate) -> B
         await schedule_service.validate_booking_window(
             db,
             master_id=data.master_id,
-            starts_at=data.starts_at,
+            starts_at=starts_at,
             ends_at=ends_at,
             created_via=BookingCreatedVia.admin,
             exclude_booking_id=None,
@@ -163,7 +169,7 @@ async def create_booking(db: AsyncSession, user: User, data: BookingCreate) -> B
     await _assert_slot_free(
         db,
         master_id=data.master_id,
-        starts_at=data.starts_at,
+        starts_at=starts_at,
         ends_at=ends_at,
     )
 
@@ -171,7 +177,7 @@ async def create_booking(db: AsyncSession, user: User, data: BookingCreate) -> B
         client_id=data.client_id,
         master_id=data.master_id,
         service_id=data.service_id,
-        starts_at=data.starts_at,
+        starts_at=starts_at,
         ends_at=ends_at,
         status=BookingStatus.confirmed,
         price=price,
@@ -377,8 +383,10 @@ async def update_booking(
 ) -> Booking:
     b = await get_booking(db, user, booking_id)
     payload = data.model_dump(exclude_unset=True)
-    new_start = payload.get("starts_at", b.starts_at)
-    new_end = payload.get("ends_at", b.ends_at)
+    new_start = ensure_aware(payload.get("starts_at", b.starts_at))
+    new_end = ensure_aware(payload.get("ends_at", b.ends_at))
+    if new_start is None or new_end is None:
+        raise InvalidScheduleError("starts_at and ends_at are required")
     if "starts_at" in payload and "ends_at" not in payload:
         _, duration_min = await _resolve_pricing(db, b.master_id, b.service_id)
         new_end = new_start + timedelta(minutes=duration_min)
@@ -485,14 +493,17 @@ async def reschedule_booking(
     if b.status not in _ACTIVE:
         raise InvalidBookingStateError("Booking is not active")
 
+    aware_starts = ensure_aware(new_starts_at)
+    if aware_starts is None:
+        raise InvalidScheduleError("new_starts_at is required")
     _, duration_min = await _resolve_pricing(db, b.master_id, b.service_id)
-    new_ends = new_starts_at + timedelta(minutes=duration_min)
+    new_ends = aware_starts + timedelta(minutes=duration_min)
 
     if b.created_via == BookingCreatedVia.bot:
         await schedule_service.validate_booking_window(
             db,
             master_id=b.master_id,
-            starts_at=new_starts_at,
+            starts_at=aware_starts,
             ends_at=new_ends,
             created_via=b.created_via,
             exclude_booking_id=b.id,
@@ -501,11 +512,11 @@ async def reschedule_booking(
     await _assert_slot_free(
         db,
         master_id=b.master_id,
-        starts_at=new_starts_at,
+        starts_at=aware_starts,
         ends_at=new_ends,
         exclude_booking_id=b.id,
     )
-    b.starts_at = new_starts_at
+    b.starts_at = aware_starts
     b.ends_at = new_ends
     await db.flush()
     return b
