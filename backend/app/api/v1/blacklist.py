@@ -36,7 +36,7 @@ async def list_blacklist(
     db: Annotated[AsyncSession, Depends(get_db)],
     _user: Annotated[User, Depends(require_roles(*_STAFF))],
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=500),
 ) -> PaginatedResponse[BlacklistEntryOut]:
     count_stmt = select(func.count()).select_from(BlacklistEntry)
     total = (await db.execute(count_stmt)).scalar_one()

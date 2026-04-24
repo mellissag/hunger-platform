@@ -32,7 +32,7 @@ async def list_services(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(require_roles(*READ))],
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=500),
     q: str | None = None,
     category_id: UUID | None = None,
 ) -> PaginatedResponse[ServiceOut]:

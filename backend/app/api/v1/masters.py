@@ -77,7 +77,7 @@ async def list_masters(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(require_roles(*READ_STAFF))],
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=500),
     q: str | None = None,
     service_id: UUID | None = Query(None, description="Только мастера, предлагающие услугу"),
 ) -> PaginatedResponse[MasterOut]:

@@ -115,7 +115,7 @@ async def list_clients(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(require_roles(*STAFF))],
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100, alias="limit"),
+    page_size: int = Query(20, ge=1, le=500, alias="limit"),
     search: str | None = Query(None),
     q: str | None = Query(None),
     tag: list[str] | None = Query(None),
