@@ -38,6 +38,11 @@ http://{$APP_DOMAIN} {
 			header_up X-Forwarded-Proto "https"
 		}
 	}
+	handle /media* {
+		reverse_proxy api:8000 {
+			header_up X-Forwarded-Proto "https"
+		}
+	}
 
 	handle /readyz {
 		reverse_proxy api:8000 {
