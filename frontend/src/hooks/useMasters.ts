@@ -26,6 +26,7 @@ export type MasterUpdateForm = Partial<{
   color_hex: string;
   bio: Record<string, string>;
   specialization: Record<string, string>;
+  photo_url: string | null;
   payroll_percent: number;
   tg_user_id: number | null;
   certificates: MasterCertificateItem[];
