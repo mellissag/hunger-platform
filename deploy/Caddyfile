@@ -17,6 +17,9 @@
 	handle /healthz {
 		reverse_proxy api:8000
 	}
+	handle /media* {
+		reverse_proxy api:8000
+	}
 	handle /docs {
 		reverse_proxy api:8000
 	}
