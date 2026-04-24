@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, X } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,8 @@ type ServiceCreateOut = { id: string };
 type MasterServiceRow = { service_id?: string; id?: string; price_override?: number | null; duration_override?: number | null };
 
 export function QuickCreateServiceDrawer({ open, masterId, onClose, onCreated }: Props) {
+  const t = useTranslations("pages.masters");
+  const locale = useLocale();
   const qc = useQueryClient();
   const [form, setForm] = useState({
     name_ru: "",
@@ -81,11 +84,11 @@ export function QuickCreateServiceDrawer({ open, masterId, onClose, onCreated }:
       void qc.invalidateQueries({ queryKey: ["services"] });
       void qc.invalidateQueries({ queryKey: ["master", masterId, "services"] });
       void qc.invalidateQueries({ queryKey: ["masters"] });
-      toast.success(`Услуга «${form.name_ru}» создана и назначена мастеру`);
+      toast.success(t("serviceCreatedAssigned", { name: form.name_ru }));
       onCreated(service.id);
       onClose();
     },
-    onError: (err: Error) => toast.error(err.message || "Ошибка создания услуги"),
+    onError: (err: Error) => toast.error(err.message || t("serviceCreateError")),
   });
 
   if (!open) return null;
@@ -95,52 +98,52 @@ export function QuickCreateServiceDrawer({ open, masterId, onClose, onCreated }:
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30">
       <div className="h-full w-full max-w-xl overflow-y-auto border-l bg-background p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Создать услугу</h3>
+          <h3 className="text-lg font-semibold">{t("createServiceTitle")}</h3>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
         <div className="space-y-3">
           <div>
-            <Label>Название (RU)</Label>
+            <Label>{t("nameRu")}</Label>
             <Input value={form.name_ru} onChange={(e) => setForm((p) => ({ ...p, name_ru: e.target.value }))} />
           </div>
           <div>
-            <Label>Название (EN)</Label>
+            <Label>{t("nameEn")}</Label>
             <Input value={form.name_en} onChange={(e) => setForm((p) => ({ ...p, name_en: e.target.value }))} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Цена</Label>
+              <Label>{t("price")}</Label>
               <Input type="number" min={0} value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))} />
             </div>
             <div>
-              <Label>Длительность (мин)</Label>
+              <Label>{t("durationMinutes")}</Label>
               <Input type="number" min={1} value={form.duration_minutes} onChange={(e) => setForm((p) => ({ ...p, duration_minutes: e.target.value }))} />
             </div>
           </div>
           <div>
-            <Label>Категория</Label>
+            <Label>{t("category")}</Label>
             <select
               className="h-10 w-full rounded-md border bg-background px-3 text-sm"
               value={form.category_id}
               onChange={(e) => setForm((p) => ({ ...p, category_id: e.target.value }))}
             >
-              <option value="">Без категории</option>
+              <option value="">{t("noCategory")}</option>
               {categoriesList.map((cat) => (
                 <option key={cat.id} value={cat.id}>
-                  {cat.name_i18n?.ru || cat.name_i18n?.en || cat.name || cat.id}
+                  {cat.name_i18n?.[locale] || cat.name_i18n?.en || cat.name || cat.id}
                 </option>
               ))}
             </select>
           </div>
           <div>
-            <Label>Описание</Label>
+            <Label>{t("description")}</Label>
             <Input value={form.description_ru} onChange={(e) => setForm((p) => ({ ...p, description_ru: e.target.value }))} />
           </div>
           <div className="flex gap-2 pt-2">
             <Button variant="outline" className="flex-1" onClick={onClose}>
-              Отмена
+              {t("actionCancel")}
             </Button>
             <Button
               className="flex-1"
@@ -148,7 +151,7 @@ export function QuickCreateServiceDrawer({ open, masterId, onClose, onCreated }:
               disabled={createMutation.isPending || !form.name_ru.trim() || Number(form.price) <= 0}
             >
               {createMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Создать и назначить
+              {t("createAndAssign")}
             </Button>
           </div>
         </div>

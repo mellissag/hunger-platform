@@ -35,7 +35,10 @@ async def list_masters(
 ) -> tuple[list[Master], int]:
     stmt = (
         select(Master)
-        .options(selectinload(Master.master_services).selectinload(MasterService.service))
+        .options(
+            selectinload(Master.master_services).selectinload(MasterService.service),
+            selectinload(Master.users),
+        )
         .where(master_record_scope_filter(user))
     )
     if service_id is not None:
@@ -76,7 +79,10 @@ async def list_masters(
 async def get_master(db: AsyncSession, user: User, master_id: UUID) -> Master:
     stmt = (
         select(Master)
-        .options(selectinload(Master.master_services).selectinload(MasterService.service))
+        .options(
+            selectinload(Master.master_services).selectinload(MasterService.service),
+            selectinload(Master.users),
+        )
         .where(Master.id == master_id)
         .where(master_record_scope_filter(user))
     )
@@ -126,7 +132,10 @@ async def create_master(db: AsyncSession, _user: User, data: MasterCreate) -> Ma
     await db.refresh(m)
     stmt = (
         select(Master)
-        .options(selectinload(Master.master_services).selectinload(MasterService.service))
+        .options(
+            selectinload(Master.master_services).selectinload(MasterService.service),
+            selectinload(Master.users),
+        )
         .where(Master.id == m.id)
     )
     loaded = (await db.execute(stmt)).scalar_one()
@@ -148,7 +157,10 @@ async def update_master(db: AsyncSession, user: User, master_id: UUID, data: Mas
     await db.flush()
     stmt = (
         select(Master)
-        .options(selectinload(Master.master_services).selectinload(MasterService.service))
+        .options(
+            selectinload(Master.master_services).selectinload(MasterService.service),
+            selectinload(Master.users),
+        )
         .where(Master.id == m.id)
     )
     return (await db.execute(stmt)).scalar_one()

@@ -12,7 +12,9 @@ from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import ConflictError
 from app.core.exceptions import NotFoundError
+from app.core.security import hash_password
 from app.core.scope import ensure_master_own_master_id
 from app.deps import get_db, require_roles
 from app.models.booking import Booking, Review
@@ -25,6 +27,7 @@ from app.schemas.common import PaginatedResponse
 from app.schemas.master import (
     ManualBookingCreate,
     MasterCreate,
+    MasterCredentialsUpdate,
     MasterOut,
     MasterServiceRowOut,
     MasterServicesPutResponse,
@@ -118,6 +121,35 @@ async def update_master(
 ) -> MasterOut:
     m = await master_service.update_master(db, user, master_id, body)
     return master_to_out(m, locale=_locale())
+
+
+@router.patch("/{master_id}/credentials", response_model=dict[str, bool | str])
+async def update_master_credentials(
+    master_id: UUID,
+    data: MasterCredentialsUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_roles(UserRole.owner, UserRole.admin))],
+) -> dict[str, bool | str]:
+    master = await master_service.get_master(db, user, master_id)
+    account = (await db.execute(select(User).where(User.master_id == master.id))).scalar_one_or_none()
+    if account is None:
+        raise NotFoundError("User for master not found")
+
+    if data.email is None and data.password is None:
+        raise ConflictError("No changes provided")
+
+    if data.email is not None:
+        email = data.email.strip().lower()
+        existing = (await db.execute(select(User.id).where(User.email == email, User.id != account.id))).scalar_one_or_none()
+        if existing is not None:
+            raise ConflictError("Email already in use")
+        account.email = email
+
+    if data.password is not None:
+        account.password_hash = hash_password(data.password)
+
+    await db.flush()
+    return {"ok": True, "message": "Credentials updated"}
 
 
 @router.delete("/{master_id}", status_code=204)

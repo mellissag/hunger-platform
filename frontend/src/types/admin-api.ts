@@ -147,6 +147,7 @@ export type MasterOut = {
   id: string;
   display_name: string;
   color_hex: string;
+  user_email?: string | null;
   bio: Record<string, string>;
   specialization: Record<string, string>;
   photo_url: string | null;

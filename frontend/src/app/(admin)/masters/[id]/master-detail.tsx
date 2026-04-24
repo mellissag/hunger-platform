@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import { z } from "zod";
 
 import { AdminEmptyState } from "@/components/admin/empty-state";
 import { MasterCertificates } from "@/components/masters/MasterCertificates";
+import { MasterSchedule } from "@/components/masters/MasterSchedule";
 import { MasterServices } from "@/components/masters/MasterServices";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,38 +29,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  useAddReview,
-  useResetMasterPassword,
-  useUpdateMaster,
-  useUpdateWorkingHours,
-  useUploadMasterPhoto,
-  type WorkingHoursForm,
-} from "@/hooks/useMasters";
+import { useAddReview, useUpdateMaster, useUpdateWorkingHours, useUploadMasterPhoto, type WorkingHoursForm } from "@/hooks/useMasters";
 import { apiFetch, apiFormData, apiJson } from "@/lib/api";
 import { getPublicApiBaseUrl } from "@/lib/env";
-import type {
-  CalendarResponse,
-  MasterOut,
-  MasterStats,
-  ReviewsPage,
-  UserMe,
-} from "@/types/admin-api";
+import type { MasterOut, MasterStats, ReviewsPage, UserMe } from "@/types/admin-api";
 
 import { StarRating } from "@/components/masters/StarRating";
 import { uploadImageFile } from "@/lib/api";
 
 const profileSchema = z.object({
   display_name: z.string().min(1),
-  color_hex: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
   tg_user_id: z.string().optional(),
   payroll_percent: z.string().optional().or(z.literal("")),
-});
-
-const blockSchema = z.object({
-  starts_at_local: z.string().min(1),
-  ends_at_local: z.string().min(1),
-  note: z.string().optional(),
 });
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -86,7 +67,6 @@ function defaultWorkingHours(): WorkingHoursForm {
 }
 
 type ProfileValues = z.infer<typeof profileSchema>;
-type BlockValues = z.infer<typeof blockSchema>;
 
 function mediaSrc(url: string) {
   if (url.startsWith("http")) return url;
@@ -121,24 +101,20 @@ function StarRatingInput({ value, onChange }: { value: number; onChange: (v: num
 export function MasterDetail({ masterId }: { masterId: string }) {
   const t = useTranslations("pages.masterDetail");
   const qc = useQueryClient();
-  const [pwdOpen, setPwdOpen] = useState(false);
-  const [newPwd, setNewPwd] = useState("");
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
   const [reviewPhoto, setReviewPhoto] = useState<File | null>(null);
   const [reviewPhotoPreview, setReviewPhotoPreview] = useState<string | null>(null);
-  const [month, setMonth] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  });
-  const [manualOpen, setManualOpen] = useState(false);
-  const [manualClient, setManualClient] = useState("");
-  const [manualService, setManualService] = useState("");
-  const [manualStart, setManualStart] = useState("");
   const [profilePhotoBroken, setProfilePhotoBroken] = useState(false);
   const [brokenPortfolio, setBrokenPortfolio] = useState<Record<number, boolean>>({});
   const profilePhotoInputRef = useRef<HTMLInputElement | null>(null);
+  const [credEmail, setCredEmail] = useState("");
+  const [credPassword, setCredPassword] = useState("");
+  const [credConfirm, setCredConfirm] = useState("");
+  const [credLoading, setCredLoading] = useState(false);
+  const [credError, setCredError] = useState("");
+  const [credSuccess, setCredSuccess] = useState(false);
 
   const { data: me } = useQuery({
     queryKey: ["auth", "me"],
@@ -155,21 +131,14 @@ export function MasterDetail({ masterId }: { masterId: string }) {
     values: master
       ? {
           display_name: master.display_name,
-          color_hex: master.color_hex,
           tg_user_id: master.tg_user_id != null ? String(master.tg_user_id) : "",
           payroll_percent: master.payroll_percent != null ? String(master.payroll_percent) : "",
         }
-      : { display_name: "", color_hex: "#D97757", tg_user_id: "", payroll_percent: "" },
-  });
-
-  const blockForm = useForm<BlockValues>({
-    resolver: zodResolver(blockSchema),
-    defaultValues: { starts_at_local: "", ends_at_local: "", note: "" },
+      : { display_name: "", tg_user_id: "", payroll_percent: "" },
   });
 
   const saveProfile = useUpdateMaster(masterId);
   const uploadPhoto = useUploadMasterPhoto(masterId);
-  const resetPwd = useResetMasterPassword(masterId);
   const updateHours = useUpdateWorkingHours(masterId);
 
   const [hours, setHours] = useState<WorkingHoursForm>(defaultWorkingHours);
@@ -186,6 +155,13 @@ export function MasterDetail({ masterId }: { masterId: string }) {
     setProfilePhotoBroken(false);
     setBrokenPortfolio({});
   }, [master?.id, master?.photo_url, master?.portfolio]);
+  useEffect(() => {
+    setCredEmail(master?.user_email ?? "");
+    setCredPassword("");
+    setCredConfirm("");
+    setCredError("");
+    setCredSuccess(false);
+  }, [master?.user_email, master?.id]);
 
   const { data: reviews } = useQuery({
     queryKey: ["master", masterId, "reviews"],
@@ -201,39 +177,6 @@ export function MasterDetail({ masterId }: { masterId: string }) {
     enabled: !!masterId && me?.role !== "reception",
   });
 
-  const { data: cal } = useQuery({
-    queryKey: ["master", masterId, "calendar", month],
-    queryFn: () => apiJson<CalendarResponse>(`/masters/${masterId}/calendar?month=${month}`),
-    enabled: !!masterId,
-  });
-  const { data: masterBookings } = useQuery({
-    queryKey: ["master", masterId, "bookings"],
-    queryFn: async () => {
-      try {
-        return await apiJson<{ items?: Array<Record<string, unknown>> }>(`/masters/${masterId}/bookings`);
-      } catch {
-        return { items: [] };
-      }
-    },
-    enabled: !!masterId,
-    staleTime: 30_000,
-  });
-
-  const saveBlock = useMutation({
-    mutationFn: (body: { starts_at: string; ends_at: string; master_id: string; slot_type: string; note?: string }) =>
-      apiJson<unknown>("/schedule/block", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      }),
-    onSuccess: async () => {
-      toast.success(t("toastBlockSaved"));
-      blockForm.reset();
-      await qc.invalidateQueries({ queryKey: ["master", masterId, "calendar"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const ownerOnly = me?.role === "owner";
 
   const defaultDay = useMemo(
@@ -244,6 +187,42 @@ export function MasterDetail({ masterId }: { masterId: string }) {
     }),
     [],
   );
+
+  const handleCredentialsSave = async () => {
+    setCredError("");
+    setCredSuccess(false);
+    if (credPassword && credPassword !== credConfirm) {
+      setCredError(t("passwordMismatch"));
+      return;
+    }
+    if (credPassword && credPassword.length < 6) {
+      setCredError(t("passwordTooShort"));
+      return;
+    }
+    const payload: { email?: string; password?: string } = {};
+    if (credEmail.trim() && credEmail.trim() !== (master?.user_email ?? "")) payload.email = credEmail.trim();
+    if (credPassword) payload.password = credPassword;
+    if (!payload.email && !payload.password) {
+      setCredError(t("noChanges"));
+      return;
+    }
+    setCredLoading(true);
+    try {
+      await apiJson(`/masters/${masterId}/credentials`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      setCredSuccess(true);
+      setCredPassword("");
+      setCredConfirm("");
+      await qc.invalidateQueries({ queryKey: ["master", masterId] });
+    } catch (e) {
+      setCredError(e instanceof Error ? e.message : t("saveFailed"));
+    } finally {
+      setCredLoading(false);
+    }
+  };
 
   if (isLoading && !master) return <Skeleton className="h-64 w-full" />;
   if (!master) return <AdminEmptyState title={t("notFound")} />;
@@ -363,7 +342,6 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                   saveProfile.mutate(
                     {
                       display_name: v.display_name,
-                      color_hex: v.color_hex,
                       tg_user_id: v.tg_user_id ? Number(v.tg_user_id) : null,
                       ...(ownerOnly && v.payroll_percent !== ""
                         ? { payroll_percent: Number(v.payroll_percent) }
@@ -381,10 +359,6 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                   <Input id="display_name" {...profileForm.register("display_name")} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="color_hex">{t("fieldColor")}</Label>
-                  <Input id="color_hex" {...profileForm.register("color_hex")} />
-                </div>
-                <div className="space-y-2">
                   <Label>Telegram ID</Label>
                   <Input {...profileForm.register("tg_user_id")} />
                 </div>
@@ -398,13 +372,37 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                   <Button type="submit" disabled={saveProfile.isPending}>
                     {t("save")}
                   </Button>
-                  {me?.role === "owner" || me?.role === "admin" ? (
-                    <Button type="button" variant="outline" onClick={() => setPwdOpen(true)}>
-                      Reset password
-                    </Button>
-                  ) : null}
                 </div>
               </form>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">{t("accountSettings")}</CardTitle>
+                </CardHeader>
+                <CardContent className="max-w-md space-y-3">
+                  <div className="space-y-2">
+                    <Label>{t("email")}</Label>
+                    <Input type="email" value={credEmail} onChange={(e) => setCredEmail(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("newPassword")}</Label>
+                    <Input
+                      type="password"
+                      value={credPassword}
+                      onChange={(e) => setCredPassword(e.target.value)}
+                      placeholder={t("passwordPlaceholder")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("confirmPassword")}</Label>
+                    <Input type="password" value={credConfirm} onChange={(e) => setCredConfirm(e.target.value)} />
+                  </div>
+                  {credError ? <p className="text-sm text-destructive">{credError}</p> : null}
+                  {credSuccess ? <p className="text-sm text-emerald-600">{t("credentialsSaved")}</p> : null}
+                  <Button type="button" onClick={() => void handleCredentialsSave()} disabled={credLoading}>
+                    {credLoading ? t("saving") : t("saveCredentials")}
+                  </Button>
+                </CardContent>
+              </Card>
 
               <Card>
                 <CardHeader>
@@ -555,71 +553,12 @@ export function MasterDetail({ masterId }: { masterId: string }) {
 
         <TabsContent value="schedule" className="mt-4 space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>{t("tabSchedule")}</CardTitle>
-              {me?.role !== "master" ? (
-                <Button size="sm" variant="secondary" onClick={() => setManualOpen(true)}>
-                  <Plus className="mr-1 h-3 w-3" /> Manual booking
-                </Button>
-              ) : null}
+            <CardHeader>
+              <CardTitle>{t("schedule")}</CardTitle>
+              <CardDescription>{t("scheduleDesc")}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-md border p-3 text-sm text-muted-foreground">
-                Календарный вид временно отключен для текущей политики безопасности браузера (CSP). Данные расписания
-                и блоков ниже работают в штатном режиме.
-              </div>
-              <div className="flex items-center gap-2">
-                <Label className="w-24">Month</Label>
-                <Input value={month} onChange={(e) => setMonth(e.target.value)} placeholder="YYYY-MM" />
-              </div>
-              <div className="max-h-64 space-y-1 overflow-y-auto text-sm">
-                {cal?.bookings?.map((b) => (
-                  <div key={b.id} className="rounded border px-2 py-1">
-                    {b.starts_at} — {b.status} — €{b.price}
-                  </div>
-                ))}
-                {cal?.slots?.map((s) => (
-                  <div key={s.id} className="rounded bg-muted px-2 py-1 text-muted-foreground">
-                    Block {s.slot_type}: {s.starts_at}
-                  </div>
-                ))}
-              </div>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">{t("scheduleTitle")}</CardTitle>
-                  <CardDescription>{t("scheduleDesc")}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form
-                    className="max-w-md space-y-4"
-                    onSubmit={blockForm.handleSubmit((v) => {
-                      saveBlock.mutate({
-                        master_id: masterId,
-                        starts_at: new Date(v.starts_at_local).toISOString(),
-                        ends_at: new Date(v.ends_at_local).toISOString(),
-                        slot_type: "vacation",
-                        note: v.note || undefined,
-                      });
-                    })}
-                  >
-                    <div className="space-y-2">
-                      <Label htmlFor="starts">{t("fieldStart")}</Label>
-                      <Input id="starts" type="datetime-local" {...blockForm.register("starts_at_local")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="ends">{t("fieldEnd")}</Label>
-                      <Input id="ends" type="datetime-local" {...blockForm.register("ends_at_local")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="note">{t("fieldNote")}</Label>
-                      <Input id="note" {...blockForm.register("note")} />
-                    </div>
-                    <Button type="submit" disabled={saveBlock.isPending}>
-                      {t("saveBlock")}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+            <CardContent>
+              <MasterSchedule masterId={masterId} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -730,30 +669,6 @@ export function MasterDetail({ masterId }: { masterId: string }) {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={pwdOpen} onOpenChange={setPwdOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>New password</DialogTitle>
-          </DialogHeader>
-          <Input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} />
-          <DialogFooter>
-            <Button
-              onClick={() =>
-                resetPwd.mutate(newPwd, {
-                  onSuccess: () => {
-                    toast.success("OK");
-                    setPwdOpen(false);
-                  },
-                  onError: (e: Error) => toast.error(e.message),
-                })
-              }
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
         <DialogContent>
           <DialogHeader>
@@ -810,45 +725,6 @@ export function MasterDetail({ masterId }: { masterId: string }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={manualOpen} onOpenChange={setManualOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Manual booking</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2 text-sm">
-            <Label>Client UUID</Label>
-            <Input value={manualClient} onChange={(e) => setManualClient(e.target.value)} />
-            <Label>Service UUID</Label>
-            <Input value={manualService} onChange={(e) => setManualService(e.target.value)} />
-            <Label>Start (ISO UTC)</Label>
-            <Input value={manualStart} onChange={(e) => setManualStart(e.target.value)} />
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={async () => {
-                try {
-                  await apiJson(`/masters/${masterId}/calendar/manual-booking`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      client_id: manualClient,
-                      service_id: manualService,
-                      starts_at: manualStart,
-                    }),
-                  });
-                  toast.success("OK");
-                  setManualOpen(false);
-                  await qc.invalidateQueries({ queryKey: ["master", masterId, "calendar"] });
-                } catch (e) {
-                  toast.error(e instanceof Error ? e.message : "Error");
-                }
-              }}
-            >
-              Create
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

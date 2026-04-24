@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Award, Plus, Trash2, Upload } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import type { MasterOut } from "@/types/admin-api";
 type Certificate = { id: string; title: string; photo_url: string | null; year: number | null };
 
 export function MasterCertificates({ masterId }: { masterId: string }) {
+  const t = useTranslations("pages.masters");
   const qc = useQueryClient();
   const { data: master } = useQuery({
     queryKey: ["master", masterId],
@@ -40,7 +42,7 @@ export function MasterCertificates({ masterId }: { masterId: string }) {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["master", masterId] });
-      toast.success("Сертификаты сохранены");
+      toast.success(t("certificatesSaved"));
       setDirty(false);
     },
   });
@@ -53,9 +55,9 @@ export function MasterCertificates({ masterId }: { masterId: string }) {
       const res = await apiFormData<{ url: string }>(`/upload/image?folder=certificates`, fd);
       setCerts((p) => p.map((c) => (c.id === id ? { ...c, photo_url: res.url } : c)));
       setDirty(true);
-      toast.success("Фото загружено");
+      toast.success(t("photoUploaded"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Ошибка загрузки");
+      toast.error(e instanceof Error ? e.message : t("uploadError"));
     } finally {
       setUploadingId(null);
     }
@@ -65,16 +67,16 @@ export function MasterCertificates({ masterId }: { masterId: string }) {
     <div className="space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Квалификации и сертификаты</h3>
-          <p className="text-sm text-muted-foreground">Загрузите дипломы и сертификаты мастера</p>
+          <h3 className="text-lg font-semibold">{t("fieldCertificates")}</h3>
+          <p className="text-sm text-muted-foreground">{t("fieldCertificatesHint")}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => { setCerts((p) => [...p, { id: crypto.randomUUID(), title: "", photo_url: null, year: null }]); setDirty(true); }}>
             <Plus className="mr-1 h-4 w-4" />
-            Добавить
+            {t("actionAddCertificate")}
           </Button>
           <Button onClick={() => saveMutation.mutate()} disabled={!dirty || saveMutation.isPending}>
-            {saveMutation.isPending ? "Сохраняю..." : "Сохранить"}
+            {saveMutation.isPending ? t("saving") : t("save")}
           </Button>
         </div>
       </div>
@@ -82,7 +84,7 @@ export function MasterCertificates({ masterId }: { masterId: string }) {
       {certs.length === 0 ? (
         <div className="rounded-md border border-dashed p-10 text-center text-muted-foreground">
           <Award className="mx-auto mb-2 h-8 w-8" />
-          Нет сертификатов
+          {t("noCertificates")}
         </div>
       ) : null}
 
@@ -97,14 +99,14 @@ export function MasterCertificates({ masterId }: { masterId: string }) {
                 ) : (
                   <div className="text-center text-xs text-muted-foreground">
                     <Upload className="mx-auto mb-1 h-5 w-5" />
-                    {uploadingId === cert.id ? "Загрузка..." : "Загрузить фото"}
+                    {uploadingId === cert.id ? t("uploading") : t("uploadPhoto")}
                   </div>
                 )}
               </div>
             </label>
             <div className="space-y-2 p-3">
               <Input
-                placeholder="Название сертификата"
+                placeholder={t("certTitlePlaceholder")}
                 value={cert.title}
                 onChange={(e) => {
                   setCerts((p) => p.map((c) => (c.id === cert.id ? { ...c, title: e.target.value } : c)));
@@ -114,7 +116,7 @@ export function MasterCertificates({ masterId }: { masterId: string }) {
               <div className="flex gap-2">
                 <Input
                   type="number"
-                  placeholder="Год"
+                  placeholder={t("certYearPlaceholder")}
                   value={cert.year ?? ""}
                   onChange={(e) => {
                     setCerts((p) => p.map((c) => (c.id === cert.id ? { ...c, year: e.target.value ? Number(e.target.value) : null } : c)));

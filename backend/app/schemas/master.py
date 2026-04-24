@@ -8,7 +8,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID, uuid4
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.schemas.common import validate_i18n_dict
 
@@ -155,7 +155,6 @@ class MasterUpdate(BaseModel):
     bio: dict[str, str] | None = None
     specialization: dict[str, str] | None = None
     photo_url: str | None = None
-    color_hex: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
     sort_order: int | None = None
     is_active: bool | None = None
     payroll_percent: Decimal | None = Field(default=None, ge=Decimal("0"), le=Decimal("100"))
@@ -181,6 +180,13 @@ class MasterUpdate(BaseModel):
         if not v:
             return {k: "" for k in ("en", "ru", "uk", "bg")}
         return validate_i18n_dict(v)
+
+
+class MasterCredentialsUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr | None = None
+    password: str | None = Field(default=None, min_length=6, max_length=128)
 
 
 class MasterServiceUpdate(BaseModel):
@@ -238,6 +244,7 @@ class MasterOut(MasterBase):
     working_hours: dict[str, Any] = Field(default_factory=dict)
     portfolio: list[Any] = Field(default_factory=list)
     services: list[MasterServiceSlimOut] = Field(default_factory=list)
+    user_email: str | None = None
 
     @classmethod
     def from_orm_with_services(cls, m: Any, locale: str = "ru") -> MasterOut:
@@ -262,6 +269,7 @@ class MasterOut(MasterBase):
             working_hours=dict(m.working_hours or {}),
             portfolio=list(m.portfolio or []),
             services=services,
+            user_email=(m.users[0].email if getattr(m, "users", None) else None),
         )
 
 
