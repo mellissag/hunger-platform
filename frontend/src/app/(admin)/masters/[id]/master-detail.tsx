@@ -3,6 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import timeGridPlugin from "@fullcalendar/timegrid";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -13,6 +17,8 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { AdminEmptyState } from "@/components/admin/empty-state";
+import { MasterCertificates } from "@/components/masters/MasterCertificates";
+import { MasterServices } from "@/components/masters/MasterServices";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -29,12 +35,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useAddReview,
   useResetMasterPassword,
-  useServicesList,
   useUpdateMaster,
-  useUpdateMasterServices,
   useUpdateWorkingHours,
   useUploadMasterPhoto,
-  type MasterServiceForm,
   type WorkingHoursForm,
 } from "@/hooks/useMasters";
 import { apiFetch, apiFormData, apiJson } from "@/lib/api";
@@ -42,13 +45,13 @@ import { getPublicApiBaseUrl } from "@/lib/env";
 import type {
   CalendarResponse,
   MasterOut,
-  MasterServiceRow,
   MasterStats,
   ReviewsPage,
   UserMe,
 } from "@/types/admin-api";
 
 import { StarRating } from "@/components/masters/StarRating";
+import { uploadImageFile } from "@/lib/api";
 
 const profileSchema = z.object({
   display_name: z.string().min(1),
@@ -94,6 +97,31 @@ function mediaSrc(url: string) {
   return `${getPublicApiBaseUrl()}${url}`;
 }
 
+function StarRatingInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hovered, setHovered] = useState(0);
+  return (
+    <div className="mb-1 flex gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <svg
+          key={star}
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill={(hovered || value) >= star ? "#9A7230" : "none"}
+          stroke={(hovered || value) >= star ? "#9A7230" : "hsl(var(--border))"}
+          strokeWidth="1.5"
+          className="cursor-pointer transition"
+          onMouseEnter={() => setHovered(star)}
+          onMouseLeave={() => setHovered(0)}
+          onClick={() => onChange(star)}
+        >
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      ))}
+    </div>
+  );
+}
+
 export function MasterDetail({ masterId }: { masterId: string }) {
   const t = useTranslations("pages.masterDetail");
   const qc = useQueryClient();
@@ -102,6 +130,8 @@ export function MasterDetail({ masterId }: { masterId: string }) {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
+  const [reviewPhoto, setReviewPhoto] = useState<File | null>(null);
+  const [reviewPhotoPreview, setReviewPhotoPreview] = useState<string | null>(null);
   const [month, setMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -110,6 +140,8 @@ export function MasterDetail({ masterId }: { masterId: string }) {
   const [manualClient, setManualClient] = useState("");
   const [manualService, setManualService] = useState("");
   const [manualStart, setManualStart] = useState("");
+  const [profilePhotoBroken, setProfilePhotoBroken] = useState(false);
+  const [brokenPortfolio, setBrokenPortfolio] = useState<Record<number, boolean>>({});
 
   const { data: me } = useQuery({
     queryKey: ["auth", "me"],
@@ -153,30 +185,10 @@ export function MasterDetail({ masterId }: { masterId: string }) {
       setHours(defaultWorkingHours());
     }
   }, [master]);
-
-  const { data: masterServices } = useQuery({
-    queryKey: ["master", masterId, "services"],
-    queryFn: () => apiJson<MasterServiceRow[]>(`/masters/${masterId}/services`),
-    enabled: !!masterId,
-  });
-  const { data: allServices } = useServicesList();
-  const updateServices = useUpdateMasterServices(masterId);
-
-  const [svcCfg, setSvcCfg] = useState<Record<string, { enabled: boolean; price_override?: string; duration_override?: string }>>({});
-
   useEffect(() => {
-    if (!masterServices || !allServices?.items) return;
-    const map: Record<string, { enabled: boolean; price_override?: string; duration_override?: string }> = {};
-    for (const s of allServices.items) {
-      const row = masterServices.find((r) => r.service_id === s.id);
-      map[s.id] = {
-        enabled: !!row,
-        price_override: row?.price_override ?? undefined,
-        duration_override: row?.duration_override != null ? String(row.duration_override) : undefined,
-      };
-    }
-    setSvcCfg(map);
-  }, [masterServices, allServices]);
+    setProfilePhotoBroken(false);
+    setBrokenPortfolio({});
+  }, [master?.id, master?.photo_url, master?.portfolio]);
 
   const { data: reviews } = useQuery({
     queryKey: ["master", masterId, "reviews"],
@@ -196,6 +208,18 @@ export function MasterDetail({ masterId }: { masterId: string }) {
     queryKey: ["master", masterId, "calendar", month],
     queryFn: () => apiJson<CalendarResponse>(`/masters/${masterId}/calendar?month=${month}`),
     enabled: !!masterId,
+  });
+  const { data: masterBookings } = useQuery({
+    queryKey: ["master", masterId, "bookings"],
+    queryFn: async () => {
+      try {
+        return await apiJson<{ items?: Array<Record<string, unknown>> }>(`/masters/${masterId}/bookings`);
+      } catch {
+        return { items: [] };
+      }
+    },
+    enabled: !!masterId,
+    staleTime: 30_000,
   });
 
   const saveBlock = useMutation({
@@ -244,6 +268,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
         <TabsList className="flex flex-wrap gap-1">
           <TabsTrigger value="profile">{t("tabProfile")}</TabsTrigger>
           <TabsTrigger value="services">{t("tabServices")}</TabsTrigger>
+          <TabsTrigger value="certificates">Сертификаты</TabsTrigger>
           <TabsTrigger value="portfolio">{t("tabPortfolio")}</TabsTrigger>
           <TabsTrigger value="schedule">{t("tabSchedule")}</TabsTrigger>
           {me?.role !== "reception" ? <TabsTrigger value="stats">{t("tabStats")}</TabsTrigger> : null}
@@ -267,14 +292,21 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                 }}
               >
                 {master.photo_url ? (
-                  <Image
-                    src={mediaSrc(master.photo_url)}
-                    alt=""
-                    width={160}
-                    height={160}
-                    className="max-h-36 rounded object-cover"
-                    unoptimized
-                  />
+                  profilePhotoBroken ? (
+                    <div className="photo-fallback flex h-36 w-36 items-center justify-center rounded bg-muted text-3xl font-semibold">
+                      {master.display_name?.slice(0, 2).toUpperCase() ?? "??"}
+                    </div>
+                  ) : (
+                    <Image
+                      src={mediaSrc(master.photo_url)}
+                      alt=""
+                      width={160}
+                      height={160}
+                      className="max-h-36 rounded object-cover"
+                      unoptimized
+                      onError={() => setProfilePhotoBroken(true)}
+                    />
+                  )
                 ) : (
                   <span className="text-sm text-muted-foreground">Drop photo</span>
                 )}
@@ -408,99 +440,16 @@ export function MasterDetail({ masterId }: { masterId: string }) {
 
         <TabsContent value="services" className="mt-4 space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>{t("tabServices")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {allServices?.items?.map((service) => {
-                const cfg = svcCfg[service.id];
-                const on = !!cfg?.enabled;
-                return (
-                  <div key={service.id} className={`rounded-md border p-3 ${on ? "border-primary/40" : ""}`}>
-                    <label className="flex items-center gap-2 text-sm font-medium">
-                      <input
-                        type="checkbox"
-                        checked={on}
-                        onChange={(e) =>
-                          setSvcCfg((c) => {
-                            const prev = c[service.id] ?? { enabled: false };
-                            return {
-                              ...c,
-                              [service.id]: { ...prev, enabled: e.target.checked },
-                            };
-                          })
-                        }
-                      />
-                      {service.name_i18n?.en ?? service.id} (€{service.price})
-                    </label>
-                    {on ? (
-                      <div className="mt-2 flex gap-4">
-                        <div>
-                          <Label className="text-xs">Price €</Label>
-                          <Input
-                            className="h-8 w-24"
-                            value={cfg?.price_override ?? ""}
-                            placeholder={String(service.price)}
-                            onChange={(e) =>
-                              setSvcCfg((c) => {
-                                const prev = c[service.id] ?? { enabled: on };
-                                return {
-                                  ...c,
-                                  [service.id]: {
-                                    enabled: prev.enabled,
-                                    duration_override: prev.duration_override,
-                                    price_override: e.target.value,
-                                  },
-                                };
-                              })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Min</Label>
-                          <Input
-                            className="h-8 w-20"
-                            value={cfg?.duration_override ?? ""}
-                            placeholder={String(service.duration_minutes)}
-                            onChange={(e) =>
-                              setSvcCfg((c) => {
-                                const prev = c[service.id] ?? { enabled: on };
-                                return {
-                                  ...c,
-                                  [service.id]: {
-                                    enabled: prev.enabled,
-                                    price_override: prev.price_override,
-                                    duration_override: e.target.value,
-                                  },
-                                };
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-              <Button
-                type="button"
-                onClick={() => {
-                  const rows: MasterServiceForm[] = Object.entries(svcCfg)
-                    .filter(([, v]) => v.enabled)
-                    .map(([id, v]) => ({
-                      service_id: id,
-                      price_override: v.price_override ? Number(v.price_override) : null,
-                      duration_override: v.duration_override ? Number(v.duration_override) : null,
-                    }));
-                  updateServices.mutate(rows, {
-                    onSuccess: () => toast.success(t("toastSaved")),
-                    onError: (e: Error) => toast.error(e.message),
-                  });
-                }}
-                disabled={updateServices.isPending}
-              >
-                {t("save")}
-              </Button>
+            <CardContent className="pt-6">
+              <MasterServices masterId={master.id} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="certificates" className="mt-4">
+          <Card>
+            <CardContent className="pt-6">
+              <MasterCertificates masterId={master.id} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -531,14 +480,21 @@ export function MasterDetail({ masterId }: { masterId: string }) {
               <div className="grid grid-cols-3 gap-2">
                 {(master.portfolio ?? []).map((p, idx) => (
                   <div key={p.url} className="group relative overflow-hidden rounded border">
-                    <Image
-                      src={mediaSrc(p.url)}
-                      alt=""
-                      width={120}
-                      height={160}
-                      className="h-32 w-full object-cover"
-                      unoptimized
-                    />
+                    {brokenPortfolio[idx] ? (
+                      <div className="photo-fallback flex h-32 w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground">
+                        {master.display_name?.slice(0, 2).toUpperCase() ?? "??"}
+                      </div>
+                    ) : (
+                      <Image
+                        src={mediaSrc(p.url)}
+                        alt=""
+                        width={120}
+                        height={160}
+                        className="h-32 w-full object-cover"
+                        unoptimized
+                        onError={() => setBrokenPortfolio((prev) => ({ ...prev, [idx]: true }))}
+                      />
+                    )}
                     <Button
                       type="button"
                       size="icon"
@@ -571,6 +527,33 @@ export function MasterDetail({ masterId }: { masterId: string }) {
               ) : null}
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="rounded-md border p-3">
+                <FullCalendar
+                  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                  initialView="timeGridWeek"
+                  headerToolbar={{
+                    left: "prev,next today",
+                    center: "title",
+                    right: "dayGridMonth,timeGridWeek,timeGridDay",
+                  }}
+                  buttonText={{ today: "Сегодня", month: "Месяц", week: "Неделя", day: "День" }}
+                  firstDay={1}
+                  slotMinTime="08:00:00"
+                  slotMaxTime="22:00:00"
+                  allDaySlot={false}
+                  events={(masterBookings?.items ?? []).map((b: any) => ({
+                    id: `b-${b.id}`,
+                    title: `${b.client?.first_name || "Клиент"} · ${b.service?.name_i18n?.ru || b.service?.name || "Услуга"}`,
+                    start: b.starts_at,
+                    end: b.ends_at,
+                    backgroundColor: master.color_hex || "#9A7230",
+                    borderColor: "transparent",
+                    textColor: "#fff",
+                  }))}
+                  height="auto"
+                  nowIndicator
+                />
+              </div>
               <div className="flex items-center gap-2">
                 <Label className="w-24">Month</Label>
                 <Input value={month} onChange={(e) => setMonth(e.target.value)} placeholder="YYYY-MM" />
@@ -684,11 +667,11 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                 <div>
                   <div className="text-3xl font-semibold">{reviews.avg?.toFixed(1) ?? "—"}</div>
                   <StarRating value={reviews.avg ?? 0} size={18} />
-                  <p className="text-sm text-muted-foreground">{reviews.total} reviews</p>
+                  <p className="text-sm text-muted-foreground">{reviews.total} отзывов</p>
                 </div>
                 {me?.role === "owner" || me?.role === "admin" ? (
                   <Button size="sm" variant="secondary" onClick={() => setReviewOpen(true)}>
-                    <Plus className="mr-1 h-3 w-3" /> Add review
+                    <Plus className="mr-1 h-3 w-3" /> + Добавить отзыв
                   </Button>
                 ) : null}
               </div>
@@ -713,6 +696,16 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                       ) : null}
                     </div>
                     {r.text ? <p className="mt-1">{r.text}</p> : null}
+                    {r.photo_url ? (
+                      <img
+                        src={r.photo_url}
+                        alt="review"
+                        className="mt-2 max-h-56 w-full rounded border object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -750,30 +743,54 @@ export function MasterDetail({ masterId }: { masterId: string }) {
       <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add review</DialogTitle>
+            <DialogTitle>Добавить отзыв</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Label>Rating</Label>
-            <Input type="number" min={1} max={5} value={reviewRating} onChange={(e) => setReviewRating(Number(e.target.value))} />
-            <Label>Text</Label>
+            <Label>Оценка</Label>
+            <StarRatingInput value={reviewRating} onChange={setReviewRating} />
+            <Label>Текст отзыва</Label>
             <Input value={reviewText} onChange={(e) => setReviewText(e.target.value)} />
+            <Label>Фото (необязательно)</Label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                setReviewPhoto(f);
+                setReviewPhotoPreview(URL.createObjectURL(f));
+              }}
+            />
+            {reviewPhotoPreview ? <img src={reviewPhotoPreview} alt="preview" className="h-24 w-36 rounded object-cover" /> : null}
           </div>
           <DialogFooter>
             <Button
-              onClick={() =>
+              onClick={async () => {
+                let photoUrl: string | undefined;
+                if (reviewPhoto) {
+                  try {
+                    photoUrl = await uploadImageFile(reviewPhoto, "reviews");
+                  } catch {
+                    photoUrl = undefined;
+                  }
+                }
                 addReview.mutate(
-                  { rating: reviewRating, text: reviewText || undefined, source: "manual" },
+                  { rating: reviewRating, text: reviewText || undefined, source: "manual", photo_url: photoUrl },
                   {
                     onSuccess: () => {
-                      toast.success("OK");
+                      toast.success("Сохранить");
                       setReviewOpen(false);
+                      setReviewPhoto(null);
+                      setReviewPhotoPreview(null);
+                      setReviewText("");
+                      setReviewRating(5);
                     },
                     onError: (e: Error) => toast.error(e.message),
                   },
-                )
-              }
+                );
+              }}
             >
-              Save
+              Сохранить
             </Button>
           </DialogFooter>
         </DialogContent>

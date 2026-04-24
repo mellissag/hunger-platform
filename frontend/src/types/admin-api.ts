@@ -199,6 +199,7 @@ export type ReviewOut = {
   booking_id: string | null;
   rating: number;
   text: string | null;
+  photo_url?: string | null;
   source: string;
   is_visible: boolean;
   created_at: string;

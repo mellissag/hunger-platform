@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
@@ -10,6 +11,16 @@ from uuid import UUID, uuid4
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.common import validate_i18n_dict
+
+BASE_URL = os.environ.get("BASE_URL", "https://test-adm.tech").rstrip("/")
+
+
+def _to_absolute(v: str | None) -> str | None:
+    if not v:
+        return v
+    if v.startswith("http://") or v.startswith("https://"):
+        return v
+    return f"{BASE_URL}{v if v.startswith('/') else f'/{v}'}"
 
 
 class WorkingDaySchema(BaseModel):
@@ -48,6 +59,11 @@ class CertificateItem(BaseModel):
     title: str = Field(min_length=1, max_length=500)
     photo_url: str | None = None
     year: int | None = Field(default=None, ge=1900, le=2100)
+
+    @field_validator("photo_url", mode="before")
+    @classmethod
+    def _photo_abs(cls, v: str | None) -> str | None:
+        return _to_absolute(v)
 
 
 def _normalize_certificates_list(raw: list[Any] | None) -> list[dict[str, Any]]:
@@ -105,6 +121,11 @@ class MasterBase(BaseModel):
         if not v:
             return {k: "" for k in ("en", "ru", "uk", "bg")}
         return validate_i18n_dict(v)
+
+    @field_validator("photo_url", mode="before")
+    @classmethod
+    def _master_photo_abs(cls, v: str | None) -> str | None:
+        return _to_absolute(v)
 
 
 class MasterCreate(MasterBase):
@@ -185,6 +206,7 @@ class ReviewCreate(BaseModel):
     rating: int = Field(..., ge=1, le=5)
     text: str | None = None
     client_id: UUID | None = None
+    photo_url: str | None = None
     source: str = Field(default="manual", max_length=20)
 
 
@@ -280,10 +302,16 @@ class ReviewOut(BaseModel):
         default=None,
         validation_alias=AliasChoices("text", "comment"),
     )
+    photo_url: str | None = None
     source: str
     is_visible: bool
     created_at: datetime
     client: ReviewClientBrief | None = None
+
+    @field_validator("photo_url", mode="before")
+    @classmethod
+    def _review_photo_abs(cls, v: str | None) -> str | None:
+        return _to_absolute(v)
 
 
 class ReviewsPageOut(BaseModel):

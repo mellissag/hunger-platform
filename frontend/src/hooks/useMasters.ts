@@ -47,6 +47,7 @@ export type ReviewForm = {
   rating: number;
   text?: string;
   client_id?: string;
+  photo_url?: string;
   source?: string;
 };
 

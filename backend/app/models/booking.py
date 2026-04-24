@@ -138,6 +138,7 @@ class Review(UUIDPrimaryKeyMixin, Base):
     )
     rating: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     source: Mapped[str] = mapped_column(Text, nullable=False, default="bot")
     is_visible: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 

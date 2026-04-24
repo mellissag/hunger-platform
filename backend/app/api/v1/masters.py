@@ -15,9 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import NotFoundError
 from app.core.scope import ensure_master_own_master_id
 from app.deps import get_db, require_roles
-from app.models.booking import Review
+from app.models.booking import Booking, Review
 from app.models.catalog import MasterService, Service
-from app.models.enums import UserRole
+from app.models.enums import BookingStatus, UserRole
 from app.models.salon import Salon
 from app.models.user import User
 from app.schemas.booking import BookingOut
@@ -275,6 +275,7 @@ def _review_to_out(r: Review) -> ReviewOut:
         booking_id=r.booking_id,
         rating=r.rating,
         text=r.comment,
+        photo_url=r.photo_url,
         source=r.source,
         is_visible=r.is_visible,
         created_at=r.created_at,
@@ -392,3 +393,46 @@ async def get_master_calendar(
             for s in slots
         ],
     )
+
+
+@router.get("/{master_id}/bookings")
+async def get_master_bookings(
+    master_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _user: Annotated[User, Depends(require_roles(*READ_STAFF))],
+) -> dict:
+    from sqlalchemy.orm import selectinload
+
+    result = await db.execute(
+        select(Booking)
+        .where(
+            Booking.master_id == master_id,
+            Booking.status.notin_([BookingStatus.cancelled_by_client, BookingStatus.no_show]),
+        )
+        .options(
+            selectinload(Booking.client),
+            selectinload(Booking.service),
+        )
+        .order_by(Booking.starts_at)
+    )
+    items = result.scalars().all()
+    payload = [
+        {
+            "id": str(b.id),
+            "starts_at": b.starts_at,
+            "ends_at": b.ends_at,
+            "status": b.status.value if hasattr(b.status, "value") else str(b.status),
+            "client": {
+                "id": str(b.client.id) if b.client else None,
+                "first_name": b.client.first_name if b.client else None,
+                "last_name": b.client.last_name if b.client else None,
+            },
+            "service": {
+                "id": str(b.service.id) if b.service else None,
+                "name": (b.service.name_i18n or {}).get("ru") if b.service and isinstance(b.service.name_i18n, dict) else None,
+                "name_i18n": b.service.name_i18n if b.service else None,
+            },
+        }
+        for b in items
+    ]
+    return {"items": payload, "total": len(payload)}

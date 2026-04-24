@@ -18,6 +18,7 @@ router = APIRouter(prefix="/upload", tags=["upload"])
 
 UPLOAD_ROOT = Path(os.environ.get("UPLOAD_DIR", "./data/uploads"))
 SAFE_FOLDER = re.compile(r"^[a-z0-9_]{1,32}$")
+BASE_URL = os.environ.get("BASE_URL", "https://test-adm.tech").rstrip("/")
 
 ALLOWED_TYPES = {
     "image/jpeg": "jpg",
@@ -53,4 +54,4 @@ async def upload_image(
     dest = UPLOAD_ROOT / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(content)
-    return ImageUrlOut(url=f"/media/{rel}")
+    return ImageUrlOut(url=f"{BASE_URL}/media/{rel}")

@@ -39,10 +39,11 @@ from app.services import booking_service, schedule_service
 
 
 UPLOAD_ROOT = Path(os.environ.get("UPLOAD_DIR", "./data/uploads"))
+BASE_URL = os.environ.get("BASE_URL", "https://test-adm.tech").rstrip("/")
 
 
 def _media_url(rel: str) -> str:
-    return f"/media/{rel.lstrip('/')}"
+    return f"{BASE_URL}/media/{rel.lstrip('/')}"
 
 
 async def save_master_upload(master_id: UUID, file_bytes: bytes, ext: str, subdir: str, name: str) -> str:
@@ -150,6 +151,7 @@ async def list_reviews_page(
                 booking_id=r.booking_id,
                 rating=r.rating,
                 text=r.comment,
+                photo_url=r.photo_url,
                 source=r.source,
                 is_visible=r.is_visible,
                 created_at=r.created_at,
@@ -217,6 +219,7 @@ async def add_manual_review(
         booking_id=None,
         rating=data.rating,
         comment=data.text,
+        photo_url=data.photo_url,
         source=data.source,
         is_visible=True,
     )
