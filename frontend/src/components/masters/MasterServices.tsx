@@ -142,7 +142,15 @@ export function MasterServices({ masterId }: { masterId: string }) {
                     type="button"
                     className={`flex h-5 w-5 items-center justify-center rounded border ${enabled ? "bg-primary text-primary-foreground" : ""}`}
                     onClick={() => {
-                      setConfig((p) => ({ ...p, [service.id]: { ...p[service.id], enabled: !enabled } }));
+                      setConfig((p) => ({
+                        ...p,
+                        [service.id]: {
+                          service_id: service.id,
+                          enabled: !enabled,
+                          price_override: p[service.id]?.price_override ?? null,
+                          duration_override: p[service.id]?.duration_override ?? null,
+                        } satisfies ServiceConfig,
+                      }));
                       setDirty(true);
                     }}
                   >
@@ -163,7 +171,12 @@ export function MasterServices({ masterId }: { masterId: string }) {
                       onChange={(e) => {
                         setConfig((p) => ({
                           ...p,
-                          [service.id]: { ...p[service.id], price_override: e.target.value ? Number(e.target.value) : null },
+                          [service.id]: {
+                            service_id: service.id,
+                            enabled: p[service.id]?.enabled ?? enabled,
+                            price_override: e.target.value ? Number(e.target.value) : null,
+                            duration_override: p[service.id]?.duration_override ?? null,
+                          } satisfies ServiceConfig,
                         }));
                         setDirty(true);
                       }}
@@ -176,7 +189,12 @@ export function MasterServices({ masterId }: { masterId: string }) {
                       onChange={(e) => {
                         setConfig((p) => ({
                           ...p,
-                          [service.id]: { ...p[service.id], duration_override: e.target.value ? Number(e.target.value) : null },
+                          [service.id]: {
+                            service_id: service.id,
+                            enabled: p[service.id]?.enabled ?? enabled,
+                            price_override: p[service.id]?.price_override ?? null,
+                            duration_override: e.target.value ? Number(e.target.value) : null,
+                          } satisfies ServiceConfig,
                         }));
                         setDirty(true);
                       }}
