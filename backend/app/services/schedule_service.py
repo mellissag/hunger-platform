@@ -74,9 +74,10 @@ def _ranges_from_master_working_json(
     if not wh:
         return None
     wk = _WEEKDAY_KEYS[day.weekday()]
-    if wk not in wh:
+    iso_wk = str(day.isoweekday())
+    if wk not in wh and iso_wk not in wh:
         return None
-    seg = wh.get(wk)
+    seg = wh.get(wk) if wk in wh else wh.get(iso_wk)
     if not isinstance(seg, dict):
         return None
     if seg.get("enabled") is False:
@@ -105,11 +106,11 @@ def _default_local_window(
     day_start = datetime.combine(day, time.min, tzinfo=z)
     day_end = day_start + timedelta(days=1)
     wk = _WEEKDAY_KEYS[day.weekday()]
-    seg = working_hours_default.get(wk)
+    seg = working_hours_default.get(wk) or working_hours_default.get(str(day.isoweekday()))
     if not seg:
         return day_start, day_end
-    open_t = _parse_hhmm(str(seg["open"]))
-    close_t = _parse_hhmm(str(seg["close"]))
+    open_t = _parse_hhmm(str(seg.get("open") or seg.get("start") or "09:00"))
+    close_t = _parse_hhmm(str(seg.get("close") or seg.get("end") or "18:00"))
     win_start = datetime.combine(day, open_t, tzinfo=z)
     win_end = datetime.combine(day, close_t, tzinfo=z)
     if win_end <= win_start:

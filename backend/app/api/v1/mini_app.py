@@ -20,6 +20,7 @@ from app.models.client import Client
 from app.models.master import Master
 from app.schemas.mini_app import (
     InitDataPayload,
+    MiniAppAvailabilityResponse,
     MiniAppBookingCreate,
     MiniAppBookingOut,
     MiniAppMasterOut,
@@ -159,6 +160,7 @@ async def list_masters(
         await db.execute(
             select(Master)
             .where(Master.is_active.is_(True))
+            .options(selectinload(Master.master_services).selectinload(MasterService.service))
             .order_by(Master.sort_order)
         )
     ).scalars().all()
@@ -172,6 +174,14 @@ async def list_masters(
             specialization=m.specialization,
             rating_avg=float(m.rating_avg) if m.rating_avg is not None else None,
             rating_count=m.rating_count,
+            services=[
+                {
+                    "id": str(ms.service.id),
+                    "name_i18n": ms.service.name_i18n,
+                }
+                for ms in (m.master_services or [])
+                if ms.service is not None
+            ],
         )
         for m in rows
     ]
@@ -195,8 +205,81 @@ async def get_slots(
     except (ValueError, AttributeError):
         raise HTTPException(status_code=400, detail="Invalid params")
 
-    ctx = await schedule_service.get_schedule_context(db, mid, sid, d)
-    return MiniAppSlotsResponse(date=date, slots=ctx.free_slots)
+    service = await db.get(Service, sid)
+    if service is None:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    ms = (
+        await db.execute(
+            select(MasterService).where(
+                MasterService.master_id == mid,
+                MasterService.service_id == sid,
+            )
+        )
+    ).scalar_one_or_none()
+    if ms is None:
+        raise HTTPException(status_code=404, detail="Service not offered by this master")
+
+    duration = int(ms.duration_override) if ms.duration_override is not None else int(service.duration_minutes)
+    times = await schedule_service.get_available_slots(
+        db,
+        mid,
+        d,
+        duration,
+        apply_lead_time=True,
+    )
+    return MiniAppSlotsResponse(date=date, slots=[t.strftime("%H:%M") for t in times])
+
+
+def _default_working_hours() -> dict[str, Any]:
+    return {
+        "1": {"start": "09:00", "end": "18:00", "enabled": True},
+        "2": {"start": "09:00", "end": "18:00", "enabled": True},
+        "3": {"start": "09:00", "end": "18:00", "enabled": True},
+        "4": {"start": "09:00", "end": "18:00", "enabled": True},
+        "5": {"start": "09:00", "end": "18:00", "enabled": True},
+        "6": {"start": "10:00", "end": "15:00", "enabled": True},
+        "7": {"start": "00:00", "end": "00:00", "enabled": False},
+    }
+
+
+@router.get("/availability", response_model=MiniAppAvailabilityResponse)
+async def get_availability(
+    master_id: str,
+    year: int,
+    month: int,
+    db: AsyncSession = Depends(get_db),
+) -> MiniAppAvailabilityResponse:
+    from calendar import monthrange
+    from datetime import date as _date
+    import uuid as _uuid
+
+    try:
+        mid = _uuid.UUID(master_id)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=400, detail="Invalid master_id")
+    master = await db.get(Master, mid)
+    if master is None:
+        raise HTTPException(status_code=404, detail="Master not found")
+
+    real_month = month + 1 if 0 <= month <= 11 else month
+    _, days_in_month = monthrange(year, real_month)
+    today = _date.today()
+    working_hours = (
+        master.working_hours
+        if isinstance(master.working_hours, dict) and master.working_hours
+        else _default_working_hours()
+    )
+    available_dates: list[str] = []
+    for day in range(1, days_in_month + 1):
+        d = _date(year, real_month, day)
+        if d < today:
+            continue
+        dow = str(d.isoweekday())
+        day_schedule = working_hours.get(dow, {})
+        if isinstance(day_schedule, dict) and day_schedule.get("enabled", False):
+            available_dates.append(d.isoformat())
+    return MiniAppAvailabilityResponse(available_dates=available_dates)
 
 
 @router.post("/bookings", response_model=MiniAppBookingOut)

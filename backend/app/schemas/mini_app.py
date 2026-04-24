@@ -35,11 +35,16 @@ class MiniAppMasterOut(BaseModel):
     specialization: dict[str, Any]
     rating_avg: float | None
     rating_count: int
+    services: list[dict[str, Any]] = []
 
 
 class MiniAppSlotsResponse(BaseModel):
     date: str
     slots: list[str]
+
+
+class MiniAppAvailabilityResponse(BaseModel):
+    available_dates: list[str]
 
 
 class MiniAppBookingCreate(BaseModel):

@@ -12,6 +12,7 @@ interface Master {
   specialization: Record<string, string>;
   rating_avg: number | null;
   rating_count: number;
+  services?: Array<{ id: string; name_i18n?: Record<string, string> }>;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -40,6 +41,7 @@ export default function MastersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lang, setLang] = useState("en");
+  const [brokenAvatars, setBrokenAvatars] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     setLang(getLang());
@@ -63,36 +65,15 @@ export default function MastersPage() {
       {/* Header */}
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          padding: "10px 14px",
-          gap: 10,
-          background: "var(--card)",
-          borderBottom: "1px solid var(--border)",
+          padding: "16px 16px 8px",
         }}
       >
-        <Link
-          href="/mini-app"
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: "50%",
-            display: "grid",
-            placeItems: "center",
-            background: "var(--dim)",
-            textDecoration: "none",
-            color: "var(--muted)",
-            fontSize: 18,
-            lineHeight: 1,
-          }}
-        >
-          ‹
-        </Link>
-        <div
-          className="serif"
-          style={{ flex: 1, fontSize: 17, fontWeight: 600, color: "var(--fg)" }}
-        >
-          Наши мастера
+        <Link href="/mini-app" style={{ color: "var(--gold)", textDecoration: "none", fontSize: 20 }}>‹</Link>
+        <div className="serif" style={{ fontSize: 22, fontWeight: 700, color: "var(--fg)", marginTop: 4 }}>
+          Выберите мастера
+        </div>
+        <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>
+          Подберем удобное время в пару шагов
         </div>
       </div>
 
@@ -101,10 +82,10 @@ export default function MastersPage() {
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "10px 12px",
+          padding: "8px 16px 24px",
           display: "flex",
           flexDirection: "column",
-          gap: 8,
+          gap: 12,
         }}
       >
         {loading && (
@@ -130,42 +111,45 @@ export default function MastersPage() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 12,
-                  padding: 14,
-                  borderRadius: 2,
+                  gap: 14,
+                  padding: 16,
+                  borderRadius: 16,
                   cursor: "pointer",
                   background: "var(--card)",
                   border: "1px solid var(--border)",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
                 }}
               >
                 {/* Avatar */}
                 <div
                   style={{
-                    width: 46,
-                    height: 46,
+                    width: 64,
+                    height: 64,
                     borderRadius: "50%",
                     display: "grid",
                     placeItems: "center",
                     flexShrink: 0,
                     overflow: "hidden",
-                    background: "var(--dim)",
-                    border: "1px solid var(--border)",
+                    background: "var(--gold-l)",
+                    border: "2px solid var(--border)",
                   }}
                 >
-                  {m.photo_url ? (
+                  {m.photo_url && !brokenAvatars[m.id] ? (
                     <Image
                       src={m.photo_url}
                       alt={m.display_name}
-                      width={46}
-                      height={46}
+                      width={64}
+                      height={64}
+                      unoptimized
+                      onError={() => setBrokenAvatars((prev) => ({ ...prev, [m.id]: true }))}
                       style={{ objectFit: "cover", width: "100%", height: "100%" }}
                     />
                   ) : (
                     <span
                       className="serif"
-                      style={{ fontSize: 18, fontWeight: 600, color: "var(--gold)" }}
+                      style={{ fontSize: 24, fontWeight: 700, color: "var(--gold)" }}
                     >
-                      {initials(m.display_name)}
+                      {(m.display_name || "?")[0]!.toUpperCase()}
                     </span>
                   )}
                 </div>
@@ -174,36 +158,48 @@ export default function MastersPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     className="serif"
-                    style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}
+                    style={{ fontSize: 16, fontWeight: 600, color: "var(--fg)" }}
                   >
                     {m.display_name}
                   </div>
                   {spec && (
                     <div
-                      style={{
-                        fontSize: 11,
-                        marginTop: 2,
-                        color: "var(--muted)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
+                      style={{ fontSize: 13, marginTop: 3, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                     >
                       {spec}
                     </div>
                   )}
                   {m.rating_avg !== null && m.rating_count > 0 && (
                     <div
-                      style={{ fontSize: 11, marginTop: 4, fontWeight: 500, color: "var(--gold)" }}
+                      style={{ fontSize: 13, marginTop: 6, fontWeight: 600, color: "var(--gold)" }}
                     >
                       {"★".repeat(Math.round(m.rating_avg))} {m.rating_avg.toFixed(1)} (
                       {m.rating_count})
                     </div>
                   )}
+                  {!!m.services?.length && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                      {m.services.slice(0, 2).map((s) => (
+                        <span
+                          key={s.id}
+                          style={{
+                            background: "var(--gold-l)",
+                            color: "var(--gold)",
+                            fontSize: 11,
+                            fontWeight: 500,
+                            padding: "2px 8px",
+                            borderRadius: 20,
+                          }}
+                        >
+                          {pickI18n(s.name_i18n ?? {}, lang)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Arrow */}
-                <div style={{ color: "var(--gold)", opacity: 0.5, fontSize: 18 }}>›</div>
+                <div style={{ color: "var(--muted)", fontSize: 20 }}>›</div>
               </div>
             </Link>
           );

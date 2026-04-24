@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -19,6 +20,15 @@ interface Master {
   display_name: string;
   photo_url: string | null;
   rating_avg: number | null;
+  rating_count?: number;
+  specialization?: Record<string, string>;
+  services?: Array<{ id: string; name_i18n?: Record<string, string> }>;
+}
+
+interface SlotItem {
+  time: string;
+  datetime: string;
+  available: boolean;
 }
 
 type BookStep = "service" | "master" | "date" | "time" | "confirm" | "success";
@@ -66,10 +76,11 @@ const DAYS_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 interface CalendarProps {
   onSelect: (date: string) => void;
   selected: string | null;
-  slotsWithAvailability: Record<string, boolean>;
+  availableDates: Set<string> | null;
+  onMonthChange: (year: number, month: number) => void;
 }
 
-function Calendar({ onSelect, selected, slotsWithAvailability }: CalendarProps) {
+function Calendar({ onSelect, selected, availableDates, onMonthChange }: CalendarProps) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -86,11 +97,18 @@ function Calendar({ onSelect, selected, slotsWithAvailability }: CalendarProps) 
     `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
   const isPast = (d: number) => new Date(isoDate(d)) < new Date(today.toDateString());
   const isSelected = (d: number) => isoDate(d) === selected;
-  const hasSlots = (d: number) => slotsWithAvailability[isoDate(d)] !== false;
+  const hasAvailability = (d: number) => {
+    if (availableDates === null) return true;
+    return availableDates.has(isoDate(d));
+  };
 
   const canPrev = year > today.getFullYear() || month > today.getMonth();
   const maxFuture = new Date(today.getFullYear(), today.getMonth() + 2, 1);
   const canNext = new Date(year, month + 1, 1) < maxFuture;
+
+  useEffect(() => {
+    onMonthChange(year, month);
+  }, [year, month, onMonthChange]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -170,7 +188,7 @@ function Calendar({ onSelect, selected, slotsWithAvailability }: CalendarProps) 
           if (!d) return <div key={`empty-${i}`} />;
           const past = isPast(d);
           const sel = isSelected(d);
-          const avail = !past && hasSlots(d);
+          const avail = !past && hasAvailability(d);
           const iso = isoDate(d);
           const isToday = iso === today.toISOString().slice(0, 10);
 
@@ -182,21 +200,21 @@ function Calendar({ onSelect, selected, slotsWithAvailability }: CalendarProps) 
                 aspectRatio: "1",
                 display: "grid",
                 placeItems: "center",
-                borderRadius: 2,
-                fontSize: 12,
+                borderRadius: "50%",
+                fontSize: 14,
                 fontWeight: sel ? 700 : 400,
                 cursor: !past && avail ? "pointer" : "default",
                 background: sel ? "linear-gradient(135deg, var(--gold), #E0CF6A)" : "transparent",
                 color: sel
                   ? "var(--bg)"
                   : past
-                    ? "rgba(255,255,255,0.1)"
+                    ? "#c9c0b6"
                     : !avail
-                      ? "rgba(255,255,255,0.2)"
+                      ? "#c9c0b6"
                       : "var(--fg)",
                 border: isToday && !sel ? "1px solid var(--gold)" : "none",
                 borderBottom: avail && !sel && !past ? "2px solid var(--gold)" : undefined,
-                textDecoration: !avail && !past ? "line-through" : undefined,
+                textDecoration: undefined,
               }}
             >
               {d}
@@ -217,7 +235,9 @@ function BookPageContent() {
 
   const [services, setServices] = useState<Service[]>([]);
   const [masters, setMasters] = useState<Master[]>([]);
-  const [slots, setSlots] = useState<string[]>([]);
+  const [slots, setSlots] = useState<SlotItem[]>([]);
+  const [availableDates, setAvailableDates] = useState<Set<string> | null>(null);
+  const [brokenAvatars, setBrokenAvatars] = useState<Record<string, boolean>>({});
 
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedMaster, setSelectedMaster] = useState<Master | null>(null);
@@ -283,9 +303,27 @@ function BookPageContent() {
       `${API_BASE}/api/v1/mini-app/slots?master_id=${selectedMaster.id}&service_id=${selectedService.id}&date=${selectedDate}`,
     )
       .then((r) => r.json())
-      .then((data: { slots: string[] }) => setSlots(data.slots))
+      .then((data: { slots?: Array<string | SlotItem> }) => {
+        const normalized = (data.slots ?? []).map((slot) =>
+          typeof slot === "string"
+            ? {
+                time: slot,
+                datetime: `${selectedDate}T${slot}:00`,
+                available: true,
+              }
+            : slot,
+        );
+        setSlots(normalized.filter((s) => s.available));
+      })
       .catch(() => setSlots([]));
   }, [selectedMaster, selectedService, selectedDate]);
+
+  useEffect(() => {
+    setSelectedDate(null);
+    setSelectedTime(null);
+    setSlots([]);
+    setAvailableDates(null);
+  }, [selectedMaster?.id, selectedService?.id]);
 
   const handleBook = useCallback(async () => {
     if (!selectedService || !selectedMaster || !selectedDate || !selectedTime) return;
@@ -324,6 +362,29 @@ function BookPageContent() {
       setLoading(false);
     }
   }, [selectedService, selectedMaster, selectedDate, selectedTime]);
+
+  const loadMonthAvailability = useCallback(
+    async (year: number, month: number) => {
+      if (!selectedMaster) {
+        setAvailableDates(null);
+        return;
+      }
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/v1/mini-app/availability?master_id=${selectedMaster.id}&year=${year}&month=${month}`,
+        );
+        if (!res.ok) {
+          setAvailableDates(null);
+          return;
+        }
+        const data = (await res.json()) as { available_dates?: string[] };
+        setAvailableDates(new Set(data.available_dates ?? []));
+      } catch {
+        setAvailableDates(null);
+      }
+    },
+    [selectedMaster],
+  );
 
   // Telegram MainButton
   useEffect(() => {
@@ -486,7 +547,7 @@ function BookPageContent() {
 
         {/* Step: Master */}
         {step === "master" && (
-          <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 7 }}>
+          <div style={{ padding: "8px 16px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
             {masters.map((m) => (
               <div
                 key={m.id}
@@ -498,45 +559,80 @@ function BookPageContent() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 12,
-                  padding: 14,
-                  borderRadius: 2,
+                  gap: 14,
+                  padding: 16,
+                  borderRadius: 16,
                   cursor: "pointer",
                   background: selectedMaster?.id === m.id ? "var(--gold-l)" : "var(--card)",
                   border: `1px solid ${selectedMaster?.id === m.id ? "var(--gold)" : "var(--border)"}`,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
                 }}
               >
                 <div
                   style={{
-                    width: 46,
-                    height: 46,
+                    width: 64,
+                    height: 64,
                     borderRadius: "50%",
                     flexShrink: 0,
                     display: "grid",
                     placeItems: "center",
-                    background: "var(--dim)",
-                    border: `1px solid ${selectedMaster?.id === m.id ? "var(--gold)" : "var(--border)"}`,
+                    background: "var(--gold-l)",
+                    border: `2px solid ${selectedMaster?.id === m.id ? "var(--gold)" : "var(--border)"}`,
+                    overflow: "hidden",
                   }}
                 >
-                  <span
-                    className="serif"
-                    style={{ fontSize: 18, fontWeight: 600, color: "var(--gold)" }}
-                  >
-                    {m.display_name.charAt(0).toUpperCase()}
-                  </span>
+                  {m.photo_url && !brokenAvatars[m.id] ? (
+                    <Image
+                      src={m.photo_url}
+                      alt={m.display_name}
+                      width={64}
+                      height={64}
+                      unoptimized
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      onError={() => setBrokenAvatars((prev) => ({ ...prev, [m.id]: true }))}
+                    />
+                  ) : (
+                    <span className="serif" style={{ fontSize: 24, fontWeight: 700, color: "var(--gold)" }}>
+                      {m.display_name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div
                     className="serif"
-                    style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}
+                    style={{ fontSize: 16, fontWeight: 600, color: "var(--fg)" }}
                   >
                     {m.display_name}
                   </div>
+                  {m.specialization ? (
+                    <div style={{ fontSize: 13, marginTop: 3, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {pickI18n(m.specialization, lang)}
+                    </div>
+                  ) : null}
                   {m.rating_avg !== null && (
                     <div
-                      style={{ fontSize: 11, marginTop: 4, color: "var(--gold)", fontWeight: 500 }}
+                      style={{ fontSize: 13, marginTop: 6, color: "var(--gold)", fontWeight: 600 }}
                     >
-                      {"★".repeat(Math.round(m.rating_avg))} {m.rating_avg.toFixed(1)}
+                      {"★".repeat(Math.round(m.rating_avg))} {m.rating_avg.toFixed(1)} {m.rating_count ? `(${m.rating_count})` : ""}
+                    </div>
+                  )}
+                  {!!m.services?.length && (
+                    <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
+                      {m.services.slice(0, 2).map((s) => (
+                        <span
+                          key={s.id}
+                          style={{
+                            background: "var(--gold-l)",
+                            color: "var(--gold)",
+                            fontSize: 11,
+                            fontWeight: 500,
+                            padding: "2px 8px",
+                            borderRadius: 20,
+                          }}
+                        >
+                          {pickI18n(s.name_i18n ?? {}, lang)}
+                        </span>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -568,7 +664,8 @@ function BookPageContent() {
                 setStep("time");
               }}
               selected={selectedDate}
-              slotsWithAvailability={{}}
+              availableDates={availableDates}
+              onMonthChange={loadMonthAvailability}
             />
             {selectedDate && (
               <div
@@ -620,19 +717,21 @@ function BookPageContent() {
             </div>
             {slots.length === 0 ? (
               <div
-                style={{ textAlign: "center", color: "var(--muted)", fontSize: 13, padding: 20 }}
+                style={{ textAlign: "center", color: "var(--muted)", fontSize: 15, padding: "40px 16px" }}
               >
-                Нет свободных слотов
+                <div style={{ fontSize: 40, marginBottom: 12 }}>🕐</div>
+                <p>Нет свободных слотов</p>
+                <p style={{ fontSize: 12, color: "#aaa", marginTop: 6 }}>Попробуйте выбрать другую дату</p>
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
                 {slots.map((slot) => {
-                  const isOn = selectedTime === slot;
+                  const isOn = selectedTime === slot.time;
                   return (
                     <div
-                      key={slot}
+                      key={slot.datetime}
                       onClick={() => {
-                        setSelectedTime(slot);
+                        setSelectedTime(slot.time);
                         setStep("confirm");
                         window.Telegram?.WebApp?.HapticFeedback?.selectionChanged();
                       }}
@@ -651,7 +750,7 @@ function BookPageContent() {
                         fontWeight: isOn ? 600 : 400,
                       }}
                     >
-                      {slot}
+                      {slot.time}
                     </div>
                   );
                 })}

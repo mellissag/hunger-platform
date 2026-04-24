@@ -85,17 +85,17 @@ export default function MiniAppLayout({ children }: { children: ReactNode }) {
       />
       <style>{`
         :root {
-          --gold: #C9A84C;
-          --gold-l: rgba(201,168,76,.12);
-          --gold-g: rgba(201,168,76,.25);
-          --bg: #080808;
-          --fg: #F0EBE0;
-          --muted: #8A7D6A;
-          --card: #141414;
-          --border: rgba(201,168,76,.14);
-          --dim: #1C1C1C;
-          --ok: #6FCF97;
-          --err: #EB5757;
+          --gold: #9A7230;
+          --gold-l: rgba(154,114,48,.10);
+          --gold-g: rgba(154,114,48,.20);
+          --bg: #f5f0ea;
+          --fg: #1a1a1a;
+          --muted: #8a7d6b;
+          --card: #ffffff;
+          --border: #e8e0d4;
+          --dim: #faf7f3;
+          --ok: #3A7D44;
+          --err: #B54040;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { overflow-x: hidden; }

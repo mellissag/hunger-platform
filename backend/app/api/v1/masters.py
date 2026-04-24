@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from calendar import monthrange
 from datetime import UTC, date, datetime, time
 from typing import Annotated
 from uuid import UUID
@@ -468,3 +469,102 @@ async def get_master_bookings(
         for b in items
     ]
     return {"items": payload, "total": len(payload)}
+
+
+def _default_working_hours() -> dict[str, dict[str, str | bool]]:
+    return {
+        "1": {"start": "09:00", "end": "18:00", "enabled": True},
+        "2": {"start": "09:00", "end": "18:00", "enabled": True},
+        "3": {"start": "09:00", "end": "18:00", "enabled": True},
+        "4": {"start": "09:00", "end": "18:00", "enabled": True},
+        "5": {"start": "09:00", "end": "18:00", "enabled": True},
+        "6": {"start": "10:00", "end": "15:00", "enabled": True},
+        "7": {"start": "00:00", "end": "00:00", "enabled": False},
+    }
+
+
+@router.get("/{master_id}/slots")
+async def get_master_slots(
+    master_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    day: str = Query(..., alias="date"),
+    service_id: UUID | None = None,
+) -> dict[str, object]:
+    master = await db.get(Master, master_id)
+    if master is None:
+        raise NotFoundError("Master not found")
+    try:
+        target_date = date.fromisoformat(day)
+    except ValueError as exc:
+        raise NotFoundError("Invalid date format") from exc
+
+    duration = 60
+    if service_id is not None:
+        ms = (
+            await db.execute(
+                select(MasterService).where(
+                    MasterService.master_id == master_id,
+                    MasterService.service_id == service_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if ms is not None and ms.duration_override is not None:
+            duration = int(ms.duration_override)
+        else:
+            svc = await db.get(Service, service_id)
+            if svc is not None:
+                duration = int(svc.duration_minutes or 60)
+
+    if not isinstance(master.working_hours, dict) or not master.working_hours:
+        master.working_hours = _default_working_hours()
+        await db.flush()
+
+    times = await schedule_service.get_available_slots(
+        db,
+        master_id,
+        target_date,
+        duration,
+        apply_lead_time=True,
+    )
+    return {
+        "date": day,
+        "duration_minutes": duration,
+        "slots": [
+            {
+                "time": t.strftime("%H:%M"),
+                "datetime": datetime.combine(target_date, t).isoformat(),
+                "available": True,
+            }
+            for t in times
+        ],
+    }
+
+
+@router.get("/{master_id}/availability")
+async def get_master_availability(
+    master_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    year: int,
+    month: int,
+) -> dict[str, list[str]]:
+    master = await db.get(Master, master_id)
+    if master is None:
+        raise NotFoundError("Master not found")
+    real_month = month + 1 if 0 <= month <= 11 else month
+    _, days_in_month = monthrange(year, real_month)
+    today = date.today()
+    working_hours = (
+        master.working_hours
+        if isinstance(master.working_hours, dict) and master.working_hours
+        else _default_working_hours()
+    )
+    available_dates: list[str] = []
+    for day_num in range(1, days_in_month + 1):
+        d = date(year, real_month, day_num)
+        if d < today:
+            continue
+        dow = str(d.isoweekday())
+        day_schedule = working_hours.get(dow, {})
+        if isinstance(day_schedule, dict) and day_schedule.get("enabled", False):
+            available_dates.append(d.isoformat())
+    return {"available_dates": available_dates}
