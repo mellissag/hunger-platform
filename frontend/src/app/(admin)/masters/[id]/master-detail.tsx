@@ -6,7 +6,7 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
@@ -138,6 +138,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
   const [manualStart, setManualStart] = useState("");
   const [profilePhotoBroken, setProfilePhotoBroken] = useState(false);
   const [brokenPortfolio, setBrokenPortfolio] = useState<Record<number, boolean>>({});
+  const profilePhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: me } = useQuery({
     queryKey: ["auth", "me"],
@@ -317,6 +318,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                   <span className="text-sm text-muted-foreground">Drop photo</span>
                 )}
                 <Input
+                  ref={profilePhotoInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   className="absolute inset-0 cursor-pointer opacity-0"
@@ -325,6 +327,35 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                     if (f) void handleMasterPhotoUpload(f);
                   }}
                 />
+              </div>
+              <div className="flex max-w-md gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => profilePhotoInputRef.current?.click()}
+                >
+                  Upload new photo
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={!master.photo_url || saveProfile.isPending}
+                  onClick={() =>
+                    saveProfile.mutate(
+                      { photo_url: null },
+                      {
+                        onSuccess: async () => {
+                          setProfilePhotoBroken(false);
+                          toast.success("Photo removed");
+                          await qc.invalidateQueries({ queryKey: ["master", masterId] });
+                        },
+                        onError: (e: Error) => toast.error(e.message),
+                      },
+                    )
+                  }
+                >
+                  Delete photo
+                </Button>
               </div>
               <form
                 className="max-w-md space-y-4"
