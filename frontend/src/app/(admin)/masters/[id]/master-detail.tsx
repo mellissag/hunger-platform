@@ -247,6 +247,16 @@ export function MasterDetail({ masterId }: { masterId: string }) {
   if (isLoading && !master) return <Skeleton className="h-64 w-full" />;
   if (!master) return <AdminEmptyState title={t("notFound")} />;
 
+  const handleMasterPhotoUpload = async (file: File) => {
+    try {
+      await uploadPhoto.mutateAsync(file);
+      toast.success(t("toastSaved"));
+      await qc.invalidateQueries({ queryKey: ["master", masterId] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось загрузить фото. Используйте JPG/PNG/WebP.");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Button variant="ghost" size="sm" asChild>
@@ -284,7 +294,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                 onDrop={(e) => {
                   e.preventDefault();
                   const f = e.dataTransfer.files?.[0];
-                  if (f) void uploadPhoto.mutateAsync(f).then(() => toast.success(t("toastSaved")));
+                  if (f) void handleMasterPhotoUpload(f);
                 }}
               >
                 {master.photo_url ? (
@@ -308,11 +318,11 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                 )}
                 <Input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   className="absolute inset-0 cursor-pointer opacity-0"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    if (f) void uploadPhoto.mutateAsync(f).then(() => toast.success(t("toastSaved")));
+                    if (f) void handleMasterPhotoUpload(f);
                   }}
                 />
               </div>
