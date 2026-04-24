@@ -12,8 +12,6 @@ jobs:
   deploy:
     name: Deploy via SSH
     runs-on: ubuntu-latest
-    # ВАЖНО: деплой НЕ зависит от CI — работает независимо
-    # CI служит только для информации о качестве кода
 
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +24,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Создать тег если скрипт существует, иначе пропустить
           if [ -f "deploy/scripts/tag_version.sh" ]; then
             chmod +x deploy/scripts/tag_version.sh
             ./deploy/scripts/tag_version.sh || true
@@ -43,25 +40,30 @@ jobs:
           script: |
             set -e
 
-            echo "==> Navigating to project..."
-            cd /opt/hunger-platform
-
             echo "==> Pulling latest code..."
+            cd /opt/hunger-platform
             git fetch --all
             git checkout main
             git pull origin main
 
-            echo "==> Running DB migrations..."
-            docker compose exec -T backend alembic upgrade head || \
-            docker compose exec -T api alembic upgrade head || \
-            echo "Migration skipped (container not running yet)"
+            echo "==> Moving to compose directory..."
+            cd /opt/hunger-platform/deploy
 
-            echo "==> Building and restarting..."
-            docker compose build --no-cache backend frontend
-            docker compose up -d --remove-orphans
+            echo "==> Running DB migrations..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file ../.env \
+              exec -T api alembic upgrade head || \
+              echo "Migration skipped (container not running yet)"
+
+            echo "==> Building containers..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file ../.env \
+              build --no-cache api web
+
+            echo "==> Restarting services..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file ../.env \
+              up -d --remove-orphans
 
             echo "==> Waiting for startup..."
-            sleep 8
+            sleep 10
 
             echo "==> Health check..."
             curl -sf http://localhost:8000/healthz \
@@ -70,4 +72,4 @@ jobs:
               || echo "Health check skipped"
 
             echo "==> Deploy complete!"
-            docker compose ps
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file ../.env ps
