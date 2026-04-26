@@ -18,10 +18,14 @@ export type ClientsFiltersState = {
   last_visit_days: string;
 };
 
-function buildClientsListUrl(filters: ClientsFiltersState, page: number): string {
+export function buildClientsListUrl(
+  filters: ClientsFiltersState,
+  page: number,
+  opts?: { limit?: number },
+): string {
   const p = new URLSearchParams();
   p.set("page", String(page));
-  p.set("limit", "20");
+  p.set("limit", String(opts?.limit ?? 20));
   const s = filters.search.trim();
   if (s) p.set("search", s);
   const tagList = filters.tags.map((t) => t.trim()).filter(Boolean);

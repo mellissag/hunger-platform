@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import { tc } from "@/lib/theme-inline";
+import { useDebounce } from "@/hooks/useDebounce";
+import { buildClientsListUrl, useCreateClient, type ClientsFiltersState } from "@/hooks/useClients";
+import type { ClientOut, Paginated } from "@/types/admin-api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -61,6 +64,22 @@ const lbl: React.CSSProperties = {
 function initials(name?: string): string {
   if (!name) return "??";
   return name.split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
+}
+
+const TAG_OPTIONS_CREATE = ["VIP", "Постоянный", "Новый", "No-show"] as const;
+
+function formatClientLine(c: ClientOut): string {
+  const name = [c.first_name, c.last_name].filter(Boolean).join(" ").trim();
+  if (name && c.phone) return `${name} · ${c.phone}`;
+  if (name) return name;
+  if (c.phone?.trim()) return c.phone.trim();
+  return `${c.id.slice(0, 8)}…`;
+}
+
+function phoneValid(phone: string): boolean {
+  const t = phone.trim();
+  if (!t) return true;
+  return /^\+[0-9]{8,18}$/.test(t.replace(/[\s-]/g, ""));
 }
 
 // ── Formulas Page ─────────────────────────────────────────────────────────────
@@ -445,6 +464,120 @@ export function FormulaDrawer({
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
+  const qc = useQueryClient();
+  const createClientMut = useCreateClient();
+  const clientLocked = Boolean(clientId) && !formula;
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
+  const debouncedClientSearch = useDebounce(clientSearch, 350);
+  const [showNewClientModal, setShowNewClientModal] = useState(false);
+  const [newClientError, setNewClientError] = useState("");
+  const [newClientForm, setNewClientForm] = useState({
+    first_name: "",
+    last_name: "",
+    phone: "",
+    tg_username: "",
+    birthday: "",
+    tags: [] as string[],
+  });
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const [clientSummary, setClientSummary] = useState(() => formula?.client_name?.trim() || "");
+
+  const clientFilters: ClientsFiltersState = {
+    search: debouncedClientSearch,
+    tags: [],
+    master_id: "",
+    last_visit_days: "",
+  };
+  const { data: clientsPage, isFetching: clientsLoading } = useQuery({
+    queryKey: ["clients", "formula-picker", debouncedClientSearch],
+    queryFn: () => apiJson<Paginated<ClientOut>>(buildClientsListUrl(clientFilters, 1, { limit: 80 })),
+    staleTime: 30_000,
+  });
+  const clientRows = clientsPage?.items ?? [];
+
+  const { data: lockedClient, isLoading: lockedClientLoading } = useQuery({
+    queryKey: ["clients", clientId, "slim"],
+    queryFn: () => apiJson<ClientOut>(`/clients/${clientId}`),
+    enabled: Boolean(clientLocked && clientId),
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (formula?.client_name) setClientSummary(formula.client_name.trim());
+  }, [formula?.id, formula?.client_name]);
+
+  useEffect(() => {
+    if (clientLocked && lockedClient) {
+      setForm((f) => ({ ...f, client_id: lockedClient.id }));
+      setClientSummary(formatClientLine(lockedClient));
+    }
+  }, [clientLocked, lockedClient]);
+
+  useEffect(() => {
+    if (!clientPickerOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setClientPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [clientPickerOpen]);
+
+  const pickClient = useCallback((c: ClientOut) => {
+    setForm((f) => ({ ...f, client_id: c.id }));
+    setClientSummary(formatClientLine(c));
+    setClientSearch("");
+    setClientPickerOpen(false);
+    setError("");
+  }, []);
+
+  const clearClient = useCallback(() => {
+    if (clientLocked) return;
+    setForm((f) => ({ ...f, client_id: "" }));
+    setClientSummary("");
+    setClientSearch("");
+  }, [clientLocked]);
+
+  const submitNewClient = async () => {
+    setNewClientError("");
+    if (!newClientForm.first_name.trim()) {
+      setNewClientError("Укажите имя");
+      return;
+    }
+    if (!phoneValid(newClientForm.phone)) {
+      setNewClientError("Телефон: укажите в формате +359… (8–18 цифр)");
+      return;
+    }
+    try {
+      const c = await createClientMut.mutateAsync({
+        first_name: newClientForm.first_name.trim(),
+        last_name: newClientForm.last_name.trim() || null,
+        phone: newClientForm.phone.trim() || null,
+        tg_username: newClientForm.tg_username.trim().replace(/^@/, "") || null,
+        birthday: newClientForm.birthday || null,
+        tags: newClientForm.tags,
+        source: "manual",
+        lang: "en",
+      });
+      setForm((f) => ({ ...f, client_id: c.id }));
+      setClientSummary(formatClientLine(c));
+      setShowNewClientModal(false);
+      setNewClientForm({
+        first_name: "",
+        last_name: "",
+        phone: "",
+        tg_username: "",
+        birthday: "",
+        tags: [],
+      });
+      void qc.invalidateQueries({ queryKey: ["clients", "formula-picker"] });
+    } catch (e: unknown) {
+      setNewClientError(e instanceof Error ? e.message : "Не удалось сохранить");
+    }
+  };
+
   const addComp = () => setComponents((prev) => [...prev, { id: Date.now().toString(), brand: "", shade: "", amount: "", unit: "г" }]);
   const removeComp = (id: string) => setComponents((prev) => prev.filter((c) => c.id !== id));
   const updateComp = (id: string, field: keyof ComponentRow, value: string) =>
@@ -473,7 +606,7 @@ export function FormulaDrawer({
 
   const handleSave = async () => {
     setError("");
-    if (!form.client_id) { setError("Укажите ID клиента"); return; }
+    if (!form.client_id) { setError("Выберите клиента из списка или создайте нового"); return; }
     if (!form.applied_at) { setError("Укажите дату процедуры"); return; }
     const validComps = components.filter((c) => c.brand && c.amount);
     if (!validComps.length) { setError("Добавьте хотя бы один компонент"); return; }
@@ -515,6 +648,147 @@ export function FormulaDrawer({
 
         {/* Body */}
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+          {/* Client */}
+          <div style={{ marginBottom: "18px" }}>
+            <label style={lbl}>Клиент *</label>
+            {clientLocked ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "10px 12px",
+                  borderRadius: "8px",
+                  border: `1px solid ${tc.border}`,
+                  background: tc.background,
+                  fontSize: "13px",
+                  color: tc.foreground,
+                }}
+              >
+                {lockedClientLoading && !lockedClient ? (
+                  <span style={{ color: tc.mutedFg }}>Загрузка…</span>
+                ) : (
+                  <span style={{ flex: 1, fontWeight: 500 }}>{clientSummary || "—"}</span>
+                )}
+              </div>
+            ) : (
+              <>
+                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", flexWrap: "wrap" }}>
+                  <div ref={pickerRef} style={{ flex: "1 1 220px", minWidth: 0, position: "relative" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        background: tc.card,
+                        border: `1px solid ${tc.border}`,
+                        borderRadius: "8px",
+                        padding: "8px 12px",
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: tc.mutedFg, flexShrink: 0 }}>
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                      <input
+                        placeholder="Поиск по имени или телефону…"
+                        value={clientSearch}
+                        onChange={(e) => {
+                          setClientSearch(e.target.value);
+                          setClientPickerOpen(true);
+                        }}
+                        onFocus={() => setClientPickerOpen(true)}
+                        style={{
+                          border: "none",
+                          outline: "none",
+                          fontSize: "13px",
+                          background: "transparent",
+                          color: tc.foreground,
+                          width: "100%",
+                        }}
+                      />
+                    </div>
+                    {clientPickerOpen && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          right: 0,
+                          top: "calc(100% + 4px)",
+                          maxHeight: "240px",
+                          overflowY: "auto",
+                          background: tc.card,
+                          border: `1px solid ${tc.border}`,
+                          borderRadius: "8px",
+                          boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+                          zIndex: 6,
+                        }}
+                      >
+                        {clientsLoading && !clientRows.length ? (
+                          <div style={{ padding: "12px", fontSize: "12px", color: tc.mutedFg }}>Загрузка…</div>
+                        ) : !clientRows.length ? (
+                          <div style={{ padding: "12px", fontSize: "12px", color: tc.mutedFg }}>Никого не найдено</div>
+                        ) : (
+                          clientRows.map((c, i) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => pickClient(c)}
+                              style={{
+                                display: "block",
+                                width: "100%",
+                                textAlign: "left",
+                                padding: "10px 12px",
+                                fontSize: "13px",
+                                border: "none",
+                                borderBottom: i < clientRows.length - 1 ? `1px solid ${tc.border}` : "none",
+                                background: "transparent",
+                                cursor: "pointer",
+                                color: tc.foreground,
+                              }}
+                            >
+                              {formatClientLine(c)}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNewClientModal(true);
+                      setNewClientError("");
+                    }}
+                    style={{ ...btnOutline, flexShrink: 0, whiteSpace: "nowrap" }}
+                  >
+                    + Новый клиент
+                  </button>
+                </div>
+                {form.client_id ? (
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      fontSize: "12px",
+                      color: tc.mutedFg,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span>
+                      Выбрано: <strong style={{ color: tc.foreground }}>{clientSummary}</strong>
+                    </span>
+                    <button type="button" onClick={clearClient} style={{ ...btnOutline, padding: "4px 10px", fontSize: "11px" }}>
+                      Сменить
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
+
           {/* Section 1: meta */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
             <div>
@@ -618,6 +892,135 @@ export function FormulaDrawer({
           </button>
         </div>
       </div>
+
+      {showNewClientModal && (
+        <>
+          <div
+            role="presentation"
+            onClick={() => setShowNewClientModal(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 59 }}
+          />
+          <div
+            role="dialog"
+            aria-modal
+            aria-labelledby="formula-new-client-title"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "fixed",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              width: "min(440px, calc(100vw - 28px))",
+              maxHeight: "min(90vh, 680px)",
+              overflowY: "auto",
+              background: tc.card,
+              borderRadius: "16px",
+              border: `1px solid ${tc.border}`,
+              boxShadow: "0 12px 40px rgba(0,0,0,0.15)",
+              zIndex: 60,
+              padding: "24px 26px",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
+              <h2 id="formula-new-client-title" style={{ fontFamily: "Playfair Display, serif", fontSize: "20px", fontWeight: 500, margin: 0, color: tc.foreground }}>
+                Новый клиент
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowNewClientModal(false)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: tc.mutedFg, fontSize: "22px", lineHeight: 1 }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div>
+                <label style={lbl}>Имя *</label>
+                <input
+                  style={inp}
+                  value={newClientForm.first_name}
+                  onChange={(e) => setNewClientForm((f) => ({ ...f, first_name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={lbl}>Фамилия</label>
+                <input
+                  style={inp}
+                  value={newClientForm.last_name}
+                  onChange={(e) => setNewClientForm((f) => ({ ...f, last_name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={lbl}>Телефон</label>
+                <input
+                  style={inp}
+                  placeholder="+359…"
+                  value={newClientForm.phone}
+                  onChange={(e) => setNewClientForm((f) => ({ ...f, phone: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={lbl}>Telegram</label>
+                <input
+                  style={inp}
+                  placeholder="@username"
+                  value={newClientForm.tg_username}
+                  onChange={(e) => setNewClientForm((f) => ({ ...f, tg_username: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={lbl}>День рождения</label>
+                <input
+                  type="date"
+                  style={inp}
+                  value={newClientForm.birthday}
+                  onChange={(e) => setNewClientForm((f) => ({ ...f, birthday: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={lbl}>Теги</label>
+                <select
+                  multiple
+                  value={newClientForm.tags}
+                  onChange={(e) =>
+                    setNewClientForm((f) => ({
+                      ...f,
+                      tags: Array.from(e.target.selectedOptions).map((o) => o.value),
+                    }))
+                  }
+                  style={{
+                    ...inp,
+                    minHeight: "88px",
+                    padding: "8px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {TAG_OPTIONS_CREATE.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+                <p style={{ fontSize: "11px", color: tc.mutedFg, margin: "6px 0 0" }}>Удерживайте Ctrl / Cmd для нескольких тегов</p>
+              </div>
+            </div>
+            {newClientError ? <p style={{ color: "#c0392b", fontSize: "12px", marginTop: "12px" }}>{newClientError}</p> : null}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
+              <button type="button" onClick={() => setShowNewClientModal(false)} style={btnOutline}>
+                Отмена
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitNewClient()}
+                disabled={createClientMut.isPending}
+                style={{ ...btnPrimary, opacity: createClientMut.isPending ? 0.65 : 1 }}
+              >
+                {createClientMut.isPending ? "Сохранение…" : "Сохранить"}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Datalists */}
       <datalist id="brands-list">
