@@ -22,7 +22,7 @@ http://{$APP_DOMAIN} {
 		Referrer-Policy             "strict-origin-when-cross-origin"
 		Permissions-Policy          "geolocation=(), microphone=(), camera=(self)"
 		-Server
-		Content-Security-Policy     "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://telegram.org; frame-ancestors 'none';"
+		Content-Security-Policy     "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://telegram.org; style-src 'self' https: 'unsafe-inline'; frame-ancestors 'none';"
 	}
 
 	handle /api/v1* {
