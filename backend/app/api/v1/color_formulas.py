@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+import os
+import uuid
 from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.upload import ALLOWED_TYPES, UPLOAD_ROOT
 from app.deps import get_db, require_roles
+from app.models.client import Client
 from app.models.color_formula import ColorFormula
 from app.models.enums import UserRole
 from app.models.master import Master
@@ -45,6 +49,12 @@ class FormulaCreate(BaseModel):
     client_rating: Optional[int] = None
 
 
+class FormulaPhotoUrlOut(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    url: str
+
+
 class FormulaOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -69,11 +79,10 @@ async def _enrich(f: ColorFormula, db: AsyncSession) -> FormulaOut:
         master = await db.get(Master, f.master_id)
         if master:
             out.master_name = master.display_name
-    # client name via backref
-    if f.client:
-        name = " ".join(
-            filter(None, [f.client.first_name, f.client.last_name])
-        ) or f.client.phone or str(f.client_id)[:8]
+    # Avoid lazy-loading f.client in async context (MissingGreenlet → 500).
+    cl = await db.get(Client, f.client_id)
+    if cl:
+        name = " ".join(filter(None, [cl.first_name, cl.last_name])) or cl.phone or str(f.client_id)[:8]
         out.client_name = name
     return out
 
@@ -127,6 +136,42 @@ async def create_formula(
     await db.commit()
     await db.refresh(formula)
     return await _enrich(formula, db)
+
+
+@router.post("/{formula_id}/photos", response_model=FormulaPhotoUrlOut)
+async def upload_formula_photo(
+    formula_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_roles(*STAFF)),
+) -> FormulaPhotoUrlOut:
+    """Save image under uploads/color_formulas/ and append URL to formula.photo_urls."""
+    formula = await db.get(ColorFormula, formula_id)
+    if not formula:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Formula not found")
+
+    content_type = file.content_type or ""
+    if content_type not in ALLOWED_TYPES:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Only JPG, PNG, WebP")
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="File too large (max 10 MB)")
+
+    ext = ALLOWED_TYPES[content_type]
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    rel = f"color_formulas/{filename}"
+    dest = UPLOAD_ROOT / rel
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(content)
+
+    base_url = os.environ.get("BASE_URL", "https://test-adm.tech").rstrip("/")
+    url = f"{base_url}/media/{rel}"
+    urls = list(formula.photo_urls or [])
+    urls.append(url)
+    formula.photo_urls = urls
+    await db.commit()
+    await db.refresh(formula)
+    return FormulaPhotoUrlOut(url=url)
 
 
 @router.patch("/{formula_id}", response_model=FormulaOut)

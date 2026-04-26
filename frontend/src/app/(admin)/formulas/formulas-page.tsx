@@ -220,8 +220,12 @@ export function FormulasPage() {
         <FormulaDrawer
           formula={editFormula}
           onClose={() => { setShowDrawer(false); setEditFormula(null); }}
-          onSaved={() => {
-            qc.invalidateQueries({ queryKey: ["all-formulas"] });
+          onSaved={(result) => {
+            void qc.invalidateQueries({ queryKey: ["all-formulas"] });
+            if (result.isCreate) {
+              setEditFormula(result.saved);
+              return;
+            }
             setShowDrawer(false);
             setEditFormula(null);
           }}
@@ -435,6 +439,8 @@ interface ComponentRow {
   unit: string;
 }
 
+export type FormulaSavedPayload = { saved: ColorFormula; isCreate: boolean };
+
 export function FormulaDrawer({
   formula,
   clientId,
@@ -444,7 +450,7 @@ export function FormulaDrawer({
   formula?: ColorFormula | null;
   clientId?: string;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (result: FormulaSavedPayload) => void;
 }) {
   const [form, setForm] = useState({
     client_id: formula?.client_id || clientId || "",
@@ -462,8 +468,10 @@ export function FormulaDrawer({
   );
   const [photos, setPhotos] = useState<string[]>(formula?.photo_urls || []);
   const [error, setError] = useState("");
+  const [photoHint, setPhotoHint] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const pendingPhotoFilesRef = useRef<File[]>([]);
 
   const qc = useQueryClient();
   const createClientMut = useCreateClient();
@@ -596,19 +604,26 @@ export function FormulaDrawer({
   const updateComp = (id: string, field: keyof ComponentRow, value: string) =>
     setComponents((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
 
+  const uploadPhotoToFormula = async (formulaId: number, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return apiJson<{ url: string }>(`/color-formulas/${formulaId}/photos`, {
+      method: "POST",
+      body: fd,
+    });
+  };
+
   const handlePhotoUpload = async (file: File) => {
-    if (!formula?.id) {
-      setError("Сначала сохраните формулу, затем загрузите фото.");
+    const fid = formula?.id;
+    if (!fid) {
+      pendingPhotoFilesRef.current.push(file);
+      setPhotoHint("Фото добавлены в очередь и загрузятся автоматически после нажатия «Сохранить формулу».");
+      setError("");
       return;
     }
     setUploadingPhoto(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const result = await apiJson<{ url: string }>(`/color-formulas/${formula.id}/photos`, {
-        method: "POST",
-        body: fd,
-      });
+      const result = await uploadPhotoToFormula(fid, file);
       setPhotos((prev) => [...prev, result.url]);
     } catch {
       setError("Ошибка загрузки фото");
@@ -624,6 +639,7 @@ export function FormulaDrawer({
     const validComps = components.filter((c) => c.brand && c.amount);
     if (!validComps.length) { setError("Добавьте хотя бы один компонент"); return; }
     setSaving(true);
+    setPhotoHint("");
     try {
       const body = {
         client_id: form.client_id,
@@ -635,8 +651,28 @@ export function FormulaDrawer({
         components: validComps.map((c) => ({ brand: c.brand, shade: c.shade, amount: parseFloat(c.amount) || 0, unit: c.unit })),
       };
       const url = formula ? `/color-formulas/${formula.id}` : "/color-formulas/";
-      await apiJson(url, { method: formula ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      onSaved();
+      let saved = await apiJson<ColorFormula>(
+        url,
+        { method: formula ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+      );
+      const queue = pendingPhotoFilesRef.current.splice(0, pendingPhotoFilesRef.current.length);
+      let mergedUrls = [...(saved.photo_urls || [])];
+      if (queue.length) {
+        setUploadingPhoto(true);
+        try {
+          for (const file of queue) {
+            const { url } = await uploadPhotoToFormula(saved.id, file);
+            mergedUrls.push(url);
+          }
+          setPhotos(mergedUrls);
+          saved = { ...saved, photo_urls: mergedUrls };
+        } catch {
+          setError("Формула сохранена, но не удалось загрузить одно из фото. Попробуйте добавить файл ещё раз.");
+        } finally {
+          setUploadingPhoto(false);
+        }
+      }
+      onSaved({ saved, isCreate: !formula });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Ошибка сохранения");
     } finally {
@@ -892,6 +928,9 @@ export function FormulaDrawer({
               </div>
             )}
             {uploadingPhoto && <p style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "8px" }}>Загрузка фото...</p>}
+            {photoHint ? (
+              <p style={{ fontSize: "12px", color: tc.primary, marginTop: "8px", lineHeight: 1.45 }}>{photoHint}</p>
+            ) : null}
           </div>
 
           {error && <p style={{ color: "#c0392b", fontSize: "13px", marginTop: "12px" }}>{error}</p>}

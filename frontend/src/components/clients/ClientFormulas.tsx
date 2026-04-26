@@ -125,8 +125,12 @@ export default function ClientFormulas({ clientId }: { clientId: string }) {
           formula={editFormula}
           clientId={clientId}
           onClose={() => { setShowDrawer(false); setEditFormula(null); }}
-          onSaved={() => {
-            qc.invalidateQueries({ queryKey: ["client-formulas", clientId] });
+          onSaved={(result) => {
+            void qc.invalidateQueries({ queryKey: ["client-formulas", clientId] });
+            if (result.isCreate) {
+              setEditFormula(result.saved);
+              return;
+            }
             setShowDrawer(false);
             setEditFormula(null);
           }}
