@@ -70,7 +70,11 @@ class Client(UUIDPrimaryKeyMixin, Base):
     total_bot_sessions: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     bot_blocked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     funnel_stats: Mapped[dict[str, Any]] = mapped_column(
-        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+        JSONB,
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+        # DB must have the same server default; if it was missing, INSERT still needs a value:
+        insert_default=dict,
     )
     prefers_no_ai: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     marketing_opted_out: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
