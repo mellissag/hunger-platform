@@ -20,7 +20,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { BookingCreateDrawer } from "@/app/(admin)/bookings/booking-create-drawer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import ClientFormulas from "@/components/clients/ClientFormulas";
 import {
   Dialog,
@@ -596,7 +596,8 @@ export function ClientDetail({ clientId }: { clientId: string }) {
 
       <Card className="border-border">
         <CardHeader>
-          <CardTitle className="font-playfair text-lg">Формулы красок</CardTitle>
+          <CardTitle className="font-playfair text-lg">{t("formulasCardTitle")}</CardTitle>
+          <CardDescription>{t("formulasSectionSubtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <ClientFormulas clientId={clientId} />

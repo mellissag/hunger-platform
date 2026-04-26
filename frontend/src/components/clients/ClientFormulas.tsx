@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import type { ColorFormula } from "@/app/(admin)/formulas/formulas-page";
@@ -16,6 +18,7 @@ const btnOutline: React.CSSProperties = {
 };
 
 export default function ClientFormulas({ clientId }: { clientId: string }) {
+  const t = useTranslations("pages.clientDetail");
   const qc = useQueryClient();
   const [showDrawer, setShowDrawer] = useState(false);
   const [editFormula, setEditFormula] = useState<ColorFormula | null>(null);
@@ -27,22 +30,30 @@ export default function ClientFormulas({ clientId }: { clientId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => apiJson(`/color-formulas/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["client-formulas", clientId] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["client-formulas", clientId] });
+      void qc.invalidateQueries({ queryKey: ["all-formulas"] });
+    },
   });
 
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
         <h3 style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--primary)", margin: 0 }}>
-          Формулы красок ({formulas.length})
+          {t("formulasForClientTitle", { count: formulas.length })}
         </h3>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <Link href="/formulas" style={{ fontSize: "12px", color: "var(--muted)", textDecoration: "underline" }}>
+            {t("formulasAllLink")}
+          </Link>
         <button
           onClick={() => { setEditFormula(null); setShowDrawer(true); }}
           style={btnPrimary}
         >
           + Добавить формулу
         </button>
+        </div>
       </div>
 
       {/* Empty state */}
@@ -130,6 +141,7 @@ export default function ClientFormulas({ clientId }: { clientId: string }) {
           onClose={() => { setShowDrawer(false); setEditFormula(null); }}
           onSaved={(result) => {
             void qc.invalidateQueries({ queryKey: ["client-formulas", clientId] });
+            void qc.invalidateQueries({ queryKey: ["all-formulas"] });
             if (result.isCreate) {
               setEditFormula(result.saved);
               return;

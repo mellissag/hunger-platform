@@ -6,7 +6,7 @@ import { apiJson, HttpError } from "@/lib/api";
 import { tc } from "@/lib/theme-inline";
 import { useDebounce } from "@/hooks/useDebounce";
 import { buildClientsListUrl, useCreateClient, type ClientsFiltersState } from "@/hooks/useClients";
-import type { ClientOut, Paginated } from "@/types/admin-api";
+import type { ClientOut, MasterOut, Paginated, UserMe } from "@/types/admin-api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -147,32 +147,49 @@ export function FormulasPage() {
   const [editFormula, setEditFormula] = useState<ColorFormula | null>(null);
   const [viewFormula, setViewFormula] = useState<ColorFormula | null>(null);
 
+  const { data: mastersPage } = useQuery({
+    queryKey: ["masters", "list", "formulas-toolbar"],
+    queryFn: () => apiJson<Paginated<MasterOut>>("/masters?page=1&page_size=500"),
+    staleTime: 60_000,
+  });
+  const masterOptions = useMemo(
+    () =>
+      [...(mastersPage?.items ?? []).filter((m) => m.is_active)].sort((a, b) =>
+        a.display_name.localeCompare(b.display_name, "ru"),
+      ),
+    [mastersPage?.items],
+  );
+
   const { data: formulas = [], isLoading } = useQuery<ColorFormula[]>({
-    queryKey: ["all-formulas"],
-    queryFn: () => apiJson<ColorFormula[]>("/color-formulas/"),
+    queryKey: ["all-formulas", masterFilter],
+    queryFn: () => {
+      const q = new URLSearchParams();
+      q.set("limit", "200");
+      if (masterFilter) q.set("master_id", masterFilter);
+      return apiJson<ColorFormula[]>(`/color-formulas/?${q.toString()}`);
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => apiJson(`/color-formulas/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["all-formulas"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["all-formulas"] });
+      void qc.invalidateQueries({ queryKey: ["client-formulas"] });
+    },
   });
 
-  // Collect unique masters from data
-  const masters = [...new Set(formulas.map((f) => f.master_name).filter(Boolean))] as string[];
-
   const filtered = formulas.filter((f) => {
-    if (masterFilter && f.master_name !== masterFilter) return false;
-    if (search) {
-      const hay = [
-        f.client_name,
-        f.master_name,
-        f.service_name,
-        ...f.components.map((c) => `${c.brand} ${c.product ?? ""} ${c.shade}`),
-        f.result_notes,
-      ].join(" ").toLowerCase();
-      if (!hay.includes(search.toLowerCase())) return false;
-    }
-    return true;
+    if (!search) return true;
+    const hay = [
+      f.client_name,
+      f.master_name,
+      f.service_name,
+      ...f.components.map((c) => `${c.brand} ${c.product ?? ""} ${c.shade}`),
+      f.result_notes,
+    ]
+      .join(" ")
+      .toLowerCase();
+    return hay.includes(search.toLowerCase());
   });
 
   // Stats
@@ -233,7 +250,11 @@ export function FormulasPage() {
         </div>
         <select style={filterSelect} value={masterFilter} onChange={(e) => setMasterFilter(e.target.value)}>
           <option value="">Все мастера</option>
-          {masters.map((m) => <option key={m} value={m}>{m}</option>)}
+          {masterOptions.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.display_name}
+            </option>
+          ))}
         </select>
         {(search || masterFilter) && (
           <button style={{ ...btnOutline, padding: "8px 12px", fontSize: "12px" }} onClick={() => { setSearch(""); setMasterFilter(""); }}>
@@ -276,6 +297,7 @@ export function FormulasPage() {
           onClose={() => { setShowDrawer(false); setEditFormula(null); }}
           onSaved={(result) => {
             void qc.invalidateQueries({ queryKey: ["all-formulas"] });
+            void qc.invalidateQueries({ queryKey: ["client-formulas", result.saved.client_id] });
             if (result.isCreate) {
               setEditFormula(result.saved);
               return;
@@ -584,6 +606,43 @@ export function FormulaDrawer({
     staleTime: 60_000,
   });
 
+  const { data: me } = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: () => apiJson<UserMe>("/auth/me"),
+    staleTime: 60_000,
+  });
+
+  const { data: mastersPage } = useQuery({
+    queryKey: ["masters", "list", "formulas-toolbar"],
+    queryFn: () => apiJson<Paginated<MasterOut>>("/masters?page=1&page_size=500"),
+    staleTime: 60_000,
+  });
+  const masterRows = useMemo(
+    () =>
+      [...(mastersPage?.items ?? []).filter((m) => m.is_active)].sort((a, b) =>
+        a.display_name.localeCompare(b.display_name, "ru"),
+      ),
+    [mastersPage?.items],
+  );
+
+  const [masterId, setMasterId] = useState(() => formula?.master_id ?? "");
+  const seededDefaultMasterRef = useRef(false);
+
+  useEffect(() => {
+    seededDefaultMasterRef.current = false;
+    setMasterId(formula?.master_id ?? "");
+  }, [formula?.id, formula?.master_id]);
+
+  useEffect(() => {
+    if (formula) return;
+    if (seededDefaultMasterRef.current) return;
+    const mid = me?.master_id;
+    if (mid) {
+      setMasterId(mid);
+      seededDefaultMasterRef.current = true;
+    }
+  }, [formula, me?.master_id]);
+
   const { data: inventoryProducts = [] } = useQuery<InventoryProductRow[]>({
     queryKey: ["products"],
     queryFn: () => apiJson<InventoryProductRow[]>("/inventory/products"),
@@ -807,6 +866,7 @@ export function FormulaDrawer({
     try {
       const body = {
         client_id: form.client_id,
+        master_id: masterId || null,
         service_name: form.service_name || null,
         applied_at: new Date(form.applied_at).toISOString(),
         result_notes: form.result_notes || null,
@@ -1025,6 +1085,21 @@ export function FormulaDrawer({
           <div style={{ marginBottom: "14px" }}>
             <label style={lbl}>Услуга</label>
             <input style={inp} placeholder="Окрашивание корней" value={form.service_name} onChange={(e) => setForm((f) => ({ ...f, service_name: e.target.value }))} />
+          </div>
+
+          <div style={{ marginBottom: "14px" }}>
+            <label style={lbl}>Мастер (кто делал процедуру)</label>
+            <select style={inp} value={masterId} onChange={(e) => setMasterId(e.target.value)}>
+              <option value="">— Не указан —</option>
+              {masterRows.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.display_name}
+                </option>
+              ))}
+            </select>
+            <p style={{ fontSize: "11px", color: tc.mutedFg, marginTop: "6px", lineHeight: 1.45 }}>
+              Укажите мастера, который работал с клиентом; имя отображается в карточке и в фильтре «Все мастера».
+            </p>
           </div>
 
           <hr style={{ border: "none", borderTop: `1px solid ${tc.border}`, margin: "4px 0 16px" }} />

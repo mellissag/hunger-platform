@@ -12,9 +12,12 @@ function upstreamSubpath(pathSegments: string[], method: string): string {
   // Request path /api/bff/color-formulas → segments ["color-formulas"] → join without "/" → upstream
   // POST /api/v1/color-formulas returns 307; Node fetch may not re-POST with body → client sees 5xx.
   if (
-    (method === "POST" || method === "PUT" || method === "PATCH") &&
     pathSegments.length === 1 &&
-    pathSegments[0] === "color-formulas"
+    pathSegments[0] === "color-formulas" &&
+    (method === "POST" ||
+      method === "PUT" ||
+      method === "PATCH" ||
+      method === "GET")
   ) {
     return "color-formulas/";
   }
