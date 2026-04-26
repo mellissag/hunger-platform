@@ -93,7 +93,10 @@ export default function ClientFormulas({ clientId }: { clientId: string }) {
                   <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: "rgba(154,114,48,0.1)", color: "var(--primary)", fontSize: "10px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
                   <div style={{ flex: 1 }}>
                     <span style={{ fontWeight: 500, fontSize: "13px" }}>{c.brand}</span>
-                    {c.shade && <span style={{ fontSize: "12px", color: "var(--muted)" }}> · {c.shade}</span>}
+                    {typeof c.product === "string" && c.product.trim() ? (
+                      <span style={{ fontSize: "12px", color: "var(--muted)" }}> · {c.product.trim()}</span>
+                    ) : null}
+                    {c.shade ? <span style={{ fontSize: "12px", color: "var(--muted)" }}> · {c.shade}</span> : null}
                   </div>
                   <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--primary)", whiteSpace: "nowrap" }}>{c.amount} {c.unit}</span>
                 </div>

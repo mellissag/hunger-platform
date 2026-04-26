@@ -31,6 +31,7 @@ ADMINS = (UserRole.owner, UserRole.admin)
 
 class FormulaComponent(BaseModel):
     brand: str
+    product: Optional[str] = None
     shade: str
     amount: float
     unit: str

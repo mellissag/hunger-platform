@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiJson, HttpError } from "@/lib/api";
 import { tc } from "@/lib/theme-inline";
@@ -12,9 +12,63 @@ import type { ClientOut, Paginated } from "@/types/admin-api";
 
 export interface FormulaComponent {
   brand: string;
+  /** Название товара со склада или произвольная строка. */
+  product?: string | null;
   shade: string;
   amount: number;
   unit: string;
+}
+
+/** Склад: тот же контракт, что у `/inventory` (GET /inventory/products). */
+interface InventoryProductRow {
+  id: number;
+  name: string;
+  brand?: string | null;
+  sku?: string | null;
+  unit: string;
+}
+
+const DEFAULT_BRAND_SUGGESTIONS = [
+  "Wella Koleston",
+  "Wella Oxydant",
+  "Schwarzkopf Igora",
+  "Schwarzkopf Blondme",
+  "Loreal DiaRichesse",
+  "Olaplex",
+  "Kerastase",
+  "Matrix",
+  "Redken",
+] as const;
+
+const DEFAULT_SHADE_SUGGESTIONS = [
+  "3/0",
+  "4/0",
+  "5/0",
+  "6/0",
+  "6/1",
+  "7/0",
+  "7/1",
+  "8/0",
+  "8/1",
+  "9/0",
+  "0/66",
+  "3%",
+  "6%",
+  "9%",
+  "12%",
+  "Bond Multiplier",
+  "Premium Lightener",
+] as const;
+
+function mergeSortedUniqueStrings(...groups: readonly string[][]): string[] {
+  const set = new Set<string>();
+  for (const g of groups) {
+    for (const s of g) {
+      const t = s.trim();
+      if (t) set.add(t);
+    }
+  }
+  return [...set].sort((a, b) => a.localeCompare(b, "ru"));
 }
 
 export interface ColorFormula {
@@ -113,7 +167,7 @@ export function FormulasPage() {
         f.client_name,
         f.master_name,
         f.service_name,
-        ...f.components.map((c) => `${c.brand} ${c.shade}`),
+        ...f.components.map((c) => `${c.brand} ${c.product ?? ""} ${c.shade}`),
         f.result_notes,
       ].join(" ").toLowerCase();
       if (!hay.includes(search.toLowerCase())) return false;
@@ -301,12 +355,16 @@ function FormulaCard({
           Компоненты формулы
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-          {chips.map((c, i) => (
-            <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(154,114,48,0.08)", color: tc.primary, borderRadius: "20px", padding: "3px 10px", fontSize: "11px", fontWeight: 500 }}>
-              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: tc.primary, flexShrink: 0 }} />
-              {c.brand.split(" ")[0]} {c.shade} — {c.amount}{c.unit}
-            </span>
-          ))}
+          {chips.map((c, i) => {
+            const prod = typeof c.product === "string" ? c.product.trim() : "";
+            const chipLabel = prod ? `${prod} · ${c.brand}` : `${c.brand.split(" ")[0]} ${c.shade}`.trim();
+            return (
+              <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(154,114,48,0.08)", color: tc.primary, borderRadius: "20px", padding: "3px 10px", fontSize: "11px", fontWeight: 500 }}>
+                <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: tc.primary, flexShrink: 0 }} />
+                {chipLabel} — {c.amount}{c.unit}
+              </span>
+            );
+          })}
           {moreCount > 0 && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: tc.background, color: tc.mutedFg, border: `1px solid ${tc.border}`, borderRadius: "20px", padding: "3px 10px", fontSize: "11px" }}>
               +{moreCount}
@@ -395,7 +453,10 @@ function FormulaViewDrawer({ formula: f, onClose, onEdit }: { formula: ColorForm
                 <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "rgba(154,114,48,0.1)", color: tc.primary, fontSize: "10px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 500, fontSize: "13px" }}>{c.brand}</div>
-                  {c.shade && <div style={{ fontSize: "12px", color: tc.mutedFg }}>{c.shade}</div>}
+                  {typeof c.product === "string" && c.product.trim() ? (
+                    <div style={{ fontSize: "12px", color: tc.mutedFg }}>Товар: {c.product.trim()}</div>
+                  ) : null}
+                  {c.shade ? <div style={{ fontSize: "12px", color: tc.mutedFg }}>{c.shade}</div> : null}
                 </div>
                 <div style={{ fontWeight: 600, fontSize: "13px", color: tc.primary, whiteSpace: "nowrap" }}>{c.amount} {c.unit}</div>
               </div>
@@ -434,6 +495,7 @@ function FormulaViewDrawer({ formula: f, onClose, onEdit }: { formula: ColorForm
 interface ComponentRow {
   id: string;
   brand: string;
+  product: string;
   shade: string;
   amount: string;
   unit: string;
@@ -463,8 +525,18 @@ export function FormulaDrawer({
   });
   const [components, setComponents] = useState<ComponentRow[]>(
     formula?.components?.length
-      ? formula.components.map((c, i) => ({ id: String(i), brand: c.brand, shade: c.shade, amount: String(c.amount), unit: c.unit }))
-      : [{ id: "1", brand: "", shade: "", amount: "", unit: "г" }, { id: "2", brand: "", shade: "", amount: "", unit: "мл" }]
+      ? formula.components.map((c, i) => ({
+          id: String(i),
+          brand: c.brand,
+          product: typeof c.product === "string" ? c.product : "",
+          shade: c.shade,
+          amount: String(c.amount),
+          unit: c.unit,
+        }))
+      : [
+          { id: "1", brand: "", product: "", shade: "", amount: "", unit: "г" },
+          { id: "2", brand: "", product: "", shade: "", amount: "", unit: "мл" },
+        ]
   );
   const [photos, setPhotos] = useState<string[]>(formula?.photo_urls || []);
   const [error, setError] = useState("");
@@ -511,6 +583,63 @@ export function FormulaDrawer({
     enabled: Boolean(clientLocked && clientId),
     staleTime: 60_000,
   });
+
+  const { data: inventoryProducts = [] } = useQuery<InventoryProductRow[]>({
+    queryKey: ["products"],
+    queryFn: () => apiJson<InventoryProductRow[]>("/inventory/products"),
+    staleTime: 60_000,
+  });
+
+  const productsByNameOrSkuNorm = useMemo(() => {
+    const m = new Map<string, InventoryProductRow>();
+    for (const p of inventoryProducts) {
+      const n = p.name?.trim();
+      if (n) {
+        const nk = n.toLowerCase();
+        if (!m.has(nk)) m.set(nk, p);
+      }
+      const sku = typeof p.sku === "string" ? p.sku.trim() : "";
+      if (sku) {
+        const sk = sku.toLowerCase();
+        if (!m.has(sk)) m.set(sk, p);
+      }
+    }
+    return m;
+  }, [inventoryProducts]);
+
+  const brandDatalistOptions = useMemo(
+    () =>
+      mergeSortedUniqueStrings(
+        [...DEFAULT_BRAND_SUGGESTIONS],
+        inventoryProducts.map((p) => (typeof p.brand === "string" ? p.brand : "")).filter(Boolean),
+      ),
+    [inventoryProducts],
+  );
+
+  const shadeDatalistOptions = useMemo(
+    () =>
+      mergeSortedUniqueStrings(
+        [...DEFAULT_SHADE_SUGGESTIONS],
+        inventoryProducts.flatMap((p) => {
+          const name = p.name?.trim() ?? "";
+          const sku = typeof p.sku === "string" ? p.sku.trim() : "";
+          return sku && sku !== name ? [name, sku] : [name];
+        }).filter(Boolean),
+      ),
+    [inventoryProducts],
+  );
+
+  const productDatalistOptions = useMemo(
+    () =>
+      mergeSortedUniqueStrings(
+        inventoryProducts.flatMap((p) => {
+          const name = p.name?.trim() ?? "";
+          const sku = typeof p.sku === "string" ? p.sku.trim() : "";
+          return sku && sku !== name ? [name, sku] : [name];
+        }).filter(Boolean),
+      ),
+    [inventoryProducts],
+  );
 
   useEffect(() => {
     if (formula?.client_name) setClientSummary(formula.client_name.trim());
@@ -599,10 +728,30 @@ export function FormulaDrawer({
     }
   };
 
-  const addComp = () => setComponents((prev) => [...prev, { id: Date.now().toString(), brand: "", shade: "", amount: "", unit: "г" }]);
+  const addComp = () =>
+    setComponents((prev) => [...prev, { id: Date.now().toString(), brand: "", product: "", shade: "", amount: "", unit: "г" }]);
   const removeComp = (id: string) => setComponents((prev) => prev.filter((c) => c.id !== id));
-  const updateComp = (id: string, field: keyof ComponentRow, value: string) =>
-    setComponents((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
+  const updateComp = useCallback(
+    (id: string, field: keyof ComponentRow, value: string) => {
+      setComponents((prev) =>
+        prev.map((c) => {
+          if (c.id !== id) return c;
+          let next: ComponentRow = { ...c, [field]: value };
+          if (field === "shade" || field === "product") {
+            const match = productsByNameOrSkuNorm.get(value.trim().toLowerCase());
+            if (match) {
+              const b = match.brand?.trim();
+              if (b) next = { ...next, brand: b };
+              const u = match.unit?.trim();
+              if (u && (u === "г" || u === "мл" || u === "шт")) next = { ...next, unit: u };
+            }
+          }
+          return next;
+        }),
+      );
+    },
+    [productsByNameOrSkuNorm],
+  );
 
   const uploadPhotoToFormula = async (formulaId: number, file: File) => {
     const fd = new FormData();
@@ -636,8 +785,23 @@ export function FormulaDrawer({
     setError("");
     if (!form.client_id) { setError("Выберите клиента из списка или создайте нового"); return; }
     if (!form.applied_at) { setError("Укажите дату процедуры"); return; }
-    const validComps = components.filter((c) => c.brand && c.amount);
-    if (!validComps.length) { setError("Добавьте хотя бы один компонент"); return; }
+    const trim = (s: string) => s.trim();
+    const resolvedBrand = (row: ComponentRow): string => {
+      if (trim(row.brand)) return trim(row.brand);
+      const p = trim(row.product);
+      if (p) {
+        const m = productsByNameOrSkuNorm.get(p.toLowerCase());
+        if (m?.brand?.trim()) return m.brand.trim();
+      }
+      const sh = trim(row.shade);
+      if (sh) {
+        const m = productsByNameOrSkuNorm.get(sh.toLowerCase());
+        if (m?.brand?.trim()) return m.brand.trim();
+      }
+      return "";
+    };
+    const validComps = components.filter((c) => trim(c.amount) && resolvedBrand(c));
+    if (!validComps.length) { setError("Добавьте хотя бы один компонент (бренд или товар/оттенок со склада и количество)"); return; }
     setSaving(true);
     setPhotoHint("");
     try {
@@ -648,7 +812,16 @@ export function FormulaDrawer({
         result_notes: form.result_notes || null,
         exposure_minutes: form.exposure_minutes ? parseInt(form.exposure_minutes) : null,
         photo_urls: photos,
-        components: validComps.map((c) => ({ brand: c.brand, shade: c.shade, amount: parseFloat(c.amount) || 0, unit: c.unit })),
+        components: validComps.map((c) => {
+          const prod = trim(c.product);
+          return {
+            brand: resolvedBrand(c),
+            product: prod || null,
+            shade: trim(c.shade),
+            amount: parseFloat(c.amount) || 0,
+            unit: c.unit,
+          };
+        }),
       };
       const url = formula ? `/color-formulas/${formula.id}` : "/color-formulas/";
       let saved = await apiJson<ColorFormula>(
@@ -680,7 +853,7 @@ export function FormulaDrawer({
     }
   };
 
-  const DRAWER: React.CSSProperties = { position: "fixed", top: 0, right: 0, bottom: 0, width: "580px", background: tc.card, borderLeft: `1px solid ${tc.border}`, boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column" };
+  const DRAWER: React.CSSProperties = { position: "fixed", top: 0, right: 0, bottom: 0, width: "min(640px, 100vw)", background: tc.card, borderLeft: `1px solid ${tc.border}`, boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column" };
 
   return (
     <>
@@ -861,21 +1034,41 @@ export function FormulaDrawer({
             <span style={{ fontSize: "13px", fontWeight: 500 }}>Состав формулы</span>
             <button onClick={addComp} style={{ ...btnOutline, padding: "5px 10px", fontSize: "12px" }}>+ Добавить компонент</button>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 80px 70px 32px", gap: "8px", padding: "0 0 6px" }}>
-            {["Бренд", "Оттенок / %", "Кол-во", "Ед.", ""].map((h) => (
-              <span key={h} style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{h}</span>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0,1fr) minmax(0,1.15fr) minmax(0,1fr) 68px 56px 26px",
+              gap: "8px",
+              padding: "0 0 6px",
+            }}
+          >
+            {["Бренд", "Товар", "Оттенок / %", "Кол-во", "Ед.", ""].map((h) => (
+              <span key={h || "x"} style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{h}</span>
             ))}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "18px" }}>
             {components.map((c) => (
-              <div key={c.id} style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 80px 70px 32px", gap: "8px", alignItems: "center", background: tc.background, border: `1px solid ${tc.border}`, borderRadius: "8px", padding: "10px 12px" }}>
-                <input style={{ ...inp, padding: "7px 10px", fontSize: "12px" }} placeholder="Wella Koleston" list="brands-list" value={c.brand} onChange={(e) => updateComp(c.id, "brand", e.target.value)} />
-                <input style={{ ...inp, padding: "7px 10px", fontSize: "12px" }} placeholder="7/0, 6%, Blond..." list="shades-list" value={c.shade} onChange={(e) => updateComp(c.id, "shade", e.target.value)} />
+              <div
+                key={c.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(0,1fr) minmax(0,1.15fr) minmax(0,1fr) 68px 56px 26px",
+                  gap: "8px",
+                  alignItems: "center",
+                  background: tc.background,
+                  border: `1px solid ${tc.border}`,
+                  borderRadius: "8px",
+                  padding: "10px 12px",
+                }}
+              >
+                <input style={{ ...inp, padding: "7px 10px", fontSize: "12px", minWidth: 0 }} placeholder="Matrix" list="brands-list" value={c.brand} onChange={(e) => updateComp(c.id, "brand", e.target.value)} />
+                <input style={{ ...inp, padding: "7px 10px", fontSize: "12px", minWidth: 0 }} placeholder="Со склада или вручную" list="formula-products-list" value={c.product} onChange={(e) => updateComp(c.id, "product", e.target.value)} />
+                <input style={{ ...inp, padding: "7px 10px", fontSize: "12px", minWidth: 0 }} placeholder="7/0, 6%…" list="shades-list" value={c.shade} onChange={(e) => updateComp(c.id, "shade", e.target.value)} />
                 <input type="number" min="0" style={{ ...inp, padding: "7px 8px", fontSize: "12px", textAlign: "center" }} placeholder="60" value={c.amount} onChange={(e) => updateComp(c.id, "amount", e.target.value)} />
-                <select style={{ ...inp, padding: "7px 8px", fontSize: "12px" }} value={c.unit} onChange={(e) => updateComp(c.id, "unit", e.target.value)}>
+                <select style={{ ...inp, padding: "7px 6px", fontSize: "12px", minWidth: 0 }} value={c.unit} onChange={(e) => updateComp(c.id, "unit", e.target.value)}>
                   <option>г</option><option>мл</option><option>шт</option>
                 </select>
-                <button onClick={() => removeComp(c.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#c0392b", fontSize: "16px" }}>×</button>
+                <button type="button" onClick={() => removeComp(c.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#c0392b", fontSize: "16px", padding: 0 }}>×</button>
               </div>
             ))}
           </div>
@@ -1078,12 +1271,21 @@ export function FormulaDrawer({
         </>
       )}
 
-      {/* Datalists */}
+      {/* Datalists: склад + пресеты; поля остаются обычным текстом (можно ввести вручную). */}
       <datalist id="brands-list">
-        {["Wella Koleston", "Wella Oxydant", "Schwarzkopf Igora", "Schwarzkopf Blondme", "Loreal DiaRichesse", "Olaplex", "Kerastase", "Matrix", "Redken"].map((b) => <option key={b} value={b} />)}
+        {brandDatalistOptions.map((b) => (
+          <option key={b} value={b} />
+        ))}
       </datalist>
       <datalist id="shades-list">
-        {["3/0", "4/0", "5/0", "6/0", "6/1", "7/0", "7/1", "8/0", "8/1", "9/0", "0/66", "3%", "6%", "9%", "12%", "Bond Multiplier", "Premium Lightener"].map((s) => <option key={s} value={s} />)}
+        {shadeDatalistOptions.map((s) => (
+          <option key={s} value={s} />
+        ))}
+      </datalist>
+      <datalist id="formula-products-list">
+        {productDatalistOptions.map((n) => (
+          <option key={n} value={n} />
+        ))}
       </datalist>
     </>
   );
