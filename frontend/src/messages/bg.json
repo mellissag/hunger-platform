@@ -32,7 +32,9 @@
       "masterClients": "Моите клиенти",
       "masterBookings": "Моите резервации",
       "masterStats": "Моята статистика",
-      "masterProfile": "Моят профил"
+      "masterProfile": "Моят профил",
+      "inventory": "Склад",
+      "formulas": "Формули"
     },
     "topbar": {
       "search": "Търсене",
@@ -373,7 +375,6 @@
       "aiSectionTitle": "AI разговори",
       "aiToggleShow": "Покажи",
       "aiToggleHide": "Скрий",
-      "aiEmpty": "Няма AI разговори",
       "resolveTelegram": "Обнови от Telegram",
       "linkTgTitle": "Свържи Telegram",
       "linkTgHint": "Въведете числов Telegram user ID, запазете — при нужда после «Обнови от Telegram».",

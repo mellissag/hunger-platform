@@ -21,6 +21,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BookingCreateDrawer } from "@/app/(admin)/bookings/booking-create-drawer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ClientFormulas from "@/components/clients/ClientFormulas";
 import {
   Dialog,
   DialogContent,
@@ -594,9 +595,17 @@ export function ClientDetail({ clientId }: { clientId: string }) {
       </Card>
 
       <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="font-playfair text-lg">Формулы красок</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ClientFormulas clientId={clientId} />
+        </CardContent>
+      </Card>
+
+      <Card className="border-border">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="font-playfair text-lg">{t("aiSectionTitle")}</CardTitle>
-          <Button type="button" variant="ghost" size="sm" onClick={() => setAiOpen((v) => !v)}>
+          <CardTitle className="font-playfair text-lg">{t("aiSectionTitle")}</CardTitle>          <Button type="button" variant="ghost" size="sm" onClick={() => setAiOpen((v) => !v)}>
             {(c.ai_dialogs ?? []).length}{" "}
             · {aiOpen ? t("aiToggleHide") : t("aiToggleShow")}
             <ChevronDown className={cn("ml-1 inline h-4 w-4 transition-transform", aiOpen && "rotate-180")} />

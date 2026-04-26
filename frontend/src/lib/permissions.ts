@@ -15,6 +15,8 @@ export type Resource =
   | "users"
   | "settings"
   | "audit"
+  | "inventory"
+  | "formulas"
   | "master_dashboard"
   | "master_schedule"
   | "master_clients"
@@ -35,6 +37,8 @@ const SALON_ADMIN: Resource[] = [
   "statistics",
   "ai",
   "blacklist",
+  "inventory",
+  "formulas",
 ];
 
 const RECEPTION_READ_EXTRA: Resource[] = ["services"];

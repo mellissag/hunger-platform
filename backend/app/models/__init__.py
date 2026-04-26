@@ -8,6 +8,8 @@ from app.models.booking import BlacklistEntry, Booking, Review
 from app.models.broadcast import Broadcast, BroadcastRecipient
 from app.models.catalog import MasterService, Service, ServiceCategory
 from app.models.client import Client, ClientNote
+from app.models.color_formula import ColorFormula
+from app.models.inventory import Product, ProductArrival, ProductWriteOff
 from app.models.knowledge import KBChunk, KBDocument
 from app.models.master import Master
 from app.models.salon import Salon, Settings
@@ -28,10 +30,14 @@ __all__ = [
     "BroadcastRecipient",
     "Client",
     "ClientNote",
+    "ColorFormula",
     "KBChunk",
     "KBDocument",
     "Master",
     "MasterService",
+    "Product",
+    "ProductArrival",
+    "ProductWriteOff",
     "Review",
     "Salon",
     "ScheduleSlot",

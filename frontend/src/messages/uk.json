@@ -32,7 +32,9 @@
       "masterClients": "Мої клієнти",
       "masterBookings": "Мої записи",
       "masterStats": "Моя статистика",
-      "masterProfile": "Мій профіль"
+      "masterProfile": "Мій профіль",
+      "inventory": "Склад",
+      "formulas": "Формули фарб"
     },
     "topbar": {
       "search": "Пошук",
@@ -334,7 +336,7 @@
       "reviewsEmptyDesc": "Тут будуть опубліковані відгуки.",
       "aiForbidden": "Немає доступу",
       "aiForbiddenDesc": "Діалоги AI лише для owner/admin.",
-      "aiEmpty": "Немає діалогів AI",
+      "aiEmpty": "Немає AI-діалогів",
       "noteEditTitle": "Редагувати нотатку",
       "noteCreateTitle": "Нова нотатка",
       "noteSave": "Зберегти",
@@ -373,7 +375,6 @@
       "aiSectionTitle": "AI-діалоги",
       "aiToggleShow": "Показати",
       "aiToggleHide": "Сховати",
-      "aiEmpty": "Немає AI-діалогів",
       "resolveTelegram": "Оновити з Telegram",
       "linkTgTitle": "Прив’язати Telegram",
       "linkTgHint": "Введіть числовий Telegram user ID, збережіть — за потреби потім «Оновити з Telegram».",

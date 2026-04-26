@@ -32,7 +32,9 @@
       "masterClients": "Мои клиенты",
       "masterBookings": "Мои записи",
       "masterStats": "Моя статистика",
-      "masterProfile": "Мой профиль"
+      "masterProfile": "Мой профиль",
+      "inventory": "Склад",
+      "formulas": "Формулы красок"
     },
     "topbar": {
       "search": "Поиск",
@@ -334,7 +336,7 @@
       "reviewsEmptyDesc": "Здесь будут опубликованные отзывы.",
       "aiForbidden": "Нет доступа",
       "aiForbiddenDesc": "Диалоги AI только для owner/admin.",
-      "aiEmpty": "Нет диалогов AI",
+      "aiEmpty": "Нет AI-диалогов",
       "noteEditTitle": "Редактировать заметку",
       "noteCreateTitle": "Новая заметка",
       "noteSave": "Сохранить",
@@ -373,7 +375,6 @@
       "aiSectionTitle": "AI-диалоги",
       "aiToggleShow": "Показать",
       "aiToggleHide": "Скрыть",
-      "aiEmpty": "Нет AI-диалогов",
       "resolveTelegram": "Обновить из Telegram",
       "linkTgTitle": "Привязать Telegram",
       "linkTgHint": "Введите числовой Telegram user ID, сохраните — при необходимости затем «Обновить из Telegram».",

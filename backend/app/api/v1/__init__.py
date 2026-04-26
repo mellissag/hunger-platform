@@ -12,6 +12,8 @@ from app.api.v1 import (
     bookings,
     broadcasts,
     clients,
+    color_formulas,
+    inventory,
     knowledge,
     masters,
     mini_app,
@@ -48,3 +50,6 @@ api_router.include_router(users_admin.router)
 api_router.include_router(audit.router)
 api_router.include_router(mini_app.router)
 api_router.include_router(upload.router)
+api_router.include_router(inventory.router)
+api_router.include_router(color_formulas.router)
+api_router.include_router(color_formulas.client_router)

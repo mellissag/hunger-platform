@@ -32,7 +32,9 @@
       "masterClients": "My clients",
       "masterBookings": "My bookings",
       "masterStats": "My statistics",
-      "masterProfile": "My profile"
+      "masterProfile": "My profile",
+      "inventory": "Warehouse",
+      "formulas": "Color Formulas"
     },
     "topbar": {
       "search": "Search",
@@ -373,7 +375,6 @@
       "aiSectionTitle": "AI conversations",
       "aiToggleShow": "Show",
       "aiToggleHide": "Hide",
-      "aiEmpty": "No AI conversations",
       "resolveTelegram": "Refresh from Telegram",
       "linkTgTitle": "Link Telegram",
       "linkTgHint": "Enter numeric Telegram user ID, save, then refresh from Telegram if needed.",
