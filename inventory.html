@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Склад — Hunger Beauty</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #9A7230;
+    --primary-light: #f5efe4;
+    --primary-mid: #c9a55a;
+    --bg: #faf9f7;
+    --surface: #ffffff;
+    --border: #e8e2d9;
+    --border-light: #f0ebe2;
+    --text: #1a1714;
+    --text-secondary: #6b6457;
+    --text-muted: #9e9287;
+    --danger: #c0392b;
+    --danger-bg: #fdf0ef;
+    --warning: #b7770d;
+    --warning-bg: #fef9ec;
+    --success: #1a7a4a;
+    --success-bg: #edf7f1;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-lg: 16px;
+    --shadow: 0 2px 12px rgba(154,114,48,0.08);
+    --shadow-drawer: -4px 0 32px rgba(0,0,0,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+  }
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .sidebar-logo span {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--primary);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .sidebar-logo small { display: block; font-size: 10px; color: var(--text-muted); margin-top: 2px; letter-spacing: 1px; text-transform: uppercase; }
+  .nav-section { padding: 12px 8px 4px; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; margin: 1px 8px;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer; text-decoration: none;
+    font-size: 13px; font-weight: 400;
+    transition: all 0.15s;
+  }
+  .nav-item:hover { background: var(--primary-light); color: var(--primary); }
+  .nav-item.active { background: var(--primary-light); color: var(--primary); font-weight: 500; }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .sidebar-footer { margin-top: auto; padding: 16px; border-top: 1px solid var(--border-light); }
+  .user-pill { display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary-light); border: 1.5px solid var(--primary-mid); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--primary); }
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-role { font-size: 10px; color: var(--text-muted); }
+
+  /* MAIN */
+  .main { margin-left: 220px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* TOPBAR */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .topbar-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 500; color: var(--text); }
+  .topbar-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    border: 1.5px solid transparent; transition: all 0.15s;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .btn-primary:hover { background: #7d5c25; border-color: #7d5c25; }
+  .btn-outline { background: transparent; color: var(--text-secondary); border-color: var(--border); }
+  .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+  .btn-ghost { background: transparent; color: var(--text-muted); border-color: transparent; padding: 6px 10px; }
+  .btn-ghost:hover { background: var(--bg); color: var(--text); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-danger-ghost { background: transparent; color: var(--danger); border-color: transparent; padding: 4px 8px; font-size: 12px; }
+  .btn-danger-ghost:hover { background: var(--danger-bg); }
+  .btn svg { width: 15px; height: 15px; }
+
+  /* CONTENT */
+  .content { padding: 24px 28px; flex: 1; }
+
+  /* STAT CARDS */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+    position: relative; overflow: hidden;
+  }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--primary-light); }
+  .stat-card.danger::before { background: var(--danger-bg); }
+  .stat-card.warning::before { background: var(--warning-bg); }
+  .stat-card.success::before { background: var(--success-bg); }
+  .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .stat-value { font-size: 26px; font-weight: 600; color: var(--text); font-family: 'Playfair Display', serif; }
+  .stat-value.danger { color: var(--danger); }
+  .stat-value.warning { color: var(--warning); }
+  .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .stat-icon { position: absolute; top: 16px; right: 16px; opacity: 0.12; font-size: 28px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab {
+    padding: 10px 20px; font-size: 13px; font-weight: 500;
+    color: var(--text-muted); cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  /* TOOLBAR */
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 8px 12px;
+    flex: 1; max-width: 320px;
+  }
+  .search-box input { border: none; outline: none; font-size: 13px; color: var(--text); background: transparent; width: 100%; font-family: 'Inter', sans-serif; }
+  .search-box input::placeholder { color: var(--text-muted); }
+  .search-box svg { width: 14px; height: 14px; color: var(--text-muted); flex-shrink: 0; }
+  .filter-select {
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 8px 12px; font-size: 13px; color: var(--text-secondary);
+    background: var(--surface); outline: none; cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+  .filter-select:hover { border-color: var(--primary); }
+  .ml-auto { margin-left: auto; }
+
+  /* TABLE */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: var(--bg); padding: 11px 16px;
+    text-align: left; font-size: 11px; font-weight: 500;
+    color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid var(--border-light); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg); }
+  tbody td { padding: 13px 16px; font-size: 13px; color: var(--text); vertical-align: middle; }
+
+  /* BADGES */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 20px;
+    font-size: 11px; font-weight: 500; white-space: nowrap;
+  }
+  .badge-danger { background: var(--danger-bg); color: var(--danger); }
+  .badge-warning { background: var(--warning-bg); color: var(--warning); }
+  .badge-success { background: var(--success-bg); color: var(--success); }
+  .badge-neutral { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+  .badge-gold { background: var(--primary-light); color: var(--primary); }
+
+  /* PROGRESS BAR */
+  .progress-wrap { display: flex; align-items: center; gap: 8px; }
+  .progress-bar { flex: 1; height: 5px; background: var(--border-light); border-radius: 10px; overflow: hidden; min-width: 80px; }
+  .progress-fill { height: 100%; border-radius: 10px; transition: width 0.3s; }
+  .progress-fill.high { background: var(--success); }
+  .progress-fill.medium { background: var(--warning); }
+  .progress-fill.low { background: var(--danger); }
+  .progress-val { font-size: 12px; color: var(--text-secondary); min-width: 50px; text-align: right; white-space: nowrap; }
+
+  /* CATEGORY ICON */
+  .cat-icon { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; font-size: 14px; margin-right: 8px; flex-shrink: 0; }
+
+  /* EMPTY STATE */
+  .empty-state { padding: 60px 20px; text-align: center; color: var(--text-muted); }
+  .empty-state-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+  .empty-state h3 { font-size: 15px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+  .empty-state p { font-size: 13px; }
+
+  /* ====== DRAWER OVERLAY ====== */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(26,23,20,0.45);
+    z-index: 100; opacity: 0; pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .overlay.open { opacity: 1; pointer-events: auto; }
+
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 560px; background: var(--surface);
+    border-left: 1px solid var(--border);
+    box-shadow: var(--shadow-drawer);
+    z-index: 101; display: flex; flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .drawer.open { transform: translateX(0); }
+
+  .drawer-header {
+    padding: 20px 24px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .drawer-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 500; }
+  .drawer-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .close-btn { background: none; border: none; cursor: pointer; padding: 4px; color: var(--text-muted); border-radius: 6px; transition: all 0.15s; }
+  .close-btn:hover { background: var(--bg); color: var(--text); }
+  .close-btn svg { width: 18px; height: 18px; display: block; }
+
+  .drawer-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+  .drawer-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 10px; justify-content: flex-end;
+    flex-shrink: 0; background: var(--bg);
+  }
+
+  /* FORM ELEMENTS */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-row.single { grid-template-columns: 1fr; }
+  .form-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; }
+  .form-label.required::after { content: ' *'; color: var(--primary); }
+  .form-input, .form-select, .form-textarea {
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 9px 12px; font-size: 13px; color: var(--text);
+    background: var(--surface); outline: none;
+    font-family: 'Inter', sans-serif; transition: border-color 0.15s;
+    width: 100%;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(154,114,48,0.08); }
+  .form-textarea { resize: vertical; min-height: 72px; }
+  .form-hint { font-size: 11px; color: var(--text-muted); }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border-light); margin: 18px 0; }
+
+  /* LINE ITEMS */
+  .section-label {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .section-label h3 { font-size: 13px; font-weight: 500; color: var(--text); }
+  .line-items { display: flex; flex-direction: column; gap: 10px; }
+  .line-item {
+    background: var(--bg); border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm); padding: 12px 14px;
+    display: grid; grid-template-columns: 2fr 80px 80px 90px 32px;
+    gap: 8px; align-items: center;
+  }
+  .line-item-header {
+    display: grid; grid-template-columns: 2fr 80px 80px 90px 32px;
+    gap: 8px; padding: 0 14px; margin-bottom: 4px;
+  }
+  .line-item-col-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+  .line-total-row {
+    background: var(--primary-light); border-radius: var(--radius-sm);
+    padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .line-total-label { font-size: 12px; color: var(--primary); font-weight: 500; }
+  .line-total-value { font-size: 16px; font-weight: 600; color: var(--primary); font-family: 'Playfair Display', serif; }
+
+  /* INVOICE LIST */
+  .invoice-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 20px;
+    display: flex; align-items: center; gap: 16px;
+    cursor: pointer; transition: all 0.15s; margin-bottom: 10px;
+  }
+  .invoice-card:hover { border-color: var(--primary-mid); box-shadow: var(--shadow); }
+  .invoice-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--primary-light); display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .invoice-icon svg { width: 18px; height: 18px; color: var(--primary); }
+  .invoice-info { flex: 1; }
+  .invoice-number { font-weight: 500; font-size: 14px; }
+  .invoice-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .invoice-amount { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 600; color: var(--text); text-align: right; }
+  .invoice-items-count { font-size: 11px; color: var(--text-muted); text-align: right; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span>Hunger Beauty</span>
+    <small>Admin Panel</small>
+  </div>
+  <nav style="flex:1; overflow-y:auto; padding-bottom:12px;">
+    <div class="nav-section">Основное</div>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Дашборд
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Бронирования
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Клиенты
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Мастера
+    </a>
+    <div class="nav-section">Продажи</div>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Финансы
+    </a>
+    <a class="nav-item active" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      Склад
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 12h8M12 8v8"/></svg>
+      Формулы
+    </a>
+    <div class="nav-section">Маркетинг</div>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.94 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.77 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l.9-.9a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 17l-.08-.08z"/></svg>
+      Рассылки
+    </a>
+    <div class="nav-section">Система</div>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      AI-ассистент
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Настройки
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="user-avatar">АВ</div>
+      <div class="user-info">
+        <div class="user-name">owner@adm-test.tech</div>
+        <div class="user-role">Владелец</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <header class="topbar">
+    <div>
+      <div class="topbar-title">Склад</div>
+      <div class="topbar-subtitle">Управление товарами и накладными</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm" onclick="openWriteOff()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        Списание
+      </button>
+      <button class="btn btn-primary" onclick="openDrawer()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Новая накладная
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Всего позиций</div>
+        <div class="stat-value">24</div>
+        <div class="stat-sub">в 4 категориях</div>
+        <div class="stat-icon">📦</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="stat-label">Заканчивается</div>
+        <div class="stat-value danger">3</div>
+        <div class="stat-sub">ниже минимума</div>
+        <div class="stat-icon">⚠️</div>
+      </div>
+      <div class="stat-card warning">
+        <div class="stat-label">Низкий запас</div>
+        <div class="stat-value warning">6</div>
+        <div class="stat-sub">требует внимания</div>
+        <div class="stat-icon">📉</div>
+      </div>
+      <div class="stat-card success">
+        <div class="stat-label">Стоимость склада</div>
+        <div class="stat-value" style="font-size:20px">€ 2 840</div>
+        <div class="stat-sub">по закупочным ценам</div>
+        <div class="stat-icon">💰</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'stock')">Остатки</div>
+      <div class="tab" onclick="switchTab(this,'invoices')">Накладные</div>
+    </div>
+
+    <!-- STOCK TAB -->
+    <div id="tab-stock">
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Поиск по товару..." oninput="filterStock(this.value)">
+        </div>
+        <select class="filter-select" onchange="filterCategory(this.value)">
+          <option value="">Все категории</option>
+          <option value="Краски">Краски</option>
+          <option value="Уход">Уходовая косметика</option>
+          <option value="Расходники">Расходники</option>
+          <option value="Инструменты">Инструменты</option>
+        </select>
+        <select class="filter-select">
+          <option>Все статусы</option>
+          <option>Достаточно</option>
+          <option>Мало</option>
+          <option>Критически мало</option>
+        </select>
+        <div class="ml-auto">
+          <button class="btn btn-outline btn-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Экспорт
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="stock-table">
+          <thead>
+            <tr>
+              <th style="width:36%">Наименование</th>
+              <th>Категория</th>
+              <th>Ед.</th>
+              <th>Статус</th>
+              <th style="width:22%">Остаток</th>
+              <th>Цена</th>
+            </tr>
+          </thead>
+          <tbody id="stock-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- INVOICES TAB -->
+    <div id="tab-invoices" style="display:none">
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Номер накладной или поставщик...">
+        </div>
+        <select class="filter-select">
+          <option>Все месяцы</option>
+          <option>Апрель 2026</option>
+          <option>Март 2026</option>
+          <option>Февраль 2026</option>
+        </select>
+        <div class="ml-auto" style="font-size:12px;color:var(--text-muted)">
+          Всего: <strong style="color:var(--text)">12 накладных</strong> на € 8 420
+        </div>
+      </div>
+      <div id="invoice-list"></div>
+    </div>
+  </div>
+</main>
+
+<!-- OVERLAY -->
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+
+<!-- DRAWER: Новая накладная -->
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-title">Новая накладная</div>
+      <div class="drawer-subtitle">Приход товара на склад</div>
+    </div>
+    <button class="close-btn" onclick="closeDrawer()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="drawer-body">
+    <!-- Реквизиты -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label required">Дата прихода</label>
+        <input type="date" class="form-input" id="invoice-date" value="2026-04-26">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Номер накладной</label>
+        <input type="text" class="form-input" placeholder="ТН-001" id="invoice-num">
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="form-group">
+        <label class="form-label">Поставщик</label>
+        <input type="text" class="form-input" placeholder="Название компании или ИП" id="invoice-supplier">
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="form-group">
+        <label class="form-label">Заметки</label>
+        <textarea class="form-textarea" placeholder="Дополнительная информация о поставке..." id="invoice-notes"></textarea>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Позиции -->
+    <div class="section-label">
+      <h3>Позиции товара</h3>
+      <button class="btn btn-outline btn-sm" onclick="addLineItem()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Добавить позицию
+      </button>
+    </div>
+
+    <div class="line-item-header">
+      <span class="line-item-col-label">Товар</span>
+      <span class="line-item-col-label">Кол-во</span>
+      <span class="line-item-col-label">Ед.</span>
+      <span class="line-item-col-label">Цена (€)</span>
+      <span></span>
+    </div>
+
+    <div class="line-items" id="line-items"></div>
+
+    <div class="line-total-row" id="line-total" style="margin-top:12px">
+      <span class="line-total-label">Итого к оплате</span>
+      <span class="line-total-value" id="total-display">€ 0.00</span>
+    </div>
+  </div>
+
+  <div class="drawer-footer">
+    <button class="btn btn-outline" onclick="closeDrawer()">Отмена</button>
+    <button class="btn btn-primary" onclick="saveInvoice()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>
+      Сохранить накладную
+    </button>
+  </div>
+</div>
+
+<script>
+const PRODUCTS = [
+  { id:1, name:'Wella Koleston 7/0', category:'Краски', unit:'шт', qty:14, min:5, price:8.50, emoji:'🎨' },
+  { id:2, name:'Wella Koleston 5/0', category:'Краски', unit:'шт', qty:2,  min:5, price:8.50, emoji:'🎨' },
+  { id:3, name:'Schwarzkopf Igora 6/1', category:'Краски', unit:'шт', qty:8,  min:5, price:9.20, emoji:'🎨' },
+  { id:4, name:'Schwarzkopf Igora 4/0', category:'Краски', unit:'шт', qty:0,  min:5, price:9.20, emoji:'🎨' },
+  { id:5, name:'Wella Oxydant 6%',  category:'Краски', unit:'шт', qty:20, min:8, price:4.80, emoji:'🧴' },
+  { id:6, name:'Wella Oxydant 9%',  category:'Краски', unit:'шт', qty:4,  min:8, price:4.80, emoji:'🧴' },
+  { id:7, name:'Loreal DiaRichesse 7',  category:'Краски', unit:'шт', qty:11, min:4, price:7.90, emoji:'🎨' },
+  { id:8, name:'Olaplex № 3',       category:'Уход', unit:'шт', qty:6,  min:3, price:28.00, emoji:'✨' },
+  { id:9, name:'Kerastase Masque',  category:'Уход', unit:'шт', qty:2,  min:3, price:34.00, emoji:'✨' },
+  { id:10, name:'Защитный крем',    category:'Уход', unit:'шт', qty:9,  min:3, price:6.50, emoji:'🌿' },
+  { id:11, name:'Перчатки L',       category:'Расходники', unit:'уп', qty:3,  min:5, price:3.20, emoji:'🧤' },
+  { id:12, name:'Перчатки M',       category:'Расходники', unit:'уп', qty:7,  min:5, price:3.20, emoji:'🧤' },
+  { id:13, name:'Фольга 50м',       category:'Расходники', unit:'рул', qty:4,  min:3, price:5.50, emoji:'🪙' },
+  { id:14, name:'Пигмент синий',    category:'Краски', unit:'шт', qty:5,  min:2, price:12.00, emoji:'🎨' },
+  { id:15, name:'Расчёска Carbon',  category:'Инструменты', unit:'шт', qty:8,  min:2, price:14.00, emoji:'💈' },
+];
+
+const INVOICES = [
+  { id:'ТН-024', supplier:'Wella Professional GmbH', date:'25 апр 2026', items:8, total:'€ 420.00' },
+  { id:'ТН-023', supplier:'Schwarzkopf & Henkel', date:'18 апр 2026', items:5, total:'€ 237.50' },
+  { id:'ТН-022', supplier:'Loreal Professionnel', date:'10 апр 2026', items:12, total:'€ 684.00' },
+  { id:'ТН-021', supplier:'Olaplex Inc.', date:'02 апр 2026', items:3, total:'€ 312.00' },
+  { id:'ТН-020', supplier:'Kerastase Paris', date:'25 мар 2026', items:6, total:'€ 518.00' },
+];
+
+function getStatus(qty, min) {
+  if(qty === 0) return {label:'Нет в наличии', cls:'badge-danger', barCls:'low', pct:0};
+  const ratio = qty / (min * 2);
+  if(qty < min) return {label:'Мало', cls:'badge-danger', barCls:'low', pct: Math.min(ratio*50,45)};
+  if(qty < min * 1.5) return {label:'Умеренно', cls:'badge-warning', barCls:'medium', pct: Math.min(ratio*75,70)};
+  return {label:'Достаточно', cls:'badge-success', barCls:'high', pct: Math.min(ratio*60,100)};
+}
+
+function renderStock(data) {
+  const tbody = document.getElementById('stock-tbody');
+  if(!data.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">📦</div><h3>Товары не найдены</h3><p>Попробуйте изменить фильтр</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(p => {
+    const s = getStatus(p.qty, p.min);
+    return `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center">
+          <div class="cat-icon" style="background:var(--primary-light)">${p.emoji}</div>
+          <div>
+            <div style="font-weight:500">${p.name}</div>
+            <div style="font-size:11px;color:var(--text-muted)">мин. ${p.min} ${p.unit}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="badge badge-neutral">${p.category}</span></td>
+      <td style="color:var(--text-secondary)">${p.unit}</td>
+      <td><span class="badge ${s.cls}">${s.label}</span></td>
+      <td>
+        <div class="progress-wrap">
+          <div class="progress-bar">
+            <div class="progress-fill ${s.barCls}" style="width:${s.pct}%"></div>
+          </div>
+          <span class="progress-val">${p.qty} / ${p.min*2}</span>
+        </div>
+      </td>
+      <td style="font-weight:500;color:var(--text-secondary)">€ ${p.price.toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderInvoices() {
+  const container = document.getElementById('invoice-list');
+  container.innerHTML = INVOICES.map(inv => `
+    <div class="invoice-card">
+      <div class="invoice-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      </div>
+      <div class="invoice-info">
+        <div class="invoice-number">${inv.id} — ${inv.supplier}</div>
+        <div class="invoice-meta">${inv.date} · ${inv.items} позиций</div>
+      </div>
+      <div>
+        <div class="invoice-amount">${inv.total}</div>
+        <div class="invoice-items-count">${inv.items} поз.</div>
+      </div>
+      <button class="btn btn-ghost btn-sm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+function filterStock(q) {
+  const filtered = PRODUCTS.filter(p => p.name.toLowerCase().includes(q.toLowerCase()));
+  renderStock(filtered);
+}
+
+function filterCategory(cat) {
+  const filtered = cat ? PRODUCTS.filter(p => p.category === cat || (cat === 'Уход' && p.category === 'Уход')) : PRODUCTS;
+  renderStock(filtered);
+}
+
+function switchTab(el, tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-stock').style.display = tab === 'stock' ? '' : 'none';
+  document.getElementById('tab-invoices').style.display = tab === 'invoices' ? '' : 'none';
+}
+
+/* DRAWER */
+let lineCount = 0;
+
+function openDrawer() {
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  if(lineCount === 0) { addLineItem(); addLineItem(); }
+}
+
+function closeDrawer() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function addLineItem() {
+  lineCount++;
+  const id = 'li-' + lineCount;
+  const container = document.getElementById('line-items');
+  const div = document.createElement('div');
+  div.className = 'line-item';
+  div.id = id;
+  div.innerHTML = `
+    <select class="form-select" style="padding:7px 10px;font-size:12px" onchange="calcTotal()">
+      <option value="">— Выберите товар —</option>
+      ${PRODUCTS.map(p => `<option value="${p.price}">${p.name}</option>`).join('')}
+    </select>
+    <input type="number" class="form-input" style="padding:7px 8px;font-size:12px;text-align:center" placeholder="0" min="0" oninput="calcTotal()" value="1">
+    <select class="form-select" style="padding:7px 8px;font-size:12px">
+      <option>шт</option><option>уп</option><option>рул</option><option>мл</option><option>г</option>
+    </select>
+    <input type="number" class="form-input" style="padding:7px 8px;font-size:12px;text-align:right" placeholder="0.00" step="0.01" oninput="calcTotal()">
+    <button class="btn btn-danger-ghost" onclick="removeLineItem('${id}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  `;
+  // Auto-fill price when product selected
+  const sel = div.querySelector('select');
+  const priceInput = div.querySelectorAll('input')[1];
+  sel.addEventListener('change', () => {
+    if(sel.value) priceInput.value = parseFloat(sel.value).toFixed(2);
+    calcTotal();
+  });
+  container.appendChild(div);
+}
+
+function removeLineItem(id) {
+  const el = document.getElementById(id);
+  if(el) { el.remove(); calcTotal(); }
+}
+
+function calcTotal() {
+  let total = 0;
+  document.querySelectorAll('.line-item').forEach(row => {
+    const qty = parseFloat(row.querySelectorAll('input')[0]?.value) || 0;
+    const price = parseFloat(row.querySelectorAll('input')[1]?.value) || 0;
+    total += qty * price;
+  });
+  document.getElementById('total-display').textContent = '€ ' + total.toFixed(2);
+}
+
+function saveInvoice() {
+  const date = document.getElementById('invoice-date').value;
+  const num = document.getElementById('invoice-num').value || 'ТН-' + String(Math.floor(Math.random()*900)+100);
+  const supplier = document.getElementById('invoice-supplier').value || 'Без поставщика';
+  const items = document.querySelectorAll('.line-item').length;
+  const total = document.getElementById('total-display').textContent;
+
+  INVOICES.unshift({ id: num, supplier, date, items, total });
+  renderInvoices();
+  closeDrawer();
+  document.getElementById('line-items').innerHTML = '';
+  lineCount = 0;
+  alert('Накладная ' + num + ' сохранена!');
+}
+
+function openWriteOff() {
+  alert('Модуль списания товара\n\nЗдесь будет форма для списания позиций со склада.');
+}
+
+renderStock(PRODUCTS);
+renderInvoices();
+</script>
+</body>
+</html>

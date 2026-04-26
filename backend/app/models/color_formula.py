@@ -1,23 +1,21 @@
-"""Color formula model."""
+"""Color formula model with JSONB components."""
 
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
     Integer,
-    Numeric,
     String,
     Text,
     Uuid,
-    func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -43,18 +41,13 @@ class ColorFormula(CreatedAtMixin, Base):
     booking_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("booking.id", ondelete="SET NULL"), nullable=True
     )
-    technique: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    brand: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    base_color: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    base_amount_ml: Mapped[Decimal | None] = mapped_column(Numeric(6, 1), nullable=True)
-    mixer_color: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    mixer_amount_ml: Mapped[Decimal | None] = mapped_column(Numeric(6, 1), nullable=True)
-    developer_percent: Mapped[str | None] = mapped_column(String(10), nullable=True)
-    developer_ml: Mapped[Decimal | None] = mapped_column(Numeric(6, 1), nullable=True)
-    processing_time_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    result_description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    components: Mapped[list[Any]] = mapped_column(JSONB, nullable=False, default=list)
+    service_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    applied_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    result_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    exposure_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    photo_urls: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True, default=list)
+    client_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     client: Mapped["Client"] = relationship("Client", backref="color_formulas")
     master: Mapped["Master | None"] = relationship("Master", backref="color_formulas")

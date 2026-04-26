@@ -296,7 +296,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                     />
                   )
                 ) : (
-                  <span className="text-sm text-muted-foreground">Drop photo</span>
+                  <span className="text-sm text-muted-foreground">Перетащите фото</span>
                 )}
                 <Input
                   ref={profilePhotoInputRef}
@@ -315,7 +315,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                   variant="outline"
                   onClick={() => profilePhotoInputRef.current?.click()}
                 >
-                  Upload new photo
+                  Загрузить фото
                 </Button>
                 <Button
                   type="button"
@@ -327,7 +327,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                       {
                         onSuccess: async () => {
                           setProfilePhotoBroken(false);
-                          toast.success("Photo removed");
+                          toast.success("Фото удалено");
                           await qc.invalidateQueries({ queryKey: ["master", masterId] });
                         },
                         onError: (e: Error) => toast.error(e.message),
@@ -335,7 +335,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                     )
                   }
                 >
-                  Delete photo
+                  Удалить фото
                 </Button>
               </div>
               <form
@@ -366,7 +366,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                 </div>
                 {ownerOnly ? (
                   <div className="space-y-2">
-                    <Label>Payroll %</Label>
+                    <Label>Ставка %</Label>
                     <Input type="number" {...profileForm.register("payroll_percent")} />
                   </div>
                 ) : null}

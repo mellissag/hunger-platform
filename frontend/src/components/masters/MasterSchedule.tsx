@@ -20,7 +20,7 @@ type BookingRow = {
   service?: { name_i18n?: Record<string, string> | null; name?: string | null } | null;
 };
 
-const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 8);
 const PX_PER_HOUR = 60;
 const GRID_START_HOUR = 8;

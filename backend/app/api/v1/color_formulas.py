@@ -1,10 +1,9 @@
-"""Color formulas API."""
+"""Color formulas API — JSONB components."""
 
 from __future__ import annotations
 
 from datetime import datetime
-from decimal import Decimal
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -26,22 +25,24 @@ ADMINS = (UserRole.owner, UserRole.admin)
 # ── Schemas ───────────────────────────────────────────────────────────────────
 
 
+class FormulaComponent(BaseModel):
+    brand: str
+    shade: str
+    amount: float
+    unit: str
+
+
 class FormulaCreate(BaseModel):
     client_id: UUID
     master_id: Optional[UUID] = None
     booking_id: Optional[UUID] = None
-    technique: Optional[str] = None
-    brand: Optional[str] = None
-    base_color: Optional[str] = None
-    base_amount_ml: Optional[Decimal] = None
-    mixer_color: Optional[str] = None
-    mixer_amount_ml: Optional[Decimal] = None
-    developer_percent: Optional[str] = None
-    developer_ml: Optional[Decimal] = None
-    processing_time_min: Optional[int] = None
-    result_description: Optional[str] = None
-    notes: Optional[str] = None
-    photo_url: Optional[str] = None
+    components: list[FormulaComponent] = []
+    service_name: Optional[str] = None
+    applied_at: datetime
+    result_notes: Optional[str] = None
+    exposure_minutes: Optional[int] = None
+    photo_urls: Optional[list[str]] = None
+    client_rating: Optional[int] = None
 
 
 class FormulaOut(BaseModel):
@@ -51,27 +52,29 @@ class FormulaOut(BaseModel):
     master_id: Optional[UUID] = None
     booking_id: Optional[UUID] = None
     created_at: datetime
-    technique: Optional[str] = None
-    brand: Optional[str] = None
-    base_color: Optional[str] = None
-    base_amount_ml: Optional[Decimal] = None
-    mixer_color: Optional[str] = None
-    mixer_amount_ml: Optional[Decimal] = None
-    developer_percent: Optional[str] = None
-    developer_ml: Optional[Decimal] = None
-    processing_time_min: Optional[int] = None
-    result_description: Optional[str] = None
-    notes: Optional[str] = None
-    photo_url: Optional[str] = None
+    components: list[Any] = []
+    service_name: Optional[str] = None
+    applied_at: datetime
+    result_notes: Optional[str] = None
+    exposure_minutes: Optional[int] = None
+    photo_urls: Optional[list[str]] = None
+    client_rating: Optional[int] = None
     master_name: Optional[str] = None
+    client_name: Optional[str] = None
 
 
-async def _formula_out(f: ColorFormula, db: AsyncSession) -> FormulaOut:
+async def _enrich(f: ColorFormula, db: AsyncSession) -> FormulaOut:
     out = FormulaOut.model_validate(f)
     if f.master_id:
         master = await db.get(Master, f.master_id)
         if master:
             out.master_name = master.display_name
+    # client name via backref
+    if f.client:
+        name = " ".join(
+            filter(None, [f.client.first_name, f.client.last_name])
+        ) or f.client.phone or str(f.client_id)[:8]
+        out.client_name = name
     return out
 
 
@@ -82,24 +85,33 @@ async def _formula_out(f: ColorFormula, db: AsyncSession) -> FormulaOut:
 async def list_formulas(
     client_id: Optional[UUID] = None,
     master_id: Optional[UUID] = None,
-    brand: Optional[str] = None,
-    technique: Optional[str] = None,
+    search: Optional[str] = None,
     limit: int = Query(50, le=200),
     db: AsyncSession = Depends(get_db),
     _: None = Depends(require_roles(*STAFF)),
 ) -> list[FormulaOut]:
-    q = select(ColorFormula).order_by(desc(ColorFormula.created_at)).limit(limit)
+    q = select(ColorFormula).order_by(desc(ColorFormula.applied_at)).limit(limit)
     if client_id:
         q = q.where(ColorFormula.client_id == client_id)
     if master_id:
         q = q.where(ColorFormula.master_id == master_id)
-    if brand:
-        q = q.where(ColorFormula.brand.ilike(f"%{brand}%"))
-    if technique:
-        q = q.where(ColorFormula.technique == technique)
     result = await db.execute(q)
     formulas = result.scalars().all()
-    return [await _formula_out(f, db) for f in formulas]
+
+    out = []
+    for f in formulas:
+        enriched = await _enrich(f, db)
+        if search:
+            haystack = (
+                (enriched.client_name or "")
+                + str(f.components)
+                + (f.service_name or "")
+                + (enriched.master_name or "")
+            ).lower()
+            if search.lower() not in haystack:
+                continue
+        out.append(enriched)
+    return out
 
 
 @router.post("/", response_model=FormulaOut, status_code=status.HTTP_201_CREATED)
@@ -108,11 +120,13 @@ async def create_formula(
     db: AsyncSession = Depends(get_db),
     _: None = Depends(require_roles(*STAFF)),
 ) -> FormulaOut:
-    formula = ColorFormula(**data.model_dump())
+    dump = data.model_dump()
+    dump["components"] = [c.model_dump() for c in data.components]
+    formula = ColorFormula(**dump)
     db.add(formula)
     await db.commit()
     await db.refresh(formula)
-    return await _formula_out(formula, db)
+    return await _enrich(formula, db)
 
 
 @router.patch("/{formula_id}", response_model=FormulaOut)
@@ -125,11 +139,14 @@ async def update_formula(
     formula = await db.get(ColorFormula, formula_id)
     if not formula:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
-    for k, v in data.model_dump(exclude_unset=True).items():
+    dump = data.model_dump(exclude_unset=True)
+    if "components" in dump:
+        dump["components"] = [c.model_dump() if hasattr(c, "model_dump") else c for c in dump["components"]]
+    for k, v in dump.items():
         setattr(formula, k, v)
     await db.commit()
     await db.refresh(formula)
-    return await _formula_out(formula, db)
+    return await _enrich(formula, db)
 
 
 @router.delete("/{formula_id}")
@@ -146,7 +163,7 @@ async def delete_formula(
     return {"ok": True}
 
 
-# ── Client sub-route: GET /clients/{client_id}/color-formulas ─────────────────
+# ── Client sub-route ──────────────────────────────────────────────────────────
 
 
 @client_router.get("/{client_id}/color-formulas", response_model=list[FormulaOut])
@@ -158,8 +175,8 @@ async def get_client_formulas(
     q = (
         select(ColorFormula)
         .where(ColorFormula.client_id == client_id)
-        .order_by(desc(ColorFormula.created_at))
+        .order_by(desc(ColorFormula.applied_at))
     )
     result = await db.execute(q)
     formulas = result.scalars().all()
-    return [await _formula_out(f, db) for f in formulas]
+    return [await _enrich(f, db) for f in formulas]

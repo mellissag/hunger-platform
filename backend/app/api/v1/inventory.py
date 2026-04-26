@@ -1,21 +1,21 @@
-"""Inventory API: products, arrivals, write-offs."""
+"""Inventory API: products, supply invoices, write-offs, stats."""
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, Optional
+from typing import Any, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import desc, func, select
+from sqlalchemy import desc, distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.deps import get_db, require_roles
 from app.models.enums import UserRole
-from app.models.inventory import Product, ProductArrival, ProductWriteOff
+from app.models.inventory import Product, ProductWriteOff, SupplyInvoice, SupplyInvoiceItem
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 
@@ -27,12 +27,12 @@ ADMINS = (UserRole.owner, UserRole.admin)
 
 class ProductBase(BaseModel):
     name: str
-    category: Optional[str] = None
     brand: Optional[str] = None
     sku: Optional[str] = None
     unit: str = "шт"
+    category: Optional[str] = None
     min_stock: Decimal = Decimal("0")
-    price_per_unit: Optional[Decimal] = None
+    cost_price: Optional[Decimal] = None
     is_active: bool = True
 
 
@@ -42,12 +42,12 @@ class ProductCreate(ProductBase):
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
-    category: Optional[str] = None
     brand: Optional[str] = None
     sku: Optional[str] = None
     unit: Optional[str] = None
+    category: Optional[str] = None
     min_stock: Optional[Decimal] = None
-    price_per_unit: Optional[Decimal] = None
+    cost_price: Optional[Decimal] = None
     is_active: Optional[bool] = None
 
 
@@ -61,24 +61,48 @@ class ProductOut(ProductBase):
 
 def _product_out(p: Product) -> ProductOut:
     out = ProductOut.model_validate(p)
-    out.is_low_stock = float(p.current_stock or 0) <= float(p.min_stock or 0)
+    out.is_low_stock = (
+        float(p.min_stock or 0) > 0
+        and float(p.current_stock or 0) <= float(p.min_stock or 0)
+    )
     return out
 
 
-class ArrivalCreate(BaseModel):
+class InvoiceItemCreate(BaseModel):
     product_id: int
     quantity: Decimal
     price_per_unit: Optional[Decimal] = None
-    supplier: Optional[str] = None
-    invoice_number: Optional[str] = None
-    arrived_at: datetime
     notes: Optional[str] = None
 
 
-class ArrivalOut(ArrivalCreate):
+class InvoiceItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    product_id: int
+    product: ProductOut
+    quantity: Decimal
+    price_per_unit: Optional[Decimal] = None
+    total: Optional[Decimal] = None
+    notes: Optional[str] = None
+
+
+class SupplyInvoiceCreate(BaseModel):
+    invoice_number: Optional[str] = None
+    supplier: Optional[str] = None
+    arrived_at: datetime
+    notes: Optional[str] = None
+    items: list[InvoiceItemCreate]
+
+
+class SupplyInvoiceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    invoice_number: Optional[str] = None
+    supplier: Optional[str] = None
+    arrived_at: datetime
     total_cost: Optional[Decimal] = None
+    notes: Optional[str] = None
+    items: list[InvoiceItemOut] = []
     created_at: datetime
 
 
@@ -105,6 +129,7 @@ class WriteOffOut(WriteOffCreate):
 async def list_products(
     category: Optional[str] = None,
     low_stock_only: bool = False,
+    search: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     _: None = Depends(require_roles(*STAFF)),
 ) -> list[ProductOut]:
@@ -112,10 +137,30 @@ async def list_products(
     if category:
         q = q.where(Product.category == category)
     if low_stock_only:
-        q = q.where(Product.current_stock <= Product.min_stock)
+        q = q.where(
+            Product.min_stock > 0,
+            Product.current_stock <= Product.min_stock,
+        )
+    if search:
+        q = q.where(Product.name.ilike(f"%{search}%"))
     q = q.order_by(Product.category, Product.name)
     result = await db.execute(q)
     return [_product_out(p) for p in result.scalars().all()]
+
+
+@router.get("/products/categories", response_model=list[str])
+async def list_categories(
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_roles(*STAFF)),
+) -> list[str]:
+    result = await db.execute(
+        select(distinct(Product.category))
+        .where(Product.is_active == True, Product.category != None)  # noqa: E712
+    )
+    db_cats = [r[0] for r in result.fetchall() if r[0]]
+    defaults = ["Краски для волос", "Уходовая косметика", "Расходники", "Инструменты"]
+    merged = list({*defaults, *db_cats})
+    return sorted(merged)
 
 
 @router.post("/products", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
@@ -162,97 +207,108 @@ async def delete_product(
     return {"ok": True}
 
 
-# ── Arrivals ──────────────────────────────────────────────────────────────────
+# ── Supply invoices ────────────────────────────────────────────────────────────
 
 
-@router.get("/arrivals", response_model=list[ArrivalOut])
-async def list_arrivals(
-    product_id: Optional[int] = None,
+@router.get("/invoices", response_model=list[SupplyInvoiceOut])
+async def list_invoices(
     limit: int = Query(50, le=200),
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
-    _: None = Depends(require_roles(*STAFF)),
-) -> list[ArrivalOut]:
+    _: None = Depends(require_roles(*ADMINS)),
+) -> list[SupplyInvoice]:
     q = (
-        select(ProductArrival)
-        .order_by(desc(ProductArrival.arrived_at))
+        select(SupplyInvoice)
+        .options(selectinload(SupplyInvoice.items).selectinload(SupplyInvoiceItem.product))
+        .order_by(desc(SupplyInvoice.arrived_at))
         .limit(limit)
         .offset(offset)
     )
-    if product_id:
-        q = q.where(ProductArrival.product_id == product_id)
     result = await db.execute(q)
     return list(result.scalars().all())
 
 
-@router.post("/arrivals", response_model=ArrivalOut, status_code=status.HTTP_201_CREATED)
-async def create_arrival(
-    data: ArrivalCreate,
+@router.get("/invoices/{invoice_id}", response_model=SupplyInvoiceOut)
+async def get_invoice(
+    invoice_id: int,
     db: AsyncSession = Depends(get_db),
     _: None = Depends(require_roles(*ADMINS)),
-) -> ProductArrival:
-    product = await db.get(Product, data.product_id)
-    if not product:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Товар не найден")
+) -> SupplyInvoice:
+    q = (
+        select(SupplyInvoice)
+        .options(selectinload(SupplyInvoice.items).selectinload(SupplyInvoiceItem.product))
+        .where(SupplyInvoice.id == invoice_id)
+    )
+    result = await db.execute(q)
+    invoice = result.scalar_one_or_none()
+    if not invoice:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    return invoice
 
-    total = None
-    if data.price_per_unit:
-        total = data.quantity * data.price_per_unit
 
-    arrival = ProductArrival(**data.model_dump(), total_cost=total)
-    db.add(arrival)
+@router.post("/invoices", response_model=SupplyInvoiceOut, status_code=status.HTTP_201_CREATED)
+async def create_invoice(
+    data: SupplyInvoiceCreate,
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_roles(*ADMINS)),
+) -> SupplyInvoice:
+    invoice = SupplyInvoice(
+        invoice_number=data.invoice_number,
+        supplier=data.supplier,
+        arrived_at=data.arrived_at,
+        notes=data.notes,
+    )
+    db.add(invoice)
+    await db.flush()
 
-    product.current_stock = (product.current_stock or Decimal("0")) + data.quantity
-    if data.price_per_unit:
-        product.price_per_unit = data.price_per_unit
+    total = Decimal("0")
+    for item_data in data.items:
+        product = await db.get(Product, item_data.product_id)
+        if not product:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, f"Товар {item_data.product_id} не найден")
+        item_total = None
+        if item_data.price_per_unit is not None:
+            item_total = item_data.quantity * item_data.price_per_unit
+            total += item_total
+        item = SupplyInvoiceItem(
+            invoice_id=invoice.id,
+            product_id=item_data.product_id,
+            quantity=item_data.quantity,
+            price_per_unit=item_data.price_per_unit,
+            total=item_total,
+            notes=item_data.notes,
+        )
+        db.add(item)
+        product.current_stock = (product.current_stock or Decimal("0")) + item_data.quantity
 
+    invoice.total_cost = total
     await db.commit()
-    await db.refresh(arrival)
-    return arrival
+
+    # Reload with items
+    q = (
+        select(SupplyInvoice)
+        .options(selectinload(SupplyInvoice.items).selectinload(SupplyInvoiceItem.product))
+        .where(SupplyInvoice.id == invoice.id)
+    )
+    result = await db.execute(q)
+    return result.scalar_one()
 
 
-@router.delete("/arrivals/{arrival_id}")
-async def delete_arrival(
-    arrival_id: int,
+@router.delete("/invoices/{invoice_id}")
+async def delete_invoice(
+    invoice_id: int,
     db: AsyncSession = Depends(get_db),
     _: None = Depends(require_roles(*ADMINS)),
 ) -> dict:
-    arrival = await db.get(ProductArrival, arrival_id)
-    if not arrival:
+    invoice = await db.get(SupplyInvoice, invoice_id)
+    if not invoice:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
-    product = await db.get(Product, arrival.product_id)
-    if product:
-        product.current_stock = max(
-            Decimal("0"),
-            (product.current_stock or Decimal("0")) - arrival.quantity,
-        )
-    await db.delete(arrival)
+    await db.delete(invoice)
     await db.commit()
     return {"ok": True}
 
 
 # ── Write-offs ────────────────────────────────────────────────────────────────
-
-
-@router.get("/write-offs", response_model=list[WriteOffOut])
-async def list_write_offs(
-    product_id: Optional[int] = None,
-    master_id: Optional[UUID] = None,
-    limit: int = Query(50, le=200),
-    db: AsyncSession = Depends(get_db),
-    _: None = Depends(require_roles(*STAFF)),
-) -> list[WriteOffOut]:
-    q = (
-        select(ProductWriteOff)
-        .order_by(desc(ProductWriteOff.written_off_at))
-        .limit(limit)
-    )
-    if product_id:
-        q = q.where(ProductWriteOff.product_id == product_id)
-    if master_id:
-        q = q.where(ProductWriteOff.master_id == master_id)
-    result = await db.execute(q)
-    return list(result.scalars().all())
 
 
 @router.post("/write-offs", response_model=WriteOffOut, status_code=status.HTTP_201_CREATED)
@@ -269,13 +325,12 @@ async def create_write_off(
             status.HTTP_400_BAD_REQUEST,
             f"Недостаточно на складе. Доступно: {product.current_stock} {product.unit}",
         )
-
-    write_off = ProductWriteOff(**data.model_dump())
-    db.add(write_off)
+    wo = ProductWriteOff(**data.model_dump())
+    db.add(wo)
     product.current_stock = (product.current_stock or Decimal("0")) - data.quantity
     await db.commit()
-    await db.refresh(write_off)
-    return write_off
+    await db.refresh(wo)
+    return wo
 
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
@@ -292,13 +347,18 @@ async def inventory_stats(
     low_stock = await db.scalar(
         select(func.count()).where(
             Product.is_active == True,  # noqa: E712
+            Product.min_stock > 0,
             Product.current_stock <= Product.min_stock,
         )
     )
-    total_arrivals_cost = await db.scalar(select(func.sum(ProductArrival.total_cost))) or 0
-
+    total_value_q = await db.scalar(
+        select(func.sum(Product.current_stock * Product.cost_price)).where(
+            Product.is_active == True,  # noqa: E712
+            Product.cost_price != None,  # noqa: E711
+        )
+    )
     return {
         "total_products": total_products or 0,
         "low_stock_count": low_stock or 0,
-        "total_arrivals_cost": float(total_arrivals_cost),
+        "total_stock_value": float(total_value_q or 0),
     }
