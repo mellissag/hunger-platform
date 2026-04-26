@@ -6,9 +6,24 @@ import { getApiBaseUrl } from "@/lib/env";
 
 export const runtime = "nodejs";
 
+function upstreamSubpath(pathSegments: string[], method: string): string {
+  const joined = pathSegments.join("/");
+  // FastAPI routes declared as @router.post("/") require a trailing slash on the collection URL.
+  // Request path /api/bff/color-formulas → segments ["color-formulas"] → join without "/" → upstream
+  // POST /api/v1/color-formulas returns 307; Node fetch may not re-POST with body → client sees 5xx.
+  if (
+    (method === "POST" || method === "PUT" || method === "PATCH") &&
+    pathSegments.length === 1 &&
+    pathSegments[0] === "color-formulas"
+  ) {
+    return "color-formulas/";
+  }
+  return joined;
+}
+
 async function proxy(request: NextRequest, pathSegments: string[], method: string) {
   const base = getApiBaseUrl();
-  const subpath = pathSegments.join("/");
+  const subpath = upstreamSubpath(pathSegments, method);
   const target = new URL(`${base}/api/v1/${subpath}`);
   target.search = request.nextUrl.search;
 
