@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
+import { tc } from "@/lib/theme-inline";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -33,27 +34,27 @@ export interface ColorFormula {
 // ── Style helpers ─────────────────────────────────────────────────────────────
 
 const btnPrimary: React.CSSProperties = {
-  padding: "8px 18px", background: "var(--primary)", color: "#fff",
+  padding: "8px 18px", background: tc.primary, color: tc.primaryFg,
   border: "none", borderRadius: "8px", cursor: "pointer",
   fontSize: "13px", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "6px",
 };
 const btnOutline: React.CSSProperties = {
   padding: "8px 14px", background: "transparent",
-  border: "1px solid var(--border)", borderRadius: "8px", cursor: "pointer",
-  fontSize: "13px", color: "var(--foreground)",
+  border: `1px solid ${tc.border}`, borderRadius: "8px", cursor: "pointer",
+  fontSize: "13px", color: tc.foreground,
   display: "inline-flex", alignItems: "center", gap: "6px",
 };
 const filterSelect: React.CSSProperties = {
-  border: "1px solid var(--border)", borderRadius: "8px", padding: "8px 12px",
-  fontSize: "13px", background: "var(--card)", color: "var(--foreground)", cursor: "pointer",
+  border: `1px solid ${tc.border}`, borderRadius: "8px", padding: "8px 12px",
+  fontSize: "13px", background: tc.card, color: tc.foreground, cursor: "pointer",
 };
 const inp: React.CSSProperties = {
-  border: "1px solid var(--border)", borderRadius: "8px", padding: "8px 12px",
-  fontSize: "13px", background: "var(--background)", color: "var(--foreground)",
+  border: `1px solid ${tc.border}`, borderRadius: "8px", padding: "8px 12px",
+  fontSize: "13px", background: tc.background, color: tc.foreground,
   width: "100%", boxSizing: "border-box", outline: "none",
 };
 const lbl: React.CSSProperties = {
-  fontSize: "11px", fontWeight: 600, color: "var(--muted)", display: "block",
+  fontSize: "11px", fontWeight: 600, color: tc.mutedFg, display: "block",
   marginBottom: "5px", textTransform: "uppercase", letterSpacing: "0.06em",
 };
 
@@ -117,7 +118,7 @@ export function FormulasPage() {
           <h1 style={{ fontFamily: "Playfair Display, serif", fontSize: "28px", fontWeight: 700, margin: 0 }}>
             Формулы красок
           </h1>
-          <p style={{ color: "var(--muted)", fontSize: "13px", margin: "3px 0 0" }}>
+          <p style={{ color: tc.mutedFg, fontSize: "13px", margin: "3px 0 0" }}>
             База формул — все клиенты
           </p>
         </div>
@@ -134,10 +135,10 @@ export function FormulasPage() {
           { label: "Клиентов с формулой", value: uniqueClients, sub: "уникальных", icon: "👥" },
           { label: "С фото результата", value: `${formulas.length ? Math.round((withPhotos / formulas.length) * 100) : 0}%`, sub: `${withPhotos} из ${formulas.length}`, icon: "📸" },
         ].map(({ label, value, sub, icon }) => (
-          <div key={label} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "12px", padding: "18px 20px", position: "relative", overflow: "hidden" }}>
-            <div style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, marginBottom: "8px" }}>{label}</div>
+          <div key={label} style={{ background: tc.card, border: `1px solid ${tc.border}`, borderRadius: "12px", padding: "18px 20px", position: "relative", overflow: "hidden" }}>
+            <div style={{ fontSize: "11px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, marginBottom: "8px" }}>{label}</div>
             <div style={{ fontFamily: "Playfair Display, serif", fontSize: "26px", fontWeight: 600 }}>{value}</div>
-            <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "4px" }}>{sub}</div>
+            <div style={{ fontSize: "11px", color: tc.mutedFg, marginTop: "4px" }}>{sub}</div>
             <div style={{ position: "absolute", top: "16px", right: "16px", fontSize: "24px", opacity: 0.12 }}>{icon}</div>
           </div>
         ))}
@@ -145,12 +146,12 @@ export function FormulasPage() {
 
       {/* Toolbar */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ flex: 1, maxWidth: "340px", display: "flex", alignItems: "center", gap: "8px", background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", padding: "8px 12px" }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--muted)", flexShrink: 0 }}>
+        <div style={{ flex: 1, maxWidth: "340px", display: "flex", alignItems: "center", gap: "8px", background: tc.card, border: `1px solid ${tc.border}`, borderRadius: "8px", padding: "8px 12px" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: tc.mutedFg, flexShrink: 0 }}>
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
-            style={{ border: "none", outline: "none", fontSize: "13px", background: "transparent", color: "var(--foreground)", width: "100%" }}
+            style={{ border: "none", outline: "none", fontSize: "13px", background: "transparent", color: tc.foreground, width: "100%" }}
             placeholder="Клиент, бренд или оттенок..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -165,16 +166,16 @@ export function FormulasPage() {
             Сбросить
           </button>
         )}
-        <span style={{ marginLeft: "auto", fontSize: "12px", color: "var(--muted)" }}>
+        <span style={{ marginLeft: "auto", fontSize: "12px", color: tc.mutedFg }}>
           Показано: {filtered.length}
         </span>
       </div>
 
       {/* Card grid */}
       {isLoading ? (
-        <div style={{ textAlign: "center", padding: "60px", color: "var(--muted)" }}>Загрузка...</div>
+        <div style={{ textAlign: "center", padding: "60px", color: tc.mutedFg }}>Загрузка...</div>
       ) : filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "60px", color: "var(--muted)" }}>
+        <div style={{ textAlign: "center", padding: "60px", color: tc.mutedFg }}>
           <div style={{ fontSize: "48px", marginBottom: "12px", opacity: 0.5 }}>🧪</div>
           <p>Формул не найдено. {!formulas.length && "Добавьте первую формулу."}</p>
         </div>
@@ -237,10 +238,10 @@ function FormulaCard({
   return (
     <div
       style={{
-        background: "var(--card)", border: "1px solid var(--border)", borderRadius: "16px",
+        background: tc.card, border: `1px solid ${tc.border}`, borderRadius: "16px",
         overflow: "hidden", display: "flex", flexDirection: "column", cursor: "pointer",
         transition: "all 0.2s",
-        borderColor: hovered ? "var(--primary)" : "var(--border)",
+        borderColor: hovered ? tc.primary : tc.border,
         boxShadow: hovered ? "0 4px 12px rgba(154,114,48,0.12)" : "0 1px 3px rgba(0,0,0,0.05)",
         transform: hovered ? "translateY(-1px)" : "none",
       }}
@@ -249,20 +250,20 @@ function FormulaCard({
       onClick={onView}
     >
       {/* Header */}
-      <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "flex-start", gap: "12px" }}>
-        <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "rgba(154,114,48,0.1)", border: "1.5px solid rgba(154,114,48,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700, color: "var(--primary)", flexShrink: 0 }}>
+      <div style={{ padding: "16px 18px 12px", borderBottom: `1px solid ${tc.border}`, display: "flex", alignItems: "flex-start", gap: "12px" }}>
+        <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "rgba(154,114,48,0.1)", border: "1.5px solid rgba(154,114,48,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700, color: tc.primary, flexShrink: 0 }}>
           {initials(f.client_name)}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 500, fontSize: "14px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {f.client_name || `Клиент ${f.client_id.slice(0, 8)}`}
           </div>
-          <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2px", display: "flex", gap: "8px", alignItems: "center" }}>
-            <span style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "20px", padding: "2px 8px", fontSize: "10px" }}>
+          <div style={{ fontSize: "11px", color: tc.mutedFg, marginTop: "2px", display: "flex", gap: "8px", alignItems: "center" }}>
+            <span style={{ background: tc.background, border: `1px solid ${tc.border}`, borderRadius: "20px", padding: "2px 8px", fontSize: "10px" }}>
               📅 {new Date(f.applied_at).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" })}
             </span>
             {f.exposure_minutes && (
-              <span style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "20px", padding: "2px 8px", fontSize: "10px" }}>
+              <span style={{ background: tc.background, border: `1px solid ${tc.border}`, borderRadius: "20px", padding: "2px 8px", fontSize: "10px" }}>
                 ⏱ {f.exposure_minutes} мин
               </span>
             )}
@@ -272,18 +273,18 @@ function FormulaCard({
 
       {/* Components */}
       <div style={{ padding: "12px 18px", flex: 1 }}>
-        <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--muted)", fontWeight: 600, marginBottom: "8px" }}>
+        <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.07em", color: tc.mutedFg, fontWeight: 600, marginBottom: "8px" }}>
           Компоненты формулы
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
           {chips.map((c, i) => (
-            <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(154,114,48,0.08)", color: "var(--primary)", borderRadius: "20px", padding: "3px 10px", fontSize: "11px", fontWeight: 500 }}>
-              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--primary)", flexShrink: 0 }} />
+            <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(154,114,48,0.08)", color: tc.primary, borderRadius: "20px", padding: "3px 10px", fontSize: "11px", fontWeight: 500 }}>
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: tc.primary, flexShrink: 0 }} />
               {c.brand.split(" ")[0]} {c.shade} — {c.amount}{c.unit}
             </span>
           ))}
           {moreCount > 0 && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "var(--background)", color: "var(--muted)", border: "1px solid var(--border)", borderRadius: "20px", padding: "3px 10px", fontSize: "11px" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: tc.background, color: tc.mutedFg, border: `1px solid ${tc.border}`, borderRadius: "20px", padding: "3px 10px", fontSize: "11px" }}>
               +{moreCount}
             </span>
           )}
@@ -294,12 +295,12 @@ function FormulaCard({
       {(f.photo_urls?.length ?? 0) > 0 && (
         <div style={{ padding: "0 18px 10px", display: "flex", gap: "6px" }}>
           {(f.photo_urls ?? []).slice(0, 4).map((url, i) => (
-            <div key={i} style={{ width: "52px", height: "52px", borderRadius: "8px", background: "var(--background)", border: "1px solid var(--border)", overflow: "hidden", flexShrink: 0 }}>
+            <div key={i} style={{ width: "52px", height: "52px", borderRadius: "8px", background: tc.background, border: `1px solid ${tc.border}`, overflow: "hidden", flexShrink: 0 }}>
               <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
             </div>
           ))}
           {(f.photo_urls?.length ?? 0) > 4 && (
-            <div style={{ width: "52px", height: "52px", borderRadius: "8px", background: "var(--background)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", color: "var(--muted)" }}>
+            <div style={{ width: "52px", height: "52px", borderRadius: "8px", background: tc.background, border: `1px solid ${tc.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", color: tc.mutedFg }}>
               +{(f.photo_urls?.length ?? 0) - 4}
             </div>
           )}
@@ -309,19 +310,19 @@ function FormulaCard({
       {/* Footer */}
       <div style={{ padding: "10px 18px 14px" }}>
         {f.result_notes && (
-          <div style={{ fontSize: "12px", color: "var(--muted)", background: "var(--background)", borderRadius: "8px", padding: "7px 10px", borderLeft: "2px solid rgba(154,114,48,0.4)", marginBottom: "10px", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as React.CSSProperties}>
+          <div style={{ fontSize: "12px", color: tc.mutedFg, background: tc.background, borderRadius: "8px", padding: "7px 10px", borderLeft: "2px solid rgba(154,114,48,0.4)", marginBottom: "10px", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as React.CSSProperties}>
             {f.result_notes}
           </div>
         )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--muted)" }}>
-            <div style={{ width: "18px", height: "18px", borderRadius: "50%", background: "var(--background)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", fontWeight: 600 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: tc.mutedFg }}>
+            <div style={{ width: "18px", height: "18px", borderRadius: "50%", background: tc.background, border: `1px solid ${tc.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", fontWeight: 600 }}>
               {(f.master_name || "?")[0]}
             </div>
             {f.master_name || "—"}
           </div>
           <div style={{ display: "flex", gap: "6px" }} onClick={(e) => e.stopPropagation()}>
-            <button onClick={onEdit} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--border)", borderRadius: "6px", cursor: "pointer", fontSize: "11px", color: "var(--muted)" }}>
+            <button onClick={onEdit} style={{ padding: "4px 10px", background: "transparent", border: `1px solid ${tc.border}`, borderRadius: "6px", cursor: "pointer", fontSize: "11px", color: tc.mutedFg }}>
               ✏️
             </button>
             <button onClick={onDelete} style={{ padding: "4px 8px", background: "transparent", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer", fontSize: "11px", color: "#c0392b" }}>
@@ -337,65 +338,65 @@ function FormulaCard({
 // ── FormulaViewDrawer ─────────────────────────────────────────────────────────
 
 function FormulaViewDrawer({ formula: f, onClose, onEdit }: { formula: ColorFormula; onClose: () => void; onEdit: () => void; }) {
-  const DRAWER: React.CSSProperties = { position: "fixed", top: 0, right: 0, bottom: 0, width: "560px", background: "var(--card)", borderLeft: "1px solid var(--border)", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column" };
+  const DRAWER: React.CSSProperties = { position: "fixed", top: 0, right: 0, bottom: 0, width: "560px", background: tc.card, borderLeft: `1px solid ${tc.border}`, boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column" };
 
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 49 }} />
       <div style={DRAWER}>
-        <div style={{ padding: "20px 24px 18px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
+        <div style={{ padding: "20px 24px 18px", borderBottom: `1px solid ${tc.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
           <div>
             <div style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 500 }}>{f.client_name || "Клиент"}</div>
-            <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "2px" }}>
+            <div style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "2px" }}>
               {new Date(f.applied_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
               {f.master_name && ` · ${f.master_name}`}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: "20px" }}>×</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: tc.mutedFg, fontSize: "20px" }}>×</button>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
           {/* Meta */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", background: "var(--background)", borderRadius: "8px", padding: "12px 14px", marginBottom: "20px" }}>
-            {f.service_name && <div><div style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: "3px" }}>Услуга</div><div style={{ fontSize: "13px", fontWeight: 500 }}>{f.service_name}</div></div>}
-            {f.master_name && <div><div style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: "3px" }}>Мастер</div><div style={{ fontSize: "13px", fontWeight: 500 }}>{f.master_name}</div></div>}
-            {f.exposure_minutes && <div><div style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: "3px" }}>Выдержка</div><div style={{ fontSize: "13px", fontWeight: 500 }}>{f.exposure_minutes} мин</div></div>}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", background: tc.background, borderRadius: "8px", padding: "12px 14px", marginBottom: "20px" }}>
+            {f.service_name && <div><div style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: "3px" }}>Услуга</div><div style={{ fontSize: "13px", fontWeight: 500 }}>{f.service_name}</div></div>}
+            {f.master_name && <div><div style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: "3px" }}>Мастер</div><div style={{ fontSize: "13px", fontWeight: 500 }}>{f.master_name}</div></div>}
+            {f.exposure_minutes && <div><div style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: "3px" }}>Выдержка</div><div style={{ fontSize: "13px", fontWeight: 500 }}>{f.exposure_minutes} мин</div></div>}
           </div>
           {/* Components */}
-          <div style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: "10px" }}>
+          <div style={{ fontSize: "11px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: "10px" }}>
             Состав формулы ({f.components.length})
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
             {f.components.map((c, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", background: "var(--background)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 14px" }}>
-                <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "rgba(154,114,48,0.1)", color: "var(--primary)", fontSize: "10px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", background: tc.background, border: `1px solid ${tc.border}`, borderRadius: "8px", padding: "10px 14px" }}>
+                <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "rgba(154,114,48,0.1)", color: tc.primary, fontSize: "10px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 500, fontSize: "13px" }}>{c.brand}</div>
-                  {c.shade && <div style={{ fontSize: "12px", color: "var(--muted)" }}>{c.shade}</div>}
+                  {c.shade && <div style={{ fontSize: "12px", color: tc.mutedFg }}>{c.shade}</div>}
                 </div>
-                <div style={{ fontWeight: 600, fontSize: "13px", color: "var(--primary)", whiteSpace: "nowrap" }}>{c.amount} {c.unit}</div>
+                <div style={{ fontWeight: 600, fontSize: "13px", color: tc.primary, whiteSpace: "nowrap" }}>{c.amount} {c.unit}</div>
               </div>
             ))}
           </div>
           {/* Notes */}
           {f.result_notes && (
             <div style={{ marginBottom: "20px" }}>
-              <div style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: "8px" }}>Заметки мастера</div>
-              <div style={{ background: "var(--background)", borderRadius: "8px", padding: "12px 14px", borderLeft: "3px solid rgba(154,114,48,0.4)", fontSize: "13px", color: "var(--foreground)", lineHeight: 1.6 }}>{f.result_notes}</div>
+              <div style={{ fontSize: "11px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: "8px" }}>Заметки мастера</div>
+              <div style={{ background: tc.background, borderRadius: "8px", padding: "12px 14px", borderLeft: "3px solid rgba(154,114,48,0.4)", fontSize: "13px", color: tc.foreground, lineHeight: 1.6 }}>{f.result_notes}</div>
             </div>
           )}
           {/* Photos */}
           {(f.photo_urls?.length ?? 0) > 0 && (
             <div>
-              <div style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: "8px" }}>Фото результата</div>
+              <div style={{ fontSize: "11px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: "8px" }}>Фото результата</div>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 {(f.photo_urls ?? []).map((url, i) => (
-                  <img key={i} src={url} alt="" style={{ width: "80px", height: "80px", borderRadius: "10px", objectFit: "cover", border: "1px solid var(--border)" }} />
+                  <img key={i} src={url} alt="" style={{ width: "80px", height: "80px", borderRadius: "10px", objectFit: "cover", border: `1px solid ${tc.border}` }} />
                 ))}
               </div>
             </div>
           )}
         </div>
-        <div style={{ padding: "16px 24px", borderTop: "1px solid var(--border)", display: "flex", gap: "10px", background: "var(--background)", flexShrink: 0 }}>
+        <div style={{ padding: "16px 24px", borderTop: `1px solid ${tc.border}`, display: "flex", gap: "10px", background: tc.background, flexShrink: 0 }}>
           <button onClick={onClose} style={btnOutline}>Закрыть</button>
           <button onClick={onEdit} style={btnPrimary}>Редактировать</button>
         </div>
@@ -497,19 +498,19 @@ export function FormulaDrawer({
     }
   };
 
-  const DRAWER: React.CSSProperties = { position: "fixed", top: 0, right: 0, bottom: 0, width: "580px", background: "var(--card)", borderLeft: "1px solid var(--border)", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column" };
+  const DRAWER: React.CSSProperties = { position: "fixed", top: 0, right: 0, bottom: 0, width: "580px", background: tc.card, borderLeft: `1px solid ${tc.border}`, boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column" };
 
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 49 }} />
       <div style={DRAWER}>
         {/* Header */}
-        <div style={{ padding: "20px 24px 18px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
+        <div style={{ padding: "20px 24px 18px", borderBottom: `1px solid ${tc.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
           <div>
             <div style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 500 }}>{formula ? "Редактировать формулу" : "Новая формула"}</div>
-            <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "2px" }}>Запишите состав краски и результат</div>
+            <div style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "2px" }}>Запишите состав краски и результат</div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: "20px" }}>×</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: tc.mutedFg, fontSize: "20px" }}>×</button>
         </div>
 
         {/* Body */}
@@ -530,7 +531,7 @@ export function FormulaDrawer({
             <input style={inp} placeholder="Окрашивание корней" value={form.service_name} onChange={(e) => setForm((f) => ({ ...f, service_name: e.target.value }))} />
           </div>
 
-          <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "4px 0 16px" }} />
+          <hr style={{ border: "none", borderTop: `1px solid ${tc.border}`, margin: "4px 0 16px" }} />
 
           {/* Section 2: components */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -539,12 +540,12 @@ export function FormulaDrawer({
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 80px 70px 32px", gap: "8px", padding: "0 0 6px" }}>
             {["Бренд", "Оттенок / %", "Кол-во", "Ед.", ""].map((h) => (
-              <span key={h} style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{h}</span>
+              <span key={h} style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{h}</span>
             ))}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "18px" }}>
             {components.map((c) => (
-              <div key={c.id} style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 80px 70px 32px", gap: "8px", alignItems: "center", background: "var(--background)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 12px" }}>
+              <div key={c.id} style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 80px 70px 32px", gap: "8px", alignItems: "center", background: tc.background, border: `1px solid ${tc.border}`, borderRadius: "8px", padding: "10px 12px" }}>
                 <input style={{ ...inp, padding: "7px 10px", fontSize: "12px" }} placeholder="Wella Koleston" list="brands-list" value={c.brand} onChange={(e) => updateComp(c.id, "brand", e.target.value)} />
                 <input style={{ ...inp, padding: "7px 10px", fontSize: "12px" }} placeholder="7/0, 6%, Blond..." list="shades-list" value={c.shade} onChange={(e) => updateComp(c.id, "shade", e.target.value)} />
                 <input type="number" min="0" style={{ ...inp, padding: "7px 8px", fontSize: "12px", textAlign: "center" }} placeholder="60" value={c.amount} onChange={(e) => updateComp(c.id, "amount", e.target.value)} />
@@ -556,7 +557,7 @@ export function FormulaDrawer({
             ))}
           </div>
 
-          <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "4px 0 16px" }} />
+          <hr style={{ border: "none", borderTop: `1px solid ${tc.border}`, margin: "4px 0 16px" }} />
 
           {/* Section 3: notes */}
           <div style={{ marginBottom: "18px" }}>
@@ -564,19 +565,19 @@ export function FormulaDrawer({
             <textarea style={{ ...inp, minHeight: "70px", resize: "vertical" }} placeholder="Результат, особенности техники, рекомендации клиенту..." value={form.result_notes} onChange={(e) => setForm((f) => ({ ...f, result_notes: e.target.value }))} />
           </div>
 
-          <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "4px 0 16px" }} />
+          <hr style={{ border: "none", borderTop: `1px solid ${tc.border}`, margin: "4px 0 16px" }} />
 
           {/* Section 4: photos */}
           <div style={{ marginBottom: "6px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
               <span style={{ fontSize: "13px", fontWeight: 500 }}>Фото результата</span>
-              <span style={{ fontSize: "11px", color: "var(--muted)" }}>Необязательно</span>
+              <span style={{ fontSize: "11px", color: tc.mutedFg }}>Необязательно</span>
             </div>
             {photos.length === 0 ? (
               <label style={{ background: "rgba(154,114,48,0.06)", border: "1px dashed rgba(154,114,48,0.4)", borderRadius: "10px", padding: "20px", textAlign: "center", cursor: "pointer", display: "block" }}>
                 <div style={{ fontSize: "28px", marginBottom: "6px" }}>📸</div>
-                <div style={{ fontSize: "12px", color: "var(--primary)", fontWeight: 500 }}>Загрузить фото</div>
-                <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2px" }}>JPG, PNG — до 10 МБ</div>
+                <div style={{ fontSize: "12px", color: tc.primary, fontWeight: 500 }}>Загрузить фото</div>
+                <div style={{ fontSize: "11px", color: tc.mutedFg, marginTop: "2px" }}>JPG, PNG — до 10 МБ</div>
                 <input type="file" accept="image/*" multiple style={{ display: "none" }}
                   onChange={(e) => {
                     Array.from(e.target.files || []).forEach((file) => handlePhotoUpload(file));
@@ -587,13 +588,13 @@ export function FormulaDrawer({
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
                 {photos.map((url, i) => (
                   <div key={i} style={{ position: "relative" }}>
-                    <div style={{ width: "72px", height: "72px", borderRadius: "8px", background: "var(--background)", border: "1px solid var(--border)", overflow: "hidden" }}>
+                    <div style={{ width: "72px", height: "72px", borderRadius: "8px", background: tc.background, border: `1px solid ${tc.border}`, overflow: "hidden" }}>
                       <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     </div>
                     <button onClick={() => setPhotos((prev) => prev.filter((_, j) => j !== i))} style={{ position: "absolute", top: "-6px", right: "-6px", width: "18px", height: "18px", background: "#c0392b", color: "#fff", border: "none", borderRadius: "50%", cursor: "pointer", fontSize: "11px", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
                   </div>
                 ))}
-                <label style={{ width: "72px", height: "72px", border: "1px dashed var(--border)", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--muted)", fontSize: "20px" }}>
+                <label style={{ width: "72px", height: "72px", border: `1px dashed ${tc.border}`, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: tc.mutedFg, fontSize: "20px" }}>
                   +
                   <input type="file" accept="image/*" multiple style={{ display: "none" }}
                     onChange={(e) => {
@@ -603,14 +604,14 @@ export function FormulaDrawer({
                 </label>
               </div>
             )}
-            {uploadingPhoto && <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "8px" }}>Загрузка фото...</p>}
+            {uploadingPhoto && <p style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "8px" }}>Загрузка фото...</p>}
           </div>
 
           {error && <p style={{ color: "#c0392b", fontSize: "13px", marginTop: "12px" }}>{error}</p>}
         </div>
 
         {/* Footer */}
-        <div style={{ padding: "16px 24px", borderTop: "1px solid var(--border)", display: "flex", gap: "10px", background: "var(--background)", flexShrink: 0 }}>
+        <div style={{ padding: "16px 24px", borderTop: `1px solid ${tc.border}`, display: "flex", gap: "10px", background: tc.background, flexShrink: 0 }}>
           <button onClick={onClose} style={{ ...btnOutline, flex: 1 }}>Отмена</button>
           <button onClick={handleSave} disabled={saving} style={{ ...btnPrimary, flex: 2, justifyContent: "center", opacity: saving ? 0.7 : 1 }}>
             {saving ? "Сохранение..." : formula ? "Сохранить изменения" : "✓ Сохранить формулу"}

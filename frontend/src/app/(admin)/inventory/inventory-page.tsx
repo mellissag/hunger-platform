@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
+import { tc } from "@/lib/theme-inline";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -63,13 +64,13 @@ const s = {
     fontSize: "28px",
     fontWeight: 700,
     margin: 0,
-    color: "var(--foreground)",
+    color: tc.foreground,
   } as React.CSSProperties,
-  subtitle: { color: "var(--muted)", fontSize: "13px", margin: "3px 0 0" } as React.CSSProperties,
+  subtitle: { color: tc.mutedFg, fontSize: "13px", margin: "3px 0 0" } as React.CSSProperties,
   btnPrimary: {
     padding: "8px 18px",
-    background: "var(--primary)",
-    color: "#fff",
+    background: tc.primary,
+    color: tc.primaryFg,
     border: "none",
     borderRadius: "8px",
     cursor: "pointer",
@@ -82,24 +83,24 @@ const s = {
   btnOutline: {
     padding: "8px 14px",
     background: "transparent",
-    border: "1px solid var(--border)",
+    border: `1px solid ${tc.border}`,
     borderRadius: "8px",
     cursor: "pointer",
     fontSize: "13px",
-    color: "var(--foreground)",
+    color: tc.foreground,
     display: "inline-flex",
     alignItems: "center",
     gap: "6px",
   } as React.CSSProperties,
   statsRow: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
+    gridTemplateColumns: "repeat(3, 1fr)",
     gap: "14px",
     marginBottom: "24px",
   } as React.CSSProperties,
   statCard: {
-    background: "var(--card)",
-    border: "1px solid var(--border)",
+    background: tc.card,
+    border: `1px solid ${tc.border}`,
     borderRadius: "12px",
     padding: "18px 20px",
     position: "relative",
@@ -107,7 +108,7 @@ const s = {
   } as React.CSSProperties,
   statLabel: {
     fontSize: "11px",
-    color: "var(--muted)",
+    color: tc.mutedFg,
     textTransform: "uppercase" as const,
     letterSpacing: "0.08em",
     fontWeight: 600,
@@ -117,19 +118,19 @@ const s = {
     fontFamily: "Playfair Display, serif",
     fontSize: "26px",
     fontWeight: 600,
-    color: "var(--foreground)",
+    color: tc.foreground,
   } as React.CSSProperties,
   tabBar: {
     display: "flex",
-    borderBottom: "1px solid var(--border)",
+    borderBottom: `1px solid ${tc.border}`,
     marginBottom: "20px",
   } as React.CSSProperties,
   tab: (active: boolean): React.CSSProperties => ({
     padding: "10px 20px",
     fontSize: "13px",
     fontWeight: active ? 600 : 400,
-    color: active ? "var(--primary)" : "var(--muted)",
-    borderBottom: active ? "2px solid var(--primary)" : "2px solid transparent",
+    color: active ? tc.primary : tc.mutedFg,
+    borderBottom: active ? `2px solid ${tc.primary}` : "2px solid transparent",
     marginBottom: "-1px",
     cursor: "pointer",
     background: "transparent",
@@ -143,23 +144,23 @@ const s = {
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    background: "var(--card)",
-    border: "1px solid var(--border)",
+    background: tc.card,
+    border: `1px solid ${tc.border}`,
     borderRadius: "8px",
     padding: "8px 12px",
   } as React.CSSProperties,
   filterSelect: {
-    border: "1px solid var(--border)",
+    border: `1px solid ${tc.border}`,
     borderRadius: "8px",
     padding: "8px 12px",
     fontSize: "13px",
-    background: "var(--card)",
-    color: "var(--foreground)",
+    background: tc.card,
+    color: tc.foreground,
     cursor: "pointer",
   } as React.CSSProperties,
   tableWrap: {
-    background: "var(--card)",
-    border: "1px solid var(--border)",
+    background: tc.card,
+    border: `1px solid ${tc.border}`,
     borderRadius: "12px",
     overflow: "hidden",
   } as React.CSSProperties,
@@ -168,26 +169,26 @@ const s = {
     textAlign: "left" as const,
     fontSize: "11px",
     fontWeight: 600,
-    color: "var(--muted)",
+    color: tc.mutedFg,
     textTransform: "uppercase" as const,
     letterSpacing: "0.07em",
-    background: "var(--background)",
-    borderBottom: "1px solid var(--border)",
+    background: tc.background,
+    borderBottom: `1px solid ${tc.border}`,
     whiteSpace: "nowrap" as const,
   } as React.CSSProperties,
   td: {
     padding: "12px 16px",
     fontSize: "13px",
-    color: "var(--foreground)",
+    color: tc.foreground,
     verticalAlign: "middle" as const,
-    borderBottom: "1px solid var(--border)",
+    borderBottom: `1px solid ${tc.border}`,
   } as React.CSSProperties,
   badge: (variant: "danger" | "warning" | "success" | "neutral"): React.CSSProperties => {
     const map = {
       danger: { bg: "#fdf0ef", color: "#c0392b" },
       warning: { bg: "#fef9ec", color: "#b7770d" },
       success: { bg: "#edf7f1", color: "#1a7a4a" },
-      neutral: { bg: "var(--background)", color: "var(--muted)" },
+      neutral: { bg: tc.background, color: tc.mutedFg },
     };
     return {
       display: "inline-flex",
@@ -204,14 +205,14 @@ const s = {
   progressBar: {
     flex: 1,
     height: "5px",
-    background: "var(--border)",
+    background: tc.border,
     borderRadius: "10px",
     overflow: "hidden",
     minWidth: "70px",
   } as React.CSSProperties,
   invoiceCard: {
-    background: "var(--card)",
-    border: "1px solid var(--border)",
+    background: tc.card,
+    border: `1px solid ${tc.border}`,
     borderRadius: "12px",
     padding: "16px 20px",
     display: "flex",
@@ -221,12 +222,12 @@ const s = {
     cursor: "pointer",
   } as React.CSSProperties,
   input: {
-    border: "1px solid var(--border)",
+    border: `1px solid ${tc.border}`,
     borderRadius: "8px",
     padding: "8px 12px",
     fontSize: "13px",
-    background: "var(--background)",
-    color: "var(--foreground)",
+    background: tc.background,
+    color: tc.foreground,
     width: "100%",
     boxSizing: "border-box" as const,
     outline: "none",
@@ -234,7 +235,7 @@ const s = {
   label: {
     fontSize: "11px",
     fontWeight: 600,
-    color: "var(--muted)",
+    color: tc.mutedFg,
     display: "block",
     marginBottom: "5px",
     textTransform: "uppercase" as const,
@@ -327,14 +328,14 @@ export function InventoryPage() {
             key={label}
             style={{
               ...s.statCard,
-              borderTop: danger ? "3px solid #c0392b" : "3px solid var(--border)",
+              borderTop: danger ? "3px solid #c0392b" : `3px solid ${tc.border}`,
             }}
           >
             <div style={s.statLabel}>{label}</div>
-            <div style={{ ...s.statValue, color: danger ? "#c0392b" : "var(--foreground)" }}>
+            <div style={{ ...s.statValue, color: danger ? "#c0392b" : tc.foreground }}>
               {value}
             </div>
-            <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "4px" }}>{sub}</div>
+            <div style={{ fontSize: "11px", color: tc.mutedFg, marginTop: "4px" }}>{sub}</div>
             <div style={{ position: "absolute", top: "16px", right: "16px", fontSize: "24px", opacity: 0.12 }}>
               {icon}
             </div>
@@ -357,11 +358,11 @@ export function InventoryPage() {
         <>
           <div style={s.toolbar}>
             <div style={s.searchBox}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--muted)", flexShrink: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: tc.mutedFg, flexShrink: 0 }}>
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               <input
-                style={{ border: "none", outline: "none", fontSize: "13px", background: "transparent", color: "var(--foreground)", width: "100%" }}
+                style={{ border: "none", outline: "none", fontSize: "13px", background: "transparent", color: tc.foreground, width: "100%" }}
                 placeholder="Поиск по товару..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -390,7 +391,7 @@ export function InventoryPage() {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: "center", padding: "60px", color: "var(--muted)" }}>
+                    <td colSpan={6} style={{ textAlign: "center", padding: "60px", color: tc.mutedFg }}>
                       <div style={{ fontSize: "40px", marginBottom: "12px" }}>📦</div>
                       <p>Товаров нет. Добавьте первый товар.</p>
                     </td>
@@ -399,18 +400,18 @@ export function InventoryPage() {
                   const { label, variant, pct } = getStockStatus(Number(p.current_stock), Number(p.min_stock));
                   return (
                     <tr key={p.id} style={{ transition: "background 0.1s" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background)")}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = tc.background)}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <td style={s.td}>
                         <div style={{ fontWeight: 500 }}>{p.name}</div>
-                        {p.brand && <div style={{ fontSize: "11px", color: "var(--muted)" }}>{p.brand}</div>}
-                        {p.min_stock > 0 && <div style={{ fontSize: "11px", color: "var(--muted)" }}>мин. {p.min_stock} {p.unit}</div>}
+                        {p.brand && <div style={{ fontSize: "11px", color: tc.mutedFg }}>{p.brand}</div>}
+                        {p.min_stock > 0 && <div style={{ fontSize: "11px", color: tc.mutedFg }}>мин. {p.min_stock} {p.unit}</div>}
                       </td>
                       <td style={s.td}>
                         {p.category && <span style={s.badge("neutral")}>{p.category}</span>}
                       </td>
-                      <td style={{ ...s.td, color: "var(--muted)" }}>{p.unit}</td>
+                      <td style={{ ...s.td, color: tc.mutedFg }}>{p.unit}</td>
                       <td style={s.td}>
                         <span style={s.badge(variant)}>{label}</span>
                       </td>
@@ -419,7 +420,7 @@ export function InventoryPage() {
                           <div style={s.progressBar}>
                             <div style={{ height: "100%", width: `${pct}%`, background: FILL_COLORS[variant], borderRadius: "10px", transition: "width 0.3s" }} />
                           </div>
-                          <span style={{ fontSize: "12px", color: "var(--muted)", minWidth: "50px", textAlign: "right" }}>
+                          <span style={{ fontSize: "12px", color: tc.mutedFg, minWidth: "50px", textAlign: "right" }}>
                             {Number(p.current_stock)}
                           </span>
                         </div>
@@ -440,7 +441,7 @@ export function InventoryPage() {
       {tab === "invoices" && (
         <>
           {invoices.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px", color: "var(--muted)" }}>
+            <div style={{ textAlign: "center", padding: "60px", color: tc.mutedFg }}>
               <div style={{ fontSize: "40px", marginBottom: "12px" }}>📋</div>
               <p>Накладных пока нет. Создайте первую.</p>
             </div>
@@ -449,12 +450,12 @@ export function InventoryPage() {
               <div
                 style={{
                   ...s.invoiceCard,
-                  borderColor: expandedInvoice === inv.id ? "var(--primary)" : "var(--border)",
+                  borderColor: expandedInvoice === inv.id ? tc.primary : tc.border,
                 }}
                 onClick={() => setExpandedInvoice(expandedInvoice === inv.id ? null : inv.id)}
               >
                 <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(154,114,48,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={tc.primary} strokeWidth="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
                   </svg>
                 </div>
@@ -463,7 +464,7 @@ export function InventoryPage() {
                     {inv.invoice_number || `Накладная #${inv.id}`}
                     {inv.supplier && ` — ${inv.supplier}`}
                   </div>
-                  <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "2px" }}>
+                  <div style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "2px" }}>
                     {new Date(inv.arrived_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
                     {" · "}{inv.items.length} позиций
                   </div>
@@ -474,17 +475,17 @@ export function InventoryPage() {
                   </div>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  style={{ color: "var(--muted)", transform: expandedInvoice === inv.id ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>
+                  style={{ color: tc.mutedFg, transform: expandedInvoice === inv.id ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </div>
               {expandedInvoice === inv.id && (
-                <div style={{ background: "var(--background)", border: "1px solid var(--border)", borderTop: "none", borderRadius: "0 0 12px 12px", marginBottom: "10px", padding: "12px 20px" }}>
+                <div style={{ background: tc.background, border: `1px solid ${tc.border}`, borderTop: "none", borderRadius: "0 0 12px 12px", marginBottom: "10px", padding: "12px 20px" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                     <thead>
                       <tr>
                         {["Товар", "Кол-во", "Цена", "Сумма"].map((h) => (
-                          <th key={h} style={{ textAlign: "left", padding: "6px 12px", fontSize: "11px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{h}</th>
+                          <th key={h} style={{ textAlign: "left", padding: "6px 12px", fontSize: "11px", color: tc.mutedFg, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -493,7 +494,7 @@ export function InventoryPage() {
                         <tr key={item.id}>
                           <td style={{ padding: "8px 12px" }}>
                             <div style={{ fontWeight: 500 }}>{item.product.name}</div>
-                            {item.product.brand && <div style={{ fontSize: "11px", color: "var(--muted)" }}>{item.product.brand}</div>}
+                            {item.product.brand && <div style={{ fontSize: "11px", color: tc.mutedFg }}>{item.product.brand}</div>}
                           </td>
                           <td style={{ padding: "8px 12px" }}>{Number(item.quantity)} {item.product.unit}</td>
                           <td style={{ padding: "8px 12px" }}>{item.price_per_unit ? `€ ${Number(item.price_per_unit).toFixed(2)}` : "—"}</td>
@@ -502,7 +503,7 @@ export function InventoryPage() {
                       ))}
                     </tbody>
                   </table>
-                  {inv.notes && <p style={{ margin: "10px 12px 4px", fontSize: "12px", color: "var(--muted)" }}>Заметки: {inv.notes}</p>}
+                  {inv.notes && <p style={{ margin: "10px 12px 4px", fontSize: "12px", color: tc.mutedFg }}>Заметки: {inv.notes}</p>}
                 </div>
               )}
             </div>
@@ -617,7 +618,7 @@ function NewInvoiceDrawer({
 
   const DRAWER: React.CSSProperties = {
     position: "fixed", top: 0, right: 0, bottom: 0, width: "560px",
-    background: "var(--card)", borderLeft: "1px solid var(--border)",
+    background: tc.card, borderLeft: `1px solid ${tc.border}`,
     boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50,
     display: "flex", flexDirection: "column", overflow: "hidden",
   };
@@ -627,12 +628,12 @@ function NewInvoiceDrawer({
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 49 }} />
       <div style={DRAWER}>
         {/* Header */}
-        <div style={{ padding: "20px 24px 18px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
+        <div style={{ padding: "20px 24px 18px", borderBottom: `1px solid ${tc.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
           <div>
             <div style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 500 }}>Новая накладная</div>
-            <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "2px" }}>Приход товара на склад</div>
+            <div style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "2px" }}>Приход товара на склад</div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", color: "var(--muted)", fontSize: "20px", lineHeight: 1 }}>×</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", color: tc.mutedFg, fontSize: "20px", lineHeight: 1 }}>×</button>
         </div>
 
         {/* Body */}
@@ -657,7 +658,7 @@ function NewInvoiceDrawer({
             <textarea style={{ ...s.input, minHeight: "60px", resize: "vertical" }} placeholder="Дополнительная информация..." value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
           </div>
 
-          <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "4px 0 16px" }} />
+          <hr style={{ border: "none", borderTop: `1px solid ${tc.border}`, margin: "4px 0 16px" }} />
 
           {/* Line items */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
@@ -668,7 +669,7 @@ function NewInvoiceDrawer({
           {/* Column headers */}
           <div style={{ display: "grid", gridTemplateColumns: "2fr 80px 90px 32px", gap: "8px", padding: "0 0 6px", marginBottom: "2px" }}>
             {["Товар", "Кол-во", "Цена (€)", ""].map((h) => (
-              <span key={h} style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{h}</span>
+              <span key={h} style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{h}</span>
             ))}
           </div>
 
@@ -676,7 +677,7 @@ function NewInvoiceDrawer({
             {items.map((item) => {
               const itemTotal = (parseFloat(item.quantity) || 0) * (parseFloat(item.price_per_unit) || 0);
               return (
-                <div key={item.id} style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 12px", display: "grid", gridTemplateColumns: "2fr 80px 90px 32px", gap: "8px", alignItems: "center" }}>
+                <div key={item.id} style={{ background: tc.background, border: `1px solid ${tc.border}`, borderRadius: "8px", padding: "10px 12px", display: "grid", gridTemplateColumns: "2fr 80px 90px 32px", gap: "8px", alignItems: "center" }}>
                   <select
                     style={{ ...s.input, padding: "7px 10px", fontSize: "12px" }}
                     value={item.product_id}
@@ -698,8 +699,8 @@ function NewInvoiceDrawer({
                   <input type="number" min="0" step="0.01" style={{ ...s.input, padding: "7px 8px", fontSize: "12px", textAlign: "right" }} placeholder="0.00" value={item.price_per_unit} onChange={(e) => updateItem(item.id, "price_per_unit", e.target.value)} />
                   <button onClick={() => removeItem(item.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#c0392b", fontSize: "16px", padding: "4px", borderRadius: "4px" }}>×</button>
                   {itemTotal > 0 && (
-                    <div style={{ gridColumn: "1/-1", fontSize: "11px", color: "var(--muted)", textAlign: "right" }}>
-                      Итого: <strong style={{ color: "var(--primary)" }}>€ {itemTotal.toFixed(2)}</strong>
+                    <div style={{ gridColumn: "1/-1", fontSize: "11px", color: tc.mutedFg, textAlign: "right" }}>
+                      Итого: <strong style={{ color: tc.primary }}>€ {itemTotal.toFixed(2)}</strong>
                     </div>
                   )}
                 </div>
@@ -709,15 +710,15 @@ function NewInvoiceDrawer({
 
           {/* Total */}
           <div style={{ background: "rgba(154,114,48,0.07)", border: "1px solid rgba(154,114,48,0.2)", borderRadius: "8px", padding: "12px 16px", marginTop: "14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "13px", color: "var(--muted)", fontWeight: 500 }}>Итого к оплате</span>
-            <span style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 600, color: "var(--primary)" }}>€ {total.toFixed(2)}</span>
+            <span style={{ fontSize: "13px", color: tc.mutedFg, fontWeight: 500 }}>Итого к оплате</span>
+            <span style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 600, color: tc.primary }}>€ {total.toFixed(2)}</span>
           </div>
 
           {error && <p style={{ color: "#c0392b", fontSize: "13px", margin: "12px 0 0" }}>{error}</p>}
         </div>
 
         {/* Footer */}
-        <div style={{ padding: "16px 24px", borderTop: "1px solid var(--border)", display: "flex", gap: "10px", background: "var(--background)", flexShrink: 0 }}>
+        <div style={{ padding: "16px 24px", borderTop: `1px solid ${tc.border}`, display: "flex", gap: "10px", background: tc.background, flexShrink: 0 }}>
           <button onClick={onClose} style={{ ...s.btnOutline, flex: 1 }}>Отмена</button>
           <button onClick={handleSave} disabled={saving} style={{ ...s.btnPrimary, flex: 2, justifyContent: "center", opacity: saving ? 0.7 : 1 }}>
             {saving ? "Сохранение..." : "✓ Сохранить накладную"}
@@ -781,14 +782,14 @@ function AddProductModal({
   };
 
   const MODAL_OVERLAY: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" };
-  const MODAL: React.CSSProperties = { background: "var(--card)", border: "1px solid var(--border)", borderRadius: "16px", width: "100%", maxWidth: "480px", padding: "28px", boxShadow: "0 8px 32px rgba(0,0,0,0.12)" };
+  const MODAL: React.CSSProperties = { background: tc.card, border: `1px solid ${tc.border}`, borderRadius: "16px", width: "100%", maxWidth: "480px", padding: "28px", boxShadow: "0 8px 32px rgba(0,0,0,0.12)" };
 
   return (
     <div style={MODAL_OVERLAY} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div style={MODAL}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <h2 style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 500, margin: 0 }}>Добавить товар</h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: "20px" }}>×</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: tc.mutedFg, fontSize: "20px" }}>×</button>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
