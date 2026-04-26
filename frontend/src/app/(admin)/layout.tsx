@@ -7,6 +7,9 @@ import { COOKIE_LOCALE } from "@/lib/cookies";
 import { getSalonThemeForLayout, getSessionUser } from "@/lib/server-session";
 import { ThemeSync } from "@/providers/ThemeProvider";
 
+/** Всегда динамически: сессия и тема из cookies; без этого возможны сбои при жёстком обновлении админ-страниц. */
+export const dynamic = "force-dynamic";
+
 const locales = ["en", "ru", "uk", "bg"] as const;
 
 function parseLocale(raw: string | undefined): (typeof locales)[number] {

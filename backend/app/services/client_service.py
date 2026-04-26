@@ -472,7 +472,11 @@ async def create_client(db: AsyncSession, user: User, data: ClientCreate) -> Cli
     try:
         await db.flush()
     except IntegrityError as e:
-        raise ConflictError("Client already exists or invalid data", code="client_duplicate") from e
+        raise ConflictError(
+            "Клиент с таким телефоном, Telegram или другим уникальным полем уже есть в базе. "
+            "Найдите его в списке клиентов или измените данные.",
+            code="client_duplicate",
+        ) from e
     await db.refresh(c)
     return c
 

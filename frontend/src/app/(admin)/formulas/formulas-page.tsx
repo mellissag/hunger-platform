@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiJson } from "@/lib/api";
+import { apiJson, HttpError } from "@/lib/api";
 import { tc } from "@/lib/theme-inline";
 import { useDebounce } from "@/hooks/useDebounce";
 import { buildClientsListUrl, useCreateClient, type ClientsFiltersState } from "@/hooks/useClients";
@@ -574,6 +574,14 @@ export function FormulaDrawer({
       });
       void qc.invalidateQueries({ queryKey: ["clients", "formula-picker"] });
     } catch (e: unknown) {
+      if (e instanceof HttpError && e.status === 409) {
+        setNewClientError(
+          e.message.includes("Клиент с таким") || e.message.includes("уже есть")
+            ? e.message
+            : "Такой клиент уже есть (телефон, Telegram и т.п.). Найдите его в поиске выше или измените данные.",
+        );
+        return;
+      }
       setNewClientError(e instanceof Error ? e.message : "Не удалось сохранить");
     }
   };
@@ -958,6 +966,10 @@ export function FormulaDrawer({
                   value={newClientForm.phone}
                   onChange={(e) => setNewClientForm((f) => ({ ...f, phone: e.target.value }))}
                 />
+                <p style={{ fontSize: "11px", color: tc.mutedFg, margin: "6px 0 0", lineHeight: 1.45 }}>
+                  Если клиент уже в базе, выберите его в поиске «Клиент» — повторный тот же телефон / Telegram
+                  нельзя создать.
+                </p>
               </div>
               <div>
                 <label style={lbl}>Telegram</label>
