@@ -1,20 +1,35 @@
 "use client";
 
+import type React from "react";
 import Link from "next/link";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiJson } from "@/lib/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import type { ColorFormula } from "@/app/(admin)/formulas/formulas-page";
-import { FormulaDrawer } from "@/app/(admin)/formulas/formulas-page";
+import { FormulaDrawer, FormulaViewDrawer } from "@/app/(admin)/formulas/formulas-page";
+import { FormulaCard } from "@/components/formulas/FormulaCard";
+import { apiJson } from "@/lib/api";
+import { tc } from "@/lib/theme-inline";
 
 const btnPrimary: React.CSSProperties = {
-  padding: "8px 16px", background: "var(--primary)", color: "#fff",
-  border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 600,
+  padding: "8px 18px",
+  background: tc.primary,
+  color: tc.primaryFg,
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontSize: "13px",
+  fontWeight: 600,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "6px",
 };
-const btnOutline: React.CSSProperties = {
-  padding: "5px 12px", background: "transparent", border: "1px solid var(--border)",
-  borderRadius: "6px", cursor: "pointer", fontSize: "12px", color: "var(--muted)",
+
+const linkStyle: React.CSSProperties = {
+  fontSize: "12px",
+  color: tc.mutedFg,
+  textDecoration: "underline",
 };
 
 export default function ClientFormulas({ clientId }: { clientId: string }) {
@@ -22,6 +37,7 @@ export default function ClientFormulas({ clientId }: { clientId: string }) {
   const qc = useQueryClient();
   const [showDrawer, setShowDrawer] = useState(false);
   const [editFormula, setEditFormula] = useState<ColorFormula | null>(null);
+  const [viewFormula, setViewFormula] = useState<ColorFormula | null>(null);
 
   const { data: formulas = [] } = useQuery<ColorFormula[]>({
     queryKey: ["client-formulas", clientId],
@@ -38,107 +54,73 @@ export default function ClientFormulas({ clientId }: { clientId: string }) {
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
-        <h3 style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--primary)", margin: 0 }}>
-          {t("formulasForClientTitle", { count: formulas.length })}
-        </h3>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <Link href="/formulas" style={{ fontSize: "12px", color: "var(--muted)", textDecoration: "underline" }}>
-            {t("formulasAllLink")}
-          </Link>
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          marginBottom: "20px",
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        <Link href="/formulas" style={linkStyle}>
+          {t("formulasAllLink")}
+        </Link>
+        <span style={{ marginLeft: "auto", fontSize: "12px", color: tc.mutedFg }}>
+          {t("formulasShownCount", { count: formulas.length })}
+        </span>
         <button
-          onClick={() => { setEditFormula(null); setShowDrawer(true); }}
+          type="button"
+          onClick={() => {
+            setEditFormula(null);
+            setShowDrawer(true);
+          }}
           style={btnPrimary}
         >
-          + Добавить формулу
+          {t("formulasAdd")}
         </button>
-        </div>
       </div>
 
-      {/* Empty state */}
-      {formulas.length === 0 && !showDrawer && (
-        <div style={{ textAlign: "center", color: "var(--muted)", padding: "40px" }}>
-          <div style={{ fontSize: "40px", marginBottom: "10px" }}>🎨</div>
-          <p>Формул пока нет. Добавьте первую формулу после визита.</p>
+      {formulas.length === 0 && !showDrawer ? (
+        <div style={{ textAlign: "center", padding: "48px 16px", color: tc.mutedFg }}>
+          <div style={{ fontSize: "48px", marginBottom: "12px", opacity: 0.5 }}>🧪</div>
+          <p style={{ margin: 0, fontSize: "14px" }}>{t("formulasEmpty")}</p>
         </div>
-      )}
+      ) : null}
 
-      {/* Formula cards */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {formulas.map((f) => (
-          <div key={f.id} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "16px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-            {/* Card header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-              <div>
-                <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-                  {f.service_name && (
-                    <span style={{ background: "rgba(154,114,48,0.1)", color: "var(--primary)", padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 600 }}>
-                      {f.service_name}
-                    </span>
-                  )}
-                </div>
-                <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>
-                  {new Date(f.applied_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
-                  {f.master_name && ` · ${f.master_name}`}
-                  {f.exposure_minutes && ` · ${f.exposure_minutes} мин`}
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: "6px" }}>
-                <button onClick={() => { setEditFormula(f); setShowDrawer(true); }} style={btnOutline}>
-                  Изменить
-                </button>
-                <button
-                  onClick={() => { if (window.confirm("Удалить формулу?")) deleteMutation.mutate(f.id); }}
-                  style={{ ...btnOutline, borderColor: "#fca5a5", color: "#c0392b" }}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
+      {formulas.length > 0 ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+            gap: "16px",
+          }}
+        >
+          {formulas.map((f) => (
+            <FormulaCard
+              key={f.id}
+              formula={f}
+              onView={() => setViewFormula(f)}
+              onEdit={() => {
+                setEditFormula(f);
+                setShowDrawer(true);
+              }}
+              onDelete={() => {
+                if (window.confirm(t("formulasConfirmDelete"))) deleteMutation.mutate(f.id);
+              }}
+            />
+          ))}
+        </div>
+      ) : null}
 
-            {/* Components */}
-            <div style={{ background: "var(--background)", borderRadius: "10px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "6px" }}>
-              {f.components.map((c, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: "rgba(154,114,48,0.1)", color: "var(--primary)", fontSize: "10px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
-                  <div style={{ flex: 1 }}>
-                    <span style={{ fontWeight: 500, fontSize: "13px" }}>{c.brand}</span>
-                    {typeof c.product === "string" && c.product.trim() ? (
-                      <span style={{ fontSize: "12px", color: "var(--muted)" }}> · {c.product.trim()}</span>
-                    ) : null}
-                    {c.shade ? <span style={{ fontSize: "12px", color: "var(--muted)" }}> · {c.shade}</span> : null}
-                  </div>
-                  <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--primary)", whiteSpace: "nowrap" }}>{c.amount} {c.unit}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Notes */}
-            {f.result_notes && (
-              <p style={{ margin: "10px 0 0", fontSize: "13px", color: "var(--muted)", paddingLeft: "4px", borderLeft: "2px solid rgba(154,114,48,0.3)" }}>
-                {f.result_notes}
-              </p>
-            )}
-
-            {/* Photos */}
-            {(f.photo_urls?.length ?? 0) > 0 && (
-              <div style={{ display: "flex", gap: "6px", marginTop: "10px", flexWrap: "wrap" }}>
-                {(f.photo_urls ?? []).map((url, i) => (
-                  <img key={i} src={url} alt="" style={{ width: "60px", height: "60px", borderRadius: "8px", objectFit: "cover", border: "1px solid var(--border)" }} />
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Drawer */}
-      {showDrawer && (
+      {showDrawer ? (
         <FormulaDrawer
           formula={editFormula}
           clientId={clientId}
-          onClose={() => { setShowDrawer(false); setEditFormula(null); }}
+          onClose={() => {
+            setShowDrawer(false);
+            setEditFormula(null);
+          }}
           onSaved={(result) => {
             void qc.invalidateQueries({ queryKey: ["client-formulas", clientId] });
             void qc.invalidateQueries({ queryKey: ["all-formulas"] });
@@ -150,7 +132,19 @@ export default function ClientFormulas({ clientId }: { clientId: string }) {
             setEditFormula(null);
           }}
         />
-      )}
+      ) : null}
+
+      {viewFormula ? (
+        <FormulaViewDrawer
+          formula={viewFormula}
+          onClose={() => setViewFormula(null)}
+          onEdit={() => {
+            setEditFormula(viewFormula);
+            setViewFormula(null);
+            setShowDrawer(true);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
