@@ -382,7 +382,12 @@ export function BookingCreateDrawer({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>{t("fieldDate")}</Label>
-                <Input type="date" {...form.register("date")} />
+                <Input
+                  type="date"
+                  {...form.register("date")}
+                  onFocus={(e) => e.currentTarget.showPicker?.()}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                />
                 {form.formState.errors.date && (
                   <p className="text-[11px] text-destructive">{t("validationRequired")}</p>
                 )}
@@ -393,22 +398,24 @@ export function BookingCreateDrawer({
                   name="time"
                   control={form.control}
                   render={({ field }) => (
-                    <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="HH:MM"
+                      list="booking-time-slots"
                       value={field.value}
                       onChange={(e) => field.onChange(e.target.value)}
                       disabled={!masterId || !serviceId || !date}
-                    >
-                      <option value="">{t("selectPlaceholder")}</option>
-                      {slotOptions.map((s) => (
-                        <option key={s.time} value={s.time} disabled={!s.available}>
-                          {s.time}
-                          {!s.available ? ` (${t("slotBusy")})` : ""}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   )}
                 />
+                <datalist id="booking-time-slots">
+                  {slotOptions
+                    .filter((s) => s.available)
+                    .map((s) => (
+                      <option key={s.time} value={s.time} />
+                    ))}
+                </datalist>
                 {form.formState.errors.time && (
                   <p className="text-[11px] text-destructive">{t("validationRequired")}</p>
                 )}
