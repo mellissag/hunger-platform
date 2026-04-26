@@ -6,8 +6,15 @@ import { AdminAppShell } from "@/components/layout/admin-app-shell";
 import { COOKIE_LOCALE } from "@/lib/cookies";
 import { getSalonThemeForLayout, getSessionUser } from "@/lib/server-session";
 import { ThemeSync } from "@/providers/ThemeProvider";
+import { themePresets } from "@/theme/presets";
 
-/** Всегда динамически: сессия и тема из cookies; без этого возможны сбои при жёстком обновлении админ-страниц. */
+/**
+ * force-dynamic — layout всегда рендерится на сервере со свежими cookies.
+ * Это позволяет инжектировать правильные CSS-переменные темы ДО того,
+ * как клиентский ThemeProvider запустит useEffect.
+ * Без этого inline-стили (hsl(var(--background)) и т.п.) использовали бы
+ * дефолтные значения из globals.css и страница выглядела бы сломанной.
+ */
 export const dynamic = "force-dynamic";
 
 const locales = ["en", "ru", "uk", "bg"] as const;
@@ -25,8 +32,18 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const locale = parseLocale(cookieStore.get(COOKIE_LOCALE)?.value);
   const salonTheme = await getSalonThemeForLayout();
 
+  // Генерируем CSS-строку с переменными темы для server-side инжекции.
+  // Тег <style> рендерится Next.js в <head> ДО любых скриптов —
+  // страница получает правильные цвета сразу, без мерцания.
+  const preset = themePresets[salonTheme];
+  const themeCss = `:root{${Object.entries(preset)
+    .map(([k, v]) => `${k}:${v}`)
+    .join(";")}}`;
+
   return (
     <>
+      {/* eslint-disable-next-line react/no-danger */}
+      <style dangerouslySetInnerHTML={{ __html: themeCss }} />
       <ThemeSync theme={salonTheme} />
       <AdminAppShell user={user} locale={locale}>
         {children}

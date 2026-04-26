@@ -6,31 +6,34 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    /* ── Дефолты = Premium Light (тема по умолчанию).
+       До того как ThemeProvider применит значения из cookie,
+       страница уже выглядит корректно — без «белого на белом» флэша. */
+    --background: 42 41% 97%;
+    --foreground: 34 52% 7%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 34 52% 7%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
-    --sidebar: 0 0% 98%;
-    --sidebar-foreground: 240 10% 3.9%;
-    --sidebar-border: 240 5.9% 90%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --topbar: 0 0% 100%;
+    --popover-foreground: 34 52% 7%;
+    --primary: 37 53% 40%;
+    --primary-foreground: 42 41% 97%;
+    --secondary: 41 40% 94%;
+    --secondary-foreground: 34 52% 7%;
+    --muted: 41 40% 94%;
+    --muted-foreground: 39 16% 41%;
+    --accent: 41 40% 94%;
+    --accent-foreground: 34 52% 7%;
+    --destructive: 0 48% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 39 27% 85%;
+    --input: 39 27% 85%;
+    --ring: 37 53% 40%;
+    --radius: 0.125rem;
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 34 52% 7%;
+    --sidebar-border: 39 27% 85%;
+    --sidebar-accent: 41 40% 94%;
+    --topbar: 42 41% 97%;
   }
 
   * {
