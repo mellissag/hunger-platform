@@ -59,6 +59,12 @@ function formatClientLabel(c: ClientOut): string {
   return c.id;
 }
 
+function formatTimeInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
 function isoToDate(iso: string) {
   const d = new Date(iso);
   const y = d.getFullYear();
@@ -402,9 +408,10 @@ export function BookingCreateDrawer({
                       type="text"
                       inputMode="numeric"
                       placeholder="HH:MM"
+                      maxLength={5}
                       list="booking-time-slots"
                       value={field.value}
-                      onChange={(e) => field.onChange(e.target.value)}
+                      onChange={(e) => field.onChange(formatTimeInput(e.target.value))}
                       disabled={!masterId || !serviceId || !date}
                     />
                   )}
