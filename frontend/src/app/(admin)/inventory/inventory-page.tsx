@@ -130,11 +130,12 @@ const s = {
     fontSize: "13px",
     fontWeight: active ? 600 : 400,
     color: active ? tc.primary : tc.mutedFg,
+    // border must come BEFORE borderBottom so the longhand wins in the CSS cascade
+    border: "none",
     borderBottom: active ? `2px solid ${tc.primary}` : "2px solid transparent",
     marginBottom: "-1px",
     cursor: "pointer",
     background: "transparent",
-    border: "none",
     transition: "all 0.15s",
   }),
   toolbar: { display: "flex", gap: "10px", marginBottom: "16px", flexWrap: "wrap" as const },
