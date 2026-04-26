@@ -74,9 +74,12 @@ const createSchema = z
     tags: z.array(z.string()),
   })
   .refine(
-    (d) =>
-      !d.phone?.trim() ||
-      /^\+[0-9]{8,18}$/.test(d.phone.replace(/[\s-]/g, "")),
+    (d) => {
+      if (!d.phone?.trim()) return true;
+      const t = d.phone.trim();
+      const digits = t.replace(/\D/g, "").length;
+      return digits >= 5 && t.length <= 40;
+    },
     { message: "phoneInvalid", path: ["phone"] },
   );
 

@@ -256,7 +256,7 @@
       "submit": "Save",
       "cancel": "Cancel",
       "validationRequired": "Required",
-      "phoneInvalid": "Use international format (+7 / +38 / +359 …)",
+      "phoneInvalid": "At least 5 digits (optional +, spaces, parentheses)",
       "toastCreated": "Client created",
       "listTitle": "Clients",
       "listDesc": "Search and open a profile",

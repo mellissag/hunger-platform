@@ -79,7 +79,8 @@ function formatClientLine(c: ClientOut): string {
 function phoneValid(phone: string): boolean {
   const t = phone.trim();
   if (!t) return true;
-  return /^\+[0-9]{8,18}$/.test(t.replace(/[\s-]/g, ""));
+  const digits = t.replace(/\D/g, "").length;
+  return digits >= 5 && t.length <= 40;
 }
 
 // ── Formulas Page ─────────────────────────────────────────────────────────────
@@ -547,7 +548,7 @@ export function FormulaDrawer({
       return;
     }
     if (!phoneValid(newClientForm.phone)) {
-      setNewClientError("Телефон: укажите в формате +359… (8–18 цифр)");
+      setNewClientError("Телефон: укажите не меньше 5 цифр (можно с +, скобками и пробелами)");
       return;
     }
     try {
@@ -580,6 +581,10 @@ export function FormulaDrawer({
             ? e.message
             : "Такой клиент уже есть (телефон, Telegram и т.п.). Найдите его в поиске выше или измените данные.",
         );
+        return;
+      }
+      if (e instanceof HttpError && e.status === 422) {
+        setNewClientError(e.message);
         return;
       }
       setNewClientError(e instanceof Error ? e.message : "Не удалось сохранить");
@@ -967,8 +972,8 @@ export function FormulaDrawer({
                   onChange={(e) => setNewClientForm((f) => ({ ...f, phone: e.target.value }))}
                 />
                 <p style={{ fontSize: "11px", color: tc.mutedFg, margin: "6px 0 0", lineHeight: 1.45 }}>
-                  Если клиент уже в базе, выберите его в поиске «Клиент» — повторный тот же телефон / Telegram
-                  нельзя создать.
+                  Любой привычный формат номера (с +, без +, со скобками). Если клиент уже есть — выберите его в
+                  поиске «Клиент».
                 </p>
               </div>
               <div>

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+import logging
 from typing import Any
 
 from datetime import UTC, datetime, timedelta
@@ -15,7 +16,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ConflictError, ForbiddenScopeError, NotFoundError
+from app.core.exceptions import ConflictError, ForbiddenScopeError, NotFoundError, UnprocessableClientError
 from app.core.scope import client_scope_filter
 from app.models.ai_chat import AIConversation, AIMessage
 from app.models.booking import BlacklistEntry, Booking, Review
@@ -26,6 +27,32 @@ from app.models.enums import AIMessageRole, BookingStatus, UserRole
 from app.models.master import Master
 from app.models.user import User
 from app.schemas.client import ClientCreate, ClientUpdate
+
+logger = logging.getLogger(__name__)
+
+
+def _norm_optional_str(value: str | None) -> str | None:
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped if stripped else None
+
+
+def _norm_tg_username(value: str | None) -> str | None:
+    raw = _norm_optional_str(value)
+    if raw is None:
+        return None
+    return raw.lstrip("@")
+
+
+def _is_pg_unique_violation(exc: IntegrityError) -> bool:
+    orig = getattr(exc, "orig", None)
+    if orig is not None:
+        code = getattr(orig, "sqlstate", None) or getattr(orig, "pgcode", None)
+        if code == "23505":
+            return True
+    lowered = str(exc).lower()
+    return "uniqueviolation" in lowered.replace(" ", "") or "duplicate key" in lowered
 
 
 def normalize_client_tag_filters(
@@ -456,10 +483,12 @@ async def get_client(
 async def create_client(db: AsyncSession, user: User, data: ClientCreate) -> Client:
     if user.role == UserRole.master:
         raise ForbiddenScopeError("Masters cannot create clients via API")
+    phone = _norm_optional_str(data.phone)
+    tg_username = _norm_tg_username(data.tg_username)
     c = Client(
         tg_user_id=data.tg_user_id,
-        tg_username=data.tg_username,
-        phone=data.phone,
+        tg_username=tg_username,
+        phone=phone,
         first_name=data.first_name,
         last_name=data.last_name,
         city=data.city,
@@ -472,10 +501,17 @@ async def create_client(db: AsyncSession, user: User, data: ClientCreate) -> Cli
     try:
         await db.flush()
     except IntegrityError as e:
-        raise ConflictError(
-            "Клиент с таким телефоном, Telegram или другим уникальным полем уже есть в базе. "
-            "Найдите его в списке клиентов или измените данные.",
-            code="client_duplicate",
+        if _is_pg_unique_violation(e):
+            raise ConflictError(
+                "Клиент с таким телефоном, Telegram или другим уникальным полем уже есть в базе. "
+                "Найдите его в списке клиентов или измените данные.",
+                code="client_duplicate",
+            ) from e
+        logger.warning("client create: non-unique integrity error", exc_info=True)
+        raise UnprocessableClientError(
+            "Не удалось сохранить клиента: база отклонила данные (не обязательно дубликат). "
+            "Проверьте телефон (достаточно цифр, можно с + или без), Telegram и дату рождения; "
+            "попробуйте временно очистить Telegram. Если не помогает — откройте «Клиенты» и поищите по телефону."
         ) from e
     await db.refresh(c)
     return c

@@ -256,7 +256,7 @@
       "submit": "Сохранить",
       "cancel": "Отмена",
       "validationRequired": "Обязательно",
-      "phoneInvalid": "Формат +7 / +38 / +359 …",
+      "phoneInvalid": "Минимум 5 цифр в номере (можно с +, скобками, пробелами)",
       "toastCreated": "Клиент создан",
       "listTitle": "Клиенты",
       "listDesc": "Поиск и карточка",

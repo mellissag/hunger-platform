@@ -256,7 +256,7 @@
       "submit": "Зберегти",
       "cancel": "Скасувати",
       "validationRequired": "Обов’язково",
-      "phoneInvalid": "Формат +7 / +38 / +359 …",
+      "phoneInvalid": "Щонайменше 5 цифр (можна +, дужки, пробіли)",
       "toastCreated": "Клієнта створено",
       "listTitle": "Клієнти",
       "listDesc": "Пошук і профіль",

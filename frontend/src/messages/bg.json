@@ -256,7 +256,7 @@
       "submit": "Запази",
       "cancel": "Отказ",
       "validationRequired": "Задължително",
-      "phoneInvalid": "Формат +7 / +38 / +359 …",
+      "phoneInvalid": "Поне 5 цифри (може +, скоби, интервали)",
       "toastCreated": "Клиентът е създаден",
       "listTitle": "Клиенти",
       "listDesc": "Търсене и профил",

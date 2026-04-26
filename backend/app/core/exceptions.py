@@ -52,6 +52,13 @@ class ConflictError(DomainError):
         super().__init__(message, code=code, status_code=409)
 
 
+class UnprocessableClientError(DomainError):
+    """Клиент не создан из-за ограничений БД (не дубликат)."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, code="client_unprocessable", status_code=422)
+
+
 class ForbiddenScopeError(DomainError):
     """Доступ к объекту другого мастера / вне области видимости."""
 
