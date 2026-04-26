@@ -216,7 +216,18 @@
       "notesSaveError": "Не вдалося зберегти нотатку",
       "statusError": "Не вдалося оновити статус",
       "errorLoad": "Помилка завантаження",
-      "retry": "Повторити"
+      "retry": "Повторити",
+      "newClient": "+ Новий клієнт",
+      "newClientTitle": "Новий клієнт",
+      "newClientFirstName": "Імʼя *",
+      "newClientLastName": "Прізвище",
+      "newClientPhone": "Телефон",
+      "newClientTg": "Telegram",
+      "newClientBirthday": "День народження",
+      "newClientTags": "Теги",
+      "toastClientCreated": "Клієнта створено",
+      "errorClientCreate": "Не вдалося створити клієнта",
+      "saving": "Збереження..."
     },
     "clients": {
       "title": "Клієнти",

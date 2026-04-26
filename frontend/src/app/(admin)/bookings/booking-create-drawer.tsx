@@ -9,6 +9,13 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Drawer,
   DrawerClose,
   DrawerContent,
@@ -20,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useBooking, useCreateBooking, usePatchBooking, useScheduleSlots } from "@/hooks/useBookings";
+import { useCreateClient } from "@/hooks/useClients";
 import { apiJson } from "@/lib/api";
 import type { ClientOut, MasterOut, Paginated, ServiceOut } from "@/types/admin-api";
 import { toast } from "sonner";
@@ -34,6 +42,22 @@ const schema = z.object({
 });
 
 export type BookingCreateForm = z.infer<typeof schema>;
+
+const TAG_OPTIONS_CREATE = [
+  "VIP",
+  "Постоянный",
+  "Новый",
+  "No-show",
+  "Использует бот",
+] as const;
+
+function formatClientLabel(c: ClientOut): string {
+  const fullName = [c.first_name, c.last_name].filter(Boolean).join(" ").trim();
+  if (fullName && c.phone) return `${fullName} · ${c.phone}`;
+  if (fullName) return fullName;
+  if (c.phone) return c.phone;
+  return c.id;
+}
 
 function isoToDate(iso: string) {
   const d = new Date(iso);
@@ -71,12 +95,23 @@ export function BookingCreateDrawer({
   const locale = useLocale();
   const t = useTranslations("pages.bookings");
   const create = useCreateBooking();
+  const createClient = useCreateClient();
   const patch = usePatchBooking();
   const { data: editDetail } = useBooking(editBookingId ?? null);
 
   const [clientSearch, setClientSearch] = useState("");
   const debouncedQ = useDebounce(clientSearch, 300);
   const [clientLabel, setClientLabel] = useState("");
+  const [showNewClientModal, setShowNewClientModal] = useState(false);
+  const [newClientError, setNewClientError] = useState("");
+  const [newClientForm, setNewClientForm] = useState({
+    first_name: "",
+    last_name: "",
+    phone: "",
+    tg_username: "",
+    birthday: "",
+    tags: [] as string[],
+  });
 
   const { data: clientsPg } = useQuery({
     queryKey: ["clients", "search", debouncedQ],
@@ -105,12 +140,9 @@ export function BookingCreateDrawer({
   const date = form.watch("date");
 
   const { data: mastersPg } = useQuery({
-    queryKey: ["masters", "for-service", serviceId],
+    queryKey: ["masters", "all-for-booking"],
     queryFn: () =>
-      apiJson<Paginated<MasterOut>>(
-        `/masters?page=1&page_size=100&service_id=${encodeURIComponent(serviceId)}`,
-      ),
-    enabled: Boolean(serviceId),
+      apiJson<Paginated<MasterOut>>("/masters?page=1&page_size=500"),
   });
   const masters = mastersPg?.items ?? [];
 
@@ -154,11 +186,47 @@ export function BookingCreateDrawer({
     if (!open) {
       setClientSearch("");
       setClientLabel("");
+      setShowNewClientModal(false);
+      setNewClientError("");
       form.reset();
     }
   }, [open, form]);
 
   const slotOptions = slotsData?.slots?.length ? slotsData.slots : [];
+
+  const submitNewClient = async () => {
+    setNewClientError("");
+    if (!newClientForm.first_name.trim()) {
+      setNewClientError(t("validationRequired"));
+      return;
+    }
+    try {
+      const c = await createClient.mutateAsync({
+        first_name: newClientForm.first_name.trim(),
+        last_name: newClientForm.last_name.trim() || null,
+        phone: newClientForm.phone.trim() || null,
+        tg_username: newClientForm.tg_username.trim().replace(/^@/, "") || null,
+        birthday: newClientForm.birthday || null,
+        tags: newClientForm.tags,
+        source: "manual",
+        lang: "en",
+      });
+      form.setValue("client_id", c.id, { shouldValidate: true });
+      setClientLabel(formatClientLabel(c));
+      setClientSearch("");
+      setShowNewClientModal(false);
+      setNewClientForm({
+        first_name: "",
+        last_name: "",
+        phone: "",
+        tg_username: "",
+        birthday: "",
+        tags: [],
+      });
+    } catch (e) {
+      setNewClientError(e instanceof Error ? e.message : t("errorClientCreate"));
+    }
+  };
 
   const onSubmit = form.handleSubmit(async (values) => {
     const local = new Date(`${values.date}T${values.time}:00`);
@@ -186,7 +254,8 @@ export function BookingCreateDrawer({
   });
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} direction="right" shouldScaleBackground={false}>
+    <>
+      <Drawer open={open} onOpenChange={onOpenChange} direction="right" shouldScaleBackground={false}>
       <DrawerContent className="left-auto right-2 top-2 z-50 ml-auto flex h-[calc(100vh-16px)] w-full max-w-[480px] flex-col rounded-lg border bg-background p-0 shadow-xl data-[vaul-drawer-direction=right]:mt-0 data-[vaul-drawer-direction=right]:max-w-[480px]">
         <DrawerHeader className="border-b border-border px-6 text-left">
           <DrawerTitle className="font-playfair text-xl font-medium">
@@ -202,11 +271,16 @@ export function BookingCreateDrawer({
                   {clientLabel || prefilledClient?.name || "—"}
                 </p>
               ) : (
-              <Input
-                placeholder={t("clientSearchPlaceholder")}
-                value={clientSearch}
-                onChange={(e) => setClientSearch(e.target.value)}
-              />
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={t("clientSearchPlaceholder")}
+                    value={clientSearch}
+                    onChange={(e) => setClientSearch(e.target.value)}
+                  />
+                  <Button type="button" variant="outline" onClick={() => setShowNewClientModal(true)}>
+                    {t("newClient")}
+                  </Button>
+                </div>
               )}
               {!editBookingId && !prefilledClient && clientHits.length > 0 && (
                 <div className="max-h-40 overflow-auto rounded-md border border-border bg-card text-sm">
@@ -285,7 +359,7 @@ export function BookingCreateDrawer({
                   <select
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                     value={field.value}
-                    disabled={!serviceId || Boolean(editBookingId)}
+                    disabled={Boolean(editBookingId)}
                     onChange={(e) => {
                       field.onChange(e.target.value);
                       form.setValue("time", "");
@@ -368,6 +442,85 @@ export function BookingCreateDrawer({
           </DrawerFooter>
         </form>
       </DrawerContent>
-    </Drawer>
+      </Drawer>
+      <Dialog open={showNewClientModal} onOpenChange={setShowNewClientModal}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>{t("newClientTitle")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>{t("newClientFirstName")}</Label>
+              <Input
+                value={newClientForm.first_name}
+                onChange={(e) => setNewClientForm((f) => ({ ...f, first_name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("newClientLastName")}</Label>
+              <Input
+                value={newClientForm.last_name}
+                onChange={(e) => setNewClientForm((f) => ({ ...f, last_name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("newClientPhone")}</Label>
+              <Input
+                placeholder="+359..."
+                value={newClientForm.phone}
+                onChange={(e) => setNewClientForm((f) => ({ ...f, phone: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("newClientTg")}</Label>
+              <Input
+                placeholder="@username"
+                value={newClientForm.tg_username}
+                onChange={(e) => setNewClientForm((f) => ({ ...f, tg_username: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("newClientBirthday")}</Label>
+              <Input
+                type="date"
+                value={newClientForm.birthday}
+                onChange={(e) => setNewClientForm((f) => ({ ...f, birthday: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("newClientTags")}</Label>
+              <select
+                multiple
+                value={newClientForm.tags}
+                onChange={(e) =>
+                  setNewClientForm((f) => ({
+                    ...f,
+                    tags: Array.from(e.target.selectedOptions).map((o) => o.value),
+                  }))
+                }
+                className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                {TAG_OPTIONS_CREATE.map((tag) => (
+                  <option key={tag} value={tag}>
+                    {tag}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {newClientError ? (
+              <p className="text-sm text-destructive">{newClientError}</p>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setShowNewClientModal(false)}>
+              {t("cancel")}
+            </Button>
+            <Button type="button" disabled={createClient.isPending} onClick={() => void submitNewClient()}>
+              {createClient.isPending ? t("saving") : t("submit")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

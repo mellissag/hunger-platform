@@ -216,7 +216,18 @@
       "notesSaveError": "Бележката не беше запазена",
       "statusError": "Статусът не беше обновен",
       "errorLoad": "Грешка при зареждане",
-      "retry": "Опитай отново"
+      "retry": "Опитай отново",
+      "newClient": "+ Нов клиент",
+      "newClientTitle": "Нов клиент",
+      "newClientFirstName": "Име *",
+      "newClientLastName": "Фамилия",
+      "newClientPhone": "Телефон",
+      "newClientTg": "Telegram",
+      "newClientBirthday": "Рожден ден",
+      "newClientTags": "Тагове",
+      "toastClientCreated": "Клиентът е създаден",
+      "errorClientCreate": "Неуспешно създаване на клиент",
+      "saving": "Запазване..."
     },
     "clients": {
       "title": "Клиенти",

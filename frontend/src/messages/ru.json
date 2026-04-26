@@ -216,7 +216,18 @@
       "notesSaveError": "Не удалось сохранить заметку",
       "statusError": "Не удалось обновить статус",
       "errorLoad": "Ошибка загрузки",
-      "retry": "Повторить"
+      "retry": "Повторить",
+      "newClient": "+ Новый клиент",
+      "newClientTitle": "Новый клиент",
+      "newClientFirstName": "Имя *",
+      "newClientLastName": "Фамилия",
+      "newClientPhone": "Телефон",
+      "newClientTg": "Telegram",
+      "newClientBirthday": "День рождения",
+      "newClientTags": "Теги",
+      "toastClientCreated": "Клиент создан",
+      "errorClientCreate": "Не удалось создать клиента",
+      "saving": "Сохранение..."
     },
     "clients": {
       "title": "Клиенты",

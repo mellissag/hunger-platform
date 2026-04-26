@@ -142,6 +142,7 @@ export function BookingsView() {
     },
     enabled: view === "calendar",
     staleTime: 30_000,
+    refetchInterval: view === "calendar" ? 5000 : false,
   });
 
   const listQuery = useBookings(filters, weekStart, view, view === "table" ? tablePage : 1);

@@ -68,12 +68,14 @@ export function MasterSchedule({ masterId }: { masterId: string }) {
   const { data: bookingsResp } = useQuery({
     queryKey: ["master", masterId, "bookings"],
     queryFn: () => apiJson<{ items?: BookingRow[] }>(`/masters/${masterId}/bookings`),
+    refetchInterval: 5000,
   });
   const bookings = bookingsResp?.items ?? [];
 
   const { data: calendar } = useQuery({
     queryKey: ["master", masterId, "calendar", month],
     queryFn: () => apiJson<CalendarResponse>(`/masters/${masterId}/calendar?month=${month}`),
+    refetchInterval: 5000,
   });
   const blocks = calendar?.slots ?? [];
 

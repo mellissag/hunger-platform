@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,6 +25,12 @@ from app.schemas.booking import (
 )
 from app.schemas.common import PaginatedResponse
 from app.services import booking_service
+from app.services.notifications import (
+    notify_master_booking_cancelled,
+    notify_master_booking_status_changed,
+    notify_master_booking_updated,
+    notify_master_new_booking,
+)
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -82,12 +88,14 @@ async def list_bookings(
 async def cancel_booking(
     booking_id: UUID,
     body: BookingCancel,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> BookingOut:
     b = await booking_service.cancel_booking(
         db, user, booking_id, actor=body.actor, reason=body.reason
     )
+    await notify_master_booking_cancelled(booking_id, getattr(request.app.state, "bot", None), db)
     return BookingOut.model_validate(b)
 
 
@@ -95,30 +103,46 @@ async def cancel_booking(
 async def reschedule_booking(
     booking_id: UUID,
     body: BookingReschedule,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> BookingOut:
     b = await booking_service.reschedule_booking(db, user, booking_id, body.starts_at)
+    await notify_master_booking_updated(booking_id, getattr(request.app.state, "bot", None), db)
     return BookingOut.model_validate(b)
 
 
 @router.post("/{booking_id}/complete", response_model=BookingOut)
 async def complete_booking(
     booking_id: UUID,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> BookingOut:
     b = await booking_service.mark_completed(db, user, booking_id)
+    await notify_master_booking_status_changed(
+        booking_id,
+        getattr(request.app.state, "bot", None),
+        db,
+        status_label="завершена",
+    )
     return BookingOut.model_validate(b)
 
 
 @router.post("/{booking_id}/no-show", response_model=BookingOut)
 async def no_show_booking(
     booking_id: UUID,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> BookingOut:
     b = await booking_service.mark_no_show(db, user, booking_id)
+    await notify_master_booking_status_changed(
+        booking_id,
+        getattr(request.app.state, "bot", None),
+        db,
+        status_label="клиент не пришёл",
+    )
     return BookingOut.model_validate(b)
 
 
@@ -134,10 +158,12 @@ async def get_booking(
 @router.post("", response_model=BookingOut)
 async def create_booking(
     body: BookingCreate,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> BookingOut:
     b = await booking_service.create_booking(db, user, body)
+    await notify_master_new_booking(b.id, getattr(request.app.state, "bot", None), db)
     return BookingOut.model_validate(b)
 
 
@@ -145,10 +171,12 @@ async def create_booking(
 async def update_booking(
     booking_id: UUID,
     body: BookingUpdate,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> BookingOut:
     b = await booking_service.update_booking(db, user, booking_id, body)
+    await notify_master_booking_updated(booking_id, getattr(request.app.state, "bot", None), db)
     return BookingOut.model_validate(b)
 
 

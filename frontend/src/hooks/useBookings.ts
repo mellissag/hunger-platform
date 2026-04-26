@@ -65,6 +65,7 @@ export function useBookings(
       apiJson<Paginated<BookingOut>>(buildBookingsUrl(filters, weekStart, view, page)),
     staleTime: 30_000,
     refetchOnWindowFocus: true,
+    refetchInterval: 5000,
   });
 }
 
@@ -74,6 +75,7 @@ export function useBookingStats() {
     queryFn: () => apiJson<BookingStatsOut>("/bookings/stats"),
     staleTime: 30_000,
     refetchOnWindowFocus: true,
+    refetchInterval: 5000,
   });
 }
 

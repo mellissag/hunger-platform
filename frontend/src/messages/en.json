@@ -216,7 +216,18 @@
       "notesSaveError": "Could not save notes",
       "statusError": "Could not update status",
       "errorLoad": "Failed to load",
-      "retry": "Retry"
+      "retry": "Retry",
+      "newClient": "+ New client",
+      "newClientTitle": "New client",
+      "newClientFirstName": "First name *",
+      "newClientLastName": "Last name",
+      "newClientPhone": "Phone",
+      "newClientTg": "Telegram",
+      "newClientBirthday": "Birthday",
+      "newClientTags": "Tags",
+      "toastClientCreated": "Client created",
+      "errorClientCreate": "Could not create client",
+      "saving": "Saving..."
     },
     "clients": {
       "title": "Clients",

@@ -49,6 +49,27 @@ async def notify_master_new_booking(booking_id: UUID, bot: Bot | None, db: Async
         logger.exception("notify_master_new_booking failed booking_id=%s", booking_id)
 
 
+async def notify_master_booking_updated(booking_id: UUID, bot: Bot | None, db: AsyncSession) -> None:
+    if bot is None:
+        return
+    b = await db.get(Booking, booking_id)
+    if b is None:
+        return
+    m = await db.get(Master, b.master_id)
+    if m is None or not m.tg_user_id:
+        return
+    text = (
+        f"Запись обновлена.\n"
+        f"Новое время: {b.starts_at.strftime('%d.%m %H:%M')} UTC"
+    )
+    try:
+        await bot.send_message(chat_id=int(m.tg_user_id), text=text)
+    except TelegramForbiddenError:
+        pass
+    except Exception:  # noqa: BLE001
+        logger.exception("notify_master_booking_updated failed booking_id=%s", booking_id)
+
+
 async def notify_master_booking_cancelled(booking_id: UUID, bot: Bot | None, db: AsyncSession) -> None:
     if bot is None:
         return
@@ -65,3 +86,23 @@ async def notify_master_booking_cancelled(booking_id: UUID, bot: Bot | None, db:
         pass
     except Exception:  # noqa: BLE001
         logger.exception("notify_master_booking_cancelled failed")
+
+
+async def notify_master_booking_status_changed(
+    booking_id: UUID, bot: Bot | None, db: AsyncSession, *, status_label: str
+) -> None:
+    if bot is None:
+        return
+    b = await db.get(Booking, booking_id)
+    if b is None:
+        return
+    m = await db.get(Master, b.master_id)
+    if m is None or not m.tg_user_id:
+        return
+    text = f"Статус записи изменён: {status_label}.\nВремя: {b.starts_at.strftime('%d.%m %H:%M')} UTC"
+    try:
+        await bot.send_message(chat_id=int(m.tg_user_id), text=text)
+    except TelegramForbiddenError:
+        pass
+    except Exception:  # noqa: BLE001
+        logger.exception("notify_master_booking_status_changed failed")
