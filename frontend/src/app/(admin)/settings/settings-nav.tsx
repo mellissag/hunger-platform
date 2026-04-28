@@ -16,6 +16,7 @@ const SECTIONS = [
   "payments",
   "telegram",
   "automations",
+  "navigation",
   "smtp",
   "backups",
   "license",

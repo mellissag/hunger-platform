@@ -2,8 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { ArrowDown, ArrowUp, GripVertical, Trash2, Undo2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -680,6 +681,25 @@ export function SettingsSection({ section }: { section: string }) {
   if (section === "automations") {
     return <AutomationsSection />;
   }
+  if (section === "navigation") {
+    return (
+      <NavigationSection
+        integrations={(settings.integrations as Record<string, unknown>) ?? {}}
+        saving={busy}
+        onSave={(nextOrder, nextHidden) =>
+          patch.mutate({
+            settings: {
+              integrations: {
+                ...((settings.integrations as Record<string, unknown>) ?? {}),
+                admin_nav_order: nextOrder,
+                admin_nav_hidden: nextHidden,
+              },
+            },
+          })
+        }
+      />
+    );
+  }
 
   if (section === "smtp") {
     const smtp = (settings.integrations?.smtp as Record<string, string> | undefined) ?? {};
@@ -739,6 +759,197 @@ export function SettingsSection({ section }: { section: string }) {
   }
 
   return <p className="text-sm text-muted-foreground">Unknown section</p>;
+}
+
+const NAV_ITEMS: { href: string; labelKey: string }[] = [
+  { href: "/dashboard", labelKey: "dashboard" },
+  { href: "/bookings", labelKey: "bookings" },
+  { href: "/clients", labelKey: "clients" },
+  { href: "/masters", labelKey: "masters" },
+  { href: "/services", labelKey: "services" },
+  { href: "/schedule", labelKey: "schedule" },
+  { href: "/broadcasts", labelKey: "broadcasts" },
+  { href: "/statistics", labelKey: "statistics" },
+  { href: "/ai", labelKey: "ai" },
+  { href: "/inventory", labelKey: "inventory" },
+  { href: "/formulas", labelKey: "formulas" },
+  { href: "/blacklist", labelKey: "blacklist" },
+  { href: "/users", labelKey: "users" },
+  { href: "/settings", labelKey: "settings" },
+  { href: "/audit", labelKey: "audit" },
+];
+
+function NavigationSection({
+  integrations,
+  saving,
+  onSave,
+}: {
+  integrations: Record<string, unknown>;
+  saving: boolean;
+  onSave: (nextOrder: string[], nextHidden: string[]) => void;
+}) {
+  const t = useTranslations("pages.settings");
+  const tLayout = useTranslations("layout");
+  const initialOrder = useMemo(() => {
+    const stored = Array.isArray(integrations.admin_nav_order)
+      ? (integrations.admin_nav_order as string[])
+      : [];
+    const seen = new Set<string>();
+    const ordered = stored.filter((href) => {
+      if (seen.has(href)) return false;
+      if (!NAV_ITEMS.some((n) => n.href === href)) return false;
+      seen.add(href);
+      return true;
+    });
+    for (const item of NAV_ITEMS) {
+      if (!seen.has(item.href)) ordered.push(item.href);
+    }
+    return ordered;
+  }, [integrations]);
+  const [order, setOrder] = useState<string[]>(initialOrder);
+  const initialHidden = useMemo(() => {
+    const stored = Array.isArray(integrations.admin_nav_hidden)
+      ? (integrations.admin_nav_hidden as string[])
+      : [];
+    return stored.filter((href) => NAV_ITEMS.some((x) => x.href === href));
+  }, [integrations]);
+  const [hidden, setHidden] = useState<string[]>(initialHidden);
+  const [draggingHref, setDraggingHref] = useState<string | null>(null);
+
+  const move = (from: number, to: number) => {
+    if (to < 0 || to >= order.length || from === to) return;
+    const next = [...order];
+    const [item] = next.splice(from, 1);
+    if (!item) return;
+    next.splice(to, 0, item);
+    setOrder(next);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("sections.navigation")}</CardTitle>
+        <CardDescription>{t("navigationHint")}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-2">
+          {order.map((href, idx) => {
+            const item = NAV_ITEMS.find((n) => n.href === href);
+            if (!item) return null;
+            return (
+              <div
+                key={href}
+                draggable
+                onDragStart={() => setDraggingHref(href)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => {
+                  if (!draggingHref || draggingHref === href) return;
+                  const from = order.indexOf(draggingHref);
+                  const to = order.indexOf(href);
+                  move(from, to);
+                  setDraggingHref(null);
+                }}
+                onDragEnd={() => setDraggingHref(null)}
+                className={cn(
+                  "flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2",
+                  draggingHref === href ? "opacity-60" : "",
+                )}
+              >
+                <div className="inline-flex items-center gap-2 text-sm">
+                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                  <span>{tLayout(`nav.${item.labelKey}` as never)}</span>
+                </div>
+                <div className="inline-flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={idx === 0}
+                    onClick={() => move(idx, idx - 1)}
+                    aria-label="Move up"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={idx === order.length - 1}
+                    onClick={() => move(idx, idx + 1)}
+                    aria-label="Move down"
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => {
+                      setOrder((prev) => prev.filter((x) => x !== href));
+                      setHidden((prev) => (prev.includes(href) ? prev : [...prev, href]));
+                    }}
+                    aria-label="Remove from sidebar"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {hidden.length > 0 && (
+          <div className="rounded-lg border border-dashed border-border p-3">
+            <p className="mb-2 text-sm text-muted-foreground">{t("navigationHiddenTitle")}</p>
+            <div className="space-y-2">
+              {hidden.map((href) => {
+                const item = NAV_ITEMS.find((n) => n.href === href);
+                if (!item) return null;
+                return (
+                  <div key={href} className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2">
+                    <span className="text-sm">{tLayout(`nav.${item.labelKey}` as never)}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setHidden((prev) => prev.filter((x) => x !== href));
+                        setOrder((prev) => (prev.includes(href) ? prev : [...prev, href]));
+                      }}
+                    >
+                      <Undo2 className="mr-1 h-4 w-4" />
+                      {t("navigationRestore")}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={() => setOrder(initialOrder)} disabled={saving}>
+            {t("navigationReset")}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setOrder(initialOrder);
+              setHidden(initialHidden);
+            }}
+            disabled={saving}
+          >
+            {t("navigationCancel")}
+          </Button>
+          <Button type="button" onClick={() => onSave(order, hidden)} disabled={saving}>
+            {t("save")}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function AutomationsSection() {

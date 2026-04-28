@@ -12,6 +12,7 @@ const VALID = new Set([
   "payments",
   "telegram",
   "automations",
+  "navigation",
   "smtp",
   "backups",
   "license",

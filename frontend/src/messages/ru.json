@@ -741,6 +741,11 @@
       "backupDownload": "Скачать последний",
       "primaryColor": "Основной цвет",
       "preview": "Предпросмотр",
+      "navigationHint": "Перетаскивайте пункты или используйте стрелки, чтобы настроить порядок меню в сайдбаре.",
+      "navigationReset": "Сбросить порядок",
+      "navigationHiddenTitle": "Скрытые пункты",
+      "navigationRestore": "Вернуть",
+      "navigationCancel": "Отменить изменения",
       "sections": {
         "brand": "Бренд",
         "localization": "Локализация",
@@ -751,6 +756,7 @@
         "payments": "Платежи",
         "telegram": "Telegram",
         "automations": "Автоматизации",
+        "navigation": "Навигация",
         "smtp": "SMTP",
         "backups": "Бэкапы",
         "license": "Лицензия"

@@ -741,6 +741,11 @@
       "backupDownload": "Download last",
       "primaryColor": "Primary color",
       "preview": "Preview",
+      "navigationHint": "Drag items or use arrows to set the sidebar menu order.",
+      "navigationReset": "Reset order",
+      "navigationHiddenTitle": "Hidden items",
+      "navigationRestore": "Restore",
+      "navigationCancel": "Revert changes",
       "sections": {
         "brand": "Brand",
         "localization": "Localization",
@@ -751,6 +756,7 @@
         "payments": "Payments",
         "telegram": "Telegram",
         "automations": "Automations",
+        "navigation": "Navigation",
         "smtp": "SMTP",
         "backups": "Backups",
         "license": "License"

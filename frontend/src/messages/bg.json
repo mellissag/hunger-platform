@@ -741,6 +741,11 @@
       "backupDownload": "Свали последния",
       "primaryColor": "Основен цвят",
       "preview": "Преглед",
+      "navigationHint": "Плъзгайте елементите или използвайте стрелките, за да подредите менюто в страничната лента.",
+      "navigationReset": "Нулирай подредбата",
+      "navigationHiddenTitle": "Скрити елементи",
+      "navigationRestore": "Върни",
+      "navigationCancel": "Отмени промените",
       "sections": {
         "brand": "Бранд",
         "localization": "Локализация",
@@ -751,6 +756,7 @@
         "payments": "Плащания",
         "telegram": "Telegram",
         "automations": "Автоматизации",
+        "navigation": "Навигация",
         "smtp": "SMTP",
         "backups": "Архиви",
         "license": "Лиценз"

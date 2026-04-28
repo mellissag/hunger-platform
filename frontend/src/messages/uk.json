@@ -741,6 +741,11 @@
       "backupDownload": "Завантажити останній",
       "primaryColor": "Основний колір",
       "preview": "Перегляд",
+      "navigationHint": "Перетягуйте пункти або використовуйте стрілки, щоб налаштувати порядок меню в сайдбарі.",
+      "navigationReset": "Скинути порядок",
+      "navigationHiddenTitle": "Приховані пункти",
+      "navigationRestore": "Повернути",
+      "navigationCancel": "Скасувати зміни",
       "sections": {
         "brand": "Бренд",
         "localization": "Локалізація",
@@ -751,6 +756,7 @@
         "payments": "Платежі",
         "telegram": "Telegram",
         "automations": "Автоматизації",
+        "navigation": "Навігація",
         "smtp": "SMTP",
         "backups": "Бекапи",
         "license": "Ліцензія"

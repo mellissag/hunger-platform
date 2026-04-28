@@ -25,6 +25,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { useTheme } from "@/providers/ThemeProvider";
 import { Button } from "@/components/ui/button";
@@ -50,7 +51,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { COOKIE_LOCALE } from "@/lib/cookies";
 import { can } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import { apiJson } from "@/lib/api";
 import type { SessionUser } from "@/types/user";
+import type { SalonBundle } from "@/types/admin-api";
 import type { Resource } from "@/lib/permissions";
 type NavItem = { href: string; labelKey: string; icon: React.ElementType; resource: Resource };
 
@@ -94,8 +97,29 @@ export function AdminAppShell({
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
+  const canReadSalon = user.role === "owner" || user.role === "admin";
+  const { data: salonBundle } = useQuery({
+    queryKey: ["salon-bundle", "admin-nav-order"],
+    queryFn: () => apiJson<SalonBundle>("/salon"),
+    enabled: canReadSalon,
+    staleTime: 60_000,
+  });
 
-  const items = NAV.filter((item) => can(user, "read", item.resource));
+  const itemsBase = NAV.filter((item) => can(user, "read", item.resource));
+  const navOrder = Array.isArray(salonBundle?.settings?.integrations?.admin_nav_order)
+    ? (salonBundle?.settings?.integrations?.admin_nav_order as string[])
+    : [];
+  const navHidden = Array.isArray(salonBundle?.settings?.integrations?.admin_nav_hidden)
+    ? new Set((salonBundle?.settings?.integrations?.admin_nav_hidden as string[]).filter((v) => typeof v === "string"))
+    : new Set<string>();
+  const visibleBase = itemsBase.filter((item) => !navHidden.has(item.href));
+  const orderRank = new Map(navOrder.map((href, idx) => [href, idx]));
+  const items = [...visibleBase].sort((a, b) => {
+    const ra = orderRank.has(a.href) ? (orderRank.get(a.href) as number) : Number.MAX_SAFE_INTEGER;
+    const rb = orderRank.has(b.href) ? (orderRank.get(b.href) as number) : Number.MAX_SAFE_INTEGER;
+    if (ra !== rb) return ra - rb;
+    return NAV.findIndex((x) => x.href === a.href) - NAV.findIndex((x) => x.href === b.href);
+  });
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
