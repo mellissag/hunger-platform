@@ -36,7 +36,11 @@ export function SettingsSection({ section }: { section: string }) {
 
   const patch = useMutation({
     mutationFn: async (body: Record<string, unknown>) => {
-      return apiJson<SalonBundle>("/salon", { method: "PATCH", body: JSON.stringify(body) });
+      return apiJson<SalonBundle>("/salon", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
     },
     onSuccess: (data) => {
       qc.setQueryData(["salon-bundle"], data);
