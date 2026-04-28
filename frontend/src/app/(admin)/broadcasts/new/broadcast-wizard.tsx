@@ -1,8 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import confetti from "canvas-confetti";
 import { Mic, MicOff, Trash2, Upload } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -114,7 +116,9 @@ export function BroadcastWizard({
   const t = useTranslations("pages.broadcasts");
   const locale = useLocale();
   const qc = useQueryClient();
+  const router = useRouter();
   const [step, setStep] = useState(1);
+  const [isSent, setIsSent] = useState(false);
   const [broadcastId, setBroadcastId] = useState<string | null>(editId ?? null);
   const [initialized, setInitialized] = useState(false);
 
@@ -283,8 +287,17 @@ export function BroadcastWizard({
       });
     },
     onSuccess: async () => {
-      toast.success(t("toastSent"));
       await qc.invalidateQueries({ queryKey: ["broadcasts"] });
+      setIsSent(true);
+      // Fireworks burst
+      const burst = () => {
+        confetti({ particleCount: 80, spread: 100, origin: { x: 0.3, y: 0.5 } });
+        confetti({ particleCount: 80, spread: 100, origin: { x: 0.7, y: 0.5 } });
+      };
+      burst();
+      setTimeout(burst, 300);
+      setTimeout(burst, 600);
+      setTimeout(() => router.push("/broadcasts"), 2200);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -822,7 +835,7 @@ export function BroadcastWizard({
         </Card>
       )}
 
-      {step === 4 && (
+      {step === 4 && !isSent && (
         <Card>
           <CardHeader>
             <CardTitle>{t("wizardStepPreview")}</CardTitle>
@@ -871,6 +884,16 @@ export function BroadcastWizard({
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {isSent && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="text-6xl">🚀</div>
+            <h2 className="text-3xl font-bold tracking-tight">{t("sentTitle")}</h2>
+            <p className="text-muted-foreground">{t("sentBody")}</p>
+          </div>
+        </div>
       )}
 
       <div className="flex justify-between gap-2">

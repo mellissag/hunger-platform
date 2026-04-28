@@ -884,6 +884,8 @@
       "previewHint": "Preview matches Telegram styling.",
       "toastSaved": "Draft saved",
       "toastSent": "Broadcast scheduled",
+      "sentTitle": "Broadcast sent!",
+      "sentBody": "Redirecting to broadcasts list…",
       "translateSoon": "Auto-translate will call Gemini when configured.",
       "translateAuto": "Auto-translate",
       "duplicate": "Duplicate",
