@@ -57,7 +57,14 @@ export class HttpError extends Error {
 }
 
 export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await apiFetch(path, init);
+  // Automatically set Content-Type for string bodies so FastAPI always parses JSON correctly.
+  let enhancedInit = init;
+  if (typeof init.body === "string") {
+    const h = new Headers(init.headers);
+    if (!h.has("Content-Type")) h.set("Content-Type", "application/json");
+    enhancedInit = { ...init, headers: h };
+  }
+  const res = await apiFetch(path, enhancedInit);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const msg = errorMessageFromBody(err, res.statusText);
