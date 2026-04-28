@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -102,12 +102,19 @@ function canPreview(
   return true;
 }
 
-export function BroadcastWizard() {
+export function BroadcastWizard({
+  duplicateId,
+  editId,
+}: {
+  duplicateId?: string;
+  editId?: string;
+}) {
   const t = useTranslations("pages.broadcasts");
   const locale = useLocale();
   const qc = useQueryClient();
   const [step, setStep] = useState(1);
-  const [broadcastId, setBroadcastId] = useState<string | null>(null);
+  const [broadcastId, setBroadcastId] = useState<string | null>(editId ?? null);
+  const [initialized, setInitialized] = useState(false);
 
   const [title, setTitle] = useState("");
   const [segmentKind, setSegmentKind] = useState<SegmentKind>("all");
@@ -130,6 +137,32 @@ export function BroadcastWizard() {
 
   const [sendNow, setSendNow] = useState(true);
   const [scheduleLocal, setScheduleLocal] = useState("");
+
+  const sourceId = duplicateId ?? editId;
+  const { data: sourceBc } = useQuery({
+    queryKey: ["broadcast-load", sourceId],
+    queryFn: () => apiJson<BroadcastOut>(`/broadcasts/${sourceId}`),
+    enabled: Boolean(sourceId) && !initialized,
+  });
+
+  useEffect(() => {
+    if (!sourceBc || initialized) return;
+    setInitialized(true);
+    setTitle(duplicateId ? `${sourceBc.title} (копия)` : sourceBc.title);
+    const i18n = { ...emptyI18n(), ...(sourceBc.message_i18n as Record<string, string>) } as Record<(typeof LANGS)[number], string>;
+    setMsg(i18n);
+    setMediaUrl(sourceBc.media_url ?? "");
+    setMediaType((sourceBc.media_type as "photo" | "video" | "") ?? "photo");
+    const keyboard = sourceBc.inline_keyboard as { rows?: { text: string; url?: string }[][] } | null;
+    const rows = keyboard?.rows?.map((row) =>
+      row.filter((b) => b.url).map((b) => ({ text: b.text, url: b.url! })),
+    ) ?? [];
+    setButtonRows(rows);
+    const seg = sourceBc.segment as Record<string, unknown>;
+    if (seg.type && typeof seg.type === "string") {
+      setSegmentKind(seg.type as SegmentKind);
+    }
+  }, [sourceBc, initialized, duplicateId]);
 
   const criteria = useMemo(
     () =>

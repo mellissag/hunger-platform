@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { apiFetch, apiJson } from "@/lib/api";
 import { hexToPrimaryHsl } from "@/lib/color";
 import { getPublicApiBaseUrl } from "@/lib/env";
-import { useAutoTriggers, useUpdateTrigger } from "@/hooks/useBroadcasts";
+import { cn } from "@/lib/utils";
+import { useAutoTriggers, useCreateTrigger, useUpdateTrigger } from "@/hooks/useBroadcasts";
 import type { SalonBundle } from "@/types/admin-api";
 
 function applyPrimaryPreview(primaryHex: string) {
@@ -742,22 +743,53 @@ export function SettingsSection({ section }: { section: string }) {
 
 function AutomationsSection() {
   const t = useTranslations("pages.settings");
-  const { data: triggers } = useAutoTriggers();
+  const { data: triggers, isLoading } = useAutoTriggers();
   const updateTrigger = useUpdateTrigger();
+  const createTrigger = useCreateTrigger();
   const trigger = triggers?.find((x) => x.type === "post_visit");
 
   const save = (patch: Record<string, unknown>) => {
     if (!trigger) return;
-    updateTrigger.mutate({ id: trigger.id, data: patch });
+    updateTrigger.mutate(
+      { id: trigger.id, data: patch },
+      { onSuccess: () => toast.success(t("saved")), onError: (e) => toast.error(e.message) },
+    );
   };
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">{t("loading")}</p>;
+  }
 
   if (!trigger) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>{t("sections.automations")}</CardTitle>
-          <CardDescription>Создайте post_visit trigger через API и обновите страницу.</CardDescription>
+          <CardDescription>
+            Триггер «после визита» ещё не настроен. Создайте его, чтобы клиенты получали
+            сообщение автоматически после завершения записи.
+          </CardDescription>
         </CardHeader>
+        <CardContent>
+          <Button
+            type="button"
+            disabled={createTrigger.isPending}
+            onClick={() =>
+              createTrigger.mutate(
+                {
+                  type: "post_visit",
+                  is_active: false,
+                  delay_hours: 3,
+                  template_text:
+                    "{name}, спасибо за визит к {master}! 🌟\nБудем рады вашему отзыву.",
+                },
+                { onSuccess: () => toast.success("Триггер создан"), onError: (e) => toast.error(e.message) },
+              )
+            }
+          >
+            Создать триггер «После визита»
+          </Button>
+        </CardContent>
       </Card>
     );
   }
@@ -773,14 +805,22 @@ function AutomationsSection() {
               Автоматически после завершения записи
             </p>
           </div>
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={trigger.is_active}
-              onChange={(e) => save({ is_active: e.target.checked })}
-              className="h-4 w-4 rounded border border-border"
-            />
-            {trigger.is_active ? "Вкл." : "Выкл."}
+          <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
+            <div
+              className={cn(
+                "relative h-6 w-11 rounded-full transition-colors",
+                trigger.is_active ? "bg-[var(--primary)]" : "bg-muted",
+              )}
+              onClick={() => save({ is_active: !trigger.is_active })}
+            >
+              <div
+                className={cn(
+                  "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                  trigger.is_active ? "translate-x-5" : "translate-x-0.5",
+                )}
+              />
+            </div>
+            <span>{trigger.is_active ? "Вкл." : "Выкл."}</span>
           </label>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -796,10 +836,24 @@ function AutomationsSection() {
             />
           </div>
           <div>
+            <Label>Текст кнопки</Label>
+            <Input
+              defaultValue={button.text}
+              placeholder="Оставить отзыв"
+              onBlur={(e) =>
+                save({ buttons: e.target.value.trim() ? [{ text: e.target.value.trim(), url: button.url || "" }] : [] })
+              }
+              className="mt-1"
+            />
+          </div>
+          <div className="md:col-span-2">
             <Label>Ссылка кнопки</Label>
             <Input
               defaultValue={button.url}
-              onBlur={(e) => save({ buttons: [{ text: button.text || "Открыть", url: e.target.value }] })}
+              placeholder="https://..."
+              onBlur={(e) =>
+                save({ buttons: e.target.value.trim() ? [{ text: button.text || "Открыть", url: e.target.value.trim() }] : [] })
+              }
               className="mt-1"
             />
           </div>
@@ -812,7 +866,19 @@ function AutomationsSection() {
             onBlur={(e) => save({ template_text: e.target.value })}
             className="mt-1"
           />
-          <p className="mt-1 text-xs text-muted-foreground">Переменные: {"{name}"} {"{master}"} {"{service}"} {"{date}"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Переменные: {"{name}"} {"{master}"} {"{service}"} {"{date}"}
+          </p>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Button
+            type="button"
+            disabled={updateTrigger.isPending}
+            onClick={() => toast.success(t("saved"))}
+            className="bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90"
+          >
+            {t("save")}
+          </Button>
         </div>
       </div>
     </div>

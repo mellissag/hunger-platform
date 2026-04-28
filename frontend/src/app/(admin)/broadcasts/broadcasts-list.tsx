@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { BarChart3, CheckCheck, CircleAlert, Eye, SendHorizonal, Users } from "lucide-react";
+import { BarChart3, CheckCheck, CircleAlert, Eye, SendHorizonal, Trash2, Users } from "lucide-react";
+import { toast } from "sonner";
 
 import { AdminEmptyState } from "@/components/admin/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { BroadcastOut, Paginated } from "@/types/admin-api";
-import { useBroadcasts } from "@/hooks/useBroadcasts";
+import { useBroadcasts, useDeleteBroadcast } from "@/hooks/useBroadcasts";
 import { cn } from "@/lib/utils";
 
 function statusLabel(t: ReturnType<typeof useTranslations>, raw: string): string {
@@ -71,9 +72,11 @@ export function BroadcastsList() {
   const locale = useLocale();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<FilterKey>("all");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const pageSize = 20;
 
   const { data, isLoading } = useBroadcasts(page, pageSize);
+  const deleteMutation = useDeleteBroadcast();
 
   if (isLoading && !data) {
     return (
@@ -196,8 +199,27 @@ export function BroadcastsList() {
                         <Button size="sm" variant="outline" asChild>
                           <Link href={`/broadcasts/new?edit=${row.id}`}>{t("edit")}</Link>
                         </Button>
-                        <Button size="sm" variant="outline" className="text-red-600">
-                          <CircleAlert className="mr-1 h-3.5 w-3.5" />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 hover:bg-red-50"
+                          disabled={deleteMutation.isPending && deletingId === row.id}
+                          onClick={() => {
+                            if (!confirm(t("delete") + "?")) return;
+                            setDeletingId(row.id);
+                            deleteMutation.mutate(row.id, {
+                              onSuccess: () => {
+                                toast.success(t("delete") + " ✓");
+                                setDeletingId(null);
+                              },
+                              onError: (e) => {
+                                toast.error(e.message);
+                                setDeletingId(null);
+                              },
+                            });
+                          }}
+                        >
+                          <Trash2 className="mr-1 h-3.5 w-3.5" />
                           {t("delete")}
                         </Button>
                       </>
