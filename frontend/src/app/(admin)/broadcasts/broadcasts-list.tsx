@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { BarChart3, CheckCheck, CircleAlert, Eye, SendHorizonal, Trash2, Users } from "lucide-react";
+import { BarChart3, CheckCheck, CircleAlert, Eye, Plus, SendHorizonal, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { AdminEmptyState } from "@/components/admin/empty-state";
@@ -101,14 +101,18 @@ export function BroadcastsList() {
   ];
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-playfair text-3xl tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
         <Button className="rounded-lg bg-[var(--primary)] px-4 py-2 text-white hover:bg-[var(--primary)]/90" asChild>
-          <Link href="/broadcasts/new">{t("new")}</Link>
+          <Link href="/broadcasts/new">
+            <Plus className="mr-1 h-4 w-4" />
+            {t("new")}
+          </Link>
         </Button>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -256,6 +260,16 @@ export function BroadcastsList() {
           </div>
         </>
       )}
-    </div>
+      </div>
+      <Button
+        asChild
+        className="fixed bottom-6 right-6 z-20 rounded-full bg-[var(--primary)] px-5 py-3 text-white shadow-[0_8px_20px_rgba(154,114,48,0.28)] hover:bg-[var(--primary)]/90"
+      >
+        <Link href="/broadcasts/new">
+          <Plus className="mr-1 h-4 w-4" />
+          {t("new")}
+        </Link>
+      </Button>
+    </>
   );
 }
