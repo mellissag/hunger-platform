@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class InlineButton(BaseModel):
@@ -54,3 +54,10 @@ class AutoTriggerOut(BaseModel):
     master_id: Optional[UUID] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+    @field_validator("buttons", mode="before")
+    @classmethod
+    def coerce_buttons(cls, v: object) -> list:
+        if v is None:
+            return []
+        return v  # type: ignore[return-value]
