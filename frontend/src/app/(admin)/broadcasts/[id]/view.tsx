@@ -99,7 +99,7 @@ export function BroadcastAnalytics({ id }: { id: string }) {
 function StatCard({ title, value }: { title: string; value: string }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-      <p className="text-xs uppercase tracking-[0.08em] text-[var(--primary)]">{title}</p>
+      <p className="text-xs uppercase tracking-[0.08em] text-primary">{title}</p>
       <p className="mt-2 text-2xl font-semibold">{value}</p>
     </div>
   );

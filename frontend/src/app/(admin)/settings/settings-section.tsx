@@ -1020,7 +1020,7 @@ function AutomationsSection() {
             <div
               className={cn(
                 "relative h-6 w-11 rounded-full transition-colors",
-                trigger.is_active ? "bg-[var(--primary)]" : "bg-muted",
+                trigger.is_active ? "bg-primary" : "bg-muted",
               )}
               onClick={() => save({ is_active: !trigger.is_active })}
             >
@@ -1086,7 +1086,7 @@ function AutomationsSection() {
             type="button"
             disabled={updateTrigger.isPending}
             onClick={() => toast.success(t("saved"))}
-            className="bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {t("save")}
           </Button>

@@ -108,7 +108,7 @@ export function BroadcastsList() {
           <h1 className="font-playfair text-3xl tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <Button className="rounded-lg bg-[var(--primary)] px-4 py-2 text-white hover:bg-[var(--primary)]/90" asChild>
+        <Button className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90" asChild>
           <Link href="/broadcasts/new">
             <Plus className="mr-1 h-4 w-4" />
             {t("new")}
@@ -124,7 +124,7 @@ export function BroadcastsList() {
             className={cn(
               "rounded-full border border-border px-3 py-1.5 text-sm",
               statusFilter === tab.key
-                ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
+                ? "border-primary bg-primary/10 text-primary"
                 : "text-muted-foreground",
             )}
           >
@@ -155,7 +155,7 @@ export function BroadcastsList() {
               return (
                 <div
                   key={row.id}
-                  className="rounded-xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-colors hover:border-[var(--primary)]"
+                  className="rounded-xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-colors hover:border-primary"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
@@ -185,7 +185,7 @@ export function BroadcastsList() {
                   {row.status === "sending" ? (
                     <div className="mt-3">
                       <div className="h-2 w-full rounded-full bg-muted">
-                        <div className="h-2 rounded-full bg-[var(--primary)]" style={{ width: `${progress}%` }} />
+                        <div className="h-2 rounded-full bg-primary" style={{ width: `${progress}%` }} />
                       </div>
                     </div>
                   ) : null}
@@ -263,7 +263,7 @@ export function BroadcastsList() {
       </div>
       <Button
         asChild
-        className="fixed bottom-6 right-6 z-20 rounded-full bg-[var(--primary)] px-5 py-3 text-white shadow-[0_8px_20px_rgba(154,114,48,0.28)] hover:bg-[var(--primary)]/90"
+        className="fixed bottom-6 right-6 z-20 rounded-full bg-primary px-5 py-3 text-primary-foreground shadow-[0_8px_20px_rgba(154,114,48,0.28)] hover:bg-primary/90"
       >
         <Link href="/broadcasts/new">
           <Plus className="mr-1 h-4 w-4" />
