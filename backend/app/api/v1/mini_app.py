@@ -100,10 +100,27 @@ async def get_mini_app_user(
         last_name=user_data.get("last_name"),
         username=user_data.get("username"),
         photo_url=user_data.get("photo_url"),
+        language_code=user_data.get("language_code"),
     )
 
 
 MiniAppUser = Annotated[InitDataPayload, Depends(get_mini_app_user)]
+
+_SUPPORTED_LANGS = ("en", "ru", "uk", "bg")
+
+
+def _resolve_lang(code: str | None) -> str:
+    if not code:
+        return "en"
+    short = code[:2].lower()
+    return short if short in _SUPPORTED_LANGS else "en"
+
+
+async def _sync_client_lang(client: Client, payload: InitDataPayload, db: AsyncSession) -> None:
+    """Update client.lang from Telegram initData if not yet set."""
+    if not client.lang and payload.language_code:
+        client.lang = _resolve_lang(payload.language_code)
+        await db.flush()
 
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
@@ -306,6 +323,8 @@ async def create_booking(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Client not found. Start the bot first.",
         )
+
+    await _sync_client_lang(client, current_user, db)
 
     import uuid as _uuid
     from datetime import datetime as _dt

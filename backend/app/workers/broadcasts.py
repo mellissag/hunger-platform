@@ -85,14 +85,33 @@ async def _send_with_retry(
                     await bot.send_video(
                         chat_id,
                         media_url,
-                        caption=text,
+                        caption=text or None,
                         reply_markup=reply_markup,
                     )
-                else:
+                elif media_type == "animation":
+                    await bot.send_animation(
+                        chat_id,
+                        media_url,
+                        caption=text or None,
+                        reply_markup=reply_markup,
+                    )
+                elif media_type == "video_note":
+                    # Video notes (round messages) don't support captions or reply_markup
+                    await bot.send_video_note(chat_id, media_url)
+                    if text:
+                        await bot.send_message(chat_id, text, reply_markup=reply_markup)
+                elif media_type == "voice":
+                    await bot.send_voice(
+                        chat_id,
+                        media_url,
+                        caption=text or None,
+                        reply_markup=reply_markup,
+                    )
+                else:  # photo (default)
                     await bot.send_photo(
                         chat_id,
                         media_url,
-                        caption=text,
+                        caption=text or None,
                         reply_markup=reply_markup,
                     )
             else:

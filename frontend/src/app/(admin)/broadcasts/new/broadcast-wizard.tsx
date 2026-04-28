@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Mic, MicOff, Trash2, Upload } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -12,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { apiJson } from "@/lib/api";
+import { apiFetch, apiJson } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import type {
   BroadcastOut,
   MasterOut,
@@ -132,7 +134,12 @@ export function BroadcastWizard({
 
   const [msg, setMsg] = useState(emptyI18n);
   const [mediaUrl, setMediaUrl] = useState("");
-  const [mediaType, setMediaType] = useState<"photo" | "video" | "">("photo");
+  const [mediaType, setMediaType] = useState<"photo" | "animation" | "video" | "video_note" | "voice" | "">("photo");
+  const [isUploading, setIsUploading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordChunksRef = useRef<Blob[]>([]);
   const [buttonRows, setButtonRows] = useState<{ text: string; url: string }[][]>([]);
 
   const [sendNow, setSendNow] = useState(true);
@@ -152,7 +159,7 @@ export function BroadcastWizard({
     const i18n = { ...emptyI18n(), ...(sourceBc.message_i18n as Record<string, string>) } as Record<(typeof LANGS)[number], string>;
     setMsg(i18n);
     setMediaUrl(sourceBc.media_url ?? "");
-    setMediaType((sourceBc.media_type as "photo" | "video" | "") ?? "photo");
+    setMediaType((sourceBc.media_type as "photo" | "animation" | "video" | "video_note" | "voice" | "") ?? "photo");
     const keyboard = sourceBc.inline_keyboard as { rows?: { text: string; url?: string }[][] } | null;
     const rows = keyboard?.rows?.map((row) =>
       row.filter((b) => b.url).map((b) => ({ text: b.text, url: b.url! })),
@@ -237,7 +244,7 @@ export function BroadcastWizard({
         message_i18n: { ...msg },
         segment: criteria,
         media_url: mediaUrl.trim() || null,
-        media_type: mediaUrl.trim() ? mediaType || "photo" : null,
+        media_type: mediaUrl.trim() ? (mediaType || "photo") : null,
         inline_keyboard: inlinePayload,
       };
       if (broadcastId) {
@@ -281,6 +288,82 @@ export function BroadcastWizard({
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const MEDIA_TYPES = [
+    { value: "" as const,           labelKey: "mediaTypeNone" },
+    { value: "photo" as const,      labelKey: "mediaTypePhoto" },
+    { value: "animation" as const,  labelKey: "mediaTypeGif" },
+    { value: "video" as const,      labelKey: "mediaTypeVideo" },
+    { value: "video_note" as const, labelKey: "mediaTypeVideoNote" },
+    { value: "voice" as const,      labelKey: "mediaTypeVoice" },
+  ] as const;
+
+  function getAccept(type: typeof mediaType) {
+    if (type === "photo") return "image/jpeg,image/png,image/webp";
+    if (type === "animation") return "image/gif";
+    if (type === "video" || type === "video_note") return "video/mp4,video/quicktime";
+    if (type === "voice") return "audio/ogg,audio/mpeg,audio/mp3,audio/webm,audio/mp4,audio/x-m4a";
+    return "*/*";
+  }
+
+  async function uploadFile(file: File) {
+    setIsUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await apiFetch("/upload/media?folder=broadcasts", { method: "POST", body: form });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { detail?: string };
+        throw new Error(body.detail ?? "Upload failed");
+      }
+      const data = await res.json() as { url: string; media_type: string };
+      setMediaUrl(data.url);
+      if (data.media_type && !mediaType) {
+        setMediaType(data.media_type as typeof mediaType);
+      }
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) void uploadFile(file);
+    e.target.value = "";
+  }
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")
+        ? "audio/ogg;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+          ? "audio/webm;codecs=opus"
+          : "audio/webm";
+      const recorder = new MediaRecorder(stream, { mimeType });
+      recordChunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) recordChunksRef.current.push(e.data); };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const ext = mimeType.includes("ogg") ? "ogg" : "webm";
+        const blob = new Blob(recordChunksRef.current, { type: mimeType });
+        const file = new File([blob], `voice.${ext}`, { type: mimeType.split(";")[0] });
+        void uploadFile(file);
+        setIsRecording(false);
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+    } catch {
+      toast.error("Microphone access denied");
+    }
+  }
+
+  function stopRecording() {
+    mediaRecorderRef.current?.stop();
+  }
 
   const previewText = msg[locale as (typeof LANGS)[number]] || msg.en || msg.ru || msg.uk || msg.bg;
   const previewTime = new Intl.DateTimeFormat(locale, {
@@ -546,23 +629,112 @@ export function BroadcastWizard({
             >
               {t("translateAuto")}
             </Button>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>{t("mediaUrl")}</Label>
-                <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} />
+            {/* ── Media picker ── */}
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {MEDIA_TYPES.map(({ value, labelKey }) => (
+                  <button
+                    key={value || "none"}
+                    type="button"
+                    onClick={() => {
+                      setMediaType(value);
+                      if (!value) setMediaUrl("");
+                    }}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-sm transition-colors",
+                      mediaType === value
+                        ? "border-primary bg-primary/10 text-primary font-medium"
+                        : "border-border text-muted-foreground hover:border-primary/50",
+                    )}
+                  >
+                    {t(labelKey as Parameters<typeof t>[0])}
+                  </button>
+                ))}
               </div>
-              <div className="space-y-2">
-                <Label>{t("mediaType")}</Label>
-                <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={mediaType}
-                  onChange={(e) => setMediaType(e.target.value as "photo" | "video")}
-                  disabled={!mediaUrl.trim()}
-                >
-                  <option value="photo">{t("mediaPhoto")}</option>
-                  <option value="video">{t("mediaVideo")}</option>
-                </select>
-              </div>
+
+              {mediaType && (
+                <div className="rounded-lg border border-border p-4 space-y-3">
+                  {mediaType === "video_note" && (
+                    <p className="text-xs text-muted-foreground">{t("mediaVideoNoteHint")}</p>
+                  )}
+
+                  {/* Preview */}
+                  {mediaUrl && (
+                    <div className="relative w-fit">
+                      {(mediaType === "photo" || mediaType === "animation") && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={mediaUrl} alt="preview" className="max-h-48 rounded-lg object-contain" />
+                      )}
+                      {mediaType === "video" && (
+                        <video src={mediaUrl} controls className="max-h-48 w-full rounded-lg" />
+                      )}
+                      {mediaType === "video_note" && (
+                        <video src={mediaUrl} controls className="h-48 w-48 rounded-full object-cover" />
+                      )}
+                      {mediaType === "voice" && (
+                        <audio src={mediaUrl} controls className="w-full min-w-[260px]" />
+                      )}
+                      <button
+                        type="button"
+                        title={t("mediaClear")}
+                        onClick={() => setMediaUrl("")}
+                        className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/80"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Upload buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept={getAccept(mediaType)}
+                      onChange={handleFileChange}
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploading}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm transition-colors hover:border-primary disabled:opacity-50"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      {isUploading ? t("mediaUploading") : t("mediaUploadBtn")}
+                    </button>
+
+                    {mediaType === "voice" && (
+                      <button
+                        type="button"
+                        onClick={isRecording ? stopRecording : startRecording}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors",
+                          isRecording
+                            ? "border-red-400 bg-red-50 text-red-600 dark:bg-red-950/30"
+                            : "border-border hover:border-primary",
+                        )}
+                      >
+                        {isRecording ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                        {isRecording ? t("voiceStop") : t("voiceRecord")}
+                        {isRecording && (
+                          <span className="ml-1 inline-block h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* URL fallback */}
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">{t("mediaUrlLabel")}</p>
+                    <Input
+                      value={mediaUrl}
+                      onChange={(e) => setMediaUrl(e.target.value)}
+                      placeholder="https://…"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">

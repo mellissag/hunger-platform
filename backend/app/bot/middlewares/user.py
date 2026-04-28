@@ -84,13 +84,21 @@ class TgUserMiddleware(BaseMiddleware):
                         await db.refresh(row)
                         break
 
+        _SUPPORTED_LANGS = ("en", "ru", "uk", "bg")
+
+        def _resolve_lang(code: str | None) -> str:
+            if not code:
+                return "en"
+            short = code[:2].lower()
+            return short if short in _SUPPORTED_LANGS else "en"
+
         if row is None:
             row = Client(
                 tg_user_id=tg.id,
                 tg_username=tg.username,
                 first_name=tg.first_name,
                 last_name=tg.last_name,
-                lang="",
+                lang=_resolve_lang(tg.language_code),
                 source=ClientSource.bot,
             )
             db.add(row)
@@ -106,6 +114,9 @@ class TgUserMiddleware(BaseMiddleware):
                 changed = True
             if tg.last_name and row.last_name != tg.last_name:
                 row.last_name = tg.last_name
+                changed = True
+            if not row.lang and tg.language_code:
+                row.lang = _resolve_lang(tg.language_code)
                 changed = True
             if changed:
                 await db.flush()
