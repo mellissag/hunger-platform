@@ -26,6 +26,9 @@ ALLOWED_IMAGES = {
     "image/webp": "webp",
 }
 
+# Backward-compat alias used by color_formulas.py
+ALLOWED_TYPES = ALLOWED_IMAGES
+
 ALLOWED_MEDIA: dict[str, tuple[str, str, int]] = {
     # content_type → (extension, media_type hint, max_bytes)
     "image/jpeg":       ("jpg",  "photo",      5 * 1024 * 1024),
