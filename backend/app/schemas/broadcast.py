@@ -32,7 +32,7 @@ class BroadcastCreate(BaseModel):
     message_i18n: dict[str, str]
     segment: dict[str, Any]
     media_url: str | None = None
-    media_type: str | None = Field(default=None, pattern="^(photo|video)$")
+    media_type: str | None = Field(default=None, pattern="^(photo|video|animation|video_note|voice)$")
     inline_keyboard: InlineKeyboardIn | None = None
 
 
@@ -41,7 +41,7 @@ class BroadcastUpdate(BaseModel):
     message_i18n: dict[str, str] | None = None
     segment: dict[str, Any] | None = None
     media_url: str | None = None
-    media_type: str | None = Field(default=None, pattern="^(photo|video)$")
+    media_type: str | None = Field(default=None, pattern="^(photo|video|animation|video_note|voice)$")
     inline_keyboard: InlineKeyboardIn | None = None
 
 

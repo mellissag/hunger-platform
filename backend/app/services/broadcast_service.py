@@ -104,8 +104,8 @@ async def update_broadcast(
     bc = await db.get(Broadcast, broadcast_id)
     if bc is None:
         raise NotFoundError("Broadcast not found")
-    if bc.status != BroadcastStatus.draft:
-        raise BroadcastInvalidStateError("Only draft broadcasts can be edited")
+    if bc.status not in (BroadcastStatus.draft, BroadcastStatus.scheduled):
+        raise BroadcastInvalidStateError("Only draft or scheduled broadcasts can be edited")
     patch = body.model_dump(exclude_unset=True)
     if "segment" in patch:
         SegmentCriteria.model_validate(patch["segment"])
