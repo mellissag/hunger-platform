@@ -750,6 +750,7 @@
         "reminders": "Reminders",
         "payments": "Payments",
         "telegram": "Telegram",
+        "automations": "Automations",
         "smtp": "SMTP",
         "backups": "Backups",
         "license": "License"
@@ -864,7 +865,17 @@
       "toastSaved": "Draft saved",
       "toastSent": "Broadcast scheduled",
       "translateSoon": "Auto-translate will call Gemini when configured.",
-      "translateAuto": "Auto-translate"
+      "translateAuto": "Auto-translate",
+      "duplicate": "Duplicate",
+      "analytics": "Analytics",
+      "edit": "Edit",
+      "delete": "Delete",
+      "back": "Back",
+      "kpiSent": "Sent",
+      "kpiDelivered": "Delivered",
+      "kpiRead": "Read",
+      "kpiErrors": "Errors",
+      "all": "All"
     }
   }
 }

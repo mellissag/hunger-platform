@@ -25,6 +25,10 @@ from app.schemas.booking import (
 )
 from app.schemas.common import PaginatedResponse
 from app.services import booking_service
+from app.services.broadcast_service import (
+    enqueue_post_visit_trigger_job,
+    get_active_post_visit_trigger,
+)
 from app.services.notifications import (
     notify_master_booking_cancelled,
     notify_master_booking_status_changed,
@@ -120,6 +124,9 @@ async def complete_booking(
     user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> BookingOut:
     b = await booking_service.mark_completed(db, user, booking_id)
+    trigger = await get_active_post_visit_trigger(db, b.master_id)
+    if trigger is not None:
+        await enqueue_post_visit_trigger_job(b.id, trigger.delay_hours)
     await notify_master_booking_status_changed(
         booking_id,
         getattr(request.app.state, "bot", None),

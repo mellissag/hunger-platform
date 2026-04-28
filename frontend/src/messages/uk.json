@@ -750,6 +750,7 @@
         "reminders": "Нагадування",
         "payments": "Платежі",
         "telegram": "Telegram",
+        "automations": "Автоматизації",
         "smtp": "SMTP",
         "backups": "Бекапи",
         "license": "Ліцензія"
@@ -864,7 +865,17 @@
       "toastSaved": "Чернетку збережено",
       "toastSent": "Розсилку заплановано",
       "translateSoon": "Автопереклад через Gemini — коли налаштовано.",
-      "translateAuto": "Перекласти автоматично"
+      "translateAuto": "Перекласти автоматично",
+      "duplicate": "Дублювати",
+      "analytics": "Аналітика",
+      "edit": "Редагувати",
+      "delete": "Видалити",
+      "back": "Назад",
+      "kpiSent": "Надіслано",
+      "kpiDelivered": "Доставлено",
+      "kpiRead": "Прочитано",
+      "kpiErrors": "Помилки",
+      "all": "Усі"
     }
   }
 }

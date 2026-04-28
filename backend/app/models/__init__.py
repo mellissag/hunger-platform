@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from app.models.ai_chat import AIConversation, AIMessage
+from app.models.auto_trigger import AutoTrigger, TriggerLog
 from app.models.audit import AuditLog
 from app.models.booking import BlacklistEntry, Booking, Review
 from app.models.broadcast import Broadcast, BroadcastRecipient
@@ -21,6 +22,7 @@ from app.models.user_invite import UserInvite
 __all__ = [
     "AIConversation",
     "AIMessage",
+    "AutoTrigger",
     "AuditLog",
     "AuthSession",
     "BlacklistEntry",
@@ -39,6 +41,7 @@ __all__ = [
     "ProductWriteOff",
     "SupplyInvoice",
     "SupplyInvoiceItem",
+    "TriggerLog",
     "Review",
     "Salon",
     "ScheduleSlot",

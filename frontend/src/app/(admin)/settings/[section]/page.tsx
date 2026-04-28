@@ -11,6 +11,7 @@ const VALID = new Set([
   "reminders",
   "payments",
   "telegram",
+  "automations",
   "smtp",
   "backups",
   "license",

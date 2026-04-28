@@ -6,10 +6,13 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_roles
-from app.models.broadcast import Broadcast
+from app.models.auto_trigger import AutoTrigger
+from app.models.broadcast import Broadcast, BroadcastRecipient
+from app.models.client import Client
 from app.models.enums import UserRole
 from app.models.user import User
 from app.schemas.broadcast import (
@@ -18,12 +21,20 @@ from app.schemas.broadcast import (
     BroadcastSendBody,
     BroadcastUpdate,
 )
+from app.schemas.broadcasts import (
+    AutoTriggerCreate,
+    AutoTriggerOut,
+    AutoTriggerUpdate,
+    BroadcastRecipientOut,
+)
 from app.schemas.common import PaginatedResponse
 from app.services import broadcast_service
 
 router = APIRouter(prefix="/broadcasts", tags=["broadcasts"])
+triggers_router = APIRouter(prefix="/auto-triggers", tags=["auto-triggers"])
 
 STAFF = (UserRole.owner, UserRole.admin)
+OWNER = (UserRole.owner,)
 
 
 def _to_out(bc: Broadcast) -> BroadcastOut:
@@ -149,3 +160,99 @@ async def send_broadcast(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     return _to_out(bc)
+
+
+@router.get("/{broadcast_id}/recipients", response_model=list[BroadcastRecipientOut])
+async def broadcast_recipients(
+    broadcast_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _user: Annotated[User, Depends(require_roles(*STAFF))],
+) -> list[BroadcastRecipientOut]:
+    rows = (
+        await db.execute(
+            select(
+                BroadcastRecipient.client_id,
+                BroadcastRecipient.status,
+                BroadcastRecipient.error,
+                BroadcastRecipient.sent_at,
+                Client.first_name,
+                Client.last_name,
+            )
+            .join(Client, Client.id == BroadcastRecipient.client_id)
+            .where(BroadcastRecipient.broadcast_id == broadcast_id)
+            .order_by(BroadcastRecipient.sent_at.desc().nulls_last())
+        )
+    ).all()
+    return [
+        BroadcastRecipientOut(
+            client_id=client_id,
+            client_name=" ".join(filter(None, [first_name, last_name])) or None,
+            status=str(status.value if hasattr(status, "value") else status),
+            error_reason=error,
+            sent_at=sent_at,
+        )
+        for client_id, status, error, sent_at, first_name, last_name in rows
+    ]
+
+
+@triggers_router.get("", response_model=list[AutoTriggerOut])
+async def list_auto_triggers(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _user: Annotated[User, Depends(require_roles(*OWNER))],
+) -> list[AutoTriggerOut]:
+    rows = (await db.execute(select(AutoTrigger).order_by(AutoTrigger.created_at.desc()))).scalars().all()
+    return [AutoTriggerOut.model_validate(r) for r in rows]
+
+
+@triggers_router.post("", response_model=AutoTriggerOut)
+async def create_auto_trigger(
+    body: AutoTriggerCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _user: Annotated[User, Depends(require_roles(*OWNER))],
+) -> AutoTriggerOut:
+    trigger = AutoTrigger(
+        type=body.type,
+        is_active=body.is_active,
+        delay_hours=body.delay_hours,
+        template_text=body.template_text,
+        photo_url=body.photo_url,
+        buttons=[b.model_dump(mode="json") for b in body.buttons] or None,
+        master_id=body.master_id,
+    )
+    db.add(trigger)
+    await db.commit()
+    await db.refresh(trigger)
+    return AutoTriggerOut.model_validate(trigger)
+
+
+@triggers_router.patch("/{trigger_id}", response_model=AutoTriggerOut)
+async def update_auto_trigger(
+    trigger_id: UUID,
+    body: AutoTriggerUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _user: Annotated[User, Depends(require_roles(*OWNER))],
+) -> AutoTriggerOut:
+    trigger = await db.get(AutoTrigger, trigger_id)
+    if trigger is None:
+        raise HTTPException(status_code=404, detail="Trigger not found")
+    patch = body.model_dump(exclude_unset=True)
+    if "buttons" in patch and patch["buttons"] is not None:
+        patch["buttons"] = [b.model_dump(mode="json") for b in body.buttons or []]
+    for k, v in patch.items():
+        setattr(trigger, k, v)
+    await db.commit()
+    await db.refresh(trigger)
+    return AutoTriggerOut.model_validate(trigger)
+
+
+@triggers_router.delete("/{trigger_id}", status_code=204)
+async def delete_auto_trigger(
+    trigger_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _user: Annotated[User, Depends(require_roles(*OWNER))],
+) -> None:
+    trigger = await db.get(AutoTrigger, trigger_id)
+    if trigger is None:
+        raise HTTPException(status_code=404, detail="Trigger not found")
+    await db.delete(trigger)
+    await db.commit()

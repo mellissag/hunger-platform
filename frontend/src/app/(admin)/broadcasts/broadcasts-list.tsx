@@ -1,24 +1,16 @@
 "use client";
 
-import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { BarChart3, CheckCheck, CircleAlert, Eye, SendHorizonal, Users } from "lucide-react";
 
 import { AdminEmptyState } from "@/components/admin/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { apiJson } from "@/lib/api";
 import type { BroadcastOut, Paginated } from "@/types/admin-api";
+import { useBroadcasts } from "@/hooks/useBroadcasts";
+import { cn } from "@/lib/utils";
 
 function statusLabel(t: ReturnType<typeof useTranslations>, raw: string): string {
   switch (raw) {
@@ -55,82 +47,33 @@ function segmentLabel(t: ReturnType<typeof useTranslations>, seg: Record<string,
   return map[ty] || ty || "—";
 }
 
+const statusConfig: Record<
+  string,
+  { labelKey: string; className: string }
+> = {
+  draft: { labelKey: "statusDraft", className: "bg-muted text-muted-foreground" },
+  scheduled: {
+    labelKey: "statusScheduled",
+    className: "border border-amber-200 bg-amber-50 text-amber-700",
+  },
+  sending: {
+    labelKey: "statusSending",
+    className: "border border-blue-200 bg-blue-50 text-blue-700",
+  },
+  sent: { labelKey: "statusSent", className: "border border-green-200 bg-green-50 text-green-700" },
+  failed: { labelKey: "statusFailed", className: "border border-red-200 bg-red-50 text-red-700" },
+};
+
+type FilterKey = "all" | "draft" | "scheduled" | "sent";
+
 export function BroadcastsList() {
   const t = useTranslations("pages.broadcasts");
   const locale = useLocale();
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<FilterKey>("all");
   const pageSize = 20;
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["broadcasts", page],
-    queryFn: () =>
-      apiJson<Paginated<BroadcastOut>>(`/broadcasts?page=${page}&page_size=${pageSize}`),
-  });
-
-  const columns = useMemo<ColumnDef<BroadcastOut>[]>(
-    () => [
-      {
-        accessorKey: "title",
-        header: t("colTitle"),
-        cell: ({ row }) => <span className="font-medium">{row.original.title}</span>,
-      },
-      {
-        id: "segment",
-        header: t("colSegment"),
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{segmentLabel(t, row.original.segment)}</span>
-        ),
-      },
-      {
-        accessorKey: "status",
-        header: t("colStatus"),
-        cell: ({ row }) => (
-          <span className="rounded-md bg-muted px-2 py-0.5 text-xs">
-            {statusLabel(t, row.original.status)}
-          </span>
-        ),
-      },
-      {
-        id: "recipients",
-        header: t("colRecipients"),
-        cell: ({ row }) => {
-          const total = row.original.stats?.total;
-          return typeof total === "number" ? String(total) : "—";
-        },
-      },
-      {
-        id: "sent",
-        header: t("colSent"),
-        cell: ({ row }) => {
-          const s = row.original.stats;
-          if (!s) return "—";
-          const sent = typeof s.sent === "number" ? s.sent : 0;
-          const del = typeof s.delivered === "number" ? s.delivered : 0;
-          return `${sent} / ${del}`;
-        },
-      },
-      {
-        id: "when",
-        header: t("colDate"),
-        cell: ({ row }) => {
-          const raw = row.original.sent_at ?? row.original.scheduled_at ?? row.original.created_at;
-          if (!raw) return "—";
-          const d = new Date(raw);
-          return new Intl.DateTimeFormat(locale, {
-            dateStyle: "medium",
-            timeStyle: "short",
-          }).format(d);
-        },
-      },
-    ],
-    [locale, t],
-  );
-
-  const table = useReactTable({
-    data: data?.items ?? [],
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
+  const { data, isLoading } = useBroadcasts(page, pageSize);
 
   if (isLoading && !data) {
     return (
@@ -144,20 +87,49 @@ export function BroadcastsList() {
   const total = data?.total ?? 0;
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
+  const filtered = (data?.items ?? []).filter((x) =>
+    statusFilter === "all" ? true : x.status === statusFilter,
+  );
+  const tabs: { key: FilterKey; label: string }[] = useMemo(
+    () => [
+      { key: "all", label: t("segmentAll") },
+      { key: "draft", label: t("statusDraft") },
+      { key: "scheduled", label: t("statusScheduled") },
+      { key: "sent", label: t("statusSent") },
+    ],
+    [t],
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
+          <h1 className="font-playfair text-3xl tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <Button asChild>
+        <Button className="rounded-lg bg-[var(--primary)] px-4 py-2 text-white hover:bg-[var(--primary)]/90" asChild>
           <Link href="/broadcasts/new">{t("new")}</Link>
         </Button>
       </div>
+      <div className="flex flex-wrap gap-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setStatusFilter(tab.key)}
+            className={cn(
+              "rounded-full border border-border px-3 py-1.5 text-sm",
+              statusFilter === tab.key
+                ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
+                : "text-muted-foreground",
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      {!data?.items.length ? (
+      {!filtered.length ? (
         <div className="space-y-4">
           <AdminEmptyState title={t("empty")} description={t("emptyDesc")} />
           <div className="flex justify-center">
@@ -168,33 +140,75 @@ export function BroadcastsList() {
         </div>
       ) : (
         <>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((hg) => (
-                  <TableRow key={hg.id}>
-                    {hg.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="grid gap-3">
+            {filtered.map((row) => {
+              const when = row.sent_at ?? row.scheduled_at ?? row.created_at;
+              const sent = Number(row.stats?.sent ?? 0);
+              const delivered = Number(row.stats?.delivered ?? 0);
+              const totalRecipients = Number(row.stats?.total ?? 0);
+              const progress = totalRecipients > 0 ? Math.round((delivered / totalRecipients) * 100) : 0;
+              const cfg = statusConfig[row.status] ?? statusConfig["draft"]!;
+              return (
+                <div
+                  key={row.id}
+                  className="rounded-xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-colors hover:border-[var(--primary)]"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium">{row.title}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {(row.message_i18n[locale] ?? row.message_i18n.en ?? "").slice(0, 80)}
+                      </p>
+                    </div>
+                    <span className={cn("rounded-full px-2.5 py-1 text-xs", cfg.className)}>
+                      {t(cfg.labelKey)}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <Users className="h-3.5 w-3.5" /> {totalRecipients}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <SendHorizonal className="h-3.5 w-3.5" /> {sent}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <CheckCheck className="h-3.5 w-3.5" /> {delivered}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Eye className="h-3.5 w-3.5" /> {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(when))}
+                    </span>
+                  </div>
+                  {row.status === "sending" ? (
+                    <div className="mt-3">
+                      <div className="h-2 w-full rounded-full bg-muted">
+                        <div className="h-2 rounded-full bg-[var(--primary)]" style={{ width: `${progress}%` }} />
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button size="sm" variant="secondary" asChild>
+                      <Link href={`/broadcasts/new?duplicate=${row.id}`}>{t("duplicate")}</Link>
+                    </Button>
+                    <Button size="sm" variant="secondary" asChild>
+                      <Link href={`/broadcasts/${row.id}`}>
+                        <BarChart3 className="mr-1 h-3.5 w-3.5" /> {t("analytics")}
+                      </Link>
+                    </Button>
+                    {(row.status === "draft" || row.status === "scheduled") && (
+                      <>
+                        <Button size="sm" variant="outline" asChild>
+                          <Link href={`/broadcasts/new?edit=${row.id}`}>{t("edit")}</Link>
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-red-600">
+                          <CircleAlert className="mr-1 h-3.5 w-3.5" />
+                          {t("delete")}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
             <span>

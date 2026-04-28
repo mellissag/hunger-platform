@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { apiFetch, apiJson } from "@/lib/api";
 import { hexToPrimaryHsl } from "@/lib/color";
 import { getPublicApiBaseUrl } from "@/lib/env";
+import { useAutoTriggers, useUpdateTrigger } from "@/hooks/useBroadcasts";
 import type { SalonBundle } from "@/types/admin-api";
 
 function applyPrimaryPreview(primaryHex: string) {
@@ -675,6 +676,10 @@ export function SettingsSection({ section }: { section: string }) {
     );
   }
 
+  if (section === "automations") {
+    return <AutomationsSection />;
+  }
+
   if (section === "smtp") {
     const smtp = (settings.integrations?.smtp as Record<string, string> | undefined) ?? {};
     return (
@@ -733,6 +738,85 @@ export function SettingsSection({ section }: { section: string }) {
   }
 
   return <p className="text-sm text-muted-foreground">Unknown section</p>;
+}
+
+function AutomationsSection() {
+  const t = useTranslations("pages.settings");
+  const { data: triggers } = useAutoTriggers();
+  const updateTrigger = useUpdateTrigger();
+  const trigger = triggers?.find((x) => x.type === "post_visit");
+
+  const save = (patch: Record<string, unknown>) => {
+    if (!trigger) return;
+    updateTrigger.mutate({ id: trigger.id, data: patch });
+  };
+
+  if (!trigger) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("sections.automations")}</CardTitle>
+          <CardDescription>Создайте post_visit trigger через API и обновите страницу.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  const button = trigger.buttons?.[0] ?? { text: "", url: "" };
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="font-playfair text-base font-medium">Сообщение после визита</h3>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Автоматически после завершения записи
+            </p>
+          </div>
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={trigger.is_active}
+              onChange={(e) => save({ is_active: e.target.checked })}
+              className="h-4 w-4 rounded border border-border"
+            />
+            {trigger.is_active ? "Вкл." : "Выкл."}
+          </label>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <Label>Задержка (часы)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={168}
+              defaultValue={trigger.delay_hours}
+              onBlur={(e) => save({ delay_hours: Number.parseInt(e.target.value || "0", 10) })}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label>Ссылка кнопки</Label>
+            <Input
+              defaultValue={button.url}
+              onBlur={(e) => save({ buttons: [{ text: button.text || "Открыть", url: e.target.value }] })}
+              className="mt-1"
+            />
+          </div>
+        </div>
+        <div className="mt-4">
+          <Label>Шаблон сообщения</Label>
+          <Textarea
+            rows={5}
+            defaultValue={trigger.template_text}
+            onBlur={(e) => save({ template_text: e.target.value })}
+            className="mt-1"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">Переменные: {"{name}"} {"{master}"} {"{service}"} {"{date}"}</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function BackupsCard() {

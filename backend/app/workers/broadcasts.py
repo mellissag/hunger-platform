@@ -12,11 +12,15 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 import app.core.clock as clock
 
 from app.config import get_settings
+from app.models.auto_trigger import AutoTrigger, TriggerLog
+from app.models.booking import Booking
 from app.models.broadcast import Broadcast, BroadcastRecipient
+from app.models.catalog import Service
 from app.models.client import Client
 from app.models.enums import BroadcastRecipientStatus, BroadcastStatus
 
@@ -245,3 +249,152 @@ async def _bump_stats_locked(
     if failed_delta:
         stats["failed"] = int(stats.get("failed", 0)) + failed_delta
     bc.stats = stats
+
+
+def _render_trigger_text(
+    trigger: AutoTrigger,
+    booking: Booking,
+    client: Client,
+    service_name: str,
+) -> str:
+    master_name = booking.master.display_name if booking.master else ""
+    date_text = booking.starts_at.strftime("%Y-%m-%d %H:%M")
+    text = trigger.template_text
+    return (
+        text.replace("{name}", client.first_name or "")
+        .replace("{имя}", client.first_name or "")
+        .replace("{master}", master_name)
+        .replace("{мастер}", master_name)
+        .replace("{service}", service_name)
+        .replace("{услуга}", service_name)
+        .replace("{date}", date_text)
+        .replace("{дата}", date_text)
+    )
+
+
+def _build_simple_keyboard(buttons: list[dict[str, str]] | None) -> InlineKeyboardMarkup | None:
+    if not buttons:
+        return None
+    rows: list[list[InlineKeyboardButton]] = []
+    for btn in buttons[:3]:
+        txt = str(btn.get("text") or "").strip()
+        url = str(btn.get("url") or "").strip()
+        if txt and url:
+            rows.append([InlineKeyboardButton(text=txt, url=url)])
+    if not rows:
+        return None
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def fire_post_visit_trigger(ctx: dict[str, Any], booking_id: str) -> None:
+    """Отправляет пост-визитный триггер после completed booking."""
+    app_settings = get_settings()
+    if not app_settings.telegram_bot_token:
+        logger.warning("post-visit trigger skipped: TELEGRAM_BOT_TOKEN missing")
+        return
+
+    bid = UUID(booking_id)
+    factory = ctx["db"]
+
+    async with factory() as session:
+        booking = (
+            await session.execute(
+                select(Booking)
+                .options(
+                    joinedload(Booking.client),
+                    joinedload(Booking.master),
+                )
+                .where(Booking.id == bid)
+            )
+        ).scalar_one_or_none()
+        if booking is None:
+            return
+        client = booking.client
+        if client is None or client.tg_user_id is None:
+            return
+
+        already = (
+            await session.execute(
+                select(TriggerLog.id).where(
+                    TriggerLog.booking_id == bid,
+                    TriggerLog.status == "sent",
+                )
+            )
+        ).scalar_one_or_none()
+        if already is not None:
+            return
+
+        trigger = (
+            await session.execute(
+                select(AutoTrigger).where(
+                    AutoTrigger.type == "post_visit",
+                    AutoTrigger.is_active.is_(True),
+                    AutoTrigger.master_id == booking.master_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if trigger is None:
+            trigger = (
+                await session.execute(
+                    select(AutoTrigger).where(
+                        AutoTrigger.type == "post_visit",
+                        AutoTrigger.is_active.is_(True),
+                        AutoTrigger.master_id.is_(None),
+                    )
+                )
+            ).scalar_one_or_none()
+        if trigger is None:
+            return
+
+        service_name = ""
+        service = await session.get(Service, booking.service_id)
+        if service is not None:
+            lang = (client.lang or "en").split("-")[0].lower()
+            service_name = (
+                (service.name_i18n or {}).get(lang)
+                or (service.name_i18n or {}).get("en")
+                or ""
+            )
+        text = _render_trigger_text(trigger, booking, client, service_name)
+        keyboard = _build_simple_keyboard(trigger.buttons or [])
+
+    bot = Bot(token=app_settings.telegram_bot_token)
+    try:
+        if trigger.photo_url:
+            await bot.send_photo(
+                int(client.tg_user_id),
+                photo=trigger.photo_url,
+                caption=text,
+                reply_markup=keyboard,
+            )
+        else:
+            await bot.send_message(
+                int(client.tg_user_id),
+                text,
+                reply_markup=keyboard,
+            )
+        async with factory() as session:
+            session.add(
+                TriggerLog(
+                    trigger_id=trigger.id,
+                    client_id=client.id,
+                    booking_id=bid,
+                    status="sent",
+                )
+            )
+            await session.commit()
+    except Exception as exc:
+        async with factory() as session:
+            session.add(
+                TriggerLog(
+                    trigger_id=trigger.id if trigger else None,
+                    client_id=client.id,
+                    booking_id=bid,
+                    status="error",
+                    error_reason=str(exc)[:200],
+                )
+            )
+            await session.commit()
+        logger.exception("post-visit trigger failed for {}", bid)
+    finally:
+        await bot.session.close()

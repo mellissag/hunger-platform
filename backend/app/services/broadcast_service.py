@@ -14,6 +14,7 @@ import app.core.clock as clock
 
 from app.config import get_settings
 from app.core.exceptions import BroadcastInvalidStateError, EmptySegmentError, NotFoundError
+from app.models.auto_trigger import AutoTrigger
 from app.models.broadcast import Broadcast, BroadcastRecipient
 from app.models.enums import BroadcastStatus
 from app.models.user import User
@@ -50,6 +51,22 @@ async def enqueue_send_broadcast_job(broadcast_id: UUID, scheduled_at: datetime 
             await pool.enqueue_job("send_broadcast", str(broadcast_id), _defer_until=defer)
         else:
             await pool.enqueue_job("send_broadcast", str(broadcast_id))
+    finally:
+        await pool.close(close_connection_pool=True)
+
+
+async def enqueue_post_visit_trigger_job(booking_id: UUID, delay_hours: int) -> None:
+    """Ставит задачу fire_post_visit_trigger в ARQ с задержкой."""
+    settings = get_settings()
+    if not settings.redis_url:
+        logger.warning("REDIS_URL not set; post-visit trigger {} skipped", booking_id)
+        return
+    from arq.connections import RedisSettings, create_pool
+
+    pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
+    try:
+        defer_by = max(0, int(delay_hours)) * 3600
+        await pool.enqueue_job("fire_post_visit_trigger", str(booking_id), _defer_by=defer_by)
     finally:
         await pool.close(close_connection_pool=True)
 
@@ -193,3 +210,27 @@ async def publish_and_enqueue(
         logger.exception("enqueue send_broadcast failed for {}", broadcast_id)
         raise
     return bc
+
+
+async def get_active_post_visit_trigger(db: AsyncSession, master_id: UUID | None) -> AutoTrigger | None:
+    if master_id is not None:
+        scoped = (
+            await db.execute(
+                select(AutoTrigger).where(
+                    AutoTrigger.type == "post_visit",
+                    AutoTrigger.is_active.is_(True),
+                    AutoTrigger.master_id == master_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if scoped is not None:
+            return scoped
+    return (
+        await db.execute(
+            select(AutoTrigger).where(
+                AutoTrigger.type == "post_visit",
+                AutoTrigger.is_active.is_(True),
+                AutoTrigger.master_id.is_(None),
+            )
+        )
+    ).scalar_one_or_none()

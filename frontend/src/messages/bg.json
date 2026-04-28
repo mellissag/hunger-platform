@@ -750,6 +750,7 @@
         "reminders": "Напомняния",
         "payments": "Плащания",
         "telegram": "Telegram",
+        "automations": "Автоматизации",
         "smtp": "SMTP",
         "backups": "Архиви",
         "license": "Лиценз"
@@ -864,7 +865,17 @@
       "toastSaved": "Черновата е запазена",
       "toastSent": "Кампанията е планирана",
       "translateSoon": "Автоматичен превод чрез Gemini — когато е настроен.",
-      "translateAuto": "Преведи автоматично"
+      "translateAuto": "Преведи автоматично",
+      "duplicate": "Дублирай",
+      "analytics": "Анализ",
+      "edit": "Редактирай",
+      "delete": "Изтрий",
+      "back": "Назад",
+      "kpiSent": "Изпратени",
+      "kpiDelivered": "Доставени",
+      "kpiRead": "Прочетени",
+      "kpiErrors": "Грешки",
+      "all": "Всички"
     }
   }
 }

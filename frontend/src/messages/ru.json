@@ -750,6 +750,7 @@
         "reminders": "Напоминания",
         "payments": "Платежи",
         "telegram": "Telegram",
+        "automations": "Автоматизации",
         "smtp": "SMTP",
         "backups": "Бэкапы",
         "license": "Лицензия"
@@ -864,7 +865,17 @@
       "toastSaved": "Черновик сохранён",
       "toastSent": "Рассылка запланирована",
       "translateSoon": "Автоперевод через Gemini — когда настроено.",
-      "translateAuto": "Перевести автоматически"
+      "translateAuto": "Перевести автоматически",
+      "duplicate": "Дублировать",
+      "analytics": "Аналитика",
+      "edit": "Редактировать",
+      "delete": "Удалить",
+      "back": "Назад",
+      "kpiSent": "Отправлено",
+      "kpiDelivered": "Доставлено",
+      "kpiRead": "Прочитано",
+      "kpiErrors": "Ошибки",
+      "all": "Все"
     }
   }
 }

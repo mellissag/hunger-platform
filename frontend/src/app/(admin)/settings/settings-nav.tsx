@@ -15,6 +15,7 @@ const SECTIONS = [
   "reminders",
   "payments",
   "telegram",
+  "automations",
   "smtp",
   "backups",
   "license",
