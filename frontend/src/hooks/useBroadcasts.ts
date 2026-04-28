@@ -83,8 +83,10 @@ export const useDeleteBroadcast = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiFetch(`/broadcasts/${id}`, { method: "DELETE" }).then((r) => {
-        if (!r.ok && r.status !== 204) throw new Error(`Delete failed: ${r.status}`);
+      apiFetch(`/broadcasts/${id}`, { method: "DELETE" }).then(async (r) => {
+        if (r.ok || r.status === 204) return;
+        const body = await r.json().catch(() => ({})) as { detail?: string };
+        throw new Error(body.detail ?? `Delete failed: ${r.status}`);
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["broadcasts"] }),
   });
