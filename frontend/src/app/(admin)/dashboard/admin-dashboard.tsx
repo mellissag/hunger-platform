@@ -40,12 +40,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiJson } from "@/lib/api";
 import { utcAddDays, utcStartOfDay, toIsoParam } from "@/lib/date-utc";
 import type {
+  BroadcastOut,
   CalendarBooking,
   CalendarResponse,
   ClientOut,
   MasterOut,
   Paginated,
   ServiceOut,
+  StatsBotResponse,
   UserMe,
 } from "@/types/admin-api";
 
@@ -150,6 +152,21 @@ export function AdminDashboard() {
     queryFn: () => apiJson<Paginated<ServiceOut>>("/services?page=1&page_size=200"),
   });
 
+  const today = useMemo(() => {
+    const d = new Date();
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+  }, []);
+
+  const { data: broadcastsPage } = useQuery({
+    queryKey: ["broadcasts", "dash"],
+    queryFn: () => apiJson<Paginated<BroadcastOut>>("/broadcasts?page=1&page_size=100"),
+  });
+
+  const { data: botStatsData, dataUpdatedAt: botStatsUpdatedAt } = useQuery({
+    queryKey: ["stats", "bot", "dash", today],
+    queryFn: () => apiJson<StatsBotResponse>(`/stats/bot?from=${today}&to=${today}`),
+  });
+
   const kpis = useMemo(() => {
     const bookings = cal30?.bookings ?? [];
     const today = utcStartOfDay(now);
@@ -225,6 +242,27 @@ export function AdminDashboard() {
       topCount,
     };
   }, [cal30?.bookings, clientsPage?.items, mastersPage?.items, now]);
+
+  const pendingBroadcastCount = useMemo(
+    () =>
+      (broadcastsPage?.items ?? []).filter(
+        (b) => b.status === "draft" || b.status === "scheduled",
+      ).length,
+    [broadcastsPage?.items],
+  );
+
+  const todayBotBookings = useMemo(() => {
+    const stats = botStatsData?.stats as Record<string, number> | undefined;
+    return stats?.bookings_started ?? 0;
+  }, [botStatsData]);
+
+  const botSyncTime = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(
+        botStatsUpdatedAt ? new Date(botStatsUpdatedAt) : new Date(),
+      ),
+    [botStatsUpdatedAt, locale],
+  );
 
   const lineData = useMemo(() => {
     const bookings = cal30?.bookings ?? [];
@@ -357,16 +395,22 @@ export function AdminDashboard() {
 
       {/* ── Alerts ── */}
       <div className="space-y-2">
-        <div className="flex items-start gap-3 rounded border border-amber-200/60 bg-amber-50/60 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/20">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-          <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
-            <strong className="font-semibold text-foreground">{t("alertBroadcastTitle")}</strong>{" "}
-            {t("alertBroadcastBody")}
-          </p>
-        </div>
+        {pendingBroadcastCount > 0 && (
+          <div className="flex items-start gap-3 rounded border border-amber-200/60 bg-amber-50/60 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/20">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+              <strong className="font-semibold text-foreground">
+                {t("alertBroadcastTitle", { count: pendingBroadcastCount })}
+              </strong>{" "}
+              {t("alertBroadcastBody")}
+            </p>
+          </div>
+        )}
         <div className="flex items-start gap-3 rounded border border-primary/20 bg-primary/5 px-4 py-3">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <p className="text-xs leading-relaxed text-muted-foreground">{t("alertBotStatus")}</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {t("alertBotStatus", { bookings: todayBotBookings, syncTime: botSyncTime })}
+          </p>
         </div>
       </div>
 
