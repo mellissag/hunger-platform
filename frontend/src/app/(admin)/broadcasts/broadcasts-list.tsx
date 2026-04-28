@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { BarChart3, CheckCheck, CircleAlert, Eye, SendHorizonal, Users } from "lucide-react";
 
@@ -90,15 +90,12 @@ export function BroadcastsList() {
   const filtered = (data?.items ?? []).filter((x) =>
     statusFilter === "all" ? true : x.status === statusFilter,
   );
-  const tabs: { key: FilterKey; label: string }[] = useMemo(
-    () => [
-      { key: "all", label: t("segmentAll") },
-      { key: "draft", label: t("statusDraft") },
-      { key: "scheduled", label: t("statusScheduled") },
-      { key: "sent", label: t("statusSent") },
-    ],
-    [t],
-  );
+  const tabs: { key: FilterKey; label: string }[] = [
+    { key: "all", label: t("segmentAll") },
+    { key: "draft", label: t("statusDraft") },
+    { key: "scheduled", label: t("statusScheduled") },
+    { key: "sent", label: t("statusSent") },
+  ];
 
   return (
     <div className="space-y-6">
