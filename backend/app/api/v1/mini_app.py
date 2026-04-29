@@ -17,6 +17,7 @@ from app.config import get_settings
 from app.deps import get_db
 from app.models.catalog import MasterService, Service
 from app.models.client import Client
+from app.models.enums import ClientSource
 from app.models.master import Master
 from app.schemas.mini_app import (
     InitDataPayload,
@@ -121,6 +122,42 @@ async def _sync_client_lang(client: Client, payload: InitDataPayload, db: AsyncS
     if not client.lang and payload.language_code:
         client.lang = _resolve_lang(payload.language_code)
         await db.flush()
+
+
+async def _get_or_create_client(payload: InitDataPayload, db: AsyncSession) -> Client:
+    client = (
+        await db.execute(select(Client).where(Client.tg_user_id == payload.tg_user_id))
+    ).scalar_one_or_none()
+    if client is None:
+        client = Client(
+            tg_user_id=payload.tg_user_id,
+            tg_username=payload.username,
+            first_name=payload.first_name or None,
+            last_name=payload.last_name,
+            lang=_resolve_lang(payload.language_code),
+            source=ClientSource.bot,
+        )
+        db.add(client)
+        await db.flush()
+        await db.refresh(client)
+        return client
+
+    changed = False
+    if payload.username and client.tg_username != payload.username:
+        client.tg_username = payload.username
+        changed = True
+    if payload.first_name and client.first_name != payload.first_name:
+        client.first_name = payload.first_name
+        changed = True
+    if payload.last_name and client.last_name != payload.last_name:
+        client.last_name = payload.last_name
+        changed = True
+    if not client.lang and payload.language_code:
+        client.lang = _resolve_lang(payload.language_code)
+        changed = True
+    if changed:
+        await db.flush()
+    return client
 
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
@@ -314,17 +351,7 @@ async def create_booking(
     if not current_user.tg_user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
 
-    client = (
-        await db.execute(select(Client).where(Client.tg_user_id == current_user.tg_user_id))
-    ).scalar_one_or_none()
-
-    if client is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Client not found. Start the bot first.",
-        )
-
-    await _sync_client_lang(client, current_user, db)
+    client = await _get_or_create_client(current_user, db)
 
     import uuid as _uuid
     from datetime import datetime as _dt
