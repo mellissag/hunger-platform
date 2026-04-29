@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -133,9 +134,20 @@ export function BookingDetailDrawer({
       <Drawer open={open} onOpenChange={onOpenChange} direction="right" shouldScaleBackground={false}>
         <DrawerContent className="left-auto right-2 top-2 z-50 ml-auto flex h-[calc(100vh-16px)] w-full max-w-[480px] flex-col rounded-lg border bg-background p-0 shadow-xl data-[vaul-drawer-direction=right]:mt-0 data-[vaul-drawer-direction=right]:max-w-[480px]">
           <DrawerHeader className="border-b border-border px-6 text-left">
-            <DrawerTitle className="font-playfair text-xl font-medium">
-              {data ? t("detailTitle", { id: shortId(data.id) }) : t("detailLoadingTitle")}
-            </DrawerTitle>
+            <div className="flex items-center justify-between gap-2">
+              <DrawerTitle className="font-playfair text-xl font-medium">
+                {data ? t("detailTitle", { id: shortId(data.id) }) : t("detailLoadingTitle")}
+              </DrawerTitle>
+              <DrawerClose asChild>
+                <button
+                  type="button"
+                  aria-label="Закрыть"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </DrawerClose>
+            </div>
           </DrawerHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
