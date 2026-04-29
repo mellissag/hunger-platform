@@ -227,7 +227,15 @@
       "newClientTags": "Tags",
       "toastClientCreated": "Client created",
       "errorClientCreate": "Could not create client",
-      "saving": "Saving..."
+      "saving": "Saving...",
+      "blockHoursBtn": "Block hours",
+      "blockHoursTitle": "Block master time",
+      "fieldFrom": "From",
+      "fieldTo": "To",
+      "blockHoursSave": "Save block",
+      "blockHoursEmpty": "No blocks for selected week",
+      "blockHoursInvalidTime": "Please check time interval",
+      "blockHoursNotePlaceholder": "Break / personal time"
     },
     "clients": {
       "title": "Clients",

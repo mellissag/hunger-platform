@@ -8,7 +8,7 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Calendar,
   ChevronLeft,
@@ -48,18 +48,20 @@ import {
   useBookings,
   useCancelBooking,
 } from "@/hooks/useBookings";
-import { apiJson } from "@/lib/api";
+import { apiFetch, apiJson } from "@/lib/api";
 import { addDaysLocal, startOfWeekMondayLocal } from "@/lib/date-local";
 import { durationMinutes } from "@/lib/date-local";
 import { toIsoParam } from "@/lib/date-utc";
 import type {
   BookingOut,
   CalendarResponse,
+  CalendarSlotRow,
   ClientOut,
   MasterOut,
   Paginated,
   SalonBundle,
   ServiceOut,
+  UserMe,
 } from "@/types/admin-api";
 import { cn } from "@/lib/utils";
 
@@ -97,6 +99,12 @@ export function BookingsView() {
   const [tablePage, setTablePage] = useState(1);
   const [sorting, setSorting] = useState<SortingState>([{ id: "starts_at", desc: true }]);
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
+  const [blockOpen, setBlockOpen] = useState(false);
+  const [blockMasterId, setBlockMasterId] = useState("");
+  const [blockDate, setBlockDate] = useState("");
+  const [blockStart, setBlockStart] = useState("09:00");
+  const [blockEnd, setBlockEnd] = useState("13:00");
+  const [blockNote, setBlockNote] = useState("");
   const cancelMut = useCancelBooking();
 
   useEffect(() => {
@@ -112,6 +120,10 @@ export function BookingsView() {
   const { data: salon } = useQuery({
     queryKey: ["salon-bundle"],
     queryFn: () => apiJson<SalonBundle>("/salon"),
+  });
+  const { data: me } = useQuery({
+    queryKey: ["auth", "me", "bookings-view"],
+    queryFn: () => apiJson<UserMe>("/auth/me"),
   });
   const timeZone =
     salon?.salon.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC";
@@ -321,6 +333,61 @@ export function BookingsView() {
   };
 
   const calendarBookings = listQuery.data?.items ?? [];
+  const canManageBlocks = me?.role === "owner" || me?.role === "admin" || me?.role === "master";
+  const blockCandidates = useMemo(
+    () =>
+      (calData?.slots ?? []).filter((s) =>
+        ["block", "vacation", "sick", "break_"].includes(s.slot_type),
+      ),
+    [calData?.slots],
+  );
+
+  const createBlock = useMutation({
+    mutationFn: async () => {
+      const mid = me?.role === "master" ? me.master_id : blockMasterId;
+      if (!mid) throw new Error(t("fieldMaster"));
+      if (!blockDate || !blockStart || !blockEnd) throw new Error(t("validationRequired"));
+      const starts = new Date(`${blockDate}T${blockStart}:00`);
+      const ends = new Date(`${blockDate}T${blockEnd}:00`);
+      if (Number.isNaN(starts.getTime()) || Number.isNaN(ends.getTime()) || starts >= ends) {
+        throw new Error(t("blockHoursInvalidTime"));
+      }
+      return apiJson<CalendarSlotRow>("/schedule/block", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          master_id: mid,
+          starts_at: starts.toISOString(),
+          ends_at: ends.toISOString(),
+          slot_type: "block",
+          note: blockNote.trim() || null,
+        }),
+      });
+    },
+    onSuccess: async () => {
+      toast.success(t("toastSaved"));
+      setBlockOpen(false);
+      setBlockNote("");
+      await refetchCal();
+      await listQuery.refetch();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteBlock = useMutation({
+    mutationFn: async (slotId: string) => {
+      const res = await apiFetch(`/schedule/block/${slotId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { detail?: string };
+        throw new Error(body.detail ?? `Delete failed: ${res.status}`);
+      }
+    },
+    onSuccess: async () => {
+      toast.success(t("toastCancelled"));
+      await refetchCal();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <div className="space-y-6">
@@ -377,6 +444,19 @@ export function BookingsView() {
             <Plus className="h-4 w-4" />
             {t("create")}
           </Button>
+          {canManageBlocks && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                const fallbackMaster = me?.role === "master" ? (me.master_id ?? "") : (filters.master_id || masters[0]?.id || "");
+                setBlockMasterId(fallbackMaster);
+                setBlockDate(new Date().toLocaleDateString("en-CA", { timeZone }));
+                setBlockOpen(true);
+              }}
+            >
+              {t("blockHoursBtn")}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -676,6 +756,89 @@ export function BookingsView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={blockOpen} onOpenChange={setBlockOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("blockHoursTitle")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">{t("fieldMaster")}</label>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={me?.role === "master" ? (me.master_id ?? "") : blockMasterId}
+                onChange={(e) => setBlockMasterId(e.target.value)}
+                disabled={me?.role === "master"}
+              >
+                <option value="">—</option>
+                {masters.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.display_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">{t("fieldDate")}</label>
+                <InputNativeDate value={blockDate} onChange={setBlockDate} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">{t("fieldFrom")}</label>
+                <InputNativeTime value={blockStart} onChange={setBlockStart} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">{t("fieldTo")}</label>
+                <InputNativeTime value={blockEnd} onChange={setBlockEnd} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">{t("fieldNotes")}</label>
+              <input
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={blockNote}
+                onChange={(e) => setBlockNote(e.target.value)}
+                placeholder={t("blockHoursNotePlaceholder")}
+              />
+            </div>
+            <div className="max-h-48 space-y-1 overflow-auto rounded-md border border-border p-2">
+              {blockCandidates.map((slot) => (
+                <div key={slot.id} className="flex items-center justify-between gap-2 rounded border border-border px-2 py-1 text-xs">
+                  <span className="truncate">
+                    {masters.find((m) => m.id === slot.master_id)?.display_name ?? slot.master_id.slice(0, 6)} ·{" "}
+                    {new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short", timeZone }).format(new Date(slot.starts_at))} -{" "}
+                    {new Intl.DateTimeFormat(locale, { timeStyle: "short", timeZone }).format(new Date(slot.ends_at))}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={deleteBlock.isPending}
+                    onClick={() => deleteBlock.mutate(slot.id)}
+                  >
+                    {t("removeRow")}
+                  </Button>
+                </div>
+              ))}
+              {!blockCandidates.length && (
+                <p className="text-xs text-muted-foreground">{t("blockHoursEmpty")}</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBlockOpen(false)}>
+              {t("back")}
+            </Button>
+            <Button
+              onClick={() => createBlock.mutate()}
+              disabled={createBlock.isPending}
+            >
+              {t("blockHoursSave")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -684,6 +847,17 @@ function InputNativeDate({ value, onChange }: { value: string; onChange: (v: str
   return (
     <input
       type="date"
+      className="flex h-10 rounded-md border border-input bg-background px-3 text-sm"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  );
+}
+
+function InputNativeTime({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <input
+      type="time"
       className="flex h-10 rounded-md border border-input bg-background px-3 text-sm"
       value={value}
       onChange={(e) => onChange(e.target.value)}

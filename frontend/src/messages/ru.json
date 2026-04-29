@@ -227,7 +227,15 @@
       "newClientTags": "Теги",
       "toastClientCreated": "Клиент создан",
       "errorClientCreate": "Не удалось создать клиента",
-      "saving": "Сохранение..."
+      "saving": "Сохранение...",
+      "blockHoursBtn": "Закрыть часы",
+      "blockHoursTitle": "Закрыть время мастера",
+      "fieldFrom": "С",
+      "fieldTo": "По",
+      "blockHoursSave": "Сохранить блок",
+      "blockHoursEmpty": "Нет блоков на выбранную неделю",
+      "blockHoursInvalidTime": "Проверьте интервал времени",
+      "blockHoursNotePlaceholder": "Перерыв / личные дела"
     },
     "clients": {
       "title": "Клиенты",

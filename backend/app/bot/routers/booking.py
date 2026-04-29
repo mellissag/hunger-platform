@@ -386,18 +386,24 @@ async def render_time_slots(
         )
     ).scalar_one_or_none()
     dur = int(ms.duration_override) if ms and ms.duration_override else int(svc.duration_minutes)  # type: ignore[union-attr]
-    slots = await schedule_service.get_available_slots(db, master_id, day, dur, apply_lead_time=True)
-    times = [t.strftime("%H:%M") for t in slots]
+    candidates = await schedule_service.enumerate_slot_candidates(
+        db, master_id, day, dur, apply_lead_time=True
+    )
+    slots = [(t.strftime("%H:%M"), available) for t, available in candidates]
+    has_available = any(available for _, available in slots)
     page = int(data.get("t_page") or 0)
-    if not times:
+    if not slots:
         await query.message.edit_text(
             format_message(locale, "booking-no-slots"),
             reply_markup=None,
         )
         return
     await query.message.edit_text(
-        format_message(locale, "booking-choose-time"),
-        reply_markup=time_slots_keyboard(locale, times, page=page),
+        format_message(
+            locale,
+            "booking-choose-time" if has_available else "booking-no-slots",
+        ),
+        reply_markup=time_slots_keyboard(locale, slots, page=page),
     )
 
 
@@ -431,13 +437,24 @@ async def render_time_slots_refresh(
         )
     ).scalar_one_or_none()
     dur = int(ms.duration_override) if ms and ms.duration_override else int(svc.duration_minutes)  # type: ignore[union-attr]
-    slots = await schedule_service.get_available_slots(db, master_id, day, dur, apply_lead_time=True)
-    times = [t.strftime("%H:%M") for t in slots]
+    candidates = await schedule_service.enumerate_slot_candidates(
+        db, master_id, day, dur, apply_lead_time=True
+    )
+    slots = [(t.strftime("%H:%M"), available) for t, available in candidates]
+    has_available = any(available for _, available in slots)
     page = int(data.get("t_page") or 0)
     await query.message.edit_text(
-        format_message(locale, "booking-choose-time"),
-        reply_markup=time_slots_keyboard(locale, times, page=page),
+        format_message(
+            locale,
+            "booking-choose-time" if has_available else "booking-no-slots",
+        ),
+        reply_markup=time_slots_keyboard(locale, slots, page=page),
     )
+
+
+@router.callback_query(BookingStates.pick_time, F.data.startswith("book:timex:"))
+async def cb_time_disabled(query: CallbackQuery, locale: str) -> None:
+    await query.answer(format_message(locale, "booking-no-slots"), show_alert=False)
 
 
 @router.callback_query(BookingStates.pick_time, F.data.startswith("book:time:"))

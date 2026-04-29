@@ -109,17 +109,30 @@ def services_list_keyboard(
 
 def time_slots_keyboard(
     locale: str,
-    times: list[str],
+    slots: list[tuple[str, bool]],
     *,
     page: int = 0,
     page_size: int = 8,
 ) -> InlineKeyboardMarkup:
+    def _strike(text: str) -> str:
+        # Telegram inline buttons don't support markdown formatting.
+        # Use combining long stroke overlay for visual strike-through.
+        return "".join(ch + "\u0336" for ch in text)
+
     start = page * page_size
-    chunk = times[start : start + page_size]
+    chunk = slots[start : start + page_size]
     rows: list[list[InlineKeyboardButton]] = []
     row: list[InlineKeyboardButton] = []
-    for t in chunk:
-        row.append(InlineKeyboardButton(text=t, callback_data=f"book:time:{t}"))
+    for t, available in chunk:
+        if available:
+            row.append(InlineKeyboardButton(text=t, callback_data=f"book:time:{t}"))
+        else:
+            row.append(
+                InlineKeyboardButton(
+                    text=_strike(t),
+                    callback_data=f"book:timex:{t}",
+                )
+            )
         if len(row) == 2:
             rows.append(row)
             row = []
@@ -130,7 +143,7 @@ def time_slots_keyboard(
         nav_row.append(
             InlineKeyboardButton(text="◀", callback_data=f"book:tpage:{page - 1}")
         )
-    if start + page_size < len(times):
+    if start + page_size < len(slots):
         nav_row.append(
             InlineKeyboardButton(text="▶", callback_data=f"book:tpage:{page + 1}")
         )

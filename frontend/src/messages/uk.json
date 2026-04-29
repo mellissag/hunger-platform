@@ -227,7 +227,15 @@
       "newClientTags": "Теги",
       "toastClientCreated": "Клієнта створено",
       "errorClientCreate": "Не вдалося створити клієнта",
-      "saving": "Збереження..."
+      "saving": "Збереження...",
+      "blockHoursBtn": "Закрити години",
+      "blockHoursTitle": "Закрити час майстра",
+      "fieldFrom": "З",
+      "fieldTo": "По",
+      "blockHoursSave": "Зберегти блок",
+      "blockHoursEmpty": "Немає блоків на вибраний тиждень",
+      "blockHoursInvalidTime": "Перевірте інтервал часу",
+      "blockHoursNotePlaceholder": "Перерва / особисті справи"
     },
     "clients": {
       "title": "Клієнти",

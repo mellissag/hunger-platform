@@ -38,7 +38,7 @@ function slotOverlapsBlock(
   timeZone: string,
 ): { top: number; height: number } | null {
   if (masterId && slot.master_id !== masterId) return null;
-  const st = ["vacation", "block", "sick"].includes(slot.slot_type) ? slot.slot_type : null;
+  const st = ["vacation", "block", "sick", "break_"].includes(slot.slot_type) ? slot.slot_type : null;
   if (!st) return null;
   const a = minutesInZone(slot.starts_at, timeZone);
   const b = minutesInZone(slot.ends_at, timeZone);

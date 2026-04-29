@@ -227,7 +227,15 @@
       "newClientTags": "Тагове",
       "toastClientCreated": "Клиентът е създаден",
       "errorClientCreate": "Неуспешно създаване на клиент",
-      "saving": "Запазване..."
+      "saving": "Запазване...",
+      "blockHoursBtn": "Блокирай часове",
+      "blockHoursTitle": "Блокирай време на майстор",
+      "fieldFrom": "От",
+      "fieldTo": "До",
+      "blockHoursSave": "Запази блок",
+      "blockHoursEmpty": "Няма блокове за избраната седмица",
+      "blockHoursInvalidTime": "Проверете часовия интервал",
+      "blockHoursNotePlaceholder": "Почивка / лично време"
     },
     "clients": {
       "title": "Клиенти",
