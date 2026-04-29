@@ -183,7 +183,9 @@ async def update_booking(
     user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> BookingOut:
     b = await booking_service.update_booking(db, user, booking_id, body)
-    await notify_master_booking_updated(booking_id, getattr(request.app.state, "bot", None), db)
+    # Уведомление только при изменении времени записи
+    if body.starts_at is not None:
+        await notify_master_booking_updated(booking_id, getattr(request.app.state, "bot", None), db)
     return BookingOut.model_validate(b)
 
 

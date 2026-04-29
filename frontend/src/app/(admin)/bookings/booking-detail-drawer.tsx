@@ -64,6 +64,10 @@ export function BookingDetailDrawer({
   const lastSaved = useRef<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
 
+  // Stable ref to always-current patch.mutate — prevents it from being a dep
+  const patchMutateRef = useRef(patch.mutate);
+  useEffect(() => { patchMutateRef.current = patch.mutate; });
+
   useEffect(() => {
     if (data?.notes != null) {
       setNotes(data.notes);
@@ -78,7 +82,7 @@ export function BookingDetailDrawer({
     if (!bookingId || !open) return;
     if (debouncedNotes === (data?.notes ?? "")) return;
     if (debouncedNotes === lastSaved.current) return;
-    patch.mutate(
+    patchMutateRef.current(
       { id: bookingId, body: { notes: debouncedNotes || null } },
       {
         onSuccess: () => {
@@ -89,7 +93,9 @@ export function BookingDetailDrawer({
         },
       },
     );
-  }, [debouncedNotes, bookingId, open, data?.notes, patch, t]);
+  // patch.mutate via ref — не нужен как зависимость
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedNotes, bookingId, open, data?.notes, t]);
 
   const onStatusChange = (next: string) => {
     if (!bookingId || !data) return;
