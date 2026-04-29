@@ -23,6 +23,7 @@ export type MasterCreateForm = {
 
 export type MasterUpdateForm = Partial<{
   display_name: string;
+  color_hex: string;
   bio: Record<string, string>;
   specialization: Record<string, string>;
   photo_url: string | null;

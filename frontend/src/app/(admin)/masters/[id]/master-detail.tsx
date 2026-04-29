@@ -39,6 +39,7 @@ import { uploadImageFile } from "@/lib/api";
 
 const profileSchema = z.object({
   display_name: z.string().min(1),
+  color_hex: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
   tg_user_id: z.string().optional(),
   payroll_percent: z.string().optional().or(z.literal("")),
 });
@@ -121,10 +122,11 @@ export function MasterDetail({ masterId }: { masterId: string }) {
     values: master
       ? {
           display_name: master.display_name,
+          color_hex: master.color_hex,
           tg_user_id: master.tg_user_id != null ? String(master.tg_user_id) : "",
           payroll_percent: master.payroll_percent != null ? String(master.payroll_percent) : "",
         }
-      : { display_name: "", tg_user_id: "", payroll_percent: "" },
+      : { display_name: "", color_hex: "#D97757", tg_user_id: "", payroll_percent: "" },
   });
 
   const saveProfile = useUpdateMaster(masterId);
@@ -344,6 +346,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                   saveProfile.mutate(
                     {
                       display_name: v.display_name,
+                      color_hex: v.color_hex,
                       tg_user_id: v.tg_user_id ? Number(v.tg_user_id) : null,
                       ...(ownerOnly && v.payroll_percent !== ""
                         ? { payroll_percent: Number(v.payroll_percent) }
@@ -359,6 +362,19 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                 <div className="space-y-2">
                   <Label htmlFor="display_name">{t("fieldName")}</Label>
                   <Input id="display_name" {...profileForm.register("display_name")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="color_hex">{t("fieldColor")}</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="color_picker"
+                      type="color"
+                      className="h-10 w-14 cursor-pointer rounded border border-input bg-background p-1"
+                      value={profileForm.watch("color_hex") || "#D97757"}
+                      onChange={(e) => profileForm.setValue("color_hex", e.target.value, { shouldValidate: true })}
+                    />
+                    <Input id="color_hex" {...profileForm.register("color_hex")} />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Telegram ID</Label>

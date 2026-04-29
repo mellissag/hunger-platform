@@ -155,6 +155,7 @@ class MasterUpdate(BaseModel):
     bio: dict[str, str] | None = None
     specialization: dict[str, str] | None = None
     photo_url: str | None = None
+    color_hex: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
     sort_order: int | None = None
     is_active: bool | None = None
     payroll_percent: Decimal | None = Field(default=None, ge=Decimal("0"), le=Decimal("100"))
