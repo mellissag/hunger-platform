@@ -21,6 +21,7 @@ from app.models.client import Client
 from app.models.enums import BookingStatus
 from app.models.master import Master
 from app.models.salon import Salon
+from app.utils.datetime_utils import format_booking_datetime
 
 # (часы до визита, поле в booking, ключ текста)
 _REMINDER_BUCKETS: tuple[tuple[float, str, str], ...] = (
@@ -41,6 +42,98 @@ def _bucket_allowed(bucket_hours: float, enabled: set[float]) -> bool:
     return any(abs(bucket_hours - h) < 0.02 for h in enabled)
 
 
+_REMINDER_TEMPLATES: dict[str, dict[str, str]] = {
+    "24h": {
+        "ru": (
+            "⏰ Напоминание!\n\n"
+            "Завтра у вас запись.\n\n"
+            "💇 {service}\n"
+            "👩‍🦰 Мастер: {master}\n"
+            "📅 {datetime}\n\n"
+            "До встречи! ✨"
+        ),
+        "uk": (
+            "⏰ Нагадування!\n\n"
+            "Завтра у вас запис.\n\n"
+            "💇 {service}\n"
+            "👩‍🦰 Майстер: {master}\n"
+            "📅 {datetime}"
+        ),
+        "en": (
+            "⏰ Reminder!\n\n"
+            "You have an appointment tomorrow.\n\n"
+            "💇 {service}\n"
+            "👩‍🦰 Master: {master}\n"
+            "📅 {datetime}"
+        ),
+        "bg": (
+            "⏰ Напомняне!\n\n"
+            "Утре имате час.\n\n"
+            "💇 {service}\n"
+            "👩‍🦰 Майстор: {master}\n"
+            "📅 {datetime}"
+        ),
+    },
+    "2h": {
+        "ru": (
+            "⏰ Напоминание!\n\n"
+            "Ваша запись <b>через 2 часа</b>.\n\n"
+            "💇 {service}\n"
+            "👩‍🦰 Мастер: {master}\n"
+            "📅 {datetime}\n\n"
+            "До встречи! ✨"
+        ),
+        "uk": (
+            "⏰ Нагадування!\n\n"
+            "Ваш запис <b>через 2 години</b>.\n\n"
+            "💇 {service}\n"
+            "👩‍🦰 Майстер: {master}\n"
+            "📅 {datetime}"
+        ),
+        "en": (
+            "⏰ Reminder!\n\n"
+            "Your appointment is <b>in 2 hours</b>.\n\n"
+            "💇 {service}\n"
+            "👩‍🦰 Master: {master}\n"
+            "📅 {datetime}"
+        ),
+        "bg": (
+            "⏰ Напомняне!\n\n"
+            "Вашият час е <b>след 2 часа</b>.\n\n"
+            "💇 {service}\n"
+            "👩‍🦰 Майстор: {master}\n"
+            "📅 {datetime}"
+        ),
+    },
+    "30m": {
+        "ru": (
+            "⏰ До вашей записи <b>30 минут</b>!\n\n"
+            "💇 {service}\n"
+            "👩‍🦰 Мастер: {master}\n"
+            "📅 {datetime}"
+        ),
+        "uk": (
+            "⏰ До вашого запису <b>30 хвилин</b>!\n\n"
+            "💇 {service}\n"
+            "👩‍🦰 Майстер: {master}\n"
+            "📅 {datetime}"
+        ),
+        "en": (
+            "⏰ Your appointment is <b>in 30 minutes</b>!\n\n"
+            "💇 {service}\n"
+            "👩‍🦰 Master: {master}\n"
+            "📅 {datetime}"
+        ),
+        "bg": (
+            "⏰ Вашият час е <b>след 30 минути</b>!\n\n"
+            "💇 {service}\n"
+            "👩‍🦰 Майстор: {master}\n"
+            "📅 {datetime}"
+        ),
+    },
+}
+
+
 def _reminder_body(
     lang: str,
     kind_key: str,
@@ -49,36 +142,9 @@ def _reminder_body(
     master_name: str,
     starts_local: str,
 ) -> str:
-    lines: dict[str, dict[str, str]] = {
-        "24h": {
-            "en": "Reminder: you have an appointment in 24 hours.",
-            "ru": "Напоминание: через 24 часа у вас запись.",
-            "uk": "Нагадування: через 24 години у вас запис.",
-            "bg": "Напоминание: след 24 часа имате час.",
-        },
-        "2h": {
-            "en": "Reminder: your appointment starts in 2 hours.",
-            "ru": "Напоминание: через 2 часа начинается ваша запись.",
-            "uk": "Нагадування: через 2 години починається ваш запис.",
-            "bg": "Напоминание: след 2 часа започва вашият час.",
-        },
-        "30m": {
-            "en": "Reminder: your appointment starts in 30 minutes.",
-            "ru": "Напоминание: через 30 минут начинается ваша запись.",
-            "uk": "Нагадування: через 30 хвилин починається ваш запис.",
-            "bg": "Напоминание: след 30 минути започва вашият час.",
-        },
-    }
-    head = lines[kind_key].get(lang) or lines[kind_key]["en"]
-    return "\n".join(
-        [
-            head,
-            "",
-            f"💅 {service_name}",
-            f"👤 {master_name}",
-            f"🕐 {starts_local}",
-        ]
-    )
+    bucket = _REMINDER_TEMPLATES.get(kind_key, _REMINDER_TEMPLATES["2h"])
+    template = bucket.get(lang) or bucket["en"]
+    return template.format(service=service_name, master=master_name, datetime=starts_local)
 
 
 async def _claim_reminder_flag(
@@ -123,6 +189,8 @@ async def _run_reminders_session(session: AsyncSession, token: str) -> None:
         return
     enabled = _intervals_enabled(salon.settings)
 
+    salon_tz = salon.timezone or "Europe/Sofia"
+
     res = await session.execute(
         select(Booking, Client, Service, Master)
         .join(Client, Booking.client_id == Client.id)
@@ -154,7 +222,7 @@ async def _run_reminders_session(session: AsyncSession, token: str) -> None:
                 or "Service"
             )
             master_name = master.display_name
-            starts_local = booking.starts_at.strftime("%Y-%m-%d %H:%M UTC")
+            starts_local = format_booking_datetime(booking.starts_at, lang, salon_tz)
 
             for bucket_hours, flag_attr, kind_key in _REMINDER_BUCKETS:
                 if not _bucket_allowed(bucket_hours, enabled):
@@ -176,7 +244,7 @@ async def _run_reminders_session(session: AsyncSession, token: str) -> None:
                     starts_local=starts_local,
                 )
                 try:
-                    await bot.send_message(int(client.tg_user_id), text)
+                    await bot.send_message(int(client.tg_user_id), text, parse_mode="HTML")
                 except Exception as exc:
                     logger.exception(
                         "reminder send failed booking={} flag={} err={}",

@@ -13,6 +13,7 @@ from app.models.booking import Booking
 from app.models.catalog import Service
 from app.models.client import Client
 from app.models.master import Master
+from app.utils.datetime_utils import format_booking_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ async def notify_master_new_booking(booking_id: UUID, bot: Bot | None, db: Async
         f"Новая запись!\n"
         f"Клиент: {cname}\n"
         f"Услуга: {svc_name}\n"
-        f"Время: {b.starts_at.strftime('%d.%m %H:%M')} UTC\n"
+        f"Время: {format_booking_datetime(b.starts_at, 'ru')}\n"
         f"Тел: {phone}"
     )
     try:
@@ -60,7 +61,7 @@ async def notify_master_booking_updated(booking_id: UUID, bot: Bot | None, db: A
         return
     text = (
         f"Запись обновлена.\n"
-        f"Новое время: {b.starts_at.strftime('%d.%m %H:%M')} UTC"
+        f"Новое время: {format_booking_datetime(b.starts_at, 'ru')}"
     )
     try:
         await bot.send_message(chat_id=int(m.tg_user_id), text=text)
@@ -79,7 +80,7 @@ async def notify_master_booking_cancelled(booking_id: UUID, bot: Bot | None, db:
     m = await db.get(Master, b.master_id)
     if m is None or not m.tg_user_id:
         return
-    text = f"Запись отменена.\nВремя было: {b.starts_at.strftime('%d.%m %H:%M')} UTC"
+    text = f"Запись отменена.\nВремя было: {format_booking_datetime(b.starts_at, 'ru')}"
     try:
         await bot.send_message(chat_id=int(m.tg_user_id), text=text)
     except TelegramForbiddenError:
@@ -99,7 +100,7 @@ async def notify_master_booking_status_changed(
     m = await db.get(Master, b.master_id)
     if m is None or not m.tg_user_id:
         return
-    text = f"Статус записи изменён: {status_label}.\nВремя: {b.starts_at.strftime('%d.%m %H:%M')} UTC"
+    text = f"Статус записи изменён: {status_label}.\nВремя: {format_booking_datetime(b.starts_at, 'ru')}"
     try:
         await bot.send_message(chat_id=int(m.tg_user_id), text=text)
     except TelegramForbiddenError:

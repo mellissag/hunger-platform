@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     telegram_webhook_secret: str | None = None
     gemini_api_key: str | None = None
     upload_dir: str = "./data/uploads"
+    salon_timezone: str = "Europe/Sofia"
 
 
 @lru_cache
