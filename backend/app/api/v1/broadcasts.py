@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from datetime import date, datetime
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from pydantic import BaseModel
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_roles
@@ -193,6 +195,115 @@ async def broadcast_recipients(
         )
         for client_id, status, error, sent_at, first_name, last_name in rows
     ]
+
+
+# ── Stats ─────────────────────────────────────────────────────────────────────
+
+class BroadcastStatsCampaign(BaseModel):
+    id: str
+    title: str
+    status: str
+    sent_at: datetime | None
+    total: int
+    sent: int
+    delivered: int
+    failed: int
+    delivery_rate: float
+
+
+class BroadcastStatsDaily(BaseModel):
+    date: str
+    sent: int
+    delivered: int
+
+
+class BroadcastStatsSummaryOut(BaseModel):
+    total_broadcasts: int
+    total_recipients: int
+    total_sent: int
+    total_delivered: int
+    total_failed: int
+    delivery_rate: float
+    daily_chart: list[BroadcastStatsDaily]
+    campaigns: list[BroadcastStatsCampaign]
+
+
+def _int_stat(stats: dict[str, Any], key: str) -> int:
+    v = stats.get(key, 0)
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return 0
+
+
+@router.get("/stats/summary", response_model=BroadcastStatsSummaryOut)
+async def broadcasts_stats_summary(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _user: Annotated[User, Depends(require_roles(*STAFF))],
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    status: str | None = Query(None),
+) -> BroadcastStatsSummaryOut:
+    stmt = select(Broadcast)
+    if date_from:
+        stmt = stmt.where(Broadcast.created_at >= datetime(date_from.year, date_from.month, date_from.day))
+    if date_to:
+        stmt = stmt.where(
+            Broadcast.created_at < datetime(date_to.year, date_to.month, date_to.day + 1)
+            if date_to.day < 28 else datetime(date_to.year, date_to.month, date_to.day, 23, 59, 59)
+        )
+    if status:
+        from app.models.enums import BroadcastStatus
+        try:
+            stmt = stmt.where(Broadcast.status == BroadcastStatus(status))
+        except ValueError:
+            pass
+    broadcasts: list[Broadcast] = list((await db.execute(stmt.order_by(Broadcast.created_at.desc()))).scalars().all())
+
+    total_recipients = sum(_int_stat(b.stats, "total") for b in broadcasts)
+    total_sent = sum(_int_stat(b.stats, "sent") for b in broadcasts)
+    total_delivered = sum(_int_stat(b.stats, "delivered") for b in broadcasts)
+    total_failed = sum(_int_stat(b.stats, "failed") for b in broadcasts)
+    delivery_rate = round(total_delivered / total_sent * 100, 1) if total_sent else 0.0
+
+    # Daily chart grouped by sent_at date
+    sent_broadcasts = [b for b in broadcasts if b.sent_at is not None]
+    daily_map: dict[str, BroadcastStatsDaily] = {}
+    for b in sent_broadcasts:
+        day_key = b.sent_at.strftime("%Y-%m-%d")  # type: ignore[union-attr]
+        if day_key not in daily_map:
+            daily_map[day_key] = BroadcastStatsDaily(date=day_key, sent=0, delivered=0)
+        daily_map[day_key].sent += _int_stat(b.stats, "sent")
+        daily_map[day_key].delivered += _int_stat(b.stats, "delivered")
+    daily_chart = sorted(daily_map.values(), key=lambda x: x.date)
+
+    campaigns = [
+        BroadcastStatsCampaign(
+            id=str(b.id),
+            title=b.title,
+            status=b.status.value if hasattr(b.status, "value") else str(b.status),
+            sent_at=b.sent_at,
+            total=_int_stat(b.stats, "total"),
+            sent=_int_stat(b.stats, "sent"),
+            delivered=_int_stat(b.stats, "delivered"),
+            failed=_int_stat(b.stats, "failed"),
+            delivery_rate=round(
+                _int_stat(b.stats, "delivered") / _int_stat(b.stats, "sent") * 100, 1
+            ) if _int_stat(b.stats, "sent") else 0.0,
+        )
+        for b in broadcasts
+    ]
+
+    return BroadcastStatsSummaryOut(
+        total_broadcasts=len(broadcasts),
+        total_recipients=total_recipients,
+        total_sent=total_sent,
+        total_delivered=total_delivered,
+        total_failed=total_failed,
+        delivery_rate=delivery_rate,
+        daily_chart=daily_chart,
+        campaigns=campaigns,
+    )
 
 
 @triggers_router.get("", response_model=list[AutoTriggerOut])

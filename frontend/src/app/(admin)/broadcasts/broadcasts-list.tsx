@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { BarChart3, CheckCheck, CircleAlert, Eye, Plus, SendHorizonal, Trash2, Users } from "lucide-react";
+import { BarChart2, BarChart3, CheckCheck, CircleAlert, Eye, Plus, SendHorizonal, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { AdminEmptyState } from "@/components/admin/empty-state";
@@ -119,12 +119,20 @@ export function BroadcastsList() {
           <h1 className="font-playfair text-3xl tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <Button className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90" asChild>
-          <Link href="/broadcasts/new">
-            <Plus className="mr-1 h-4 w-4" />
-            {t("new")}
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/broadcasts/stats">
+              <BarChart2 className="mr-1.5 h-4 w-4" />
+              Статистика
+            </Link>
+          </Button>
+          <Button className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90" asChild>
+            <Link href="/broadcasts/new">
+              <Plus className="mr-1 h-4 w-4" />
+              {t("new")}
+            </Link>
+          </Button>
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
         {tabs.map((tab) => (
