@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Bell,
   CalendarDays,
   ChevronDown,
   ClipboardList,
@@ -28,7 +27,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTheme } from "@/providers/ThemeProvider";
-import { useBookingNotifications } from "@/hooks/useBookingNotifications";
+import { NotificationsBell } from "@/components/layout/NotificationsBell";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -99,7 +98,6 @@ export function AdminAppShell({
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
-  const { hasNew, pendingCount, clearNew } = useBookingNotifications();
   const canReadSalon = user.role === "owner" || user.role === "admin";
   const { data: salonBundle } = useQuery({
     queryKey: ["salon-bundle", "admin-nav-order"],
@@ -226,31 +224,9 @@ export function AdminAppShell({
           </div>
 
           <div className="ml-auto flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative hidden sm:inline-flex"
-                  onClick={() => {
-                    clearNew();
-                    router.push("/bookings");
-                  }}
-                >
-                  <Bell className={hasNew ? "h-4 w-4 text-[var(--primary)]" : "h-4 w-4"} />
-                  {pendingCount > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white leading-none">
-                      {pendingCount > 99 ? "99+" : pendingCount}
-                    </span>
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {pendingCount > 0
-                  ? `${pendingCount} ${pendingCount === 1 ? "запись ожидает" : "записей ожидают"} подтверждения`
-                  : t("topbar.notifications")}
-              </TooltipContent>
-            </Tooltip>
+            <div className="hidden sm:block">
+              <NotificationsBell />
+            </div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

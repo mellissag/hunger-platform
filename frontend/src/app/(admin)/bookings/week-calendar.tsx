@@ -94,7 +94,9 @@ export function WeekCalendar({
       const key = d.toLocaleDateString("en-CA", { timeZone });
       map.set(key, []);
     }
+    const HIDDEN_STATUSES = new Set(["cancelled_by_client", "cancelled_by_salon", "no_show"]);
     for (const b of bookings) {
+      if (HIDDEN_STATUSES.has(b.status)) continue;
       const { dayKey } = minutesInZone(b.starts_at, timeZone);
       const list = map.get(dayKey);
       if (list) list.push(b);
@@ -229,10 +231,14 @@ export function WeekCalendar({
                         style={{
                           top,
                           height,
-                          background: isPending
-                            ? `${col}aa`
-                            : `${col}dd`,
-                          borderLeft: `3px solid ${col}`,
+                          backgroundColor: isPending ? `${col}99` : `${col}dd`,
+                          backgroundImage: isPending
+                            ? "repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.1) 5px, rgba(0,0,0,0.1) 10px)"
+                            : undefined,
+                          border: isPending
+                            ? `2px dashed rgba(255,255,255,0.55)`
+                            : `none`,
+                          borderLeft: isPending ? undefined : `3px solid ${col}`,
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -240,16 +246,17 @@ export function WeekCalendar({
                         }}
                       >
                         {isPending && (
-                          <div
-                            className="pointer-events-none absolute inset-0"
-                            style={{
-                              background:
-                                "repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.25) 5px, rgba(255,255,255,0.25) 10px)",
-                            }}
-                          />
+                          <svg
+                            className="absolute right-1 top-1 opacity-80"
+                            width="11" height="11" viewBox="0 0 24 24"
+                            fill="none" stroke="rgba(255,255,255,0.95)" strokeWidth="2.5"
+                            strokeLinecap="round" strokeLinejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                          </svg>
                         )}
                         <span className="relative line-clamp-3">
-                          {isPending && "⏳ "}
                           {nameClient(b.client_id)} · {nameService(b.service_id)}
                         </span>
                       </button>

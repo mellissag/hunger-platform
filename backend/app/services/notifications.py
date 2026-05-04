@@ -192,3 +192,31 @@ async def notify_client_booking_rejected(
         logger.info("client tg forbidden chat_id=%s", client.tg_user_id)
     except Exception:  # noqa: BLE001
         logger.exception("notify_client_booking_rejected failed booking_id=%s", booking_id)
+
+
+async def notify_client_booking_rescheduled(booking_id: UUID, bot: "Bot | None", db: AsyncSession) -> None:
+    if bot is None:
+        return
+    b = await db.get(Booking, booking_id)
+    if b is None:
+        return
+    client = await db.get(Client, b.client_id)
+    if client is None or not client.tg_user_id:
+        return
+    m = await db.get(Master, b.master_id)
+    svc = await db.get(Service, b.service_id)
+    lang = client.lang or "ru"
+    new_dt = format_booking_datetime(b.starts_at, lang)
+    text = (
+        f"\U0001f504 <b>Ваша запись перенесена</b>\n\n"
+        f"\U0001f487 Услуга: {_svc_name(svc)}\n"
+        f"\U0001f469\u200d\U0001f9b0 Мастер: {m.display_name if m else '—'}\n"
+        f"\U0001f4c6 Новое время: {new_dt}\n\n"
+        f"Ждём вас! \u2728"
+    )
+    try:
+        await bot.send_message(chat_id=int(client.tg_user_id), text=text, parse_mode="HTML")
+    except TelegramForbiddenError:
+        logger.info("client tg forbidden chat_id=%s", client.tg_user_id)
+    except Exception:  # noqa: BLE001
+        logger.exception("notify_client_booking_rescheduled failed booking_id=%s", booking_id)

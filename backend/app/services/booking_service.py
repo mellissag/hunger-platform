@@ -179,7 +179,7 @@ async def create_booking(db: AsyncSession, user: User, data: BookingCreate) -> B
         service_id=data.service_id,
         starts_at=starts_at,
         ends_at=ends_at,
-        status=BookingStatus.confirmed,
+        status=BookingStatus.pending,
         price=price,
         prepayment_status=PrepaymentStatus.none,
         notes=data.notes,

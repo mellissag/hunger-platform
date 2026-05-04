@@ -56,3 +56,9 @@ class ReviewStates(StatesGroup):
 class MasterBookingStates(StatesGroup):
     reject_reason = State()
     reschedule_pending = State()
+
+
+class RescheduleStates(StatesGroup):
+    waiting_admin_confirm = State()
+    picking_date = State()
+    picking_time = State()
