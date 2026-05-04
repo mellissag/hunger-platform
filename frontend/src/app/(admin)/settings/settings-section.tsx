@@ -769,6 +769,7 @@ const NAV_ITEMS: { href: string; labelKey: string }[] = [
   { href: "/services", labelKey: "services" },
   { href: "/schedule", labelKey: "schedule" },
   { href: "/broadcasts", labelKey: "broadcasts" },
+  { href: "/chats", labelKey: "chats" },
   { href: "/statistics", labelKey: "statistics" },
   { href: "/ai", labelKey: "ai" },
   { href: "/inventory", labelKey: "inventory" },
