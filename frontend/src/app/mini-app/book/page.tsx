@@ -280,14 +280,19 @@ function BookPageContent() {
       .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load masters
+  // Load masters filtered by the selected service
   useEffect(() => {
-    fetch(`${API_BASE}/api/v1/mini-app/masters`)
+    const params = new URLSearchParams();
+    if (selectedService) {
+      params.set("service_id", selectedService.id);
+    }
+    const url = `${API_BASE}/api/v1/mini-app/masters${params.size ? `?${params}` : ""}`;
+    fetch(url)
       .then((r) => r.json())
       .then((data: Master[]) => {
         setMasters(data);
         const masterId = searchParams.get("master_id");
-        if (masterId) {
+        if (masterId && !selectedService) {
           const found = data.find((m) => m.id === masterId);
           if (found) {
             setSelectedMaster(found);
@@ -296,7 +301,7 @@ function BookPageContent() {
         }
       })
       .catch(() => {});
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedService?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load slots when date changes
   useEffect(() => {
@@ -326,6 +331,12 @@ function BookPageContent() {
     setSlots([]);
     setAvailableDates(null);
   }, [selectedMaster?.id, selectedService?.id]);
+
+  // When service changes, clear the previously selected master so
+  // the user picks from the freshly filtered list for the new service.
+  useEffect(() => {
+    setSelectedMaster(null);
+  }, [selectedService?.id]);
 
   const handleBook = useCallback(async () => {
     if (!selectedService || !selectedMaster || !selectedDate || !selectedTime) return;

@@ -209,16 +209,29 @@ async def list_services(
 @router.get("/masters", response_model=list[MiniAppMasterOut])
 async def list_masters(
     db: AsyncSession = Depends(get_db),
+    service_id: str | None = None,
 ) -> list[MiniAppMasterOut]:
-    """Public: active masters."""
-    rows = (
-        await db.execute(
-            select(Master)
-            .where(Master.is_active.is_(True))
-            .options(selectinload(Master.master_services).selectinload(MasterService.service))
-            .order_by(Master.sort_order)
+    """Public: active masters. When service_id is provided, returns only masters
+    who have that service linked in master_service table."""
+    import uuid as _uuid
+
+    stmt = (
+        select(Master)
+        .where(Master.is_active.is_(True))
+        .options(selectinload(Master.master_services).selectinload(MasterService.service))
+        .order_by(Master.sort_order)
+    )
+
+    if service_id is not None:
+        try:
+            sid = _uuid.UUID(service_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid service_id")
+        stmt = stmt.join(MasterService, MasterService.master_id == Master.id).where(
+            MasterService.service_id == sid
         )
-    ).scalars().all()
+
+    rows = (await db.execute(stmt)).scalars().all()
 
     return [
         MiniAppMasterOut(
