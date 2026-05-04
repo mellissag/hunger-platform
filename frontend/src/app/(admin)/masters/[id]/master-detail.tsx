@@ -44,6 +44,17 @@ const profileSchema = z.object({
   payroll_percent: z.string().optional().or(z.literal("")),
 });
 
+const PRESET_COLORS = [
+  "#9A7230",
+  "#16A34A",
+  "#2563EB",
+  "#DC2626",
+  "#9333EA",
+  "#EA580C",
+  "#0891B2",
+  "#BE185D",
+] as const;
+
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 function defaultWorkingHours(): WorkingHoursForm {
   return {
@@ -100,6 +111,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
   const [profilePhotoBroken, setProfilePhotoBroken] = useState(false);
   const [brokenPortfolio, setBrokenPortfolio] = useState<Record<number, boolean>>({});
   const profilePhotoInputRef = useRef<HTMLInputElement | null>(null);
+  const colorPickerInputRef = useRef<HTMLInputElement | null>(null);
   const [credEmail, setCredEmail] = useState("");
   const [credPassword, setCredPassword] = useState("");
   const [credConfirm, setCredConfirm] = useState("");
@@ -364,17 +376,63 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                   <Input id="display_name" {...profileForm.register("display_name")} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="color_hex">{t("fieldColor")}</Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="color_picker"
-                      type="color"
-                      className="h-10 w-14 cursor-pointer rounded border border-input bg-background p-1"
-                      value={profileForm.watch("color_hex") || "#D97757"}
-                      onChange={(e) => profileForm.setValue("color_hex", e.target.value, { shouldValidate: true })}
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-[var(--primary)]">
+                    Цвет в календаре
+                  </Label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div
+                      className="relative h-10 w-10 shrink-0 cursor-pointer rounded-full border-2 border-border shadow-sm transition-transform hover:scale-105"
+                      style={{ backgroundColor: profileForm.watch("color_hex") || "#D97757" }}
+                      onClick={() => colorPickerInputRef.current?.click()}
+                      title="Выбрать цвет"
                     />
-                    <Input id="color_hex" {...profileForm.register("color_hex")} />
+                    <input
+                      ref={colorPickerInputRef}
+                      type="color"
+                      className="sr-only"
+                      value={profileForm.watch("color_hex") || "#D97757"}
+                      onChange={(e) =>
+                        profileForm.setValue("color_hex", e.target.value.toUpperCase(), {
+                          shouldValidate: true,
+                        })
+                      }
+                    />
+                    <Input
+                      id="color_hex"
+                      {...profileForm.register("color_hex", {
+                        onChange: (e) =>
+                          profileForm.setValue(
+                            "color_hex",
+                            e.target.value.toUpperCase(),
+                            { shouldValidate: true },
+                          ),
+                      })}
+                      placeholder="#9A7230"
+                      className="w-32 font-mono text-sm"
+                      maxLength={7}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {PRESET_COLORS.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          title={c}
+                          className={cn(
+                            "h-6 w-6 rounded-full border border-border transition-transform hover:scale-110",
+                            profileForm.watch("color_hex")?.toLowerCase() === c.toLowerCase() &&
+                              "ring-2 ring-offset-1 ring-[var(--primary)]",
+                          )}
+                          style={{ backgroundColor: c }}
+                          onClick={() =>
+                            profileForm.setValue("color_hex", c, { shouldValidate: true })
+                          }
+                        />
+                      ))}
+                    </div>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Этот цвет используется для отображения записей мастера в расписании
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label>Telegram ID</Label>
