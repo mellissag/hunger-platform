@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { toast } from "sonner";
 import {
@@ -48,6 +49,7 @@ import { cn } from "@/lib/utils";
 import { useConfirmBooking } from "@/hooks/useBookings";
 import { utcAddDays, utcStartOfDay, toIsoParam } from "@/lib/date-utc";
 import type {
+  BookingOut,
   BroadcastOut,
   CalendarBooking,
   CalendarResponse,
@@ -173,6 +175,12 @@ export function AdminDashboard() {
   const { data: botStatsData, dataUpdatedAt: botStatsUpdatedAt } = useQuery({
     queryKey: ["stats", "bot", "dash", today],
     queryFn: () => apiJson<StatsBotResponse>(`/stats/bot?from=${today}&to=${today}`),
+  });
+
+  const { data: pendingPage, isLoading: pendingLoading } = useQuery({
+    queryKey: ["bookings", "pending", "dash"],
+    queryFn: () => apiJson<Paginated<BookingOut>>("/bookings?page=1&limit=10&status=pending"),
+    refetchInterval: 30_000,
   });
 
   const kpis = useMemo(() => {
@@ -361,6 +369,22 @@ export function AdminDashboard() {
     () => todayBookings.filter((b) => b.status === "pending").length,
     [todayBookings],
   );
+
+  const pendingBookings = useMemo(() => {
+    const clients = clientsPage?.items ?? [];
+    const masters = mastersPage?.items ?? [];
+    const services = servicesPage?.items ?? [];
+    return (pendingPage?.items ?? []).map((b) => {
+      const client = clients.find((c) => c.id === b.client_id);
+      const cn = [client?.first_name, client?.last_name].filter(Boolean).join(" ") || "—";
+      const mn = masters.find((m) => m.id === b.master_id)?.display_name ?? "—";
+      const sn =
+        services.find((s) => s.id === b.service_id)?.name_i18n[locale] ??
+        services.find((s) => s.id === b.service_id)?.name_i18n.en ??
+        "—";
+      return { ...b, cn, mn, sn };
+    });
+  }, [pendingPage?.items, clientsPage?.items, mastersPage?.items, servicesPage?.items, locale]);
 
   const salonName = me?.email?.split("@")[1]?.split(".")[0] ?? "Salon";
   const displayName = [me?.first_name, me?.last_name].filter(Boolean).join(" ") || me?.email || "";
@@ -597,6 +621,9 @@ export function AdminDashboard() {
 
         {/* Right column */}
         <div className="flex flex-col gap-4">
+          {/* Pending bookings widget */}
+          <PendingBookingsWidget bookings={pendingBookings} total={pendingPage?.total ?? 0} isLoading={pendingLoading} />
+
           {/* Quick actions */}
           <Card>
             <CardHeader>
@@ -835,6 +862,108 @@ function FeedItem({
         </p>
       </div>
     </div>
+  );
+}
+
+function formatBookingTime(isoString: string): string {
+  const date = new Date(isoString);
+  return date.toLocaleString("ru-RU", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function PendingBookingsWidget({
+  bookings,
+  total,
+  isLoading,
+}: {
+  bookings: (BookingOut & { cn: string; mn: string; sn: string })[];
+  total: number;
+  isLoading: boolean;
+}) {
+  const router = useRouter();
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Ожидают подтверждения</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-32 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <div>
+          <CardTitle>Ожидают подтверждения</CardTitle>
+          <CardDescription>
+            {total === 0
+              ? "Все записи подтверждены"
+              : `${total} ${total === 1 ? "запись" : total < 5 ? "записи" : "записей"}`}
+          </CardDescription>
+        </div>
+        {total > 0 && (
+          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[11px] font-bold text-white">
+            {total > 99 ? "99+" : total}
+          </span>
+        )}
+      </CardHeader>
+      <CardContent className="pt-0">
+        {bookings.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-muted-foreground">
+            <CheckCircle2 className="h-8 w-8 text-emerald-500/60" />
+            Все записи подтверждены
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {bookings.slice(0, 5).map((b) => (
+              <div
+                key={b.id}
+                className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-600">
+                    <Clock className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium leading-tight">{b.cn}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {formatBookingTime(b.starts_at)} · {b.sn}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 shrink-0 border-primary/40 px-2.5 text-[12px] text-primary hover:bg-primary/5"
+                  onClick={() => router.push(`/bookings?booking=${b.id}`)}
+                >
+                  Подробнее →
+                </Button>
+              </div>
+            ))}
+            {total > 5 && (
+              <button
+                type="button"
+                className="mt-1 w-full text-center text-xs text-primary underline-offset-2 hover:underline"
+                onClick={() => router.push("/bookings?status=pending")}
+              >
+                Показать все {total} записей →
+              </button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

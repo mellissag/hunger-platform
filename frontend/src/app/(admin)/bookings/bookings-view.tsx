@@ -20,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -85,6 +85,7 @@ export function BookingsView() {
   const t = useTranslations("pages.bookings");
   const locale = useLocale();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [view, setView] = useState<"calendar" | "table">("calendar");
   const [weekStart, setWeekStart] = useState(() => startOfWeekMondayLocal(new Date()));
@@ -110,6 +111,20 @@ export function BookingsView() {
     if (searchParams.get("create") === "1") {
       setCreateDrawerOpen(true);
     }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const bookingId = searchParams.get("booking");
+    if (!bookingId) return;
+    setSelectedBookingId(bookingId);
+    router.replace("/bookings", { scroll: false });
+  }, [searchParams, router]);
+
+  useEffect(() => {
+    const status = searchParams.get("status");
+    if (!status) return;
+    setFilters((f) => ({ ...f, status }));
+    setView("table");
   }, [searchParams]);
 
   useEffect(() => {
