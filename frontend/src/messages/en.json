@@ -2,7 +2,10 @@
   "common": {
     "brand": "Hunger Beauty",
     "brandShort": "Hunger",
-    "salonTagline": "Salon management"
+    "salonTagline": "Salon management",
+    "toggleTheme": "Toggle theme",
+    "switchToLight": "Switch to light theme",
+    "switchToDark": "Switch to dark theme"
   },
   "login": {
     "titleWelcomeBack": "Welcome back",
@@ -35,7 +38,8 @@
       "masterStats": "My statistics",
       "masterProfile": "My profile",
       "inventory": "Warehouse",
-      "formulas": "Color Formulas"
+      "formulas": "Color Formulas",
+      "chatsBadge": "Soon"
     },
     "topbar": {
       "search": "Search",
@@ -129,7 +133,16 @@
       "footerNoMaster": "Not enough data",
       "footerAi": "AI recommendations",
       "footerAiDesc": "Assistant suggestions",
-      "footerAiBody": "When birthday segments and campaigns are connected, recommendations will appear here."
+      "footerAiBody": "When birthday segments and campaigns are connected, recommendations will appear here.",
+      "activityTodayTitle": "Today's activity",
+      "pendingTitle": "Awaiting confirmation",
+      "allConfirmed": "All bookings confirmed",
+      "pendingCountLabel": "pending confirmation",
+      "pendingBookingsCount": "{count, plural, one {# booking} other {# bookings}}",
+      "viewDetails": "Details →",
+      "showAllPending": "Show all {total} bookings →",
+      "confirmBooking": "Confirm",
+      "bookingConfirmedToast": "Booking confirmed ✓"
     },
     "bookings": {
       "title": "Bookings",
@@ -901,12 +914,61 @@
       "analytics": "Analytics",
       "edit": "Edit",
       "delete": "Delete",
-      "back": "Back",
       "kpiSent": "Sent",
       "kpiDelivered": "Delivered",
       "kpiRead": "Read",
       "kpiErrors": "Errors",
-      "all": "All"
+      "all": "All",
+      "statsBtn": "Statistics",
+      "statsTitle": "Broadcast statistics",
+      "statsSubtitle": "Aggregated analytics for all campaigns",
+      "statsDateFrom": "From date",
+      "statsDateTo": "To date",
+      "statsStatusFilter": "Status",
+      "statsAllStatuses": "All statuses",
+      "statsApply": "Apply",
+      "statsReset": "Reset",
+      "statsKpiTotal": "Total campaigns",
+      "statsKpiRecipients": "{count} recipients",
+      "statsKpiSent": "Sent",
+      "statsKpiDelivered": "Delivered",
+      "statsKpiDeliveryRate": "{rate}% delivery rate",
+      "statsKpiErrors": "Errors",
+      "statsChartTitle": "Daily trend",
+      "statsTop5Title": "Top 5 campaigns by delivery rate",
+      "statsAllCampaigns": "All campaigns",
+      "statsNoData": "No data",
+      "statsColTitle": "Name",
+      "statsColStatus": "Status",
+      "statsColDate": "Date",
+      "statsColRecipients": "Recip.",
+      "statsColSent": "Sent",
+      "statsColDelivered": "Delivrd.",
+      "statsColFailed": "Errors",
+      "statsColDeliveryRate": "Deliv. %",
+      "statsChartSent": "Sent",
+      "statsChartDelivered": "Delivered",
+      "statusDrafts": "Drafts",
+      "deleteTitle": "Delete broadcast?",
+      "deleteDesc": "Broadcast \"{title}\" and all send data will be permanently deleted.",
+      "deleteSuccess": "Broadcast deleted",
+      "deleteSendingError": "Cannot delete a broadcast while sending"
+    },
+    "chats": {
+      "title": "Client chats",
+      "subtitle": "All conversations via Telegram bot",
+      "searchPlaceholder": "Search...",
+      "noResults": "Nothing found",
+      "devBadge": "🔒 Feature in development",
+      "devNote": "Data above is a UI preview",
+      "comingSoonTitle": "Live chat in development",
+      "comingSoonDesc": "Soon you will be able to message clients directly via Telegram bot from this window.",
+      "writeClientBtn": "Message a client",
+      "writeClientHint": "For now, find a client in the database and message them manually",
+      "feature1": "Direct messages via bot",
+      "feature2": "Conversation history",
+      "feature3": "Quick reply templates",
+      "feature4": "Labels and filters"
     }
   }
 }

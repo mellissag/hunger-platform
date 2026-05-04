@@ -218,12 +218,8 @@ export function MasterAppShell({
                   type="button"
                   className="h-9 w-9"
                   onClick={toggleTheme}
-                  title={
-                    isDark
-                      ? "Переключить на светлую тему"
-                      : "Переключить на тёмную тему"
-                  }
-                  aria-label="Переключить тему"
+                  title={isDark ? tc("switchToLight") : tc("switchToDark")}
+                  aria-label={tc("toggleTheme")}
                 >
                   {isDark ? (
                     <Sun className="h-[17px] w-[17px]" strokeWidth={1.5} />

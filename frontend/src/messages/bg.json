@@ -2,7 +2,10 @@
   "common": {
     "brand": "Hunger Beauty",
     "brandShort": "Hunger",
-    "salonTagline": "Управление на салона"
+    "salonTagline": "Управление на салона",
+    "toggleTheme": "Превключи тема",
+    "switchToLight": "Превключи на светла тема",
+    "switchToDark": "Превключи на тъмна тема"
   },
   "login": {
     "titleWelcomeBack": "Добре дошли отново",
@@ -35,7 +38,8 @@
       "masterStats": "Моята статистика",
       "masterProfile": "Моят профил",
       "inventory": "Склад",
-      "formulas": "Формули"
+      "formulas": "Формули",
+      "chatsBadge": "Скоро"
     },
     "topbar": {
       "search": "Търсене",
@@ -129,7 +133,16 @@
       "qaBroadcast": "Разпращане",
       "qaBroadcastSub": "3 чакат",
       "qaReport": "Отчет",
-      "qaReportSub": "Статистика"
+      "qaReportSub": "Статистика",
+      "activityTodayTitle": "Активност днес",
+      "pendingTitle": "Изчакват потвърждение",
+      "allConfirmed": "Всички резервации потвърдени",
+      "pendingCountLabel": "изчакват потвърждение",
+      "pendingBookingsCount": "{count, plural, one {# резервация} other {# резервации}}",
+      "viewDetails": "Детайли →",
+      "showAllPending": "Покажи всички {total} резервации →",
+      "confirmBooking": "Потвърди",
+      "bookingConfirmedToast": "Резервацията е потвърдена ✓"
     },
     "bookings": {
       "title": "Резервации",
@@ -901,12 +914,61 @@
       "analytics": "Анализ",
       "edit": "Редактирай",
       "delete": "Изтрий",
-      "back": "Назад",
       "kpiSent": "Изпратени",
       "kpiDelivered": "Доставени",
       "kpiRead": "Прочетени",
       "kpiErrors": "Грешки",
-      "all": "Всички"
+      "all": "Всички",
+      "statsBtn": "Статистика",
+      "statsTitle": "Статистика на разпращанията",
+      "statsSubtitle": "Обобщена аналитика за всички кампании",
+      "statsDateFrom": "От дата",
+      "statsDateTo": "До дата",
+      "statsStatusFilter": "Статус",
+      "statsAllStatuses": "Всички статуси",
+      "statsApply": "Приложи",
+      "statsReset": "Нулирай",
+      "statsKpiTotal": "Общо кампании",
+      "statsKpiRecipients": "{count} получатели",
+      "statsKpiSent": "Изпратено",
+      "statsKpiDelivered": "Доставено",
+      "statsKpiDeliveryRate": "{rate}% доставяемост",
+      "statsKpiErrors": "Грешки",
+      "statsChartTitle": "Динамика по дни",
+      "statsTop5Title": "Топ 5 кампании по доставяемост",
+      "statsAllCampaigns": "Всички кампании",
+      "statsNoData": "Няма данни",
+      "statsColTitle": "Заглавие",
+      "statsColStatus": "Статус",
+      "statsColDate": "Дата",
+      "statsColRecipients": "Получ.",
+      "statsColSent": "Изпрат.",
+      "statsColDelivered": "Достав.",
+      "statsColFailed": "Грешки",
+      "statsColDeliveryRate": "Достав. %",
+      "statsChartSent": "Изпратено",
+      "statsChartDelivered": "Доставено",
+      "statusDrafts": "Чернови",
+      "deleteTitle": "Изтрий разпращането?",
+      "deleteDesc": "Разпращането \"{title}\" и всички данни за изпращане ще бъдат изтрити безвъзвратно.",
+      "deleteSuccess": "Разпращането е изтрито",
+      "deleteSendingError": "Не може да се изтрие разпращане по време на изпращане"
+    },
+    "chats": {
+      "title": "Чатове с клиенти",
+      "subtitle": "Всички разговори чрез Telegram бот",
+      "searchPlaceholder": "Търсене...",
+      "noResults": "Нищо не е намерено",
+      "devBadge": "🔒 Функцията се разработва",
+      "devNote": "Данните по-горе са демонстрация на интерфейса",
+      "comingSoonTitle": "Live чат в разработка",
+      "comingSoonDesc": "Скоро ще можете да пишете на клиенти директно чрез Telegram бот от този прозорец.",
+      "writeClientBtn": "Пиши на клиент",
+      "writeClientHint": "Засега можете да намерите клиент в базата и да му пишете ръчно",
+      "feature1": "Директни съобщения чрез бота",
+      "feature2": "История на кореспонденцията",
+      "feature3": "Шаблони за бързи отговори",
+      "feature4": "Етикети и филтри"
     }
   }
 }

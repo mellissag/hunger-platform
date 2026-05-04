@@ -588,13 +588,13 @@ export function AdminDashboard() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Активность сегодня</CardTitle>
+              <CardTitle>{t("activityTodayTitle")}</CardTitle>
               <CardDescription>
                 {new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(now)} ·{" "}
                 {todayBookings.length} {t("bookingsCount")}
                 {pendingTodayCount > 0 && (
                   <span className="ml-2 font-semibold text-amber-600">
-                    · {pendingTodayCount} ожидают подтверждения
+                    · {pendingTodayCount} {t("pendingCountLabel")}
                   </span>
                 )}
               </CardDescription>
@@ -763,6 +763,7 @@ function ActivityRow({
 }) {
   const qc = useQueryClient();
   const confirm = useConfirmBooking();
+  const t = useTranslations("pages.dashboard");
   const isPending = booking.status === "pending";
 
   const statusIcon = (() => {
@@ -801,13 +802,13 @@ function ActivityRow({
           onClick={() =>
             confirm.mutate(booking.id, {
               onSuccess: () => {
-                toast.success("Запись подтверждена ✓");
+                toast.success(t("bookingConfirmedToast"));
               },
             })
           }
         >
           <Check className="h-3 w-3" />
-          Подтвердить
+          {t("confirmBooking")}
         </Button>
       ) : (
         <Link href="/bookings" className="shrink-0 text-xs text-muted-foreground hover:text-primary">
@@ -885,12 +886,13 @@ function PendingBookingsWidget({
   isLoading: boolean;
 }) {
   const router = useRouter();
+  const t = useTranslations("pages.dashboard");
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Ожидают подтверждения</CardTitle>
+          <CardTitle>{t("pendingTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-32 w-full" />
@@ -903,11 +905,11 @@ function PendingBookingsWidget({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div>
-          <CardTitle>Ожидают подтверждения</CardTitle>
+          <CardTitle>{t("pendingTitle")}</CardTitle>
           <CardDescription>
             {total === 0
-              ? "Все записи подтверждены"
-              : `${total} ${total === 1 ? "запись" : total < 5 ? "записи" : "записей"}`}
+              ? t("allConfirmed")
+              : t("pendingBookingsCount", { count: total })}
           </CardDescription>
         </div>
         {total > 0 && (
@@ -920,7 +922,7 @@ function PendingBookingsWidget({
         {bookings.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-muted-foreground">
             <CheckCircle2 className="h-8 w-8 text-emerald-500/60" />
-            Все записи подтверждены
+            {t("allConfirmed")}
           </div>
         ) : (
           <div className="space-y-2">
@@ -947,7 +949,7 @@ function PendingBookingsWidget({
                   className="h-7 shrink-0 border-primary/40 px-2.5 text-[12px] text-primary hover:bg-primary/5"
                   onClick={() => router.push(`/bookings?booking=${b.id}`)}
                 >
-                  Подробнее →
+                  {t("viewDetails")}
                 </Button>
               </div>
             ))}
@@ -957,7 +959,7 @@ function PendingBookingsWidget({
                 className="mt-1 w-full text-center text-xs text-primary underline-offset-2 hover:underline"
                 onClick={() => router.push("/bookings?status=pending")}
               >
-                Показать все {total} записей →
+                {t("showAllPending", { total })}
               </button>
             )}
           </div>

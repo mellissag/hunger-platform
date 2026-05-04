@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { MessageSquare, Search, Users } from "lucide-react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,7 @@ const FAKE_CHATS = [
 ];
 
 export default function ChatsPage() {
+  const t = useTranslations("pages.chats");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -64,8 +66,8 @@ export default function ChatsPage() {
       <aside className="flex w-72 shrink-0 flex-col border-r border-border bg-card">
         {/* Header */}
         <div className="border-b border-border px-4 py-3">
-          <h1 className="font-playfair text-lg font-semibold">Чаты с клиентами</h1>
-          <p className="text-xs text-muted-foreground">Все диалоги через Telegram-бот</p>
+          <h1 className="font-playfair text-lg font-semibold">{t("title")}</h1>
+          <p className="text-xs text-muted-foreground">{t("subtitle")}</p>
         </div>
 
         {/* Search */}
@@ -74,7 +76,7 @@ export default function ChatsPage() {
             <Search className="h-3.5 w-3.5 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Поиск..."
+              placeholder={t("searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
@@ -129,7 +131,7 @@ export default function ChatsPage() {
 
           {filtered.length === 0 && (
             <p className="p-6 text-center text-sm text-muted-foreground">
-              Ничего не найдено
+              {t("noResults")}
             </p>
           )}
         </div>
@@ -138,10 +140,10 @@ export default function ChatsPage() {
         <div className="border-t border-border bg-muted/20 p-4">
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-center">
             <span className="text-[11px] font-medium text-primary">
-              🔒 Функция в разработке
+              {t("devBadge")}
             </span>
             <p className="mt-0.5 text-[10px] text-muted-foreground">
-              Данные выше — демонстрация интерфейса
+              {t("devNote")}
             </p>
           </div>
         </div>
@@ -154,33 +156,27 @@ export default function ChatsPage() {
             className="mx-auto mb-4 text-muted-foreground/20"
             style={{ width: 70, height: 70 }}
           />
-          <h2 className="font-playfair text-xl font-semibold">Live-чат в разработке</h2>
+          <h2 className="font-playfair text-xl font-semibold">{t("comingSoonTitle")}</h2>
           <p className="mx-auto mt-2 max-w-xs text-sm text-muted-foreground">
-            Скоро здесь появится возможность писать клиентам напрямую через Telegram-бот прямо
-            из этого окна.
+            {t("comingSoonDesc")}
           </p>
 
           <div className="mt-6 flex flex-col items-center gap-3">
             <Button asChild>
               <Link href="/clients">
                 <Users className="mr-2 h-4 w-4" />
-                Написать клиенту
+                {t("writeClientBtn")}
               </Link>
             </Button>
             <p className="text-xs text-muted-foreground">
-              Пока можно найти клиента в базе и написать ему вручную
+              {t("writeClientHint")}
             </p>
           </div>
         </div>
 
         {/* Feature roadmap hint */}
         <div className="flex flex-wrap justify-center gap-3">
-          {[
-            "Прямые сообщения через бота",
-            "История переписки",
-            "Шаблоны быстрых ответов",
-            "Метки и фильтры",
-          ].map((feature) => (
+          {([t("feature1"), t("feature2"), t("feature3"), t("feature4")] as string[]).map((feature) => (
             <span
               key={feature}
               className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground"

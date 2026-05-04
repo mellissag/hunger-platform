@@ -123,7 +123,7 @@ export function BroadcastsList() {
           <Button variant="outline" asChild>
             <Link href="/broadcasts/stats">
               <BarChart2 className="mr-1.5 h-4 w-4" />
-              Статистика
+              {t("statsBtn")}
             </Link>
           </Button>
           <Button className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90" asChild>
@@ -239,35 +239,35 @@ export function BroadcastsList() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Удалить рассылку?</AlertDialogTitle>
+                            <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Рассылка &ldquo;{row.title}&rdquo; и все данные об отправке будут удалены безвозвратно.
+                              {t("deleteDesc", { title: row.title })}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Отмена</AlertDialogCancel>
+                            <AlertDialogCancel>{t("back")}</AlertDialogCancel>
                             <AlertDialogAction
                               className="bg-destructive text-white hover:bg-destructive/90"
                               onClick={() => {
                                 setDeletingId(row.id);
                                 deleteMutation.mutate(row.id, {
                                   onSuccess: () => {
-                                    toast.success("Рассылка удалена");
+                                    toast.success(t("deleteSuccess"));
                                     setDeletingId(null);
                                   },
                                   onError: (e) => {
                                     const msg = (e as Error).message;
                                     toast.error(
                                       msg.includes("во время отправки") || msg.includes("sending")
-                                        ? "Нельзя удалить рассылку во время отправки"
-                                        : msg || "Ошибка",
+                                        ? t("deleteSendingError")
+                                        : msg || t("back"),
                                     );
                                     setDeletingId(null);
                                   },
                                 });
                               }}
                             >
-                              Удалить
+                              {t("delete")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>

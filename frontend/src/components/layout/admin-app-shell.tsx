@@ -65,7 +65,7 @@ const NAV: NavItem[] = [
   { href: "/services", labelKey: "services", icon: ClipboardList, resource: "services" },
   { href: "/schedule", labelKey: "schedule", icon: CalendarDays, resource: "schedule" },
   { href: "/broadcasts", labelKey: "broadcasts", icon: MessageSquare, resource: "broadcasts" },
-  { href: "/chats", labelKey: "chats", icon: MessageSquare, resource: "chats", badge: "Скоро" },
+  { href: "/chats", labelKey: "chats", icon: MessageSquare, resource: "chats", badge: "chatsBadge" },
   { href: "/statistics", labelKey: "statistics", icon: LayoutDashboard, resource: "statistics" },
   { href: "/ai", labelKey: "ai", icon: Sparkles, resource: "ai" },
   { href: "/inventory", labelKey: "inventory", icon: Package, resource: "inventory" },
@@ -168,7 +168,7 @@ export function AdminAppShell({
                 <span className="flex-1">{t(`nav.${item.labelKey}` as never)}</span>
                 {item.badge && (
                   <span className="rounded border border-muted-foreground/30 bg-muted px-1.5 py-0 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-                    {item.badge}
+                    {t(`nav.${item.badge}` as never)}
                   </span>
                 )}
               </Link>
@@ -254,12 +254,8 @@ export function AdminAppShell({
                   type="button"
                   className="h-9 w-9"
                   onClick={toggleTheme}
-                  title={
-                    isDark
-                      ? "Переключить на светлую тему"
-                      : "Переключить на тёмную тему"
-                  }
-                  aria-label="Переключить тему"
+                  title={isDark ? tc("switchToLight") : tc("switchToDark")}
+                  aria-label={tc("toggleTheme")}
                 >
                   {isDark ? (
                     <Sun className="h-[17px] w-[17px]" strokeWidth={1.5} />

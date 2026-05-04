@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Bell } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -69,16 +70,18 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
   completed:   <CheckIcon />,
 };
 
-function relativeTime(iso: string): string {
-  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60) return "только что";
-  if (diff < 3600) return `${Math.floor(diff / 60)} мин назад`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`;
-  return `${Math.floor(diff / 86400)} дн назад`;
+function relativeTime(iso: string, locale: string): string {
+  const diffSec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  if (diffSec < 60) return rtf.format(-diffSec, "second");
+  if (diffSec < 3600) return rtf.format(-Math.floor(diffSec / 60), "minute");
+  if (diffSec < 86400) return rtf.format(-Math.floor(diffSec / 3600), "hour");
+  return rtf.format(-Math.floor(diffSec / 86400), "day");
 }
 
 export function NotificationsBell() {
   const router = useRouter();
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const prevPendingRef = useRef(0);
 
@@ -151,7 +154,7 @@ export function NotificationsBell() {
                   <p className="text-sm font-medium leading-tight">{n.title}</p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">{n.body}</p>
                   <p className="mt-1 text-[10px] text-muted-foreground/70">
-                    {relativeTime(n.created_at)}
+                    {relativeTime(n.created_at, locale)}
                   </p>
                 </div>
               </button>

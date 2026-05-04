@@ -2,7 +2,10 @@
   "common": {
     "brand": "Hunger Beauty",
     "brandShort": "Hunger",
-    "salonTagline": "Управление салоном"
+    "salonTagline": "Управление салоном",
+    "toggleTheme": "Переключить тему",
+    "switchToLight": "Переключить на светлую тему",
+    "switchToDark": "Переключить на тёмную тему"
   },
   "login": {
     "titleWelcomeBack": "С возвращением",
@@ -35,7 +38,8 @@
       "masterStats": "Моя статистика",
       "masterProfile": "Мой профиль",
       "inventory": "Склад",
-      "formulas": "Формулы красок"
+      "formulas": "Формулы красок",
+      "chatsBadge": "Скоро"
     },
     "topbar": {
       "search": "Поиск",
@@ -129,7 +133,16 @@
       "footerNoMaster": "Недостаточно данных",
       "footerAi": "Рекомендации AI",
       "footerAiDesc": "Подсказки ассистента",
-      "footerAiBody": "Когда появятся сегменты и кампании, здесь будут рекомендации."
+      "footerAiBody": "Когда появятся сегменты и кампании, здесь будут рекомендации.",
+      "activityTodayTitle": "Активность сегодня",
+      "pendingTitle": "Ожидают подтверждения",
+      "allConfirmed": "Все записи подтверждены",
+      "pendingCountLabel": "ожидают подтверждения",
+      "pendingBookingsCount": "{count, plural, one {# запись} few {# записи} other {# записей}}",
+      "viewDetails": "Подробнее →",
+      "showAllPending": "Показать все {total} записей →",
+      "confirmBooking": "Подтвердить",
+      "bookingConfirmedToast": "Запись подтверждена ✓"
     },
     "bookings": {
       "title": "Бронирования",
@@ -901,12 +914,61 @@
       "analytics": "Аналитика",
       "edit": "Редактировать",
       "delete": "Удалить",
-      "back": "Назад",
       "kpiSent": "Отправлено",
       "kpiDelivered": "Доставлено",
       "kpiRead": "Прочитано",
       "kpiErrors": "Ошибки",
-      "all": "Все"
+      "all": "Все",
+      "statsBtn": "Статистика",
+      "statsTitle": "Статистика рассылок",
+      "statsSubtitle": "Сводная аналитика по всем кампаниям",
+      "statsDateFrom": "С даты",
+      "statsDateTo": "По дату",
+      "statsStatusFilter": "Статус",
+      "statsAllStatuses": "Все статусы",
+      "statsApply": "Применить",
+      "statsReset": "Сбросить",
+      "statsKpiTotal": "Всего кампаний",
+      "statsKpiRecipients": "{count} получателей",
+      "statsKpiSent": "Отправлено",
+      "statsKpiDelivered": "Доставлено",
+      "statsKpiDeliveryRate": "{rate}% доставляемость",
+      "statsKpiErrors": "Ошибки",
+      "statsChartTitle": "Динамика по дням",
+      "statsTop5Title": "Топ-5 кампаний по доставляемости",
+      "statsAllCampaigns": "Все кампании",
+      "statsNoData": "Нет данных",
+      "statsColTitle": "Название",
+      "statsColStatus": "Статус",
+      "statsColDate": "Дата",
+      "statsColRecipients": "Получ.",
+      "statsColSent": "Отправл.",
+      "statsColDelivered": "Доставл.",
+      "statsColFailed": "Ошибки",
+      "statsColDeliveryRate": "Доставл. %",
+      "statsChartSent": "Отправлено",
+      "statsChartDelivered": "Доставлено",
+      "statusDrafts": "Черновики",
+      "deleteTitle": "Удалить рассылку?",
+      "deleteDesc": "Рассылка \"{title}\" и все данные об отправке будут удалены безвозвратно.",
+      "deleteSuccess": "Рассылка удалена",
+      "deleteSendingError": "Нельзя удалить рассылку во время отправки"
+    },
+    "chats": {
+      "title": "Чаты с клиентами",
+      "subtitle": "Все диалоги через Telegram-бот",
+      "searchPlaceholder": "Поиск...",
+      "noResults": "Ничего не найдено",
+      "devBadge": "🔒 Функция в разработке",
+      "devNote": "Данные выше — демонстрация интерфейса",
+      "comingSoonTitle": "Live-чат в разработке",
+      "comingSoonDesc": "Скоро здесь появится возможность писать клиентам напрямую через Telegram-бот прямо из этого окна.",
+      "writeClientBtn": "Написать клиенту",
+      "writeClientHint": "Пока можно найти клиента в базе и написать ему вручную",
+      "feature1": "Прямые сообщения через бота",
+      "feature2": "История переписки",
+      "feature3": "Шаблоны быстрых ответов",
+      "feature4": "Метки и фильтры"
     }
   }
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, BarChart2, CheckCheck, Send, TrendingUp, Users, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import {
   CartesianGrid,
   Legend,
@@ -54,14 +55,6 @@ type StatsSummary = {
 
 // ── Status helpers ──────────────────────────────────────────────────────────
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Черновик",
-  scheduled: "Запланировано",
-  sending: "Отправляется",
-  sent: "Отправлено",
-  failed: "Ошибка",
-};
-
 const STATUS_CLASSES: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
   scheduled: "bg-blue-50 text-blue-700",
@@ -101,7 +94,7 @@ function KpiCard({
             {label}
           </p>
           <p className="mt-0.5 text-2xl font-bold leading-none">
-            {typeof value === "number" ? value.toLocaleString("ru-RU") : value}
+            {typeof value === "number" ? value.toLocaleString() : value}
           </p>
           {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
         </div>
@@ -132,12 +125,22 @@ function sortCampaigns(
 // ── Main component ──────────────────────────────────────────────────────────
 
 export function BroadcastsStats() {
+  const t = useTranslations("pages.broadcasts");
+  const locale = useLocale();
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({ dateFrom: "", dateTo: "", status: "" });
   const [sortKey, setSortKey] = useState<SortKey>("sent_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const statusLabels: Record<string, string> = {
+    draft: t("statusDraft"),
+    scheduled: t("statusScheduled"),
+    sending: t("statusSending"),
+    sent: t("statusSent"),
+    failed: t("statusFailed"),
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["broadcasts-stats", appliedFilters],
@@ -175,7 +178,7 @@ export function BroadcastsStats() {
 
   const chartData = (data?.daily_chart ?? []).map((d) => ({
     ...d,
-    date: new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" }).format(
+    date: new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(
       new Date(d.date),
     ),
   }));
@@ -192,10 +195,10 @@ export function BroadcastsStats() {
           </Button>
           <div>
             <h1 className="font-playfair text-2xl font-semibold tracking-tight">
-              Статистика рассылок
+              {t("statsTitle")}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Сводная аналитика по всем кампаниям
+              {t("statsSubtitle")}
             </p>
           </div>
         </div>
@@ -205,7 +208,7 @@ export function BroadcastsStats() {
       <Card className="border border-border shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
         <CardContent className="flex flex-wrap items-end gap-3 pt-5">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">С даты</label>
+            <label className="text-xs font-medium text-muted-foreground">{t("statsDateFrom")}</label>
             <input
               type="date"
               value={dateFrom}
@@ -214,7 +217,7 @@ export function BroadcastsStats() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">По дату</label>
+            <label className="text-xs font-medium text-muted-foreground">{t("statsDateTo")}</label>
             <input
               type="date"
               value={dateTo}
@@ -223,17 +226,17 @@ export function BroadcastsStats() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Статус</label>
+            <label className="text-xs font-medium text-muted-foreground">{t("statsStatusFilter")}</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="h-9 rounded-md border border-border bg-card px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              <option value="">Все статусы</option>
-              <option value="sent">Отправлено</option>
-              <option value="scheduled">Запланировано</option>
-              <option value="draft">Черновики</option>
-              <option value="failed">Ошибки</option>
+              <option value="">{t("statsAllStatuses")}</option>
+              <option value="sent">{t("statusSent")}</option>
+              <option value="scheduled">{t("statusScheduled")}</option>
+              <option value="draft">{t("statusDrafts")}</option>
+              <option value="failed">{t("statusFailed")}</option>
             </select>
           </div>
           <Button
@@ -241,7 +244,7 @@ export function BroadcastsStats() {
               setAppliedFilters({ dateFrom, dateTo, status: statusFilter })
             }
           >
-            Применить
+            {t("statsApply")}
           </Button>
           {(appliedFilters.dateFrom || appliedFilters.dateTo || appliedFilters.status) && (
             <Button
@@ -253,7 +256,7 @@ export function BroadcastsStats() {
                 setAppliedFilters({ dateFrom: "", dateTo: "", status: "" });
               }}
             >
-              Сбросить
+              {t("statsReset")}
             </Button>
           )}
         </CardContent>
@@ -270,27 +273,27 @@ export function BroadcastsStats() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <KpiCard
             icon={Users}
-            label="Всего кампаний"
+            label={t("statsKpiTotal")}
             value={data.total_broadcasts}
-            sub={`${data.total_recipients.toLocaleString("ru-RU")} получателей`}
+            sub={t("statsKpiRecipients", { count: data.total_recipients.toLocaleString(locale) })}
             iconColor="bg-primary/10 text-primary"
           />
           <KpiCard
             icon={Send}
-            label="Отправлено"
+            label={t("statsKpiSent")}
             value={data.total_sent}
             iconColor="bg-blue-50 text-blue-600"
           />
           <KpiCard
             icon={CheckCheck}
-            label="Доставлено"
+            label={t("statsKpiDelivered")}
             value={data.total_delivered}
-            sub={data.total_sent > 0 ? `${data.delivery_rate}% доставляемость` : undefined}
+            sub={data.total_sent > 0 ? t("statsKpiDeliveryRate", { rate: data.delivery_rate }) : undefined}
             iconColor="bg-green-50 text-green-600"
           />
           <KpiCard
             icon={XCircle}
-            label="Ошибки"
+            label={t("statsKpiErrors")}
             value={data.total_failed}
             iconColor="bg-red-50 text-red-500"
           />
@@ -303,7 +306,7 @@ export function BroadcastsStats() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
               <TrendingUp className="h-4 w-4 text-primary" />
-              Динамика по дням
+              {t("statsChartTitle")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -334,7 +337,7 @@ export function BroadcastsStats() {
                 <Line
                   type="monotone"
                   dataKey="sent"
-                  name="Отправлено"
+                  name={t("statsChartSent")}
                   stroke="#9A7230"
                   strokeWidth={2}
                   dot={false}
@@ -343,7 +346,7 @@ export function BroadcastsStats() {
                 <Line
                   type="monotone"
                   dataKey="delivered"
-                  name="Доставлено"
+                  name={t("statsChartDelivered")}
                   stroke="#16a34a"
                   strokeWidth={2}
                   dot={false}
@@ -361,7 +364,7 @@ export function BroadcastsStats() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
               <BarChart2 className="h-4 w-4 text-primary" />
-              Топ-5 кампаний по доставляемости
+              {t("statsTop5Title")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -391,7 +394,7 @@ export function BroadcastsStats() {
       {/* Campaigns table */}
       <Card className="border border-border shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold">Все кампании</CardTitle>
+          <CardTitle className="text-base font-semibold">{t("statsAllCampaigns")}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
@@ -402,7 +405,7 @@ export function BroadcastsStats() {
             </div>
           ) : sortedCampaigns.length === 0 ? (
             <p className="p-6 text-center text-sm text-muted-foreground">
-              Нет данных
+              {t("statsNoData")}
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -411,14 +414,14 @@ export function BroadcastsStats() {
                   <tr className="border-b border-border bg-muted/30">
                     {(
                       [
-                        ["title", "Название"],
-                        ["status", "Статус"],
-                        ["sent_at", "Дата"],
-                        ["total", "Получ."],
-                        ["sent", "Отправл."],
-                        ["delivered", "Доставл."],
-                        ["failed", "Ошибки"],
-                        ["delivery_rate", "Доставл. %"],
+                        ["title", t("statsColTitle")],
+                        ["status", t("statsColStatus")],
+                        ["sent_at", t("statsColDate")],
+                        ["total", t("statsColRecipients")],
+                        ["sent", t("statsColSent")],
+                        ["delivered", t("statsColDelivered")],
+                        ["failed", t("statsColFailed")],
+                        ["delivery_rate", t("statsColDeliveryRate")],
                       ] as [SortKey, string][]
                     ).map(([key, label]) => (
                       <th
@@ -460,25 +463,25 @@ export function BroadcastsStats() {
                             STATUS_CLASSES[c.status] ?? "bg-muted text-muted-foreground",
                           )}
                         >
-                          {STATUS_LABELS[c.status] ?? c.status}
+                          {statusLabels[c.status] ?? c.status}
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
                         {c.sent_at
-                          ? new Intl.DateTimeFormat("ru-RU", {
+                          ? new Intl.DateTimeFormat(locale, {
                               day: "numeric",
                               month: "short",
                               year: "numeric",
                             }).format(new Date(c.sent_at))
                           : "—"}
                       </td>
-                      <td className="px-4 py-2.5 text-right">{c.total.toLocaleString("ru-RU")}</td>
-                      <td className="px-4 py-2.5 text-right">{c.sent.toLocaleString("ru-RU")}</td>
+                      <td className="px-4 py-2.5 text-right">{c.total.toLocaleString(locale)}</td>
+                      <td className="px-4 py-2.5 text-right">{c.sent.toLocaleString(locale)}</td>
                       <td className="px-4 py-2.5 text-right text-green-700">
-                        {c.delivered.toLocaleString("ru-RU")}
+                        {c.delivered.toLocaleString(locale)}
                       </td>
                       <td className="px-4 py-2.5 text-right text-red-600">
-                        {c.failed > 0 ? c.failed.toLocaleString("ru-RU") : "—"}
+                        {c.failed > 0 ? c.failed.toLocaleString(locale) : "—"}
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         {c.sent > 0 ? (

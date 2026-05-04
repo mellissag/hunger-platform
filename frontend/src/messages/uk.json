@@ -2,7 +2,10 @@
   "common": {
     "brand": "Hunger Beauty",
     "brandShort": "Hunger",
-    "salonTagline": "Керування салоном"
+    "salonTagline": "Керування салоном",
+    "toggleTheme": "Перемкнути тему",
+    "switchToLight": "Перемкнути на світлу тему",
+    "switchToDark": "Перемкнути на темну тему"
   },
   "login": {
     "titleWelcomeBack": "З поверненням",
@@ -35,7 +38,8 @@
       "masterStats": "Моя статистика",
       "masterProfile": "Мій профіль",
       "inventory": "Склад",
-      "formulas": "Формули фарб"
+      "formulas": "Формули фарб",
+      "chatsBadge": "Скоро"
     },
     "topbar": {
       "search": "Пошук",
@@ -129,7 +133,16 @@
       "qaBroadcast": "Розсилка",
       "qaBroadcastSub": "3 очікують",
       "qaReport": "Звіт",
-      "qaReportSub": "Статистика"
+      "qaReportSub": "Статистика",
+      "activityTodayTitle": "Активність сьогодні",
+      "pendingTitle": "Очікують підтвердження",
+      "allConfirmed": "Всі записи підтверджені",
+      "pendingCountLabel": "очікують підтвердження",
+      "pendingBookingsCount": "{count, plural, one {# запис} few {# записи} other {# записів}}",
+      "viewDetails": "Детальніше →",
+      "showAllPending": "Показати всі {total} записів →",
+      "confirmBooking": "Підтвердити",
+      "bookingConfirmedToast": "Запис підтверджено ✓"
     },
     "bookings": {
       "title": "Бронювання",
@@ -901,12 +914,61 @@
       "analytics": "Аналітика",
       "edit": "Редагувати",
       "delete": "Видалити",
-      "back": "Назад",
       "kpiSent": "Надіслано",
       "kpiDelivered": "Доставлено",
       "kpiRead": "Прочитано",
       "kpiErrors": "Помилки",
-      "all": "Усі"
+      "all": "Усі",
+      "statsBtn": "Статистика",
+      "statsTitle": "Статистика розсилок",
+      "statsSubtitle": "Зведена аналітика по всіх кампаніях",
+      "statsDateFrom": "З дати",
+      "statsDateTo": "По дату",
+      "statsStatusFilter": "Статус",
+      "statsAllStatuses": "Всі статуси",
+      "statsApply": "Застосувати",
+      "statsReset": "Скинути",
+      "statsKpiTotal": "Всього кампаній",
+      "statsKpiRecipients": "{count} отримувачів",
+      "statsKpiSent": "Відправлено",
+      "statsKpiDelivered": "Доставлено",
+      "statsKpiDeliveryRate": "{rate}% доставляємість",
+      "statsKpiErrors": "Помилки",
+      "statsChartTitle": "Динаміка по днях",
+      "statsTop5Title": "Топ-5 кампаній за доставляємістю",
+      "statsAllCampaigns": "Всі кампанії",
+      "statsNoData": "Немає даних",
+      "statsColTitle": "Назва",
+      "statsColStatus": "Статус",
+      "statsColDate": "Дата",
+      "statsColRecipients": "Отрим.",
+      "statsColSent": "Надісл.",
+      "statsColDelivered": "Достав.",
+      "statsColFailed": "Помилки",
+      "statsColDeliveryRate": "Достав. %",
+      "statsChartSent": "Відправлено",
+      "statsChartDelivered": "Доставлено",
+      "statusDrafts": "Чернетки",
+      "deleteTitle": "Видалити розсилку?",
+      "deleteDesc": "Розсилка \"{title}\" та всі дані про відправку будуть видалені безповоротно.",
+      "deleteSuccess": "Розсилку видалено",
+      "deleteSendingError": "Не можна видалити розсилку під час надсилання"
+    },
+    "chats": {
+      "title": "Чати з клієнтами",
+      "subtitle": "Всі діалоги через Telegram-бот",
+      "searchPlaceholder": "Пошук...",
+      "noResults": "Нічого не знайдено",
+      "devBadge": "🔒 Функція в розробці",
+      "devNote": "Дані вище — демонстрація інтерфейсу",
+      "comingSoonTitle": "Live-чат у розробці",
+      "comingSoonDesc": "Незабаром тут з'явиться можливість писати клієнтам напряму через Telegram-бот прямо з цього вікна.",
+      "writeClientBtn": "Написати клієнту",
+      "writeClientHint": "Поки можна знайти клієнта в базі та написати йому вручну",
+      "feature1": "Прямі повідомлення через бота",
+      "feature2": "Історія листування",
+      "feature3": "Шаблони швидких відповідей",
+      "feature4": "Мітки та фільтри"
     }
   }
 }
