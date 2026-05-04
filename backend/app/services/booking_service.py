@@ -538,3 +538,29 @@ async def mark_no_show(db: AsyncSession, user: User, booking_id: UUID) -> Bookin
     b.status = BookingStatus.no_show
     await db.flush()
     return b
+
+
+async def confirm_booking(db: AsyncSession, user: User, booking_id: UUID) -> Booking:
+    b = await get_booking(db, user, booking_id)
+    if b.status != BookingStatus.pending:
+        raise InvalidBookingStateError("Только записи в статусе pending можно подтверждать")
+    b.status = BookingStatus.confirmed
+    await db.flush()
+    return b
+
+
+async def reject_booking(
+    db: AsyncSession, user: User, booking_id: UUID, reason: str | None = None
+) -> Booking:
+    b = await get_booking(db, user, booking_id)
+    if b.status in (
+        BookingStatus.cancelled_by_client,
+        BookingStatus.cancelled_by_salon,
+        BookingStatus.completed,
+    ):
+        raise InvalidBookingStateError("Запись уже отменена или завершена")
+    b.status = BookingStatus.cancelled_by_salon
+    if reason:
+        b.cancellation_reason = reason
+    await db.flush()
+    return b

@@ -47,6 +47,12 @@ class BookingReschedule(BaseModel):
     starts_at: datetime = Field(description="UTC")
 
 
+class BookingRejectBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str | None = None
+
+
 class BookingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -51,3 +51,8 @@ class AIChatStates(StatesGroup):
 class ReviewStates(StatesGroup):
     await_rating = State()
     await_comment = State()
+
+
+class MasterBookingStates(StatesGroup):
+    reject_reason = State()
+    reschedule_pending = State()

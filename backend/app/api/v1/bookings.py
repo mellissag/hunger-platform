@@ -19,17 +19,22 @@ from app.schemas.booking import (
     BookingCreate,
     BookingDetailOut,
     BookingOut,
+    BookingRejectBody,
     BookingReschedule,
     BookingStatsOut,
     BookingUpdate,
 )
 from app.schemas.common import PaginatedResponse
 from app.services import booking_service
+from app.services.booking_service import confirm_booking, reject_booking
 from app.services.broadcast_service import (
     enqueue_post_visit_trigger_job,
     get_active_post_visit_trigger,
 )
+from app.schemas.booking import BookingRejectBody
 from app.services.notifications import (
+    notify_client_booking_confirmed,
+    notify_client_booking_rejected,
     notify_master_booking_cancelled,
     notify_master_booking_status_changed,
     notify_master_booking_updated,
@@ -150,6 +155,49 @@ async def no_show_booking(
         db,
         status_label="клиент не пришёл",
     )
+    return BookingOut.model_validate(b)
+
+
+@router.post("/{booking_id}/confirm", response_model=BookingOut)
+async def confirm_booking_endpoint(
+    booking_id: UUID,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_roles(*STAFF))],
+) -> BookingOut:
+    from app.core.exceptions import InvalidBookingStateError, NotFoundError
+
+    try:
+        b = await confirm_booking(db, user, booking_id)
+        await db.commit()
+        await db.refresh(b)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=e.message) from e
+    except InvalidBookingStateError as e:
+        raise HTTPException(status_code=400, detail=e.message) from e
+    await notify_client_booking_confirmed(b.id, getattr(request.app.state, "bot", None), db)
+    return BookingOut.model_validate(b)
+
+
+@router.post("/{booking_id}/reject", response_model=BookingOut)
+async def reject_booking_endpoint(
+    booking_id: UUID,
+    body: BookingRejectBody,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_roles(*STAFF))],
+) -> BookingOut:
+    from app.core.exceptions import InvalidBookingStateError, NotFoundError
+
+    try:
+        b = await reject_booking(db, user, booking_id, reason=body.reason)
+        await db.commit()
+        await db.refresh(b)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=e.message) from e
+    except InvalidBookingStateError as e:
+        raise HTTPException(status_code=400, detail=e.message) from e
+    await notify_client_booking_rejected(b.id, getattr(request.app.state, "bot", None), db, reason=body.reason)
     return BookingOut.model_validate(b)
 
 
