@@ -31,6 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAddReview, useUpdateMaster, useUpdateWorkingHours, useUploadMasterPhoto, type WorkingHoursForm } from "@/hooks/useMasters";
 import { apiFetch, apiFormData, apiJson } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { getPublicApiBaseUrl } from "@/lib/env";
 import type { MasterOut, MasterStats, ReviewsPage, UserMe } from "@/types/admin-api";
 
