@@ -1,5 +1,73 @@
 /** Local-calendar helpers (browser timezone) for admin UI ranges. */
 
+/**
+ * Convert a date + time string entered by the user in the salon's timezone
+ * to a UTC ISO string suitable for API transmission.
+ *
+ * Example: "2025-05-05" + "09:00" in "Europe/Sofia" (UTC+3) → "2025-05-05T06:00:00.000Z"
+ *
+ * Algorithm: create a "naive UTC" Date, format it in the target timezone via Intl
+ * to measure the offset, then subtract that offset.
+ */
+export function zonedToUtcIso(dateStr: string, timeStr: string, timeZone: string): string {
+  const naiveUtc = new Date(`${dateStr}T${timeStr}:00Z`);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(naiveUtc);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
+  const localMs = Date.UTC(
+    +get("year"),
+    +get("month") - 1,
+    +get("day"),
+    +get("hour"),
+    +get("minute"),
+    +get("second"),
+  );
+  const offset = localMs - naiveUtc.getTime();
+  return new Date(naiveUtc.getTime() - offset).toISOString();
+}
+
+/**
+ * Format a UTC ISO timestamp as a "YYYY-MM-DD" date string in the given timezone.
+ * Use instead of new Date(iso).toLocaleDateString() to avoid browser-tz dependence.
+ */
+export function isoToDateInZone(iso: string, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(iso));
+  const y = parts.find((p) => p.type === "year")?.value ?? "";
+  const m = parts.find((p) => p.type === "month")?.value ?? "";
+  const d = parts.find((p) => p.type === "day")?.value ?? "";
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Format a UTC ISO timestamp as "HH:MM" in the given timezone.
+ * Use instead of new Date(iso).getHours() to avoid browser-tz dependence.
+ */
+export function isoToTimeInZone(iso: string, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(iso));
+  const h = parts.find((p) => p.type === "hour")?.value ?? "00";
+  const min = parts.find((p) => p.type === "minute")?.value ?? "00";
+  return `${h}:${min}`;
+}
+
+
 export function startOfWeekMondayLocal(d: Date): Date {
   const x = new Date(d);
   const day = x.getDay();

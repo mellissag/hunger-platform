@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { apiJson } from "@/lib/api";
-import { addDaysLocal } from "@/lib/date-local";
+import { addDaysLocal, zonedToUtcIso } from "@/lib/date-local";
 import type {
   BookingDetailOut,
   BookingOut,
@@ -26,6 +26,7 @@ function buildBookingsUrl(
   weekStart: Date,
   view: "calendar" | "table",
   page: number,
+  salonTz: string,
 ): string {
   const p = new URLSearchParams();
   p.set("page", String(page));
@@ -40,13 +41,12 @@ function buildBookingsUrl(
     p.set("date_from", from.toISOString());
     p.set("date_to", to.toISOString());
   } else {
+    // Interpret date strings as salon-timezone midnight, not browser-local midnight.
     if (filters.date_from) {
-      const x = new Date(`${filters.date_from}T00:00:00`);
-      p.set("date_from", x.toISOString());
+      p.set("date_from", zonedToUtcIso(filters.date_from, "00:00", salonTz));
     }
     if (filters.date_to) {
-      const x = new Date(`${filters.date_to}T23:59:59.999`);
-      p.set("date_to", x.toISOString());
+      p.set("date_to", zonedToUtcIso(filters.date_to, "23:59", salonTz));
     }
   }
 
@@ -58,11 +58,12 @@ export function useBookings(
   weekStart: Date,
   view: "calendar" | "table",
   page: number,
+  salonTz: string = "Europe/Sofia",
 ) {
   return useQuery({
-    queryKey: ["bookings", filters, weekStart.toISOString(), view, page],
+    queryKey: ["bookings", filters, weekStart.toISOString(), view, page, salonTz],
     queryFn: () =>
-      apiJson<Paginated<BookingOut>>(buildBookingsUrl(filters, weekStart, view, page)),
+      apiJson<Paginated<BookingOut>>(buildBookingsUrl(filters, weekStart, view, page, salonTz)),
     staleTime: 30_000,
     refetchOnWindowFocus: true,
     refetchInterval: 60_000,

@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
+import { zonedToUtcIso } from "@/lib/date-local";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 interface Service {
@@ -340,7 +342,8 @@ function BookPageContent() {
         body: JSON.stringify({
           service_id: selectedService.id,
           master_id: selectedMaster.id,
-          starts_at: `${selectedDate}T${selectedTime}:00`,
+          // Slots from the API are in the salon's local timezone; convert to UTC ISO for the API.
+          starts_at: zonedToUtcIso(selectedDate, selectedTime, "Europe/Sofia"),
         }),
       });
       if (!res.ok) {

@@ -49,8 +49,7 @@ import {
   useCancelBooking,
 } from "@/hooks/useBookings";
 import { apiFetch, apiJson } from "@/lib/api";
-import { addDaysLocal, startOfWeekMondayLocal } from "@/lib/date-local";
-import { durationMinutes } from "@/lib/date-local";
+import { addDaysLocal, durationMinutes, startOfWeekMondayLocal, zonedToUtcIso } from "@/lib/date-local";
 import { toIsoParam } from "@/lib/date-utc";
 import type {
   BookingOut,
@@ -157,7 +156,7 @@ export function BookingsView() {
     refetchInterval: view === "calendar" ? 5000 : false,
   });
 
-  const listQuery = useBookings(filters, weekStart, view, view === "table" ? tablePage : 1);
+  const listQuery = useBookings(filters, weekStart, view, view === "table" ? tablePage : 1, timeZone);
   const statsQuery = useBookingStats();
 
   const { data: mastersPg } = useQuery({
@@ -210,9 +209,11 @@ export function BookingsView() {
         header: t("colWhen"),
         enableSorting: true,
         cell: ({ row }) =>
-          new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(
-            new Date(row.original.starts_at),
-          ),
+          new Intl.DateTimeFormat(locale, {
+            dateStyle: "short",
+            timeStyle: "short",
+            timeZone,
+          }).format(new Date(row.original.starts_at)),
       },
       {
         id: "client",
@@ -301,7 +302,7 @@ export function BookingsView() {
         ),
       },
     ],
-    [clientById, locale, nameMaster, nameService, t],
+    [clientById, locale, nameMaster, nameService, t, timeZone],
   );
 
   const table = useReactTable({
@@ -347,9 +348,11 @@ export function BookingsView() {
       const mid = me?.role === "master" ? me.master_id : blockMasterId;
       if (!mid) throw new Error(t("fieldMaster"));
       if (!blockDate || !blockStart || !blockEnd) throw new Error(t("validationRequired"));
-      const starts = new Date(`${blockDate}T${blockStart}:00`);
-      const ends = new Date(`${blockDate}T${blockEnd}:00`);
-      if (Number.isNaN(starts.getTime()) || Number.isNaN(ends.getTime()) || starts >= ends) {
+      // Convert salon-local times to UTC before sending to the API.
+      // new Date(`${date}T${time}:00`) uses the BROWSER timezone — not the salon's timezone.
+      const startsUtc = zonedToUtcIso(blockDate, blockStart, timeZone);
+      const endsUtc = zonedToUtcIso(blockDate, blockEnd, timeZone);
+      if (new Date(startsUtc) >= new Date(endsUtc)) {
         throw new Error(t("blockHoursInvalidTime"));
       }
       return apiJson<CalendarSlotRow>("/schedule/block", {
@@ -357,8 +360,8 @@ export function BookingsView() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           master_id: mid,
-          starts_at: starts.toISOString(),
-          ends_at: ends.toISOString(),
+          starts_at: startsUtc,
+          ends_at: endsUtc,
           slot_type: "block",
           note: blockNote.trim() || null,
         }),
@@ -724,6 +727,7 @@ export function BookingsView() {
         services={services}
         initial={createInitialTime}
         editBookingId={editBookingId}
+        salonTz={timeZone}
         onSuccess={() => {
           void listQuery.refetch();
         }}

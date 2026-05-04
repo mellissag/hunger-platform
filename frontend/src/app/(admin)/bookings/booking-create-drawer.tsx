@@ -29,6 +29,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useBooking, useCreateBooking, usePatchBooking, useScheduleSlots } from "@/hooks/useBookings";
 import { useCreateClient } from "@/hooks/useClients";
 import { apiJson } from "@/lib/api";
+import { isoToDateInZone, isoToTimeInZone, zonedToUtcIso } from "@/lib/date-local";
 import type { ClientOut, MasterOut, Paginated, ServiceOut } from "@/types/admin-api";
 import { toast } from "sonner";
 
@@ -65,18 +66,6 @@ function formatTimeInput(value: string): string {
   return `${digits.slice(0, 2)}:${digits.slice(2)}`;
 }
 
-function isoToDate(iso: string) {
-  const d = new Date(iso);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function isoToTime(iso: string) {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
 
 type Props = {
   open: boolean;
@@ -87,6 +76,8 @@ type Props = {
   /** Создание записи с заранее выбранным клиентом (например, с карточки клиента). */
   prefilledClient?: { id: string; name: string } | null;
   onSuccess?: () => void;
+  /** Timezone of the salon (e.g. "Europe/Sofia"). Times are entered and displayed in this zone. */
+  salonTz?: string;
 };
 
 export function BookingCreateDrawer({
@@ -97,6 +88,7 @@ export function BookingCreateDrawer({
   editBookingId,
   prefilledClient,
   onSuccess,
+  salonTz = "Europe/Sofia",
 }: Props) {
   const locale = useLocale();
   const t = useTranslations("pages.bookings");
@@ -177,8 +169,8 @@ export function BookingCreateDrawer({
       client_id: editDetail.client.id,
       service_id: editDetail.service_id,
       master_id: editDetail.master_id,
-      date: isoToDate(editDetail.starts_at),
-      time: isoToTime(editDetail.starts_at),
+      date: isoToDateInZone(editDetail.starts_at, salonTz),
+      time: isoToTimeInZone(editDetail.starts_at, salonTz),
       notes: editDetail.notes ?? "",
     });
     setClientLabel(
@@ -235,12 +227,15 @@ export function BookingCreateDrawer({
   };
 
   const onSubmit = form.handleSubmit(async (values) => {
-    const local = new Date(`${values.date}T${values.time}:00`);
+    // Convert the user's locally-entered date+time (in the salon's timezone) to UTC ISO.
+    // Using new Date(`${date}T${time}:00`) is WRONG: it uses the browser's local timezone,
+    // which may differ from the salon's timezone and causes hour offset bugs.
+    const startsAtUtc = zonedToUtcIso(values.date, values.time, salonTz);
     if (editBookingId) {
       await patch.mutateAsync({
         id: editBookingId,
         body: {
-          starts_at: local.toISOString(),
+          starts_at: startsAtUtc,
           notes: values.notes?.trim() || null,
         },
       });
@@ -250,7 +245,7 @@ export function BookingCreateDrawer({
         client_id: values.client_id,
         master_id: values.master_id,
         service_id: values.service_id,
-        starts_at: local.toISOString(),
+        starts_at: startsAtUtc,
         notes: values.notes?.trim() || null,
       });
       toast.success(t("toastCreated"));

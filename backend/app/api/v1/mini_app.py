@@ -354,9 +354,20 @@ async def create_booking(
     client = await _get_or_create_client(current_user, db)
 
     import uuid as _uuid
+    from datetime import UTC as _UTC
     from datetime import datetime as _dt
+    from zoneinfo import ZoneInfo as _ZoneInfo
 
     from app.core.exceptions import ClientBlacklistedError, SlotTakenError
+
+    # Parse starts_at; the mini-app sends local salon-timezone times (from the slots endpoint)
+    # so a naive datetime must be treated as salon local time, NOT UTC.
+    _dt_parsed = _dt.fromisoformat(payload.starts_at)
+    if _dt_parsed.tzinfo is None:
+        salon_row = (await db.execute(select(Salon).limit(1))).scalar_one_or_none()
+        _tz_name = salon_row.timezone if salon_row else "Europe/Sofia"
+        _dt_parsed = _dt_parsed.replace(tzinfo=_ZoneInfo(_tz_name))
+    starts_at_utc = _dt_parsed.astimezone(_UTC)
 
     try:
         booking = await create_tg_booking(
@@ -364,7 +375,7 @@ async def create_booking(
             client_id=client.id,
             master_id=_uuid.UUID(payload.master_id),
             service_id=_uuid.UUID(payload.service_id),
-            starts_at=ensure_aware(_dt.fromisoformat(payload.starts_at)),
+            starts_at=starts_at_utc,
             telegram_bot=getattr(request.app.state, "bot", None),
         )
     except ClientBlacklistedError:
