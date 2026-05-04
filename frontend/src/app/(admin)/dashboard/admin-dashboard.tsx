@@ -1,12 +1,15 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   BarChart2,
   Calendar,
   CalendarDays,
+  Check,
+  CheckCheck,
   CheckCircle2,
+  Clock,
   Info,
   Plus,
   Send,
@@ -16,10 +19,12 @@ import {
   UserPlus,
   Users,
   X,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo } from "react";
+import { toast } from "sonner";
 import {
   CartesianGrid,
   Cell,
@@ -35,9 +40,12 @@ import {
 } from "recharts";
 
 import { AdminEmptyState } from "@/components/admin/empty-state";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiJson } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { useConfirmBooking } from "@/hooks/useBookings";
 import { utcAddDays, utcStartOfDay, toIsoParam } from "@/lib/date-utc";
 import type {
   BroadcastOut,
@@ -317,8 +325,13 @@ export function AdminDashboard() {
     const today = utcStartOfDay(now);
     return bookings
       .filter((b) => sameUtcDay(b.starts_at, today))
-      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
-      .slice(0, 8)
+      .sort((a, b) => {
+        const aPending = a.status === "pending" ? 0 : 1;
+        const bPending = b.status === "pending" ? 0 : 1;
+        if (aPending !== bPending) return aPending - bPending;
+        return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
+      })
+      .slice(0, 10)
       .map((b) => {
         const client = clients.find((c) => c.id === b.client_id);
         const cn = [client?.first_name, client?.last_name].filter(Boolean).join(" ") || "—";
@@ -343,6 +356,11 @@ export function AdminDashboard() {
         return { ...b, cn };
       });
   }, [cal30?.bookings, clientsPage?.items]);
+
+  const pendingTodayCount = useMemo(
+    () => todayBookings.filter((b) => b.status === "pending").length,
+    [todayBookings],
+  );
 
   const salonName = me?.email?.split("@")[1]?.split(".")[0] ?? "Salon";
   const displayName = [me?.first_name, me?.last_name].filter(Boolean).join(" ") || me?.email || "";
@@ -541,15 +559,20 @@ export function AdminDashboard() {
         </Card>
       </div>
 
-      {/* ── Today's bookings + Right column ── */}
+      {/* ── Activity today + Right column ── */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>{t("upcomingTitle")}</CardTitle>
+              <CardTitle>Активность сегодня</CardTitle>
               <CardDescription>
                 {new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(now)} ·{" "}
                 {todayBookings.length} {t("bookingsCount")}
+                {pendingTodayCount > 0 && (
+                  <span className="ml-2 font-semibold text-amber-600">
+                    · {pendingTodayCount} ожидают подтверждения
+                  </span>
+                )}
               </CardDescription>
             </div>
             <Link
@@ -563,53 +586,10 @@ export function AdminDashboard() {
             {todayBookings.length === 0 ? (
               <AdminEmptyState title={t("emptyUpcoming")} description={t("emptyUpcomingDesc")} />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/50 text-left">
-                      <th className="px-3 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-wider text-primary">
-                        {t("colWhen")}
-                      </th>
-                      <th className="px-3 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-wider text-primary">
-                        {t("colClient")}
-                      </th>
-                      <th className="px-3 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-wider text-primary">
-                        {t("colService")}
-                      </th>
-                      <th className="px-3 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-wider text-primary">
-                        {t("colMaster")}
-                      </th>
-                      <th className="px-3 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-wider text-primary">
-                        {t("colStatus")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {todayBookings.map((r) => (
-                      <tr
-                        key={r.id}
-                        className="border-b border-dashed border-border/60 transition-colors last:border-0 hover:bg-muted/40"
-                      >
-                        <td className="px-3 py-3 font-medium tabular-nums text-primary">
-                          {new Intl.DateTimeFormat(locale, {
-                            timeStyle: "short",
-                          }).format(new Date(r.starts_at))}
-                        </td>
-                        <td className="px-3 py-3">
-                          <div className="flex items-center gap-2">
-                            <ClientAvatar name={r.cn} />
-                            <span>{r.cn}</span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3 text-muted-foreground">{r.sn}</td>
-                        <td className="px-3 py-3 text-muted-foreground">{r.mn}</td>
-                        <td className="px-3 py-3">
-                          <StatusPill status={r.status} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-0 divide-y divide-border/60">
+                {todayBookings.map((r) => (
+                  <ActivityRow key={r.id} booking={r} locale={locale} />
+                ))}
               </div>
             )}
           </CardContent>
@@ -744,6 +724,70 @@ function KpiCard({
         <p className={`text-xs font-medium ${trendClass}`}>{trend}</p>
       </CardContent>
     </Card>
+  );
+}
+
+function ActivityRow({
+  booking,
+  locale,
+}: {
+  booking: CalendarBooking & { cn: string; mn: string; sn: string };
+  locale: string;
+}) {
+  const qc = useQueryClient();
+  const confirm = useConfirmBooking();
+  const isPending = booking.status === "pending";
+
+  const statusIcon = (() => {
+    if (booking.status === "pending") return <Clock className="h-4 w-4 text-amber-600 shrink-0" />;
+    if (booking.status === "confirmed") return <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />;
+    if (booking.status === "completed") return <CheckCheck className="h-4 w-4 text-muted-foreground shrink-0" />;
+    return <XCircle className="h-4 w-4 text-red-500 shrink-0" />;
+  })();
+
+  const timeLabel = new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(
+    new Date(booking.starts_at),
+  );
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-3 py-2.5 text-sm",
+        isPending && "bg-amber-50/50",
+      )}
+    >
+      {statusIcon}
+      <span className="w-12 shrink-0 font-medium tabular-nums text-primary">{timeLabel}</span>
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 truncate">
+        <span className="truncate font-medium">{booking.cn}</span>
+        <span className="text-muted-foreground">·</span>
+        <span className="truncate text-muted-foreground">{booking.sn}</span>
+        <span className="text-muted-foreground">·</span>
+        <span className="truncate text-muted-foreground">{booking.mn}</span>
+      </div>
+      {isPending ? (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 shrink-0 gap-1 border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300"
+          disabled={confirm.isPending}
+          onClick={() =>
+            confirm.mutate(booking.id, {
+              onSuccess: () => {
+                toast.success("Запись подтверждена ✓");
+              },
+            })
+          }
+        >
+          <Check className="h-3 w-3" />
+          Подтвердить
+        </Button>
+      ) : (
+        <Link href="/bookings" className="shrink-0 text-xs text-muted-foreground hover:text-primary">
+          →
+        </Link>
+      )}
+    </div>
   );
 }
 

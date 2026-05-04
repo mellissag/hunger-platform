@@ -220,6 +220,7 @@ export function WeekCalendar({
                     const top = (sm.minutes - GRID_START_MIN) * PX_PER_MIN;
                     const height = Math.max(dur * PX_PER_MIN, 18);
                     const col = masterColor(b.master_id);
+                    const isPending = b.status === "pending";
                     return (
                       <button
                         key={b.id}
@@ -228,7 +229,9 @@ export function WeekCalendar({
                         style={{
                           top,
                           height,
-                          background: `${col}dd`,
+                          background: isPending
+                            ? `${col}aa`
+                            : `${col}dd`,
                           borderLeft: `3px solid ${col}`,
                         }}
                         onClick={(e) => {
@@ -236,7 +239,17 @@ export function WeekCalendar({
                           onSelectBooking(b.id);
                         }}
                       >
-                        <span className="line-clamp-3">
+                        {isPending && (
+                          <div
+                            className="pointer-events-none absolute inset-0"
+                            style={{
+                              background:
+                                "repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.25) 5px, rgba(255,255,255,0.25) 10px)",
+                            }}
+                          />
+                        )}
+                        <span className="relative line-clamp-3">
+                          {isPending && "⏳ "}
                           {nameClient(b.client_id)} · {nameService(b.service_id)}
                         </span>
                       </button>

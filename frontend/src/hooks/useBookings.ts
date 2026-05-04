@@ -143,6 +143,19 @@ export function useCancelBooking() {
   });
 }
 
+export function useConfirmBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiJson<BookingOut>(`/bookings/${id}/confirm`, { method: "POST" }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["bookings"] });
+      await qc.invalidateQueries({ queryKey: ["schedule"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
 export function usePatchBooking() {
   const qc = useQueryClient();
   return useMutation({

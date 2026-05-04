@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { CheckCircle2, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -24,7 +24,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { useBooking, useCancelBooking, usePatchBooking } from "@/hooks/useBookings";
+import { useBooking, useCancelBooking, useConfirmBooking, usePatchBooking } from "@/hooks/useBookings";
 import { useDebounce } from "@/hooks/useDebounce";
 import { durationMinutes } from "@/lib/date-local";
 import type { BookingDetailOut } from "@/types/admin-api";
@@ -59,6 +59,7 @@ export function BookingDetailDrawer({
   const { data, isLoading, isError, error, refetch } = useBooking(bookingId);
   const patch = usePatchBooking();
   const cancel = useCancelBooking();
+  const confirm = useConfirmBooking();
 
   const [notes, setNotes] = useState("");
   const debouncedNotes = useDebounce(notes, 600);
@@ -236,6 +237,30 @@ export function BookingDetailDrawer({
                   <Label className="text-xs">{t("fieldNotes")}</Label>
                   <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} />
                 </div>
+
+                {data.status === "pending" && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+                    <p className="mb-2 text-xs font-medium text-amber-700">
+                      ⏳ Запись ожидает подтверждения
+                    </p>
+                    <Button
+                      type="button"
+                      className="w-full gap-2 bg-green-600 text-white hover:bg-green-700"
+                      disabled={confirm.isPending}
+                      onClick={() =>
+                        confirm.mutate(data.id, {
+                          onSuccess: () => {
+                            toast.success("Запись подтверждена ✓");
+                            void qc.invalidateQueries({ queryKey: ["bookings", "detail", data.id] });
+                          },
+                        })
+                      }
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Подтвердить запись
+                    </Button>
+                  </div>
+                )}
 
                 <div className="flex flex-wrap gap-2">
                   {onEdit && (
