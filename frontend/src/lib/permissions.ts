@@ -9,6 +9,7 @@ export type Resource =
   | "services"
   | "schedule"
   | "broadcasts"
+  | "chats"
   | "statistics"
   | "ai"
   | "blacklist"
@@ -34,6 +35,7 @@ const SALON_ADMIN: Resource[] = [
   "services",
   "schedule",
   "broadcasts",
+  "chats",
   "statistics",
   "ai",
   "blacklist",

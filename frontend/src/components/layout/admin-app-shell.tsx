@@ -56,7 +56,7 @@ import { apiJson } from "@/lib/api";
 import type { SessionUser } from "@/types/user";
 import type { SalonBundle } from "@/types/admin-api";
 import type { Resource } from "@/lib/permissions";
-type NavItem = { href: string; labelKey: string; icon: React.ElementType; resource: Resource };
+type NavItem = { href: string; labelKey: string; icon: React.ElementType; resource: Resource; badge?: string };
 
 const NAV: NavItem[] = [
   { href: "/dashboard", labelKey: "dashboard", icon: LayoutDashboard, resource: "dashboard" },
@@ -66,6 +66,7 @@ const NAV: NavItem[] = [
   { href: "/services", labelKey: "services", icon: ClipboardList, resource: "services" },
   { href: "/schedule", labelKey: "schedule", icon: CalendarDays, resource: "schedule" },
   { href: "/broadcasts", labelKey: "broadcasts", icon: MessageSquare, resource: "broadcasts" },
+  { href: "/chats", labelKey: "chats", icon: MessageSquare, resource: "chats", badge: "Скоро" },
   { href: "/statistics", labelKey: "statistics", icon: LayoutDashboard, resource: "statistics" },
   { href: "/ai", labelKey: "ai", icon: Sparkles, resource: "ai" },
   { href: "/inventory", labelKey: "inventory", icon: Package, resource: "inventory" },
@@ -166,7 +167,12 @@ export function AdminAppShell({
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                {t(`nav.${item.labelKey}` as never)}
+                <span className="flex-1">{t(`nav.${item.labelKey}` as never)}</span>
+                {item.badge && (
+                  <span className="rounded border border-muted-foreground/30 bg-muted px-1.5 py-0 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}
