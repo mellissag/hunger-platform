@@ -9,6 +9,17 @@ import { toast } from "sonner";
 import { AdminEmptyState } from "@/components/admin/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { BroadcastOut, Paginated } from "@/types/admin-api";
 import { useBroadcasts, useDeleteBroadcast } from "@/hooks/useBroadcasts";
 import { cn } from "@/lib/utils";
@@ -189,7 +200,7 @@ export function BroadcastsList() {
                       </div>
                     </div>
                   ) : null}
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Button size="sm" variant="secondary" asChild>
                       <Link href={`/broadcasts/new?duplicate=${row.id}`}>{t("duplicate")}</Link>
                     </Button>
@@ -199,34 +210,60 @@ export function BroadcastsList() {
                       </Link>
                     </Button>
                     {(row.status === "draft" || row.status === "scheduled") && (
-                      <>
-                        <Button size="sm" variant="outline" asChild>
-                          <Link href={`/broadcasts/new?edit=${row.id}`}>{t("edit")}</Link>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-red-600 hover:bg-red-50"
-                          disabled={deleteMutation.isPending && deletingId === row.id}
-                          onClick={() => {
-                            if (!confirm(t("delete") + "?")) return;
-                            setDeletingId(row.id);
-                            deleteMutation.mutate(row.id, {
-                              onSuccess: () => {
-                                toast.success(t("delete") + " ✓");
-                                setDeletingId(null);
-                              },
-                              onError: (e) => {
-                                toast.error(e.message);
-                                setDeletingId(null);
-                              },
-                            });
-                          }}
-                        >
-                          <Trash2 className="mr-1 h-3.5 w-3.5" />
-                          {t("delete")}
-                        </Button>
-                      </>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href={`/broadcasts/new?edit=${row.id}`}>{t("edit")}</Link>
+                      </Button>
+                    )}
+                    {row.status !== "sending" && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10",
+                              row.status === "sent" && "opacity-60",
+                            )}
+                            disabled={deleteMutation.isPending && deletingId === row.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Удалить рассылку?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Рассылка &ldquo;{row.title}&rdquo; и все данные об отправке будут удалены безвозвратно.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Отмена</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-white hover:bg-destructive/90"
+                              onClick={() => {
+                                setDeletingId(row.id);
+                                deleteMutation.mutate(row.id, {
+                                  onSuccess: () => {
+                                    toast.success("Рассылка удалена");
+                                    setDeletingId(null);
+                                  },
+                                  onError: (e) => {
+                                    const msg = (e as Error).message;
+                                    toast.error(
+                                      msg.includes("во время отправки") || msg.includes("sending")
+                                        ? "Нельзя удалить рассылку во время отправки"
+                                        : msg || "Ошибка",
+                                    );
+                                    setDeletingId(null);
+                                  },
+                                });
+                              }}
+                            >
+                              Удалить
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                   </div>
                 </div>
