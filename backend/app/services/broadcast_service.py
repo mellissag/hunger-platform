@@ -125,8 +125,8 @@ async def delete_broadcast(db: AsyncSession, broadcast_id: UUID) -> None:
     bc = await db.get(Broadcast, broadcast_id)
     if bc is None:
         raise NotFoundError("Broadcast not found")
-    if bc.status not in (BroadcastStatus.draft, BroadcastStatus.scheduled):
-        raise BroadcastInvalidStateError("Only draft or scheduled broadcasts can be deleted")
+    if bc.status == BroadcastStatus.sending:
+        raise BroadcastInvalidStateError("Нельзя удалить рассылку во время отправки")
     await db.delete(bc)
 
 
