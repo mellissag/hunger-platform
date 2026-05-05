@@ -5,11 +5,10 @@ from __future__ import annotations
 from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, WebAppInfo
+from aiogram.types import Message, ReplyKeyboardRemove
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.salon_context import get_mini_app_url
 from app.models.client import Client
 from app.models.master import Master
 from app.services.client_bot_activity import on_command_start_session
@@ -47,18 +46,7 @@ async def cmd_start(
         )
         return
 
-    mini_app_url = await get_mini_app_url(db)
-
-    # ReplyKeyboardMarkup with is_persistent=True replaces the text input field
-    # with a permanent "Open App" button that also appears in the chat list preview.
-    kb = ReplyKeyboardMarkup(
-        keyboard=[[
-            KeyboardButton(
-                text="🚀  Open App",
-                web_app=WebAppInfo(url=mini_app_url),
-            )
-        ]],
-        resize_keyboard=True,
-        is_persistent=True,
-    )
-    await message.answer(WELCOME_TEXT, parse_mode="HTML", reply_markup=kb)
+    # Remove any old persistent reply keyboard; the blue "Открыть салон"
+    # ChatMenuButton (set in main.py via set_chat_menu_button) is the only
+    # launcher we want to show.
+    await message.answer(WELCOME_TEXT, parse_mode="HTML", reply_markup=ReplyKeyboardRemove())
