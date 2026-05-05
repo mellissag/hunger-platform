@@ -29,7 +29,7 @@ const T: Record<Lang, {
   step1Label: string; step1Title: string; step1TitleItalic: string; continueBtn: string;
   step2Label: string; step2Title: string; step2TitleItalic: string;
   nameLbl: string; namePlaceholder: string;
-  phoneLbl: string; phonePlaceholder: string;
+  phoneLbl: string; phonePlaceholder: string; phoneHint: string;
   privacy: string;
   step3Label: string; step3Title: string; step3TitleItalic: string;
   themeLight: string; themeDark: string;
@@ -44,7 +44,7 @@ const T: Record<Lang, {
     step1Label: 'Стъпка 1 от 3', step1Title: 'Изберете', step1TitleItalic: 'език', continueBtn: 'Продължи',
     step2Label: 'Стъпка 2 от 3', step2Title: 'Запознанство.', step2TitleItalic: '',
     nameLbl: 'Вашето Имя', namePlaceholder: 'Въведете вашето Имя',
-    phoneLbl: 'Телефон', phonePlaceholder: '+359 87 000 0000',
+    phoneLbl: 'Телефон', phonePlaceholder: '+359 87 000 0000', phoneHint: 'Въведете вашия телефон',
     privacy: 'Натисквайки „Продължи", вие се съгласявате с условията.',
     step3Label: 'Стъпка 3 от 3', step3Title: 'Изберете', step3TitleItalic: 'тема',
     themeLight: 'Светла', themeDark: 'Тъмна',
@@ -59,7 +59,7 @@ const T: Record<Lang, {
     step1Label: 'Step 1 of 3', step1Title: 'Choose', step1TitleItalic: 'language', continueBtn: 'Continue',
     step2Label: 'Step 2 of 3', step2Title: 'Introduction.', step2TitleItalic: '',
     nameLbl: 'Your Name', namePlaceholder: 'Enter your name',
-    phoneLbl: 'Phone', phonePlaceholder: '+359 87 000 0000',
+    phoneLbl: 'Phone', phonePlaceholder: '+359 87 000 0000', phoneHint: 'Enter your phone number',
     privacy: 'By tapping "Continue" you agree to the terms and privacy policy.',
     step3Label: 'Step 3 of 3', step3Title: 'Choose', step3TitleItalic: 'theme',
     themeLight: 'Light', themeDark: 'Dark',
@@ -74,7 +74,7 @@ const T: Record<Lang, {
     step1Label: 'Крок 1 з 3', step1Title: 'Оберіть', step1TitleItalic: 'мову', continueBtn: 'Продовжити',
     step2Label: 'Крок 2 з 3', step2Title: 'Знайомство.', step2TitleItalic: '',
     nameLbl: "Ваше Ім'я", namePlaceholder: "Введіть ваше ім'я",
-    phoneLbl: 'Телефон', phonePlaceholder: '+359 87 000 0000',
+    phoneLbl: 'Телефон', phonePlaceholder: '+359 87 000 0000', phoneHint: 'Введіть номер телефону',
     privacy: 'Натискаючи «Продовжити», ви погоджуєтесь з умовами.',
     step3Label: 'Крок 3 з 3', step3Title: 'Оберіть', step3TitleItalic: 'тему',
     themeLight: 'Світла', themeDark: 'Темна',
@@ -89,7 +89,7 @@ const T: Record<Lang, {
     step1Label: 'Шаг 1 из 3', step1Title: 'Выберите', step1TitleItalic: 'язык', continueBtn: 'Продолжить',
     step2Label: 'Шаг 2 из 3', step2Title: 'Знакомство.', step2TitleItalic: '',
     nameLbl: 'Ваше имя', namePlaceholder: 'Введите ваше имя',
-    phoneLbl: 'Телефон', phonePlaceholder: '+359 87 000 0000',
+    phoneLbl: 'Телефон', phonePlaceholder: '+359 87 000 0000', phoneHint: 'Введите номер телефона',
     privacy: 'Нажимая «Продолжить», вы соглашаетесь с условиями и политикой конфиденциальности.',
     step3Label: 'Шаг 3 из 3', step3Title: 'Выберите', step3TitleItalic: 'тему',
     themeLight: 'Светлая', themeDark: 'Тёмная',
@@ -337,16 +337,12 @@ export default function OnboardingPage() {
           <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, marginTop: 12, letterSpacing: '-0.02em' }}>
             {t.step2Title}
           </div>
-          <div style={{ fontSize: 13, color: '#4A3F2E', lineHeight: 1.5, marginTop: 10 }}>
-            {t.nameLbl} & {t.phoneLbl}.
-          </div>
+        <div style={{ fontSize: 13, color: '#4A3F2E', lineHeight: 1.5, marginTop: 10 }}>
+          {t.nameLbl} & {t.phoneLbl}.
         </div>
+      </div>
 
-        <div style={{ textAlign: 'center', color: GOLD, opacity: .45, letterSpacing: '0.6em', fontSize: 12, padding: '4px 0', fontFamily: SERIF, margin: '0 0 20px' }}>
-          ⸻ ✦ ⸻
-        </div>
-
-        {/* Name field */}
+      {/* Name field */}
         <div style={{ margin: '0 22px 16px' }}>
           <label style={{ display: 'block', fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#7A6E58', marginBottom: 8 }}>
             {t.nameLbl}
@@ -371,7 +367,7 @@ export default function OnboardingPage() {
             inputMode="tel"
             value={phone}
             onChange={e => handlePhoneChange(e.target.value)}
-            placeholder={t.phonePlaceholder}
+            placeholder={t.phoneHint}
             autoComplete="tel"
             style={{ ...inputStyle, width: '100%' }}
           />
@@ -404,6 +400,26 @@ export default function OnboardingPage() {
 
   // ── Screen 3: Theme Selection ──────────────────────────────────────────────
   if (screen === 3) {
+    const dk = theme === 'dark';
+    // Live-preview: background and text flip immediately when theme is tapped
+    const s3bg: React.CSSProperties = {
+      position: 'fixed', inset: 0,
+      background: dk
+        ? `radial-gradient(ellipse at 100% 0%, rgba(201,168,76,.06), transparent 50%), ${NEAR_BLACK}`
+        : `radial-gradient(ellipse at 100% 0%, rgba(201,168,76,.10), transparent 50%),
+           radial-gradient(ellipse at 0% 100%, rgba(237,229,213,.5), transparent 50%), ${IVORY}`,
+      fontFamily: BODY,
+      color: dk ? IVORY : NEAR_BLACK,
+      display: 'flex', flexDirection: 'column', overflowY: 'auto',
+      transition: 'background .3s ease, color .3s ease',
+    };
+    const s3muted = dk ? 'rgba(250,248,243,.45)' : '#7A6E58';
+    const s3cardBase: React.CSSProperties = {
+      display: 'flex', alignItems: 'center', gap: 16, padding: '18px 18px',
+      borderRadius: 16, cursor: 'pointer', width: '100%', textAlign: 'left',
+      transition: 'all .2s ease',
+    };
+
     const THEMES: Array<{ code: Theme; label: string; sub: string; preview: string }> = [
       {
         code: 'light',
@@ -418,12 +434,19 @@ export default function OnboardingPage() {
         preview: `linear-gradient(135deg, ${NEAR_BLACK} 0%, #2E2412 100%)`,
       },
     ];
+
+    function selectTheme(code: Theme) {
+      setTheme(code);
+      // Persist immediately so layout picks it up on next mount
+      try { localStorage.setItem('hunger_theme', code); } catch { /**/ }
+    }
+
     return (
-      <div style={pageBg}>
+      <div style={s3bg}>
         <div style={{ padding: '20px 22px 0' }}>
           <button
             onClick={() => setScreen(2)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#7A6E58', fontSize: 12, fontWeight: 500, letterSpacing: '0.06em', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, color: s3muted, fontSize: 12, fontWeight: 500, letterSpacing: '0.06em', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
             {t.backBtn}
@@ -434,45 +457,53 @@ export default function OnboardingPage() {
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>
             {t.step3Label}
           </div>
-          <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, marginTop: 12, letterSpacing: '-0.02em' }}>
+          <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 500, color: dk ? IVORY : NEAR_BLACK, lineHeight: 1.05, marginTop: 12, letterSpacing: '-0.02em', transition: 'color .3s ease' }}>
             {t.step3Title}<br />
             <span style={{ fontStyle: 'italic', color: GOLD }}>{t.step3TitleItalic}</span>.
           </div>
         </div>
 
         <div style={{ padding: '0 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {THEMES.map(th => (
-            <button
-              key={th.code}
-              onClick={() => setTheme(th.code)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 16, padding: '18px 18px',
-                borderRadius: 16, border: `1.5px solid ${theme === th.code ? GOLD : 'rgba(28,20,9,.12)'}`,
-                background: theme === th.code ? 'rgba(154,114,48,.06)' : '#fff',
-                cursor: 'pointer', width: '100%', textAlign: 'left',
-                boxShadow: theme === th.code ? '0 4px 16px rgba(154,114,48,.12)' : 'none',
-                transition: 'all .15s ease',
-              }}
-            >
-              {/* Colour swatch */}
-              <div style={{
-                width: 52, height: 52, borderRadius: 10, background: th.preview, flexShrink: 0,
-                border: '1px solid rgba(28,20,9,.10)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <span style={{ fontFamily: SERIF, fontSize: 22, fontStyle: 'italic', color: GOLD, opacity: 0.8 }}>H</span>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 500, color: NEAR_BLACK }}>{th.label}</div>
-                <div style={{ fontSize: 11, color: '#7A6E58', marginTop: 3 }}>{th.sub}</div>
-              </div>
-              {theme === th.code && (
-                <div style={{ width: 22, height: 22, borderRadius: '50%', background: GOLD, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+          {THEMES.map(th => {
+            const selected = theme === th.code;
+            const cardBg = selected
+              ? (dk ? 'rgba(154,114,48,.18)' : 'rgba(154,114,48,.06)')
+              : (dk ? 'rgba(255,255,255,.06)' : '#fff');
+            const cardBorder = selected
+              ? `1.5px solid ${GOLD}`
+              : dk ? '1.5px solid rgba(250,248,243,.12)' : '1.5px solid rgba(28,20,9,.12)';
+            return (
+              <button
+                key={th.code}
+                onClick={() => selectTheme(th.code)}
+                style={{
+                  ...s3cardBase,
+                  background: cardBg,
+                  border: cardBorder,
+                  boxShadow: selected ? '0 4px 16px rgba(154,114,48,.18)' : 'none',
+                }}
+              >
+                {/* Colour swatch */}
+                <div style={{
+                  width: 52, height: 52, borderRadius: 10,
+                  background: th.preview, flexShrink: 0,
+                  border: dk ? '1px solid rgba(250,248,243,.15)' : '1px solid rgba(28,20,9,.10)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <span style={{ fontFamily: SERIF, fontSize: 22, fontStyle: 'italic', color: GOLD, opacity: 0.9 }}>H</span>
                 </div>
-              )}
-            </button>
-          ))}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 500, color: dk ? IVORY : NEAR_BLACK }}>{th.label}</div>
+                  <div style={{ fontSize: 11, color: s3muted, marginTop: 3 }}>{th.sub}</div>
+                </div>
+                {selected && (
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: GOLD, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         <div style={{ padding: '28px 22px 40px', marginTop: 'auto' }}>
