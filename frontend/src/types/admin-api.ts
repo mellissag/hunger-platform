@@ -290,7 +290,7 @@ export type BookingDetailService = {
 
 export type BookingDetailOut = BookingOut & {
   client: BookingDetailClient;
-  master: BookingDetailMaster;
+  master: BookingDetailMaster | null;
   service: BookingDetailService;
 };
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useConsultationBookings } from "@/hooks/useBookings";
+import { useServices } from "@/hooks/useServices";
 import { BookingDetailDrawer } from "./booking-detail-drawer";
 import type { BookingOut } from "@/types/admin-api";
 
@@ -25,6 +26,11 @@ export function ConsultationRequestsPanel({ salonTz = "Europe/Sofia" }: { salonT
   const { data: raw = [] } = useConsultationBookings();
   // The hook returns Paginated<BookingOut> but we mapped it to items below
   const requests: BookingOut[] = (raw as unknown as { items?: BookingOut[] }).items ?? (Array.isArray(raw) ? (raw as BookingOut[]) : []);
+
+  const { data: servicesData } = useServices();
+  const servicesMap = Object.fromEntries(
+    (servicesData?.items ?? []).map((s) => [s.id, s.name_i18n?.ru ?? s.name_i18n?.en ?? Object.values(s.name_i18n ?? {})[0] ?? "—"])
+  );
 
   const [expanded, setExpanded] = useState(true);
   const [openBookingId, setOpenBookingId] = useState<string | null>(null);
@@ -102,6 +108,7 @@ export function ConsultationRequestsPanel({ salonTz = "Europe/Sofia" }: { salonT
                 <ConsultationCard
                   key={req.id}
                   booking={req}
+                  serviceName={servicesMap[req.service_id] ?? "—"}
                   onView={() => setOpenBookingId(req.id)}
                 />
               ))}
@@ -125,9 +132,11 @@ export function ConsultationRequestsPanel({ salonTz = "Europe/Sofia" }: { salonT
 
 function ConsultationCard({
   booking,
+  serviceName,
   onView,
 }: {
   booking: BookingOut;
+  serviceName: string;
   onView: () => void;
 }) {
   return (
@@ -153,7 +162,7 @@ function ConsultationCard({
 
       {/* Service */}
       <div className="font-serif text-sm font-medium text-foreground leading-tight mb-2 truncate">
-        {booking.service_id ? "Услуга" : "Не указана"}
+        {serviceName}
       </div>
 
       {/* Status badge */}

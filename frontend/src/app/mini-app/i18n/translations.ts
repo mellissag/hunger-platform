@@ -49,6 +49,7 @@ export interface AppTranslations {
   listLiveDays: (n: number) => string;
   listLiveHours: (n: number) => string;
   listLiveSoon: string;
+  listConsultation: string;
   // Status badges
   stConfirmed: string; stPending: string; stCancelled: string;
   stCompleted: string; stNoShow: string;
@@ -99,6 +100,7 @@ const RU: AppTranslations = {
   listLiveDays: (n) => `через ${n} ${n === 1 ? 'день' : n < 5 ? 'дня' : 'дней'}`,
   listLiveHours: (n) => `через ${n} ч`,
   listLiveSoon: 'скоро',
+  listConsultation: 'Созвон (дата уточняется)',
   stConfirmed: 'Подтверждено', stPending: 'Ожидание', stCancelled: 'Отменено',
   stCompleted: 'Завершено', stNoShow: 'Не пришёл',
   profEyebrow: 'Профиль', profH: 'Мой', profHi: 'профиль',
@@ -148,6 +150,7 @@ const EN: AppTranslations = {
   listLiveDays: (n) => `in ${n} ${n === 1 ? 'day' : 'days'}`,
   listLiveHours: (n) => `in ${n}h`,
   listLiveSoon: 'soon',
+  listConsultation: 'Consultation (date TBD)',
   stConfirmed: 'Confirmed', stPending: 'Pending', stCancelled: 'Cancelled',
   stCompleted: 'Completed', stNoShow: 'No show',
   profEyebrow: 'Profile', profH: 'My', profHi: 'profile',
@@ -197,6 +200,7 @@ const UK: AppTranslations = {
   listLiveDays: (n) => `через ${n} ${n === 1 ? 'день' : n < 5 ? 'дні' : 'днів'}`,
   listLiveHours: (n) => `через ${n} год`,
   listLiveSoon: 'скоро',
+  listConsultation: 'Дзвінок (дата уточнюється)',
   stConfirmed: 'Підтверджено', stPending: 'Очікування', stCancelled: 'Скасовано',
   stCompleted: 'Завершено', stNoShow: 'Не прийшов',
   profEyebrow: 'Профіль', profH: 'Мій', profHi: 'профіль',
@@ -246,6 +250,7 @@ const BG: AppTranslations = {
   listLiveDays: (n) => `след ${n} ${n === 1 ? 'ден' : 'дни'}`,
   listLiveHours: (n) => `след ${n} ч`,
   listLiveSoon: 'скоро',
+  listConsultation: 'Консултация (датата се уточнява)',
   stConfirmed: 'Потвърдено', stPending: 'Изчакване', stCancelled: 'Отказано',
   stCompleted: 'Завършено', stNoShow: 'Не се яви',
   profEyebrow: 'Профил', profH: 'Моят', profHi: 'профил',

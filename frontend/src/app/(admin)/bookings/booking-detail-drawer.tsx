@@ -29,6 +29,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { durationMinutes } from "@/lib/date-local";
 import type { BookingDetailOut } from "@/types/admin-api";
 import { cn } from "@/lib/utils";
+import { ConsultationScheduleModal } from "./consultation-schedule-modal";
 
 function initials(c: { first_name: string | null; last_name: string | null }): string {
   const a = c.first_name?.[0] ?? "";
@@ -65,6 +66,7 @@ export function BookingDetailDrawer({
   const debouncedNotes = useDebounce(notes, 600);
   const lastSaved = useRef<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   // Stable ref to always-current patch.mutate — prevents it from being a dep
   const patchMutateRef = useRef(patch.mutate);
@@ -172,7 +174,7 @@ export function BookingDetailDrawer({
                 <div className="flex gap-3">
                   <div
                     className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white"
-                    style={{ background: data.master.color_hex }}
+                    style={{ background: data.master?.color_hex ?? "#9A7230" }}
                   >
                     {initials(data.client)}
                   </div>
@@ -198,7 +200,7 @@ export function BookingDetailDrawer({
 
                 <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3 text-sm">
                   <Row label={t("detailService")} value={pickName(data.service.name_i18n, locale)} />
-                  <Row label={t("detailMaster")} value={data.master.display_name} />
+                  <Row label={t("detailMaster")} value={data.master?.display_name ?? "—"} />
                   <Row label={t("detailWhen")} value={fmtWhen} />
                   <Row label={t("detailDuration")} value={t("durationMin", { n: dur })} />
                   <Row label={t("detailPrice")} value={`€${data.price}`} />
@@ -243,22 +245,33 @@ export function BookingDetailDrawer({
                     <p className="mb-2 text-xs font-medium text-amber-700">
                       ⏳ Запись ожидает подтверждения
                     </p>
-                    <Button
-                      type="button"
-                      className="w-full gap-2 bg-green-600 text-white hover:bg-green-700"
-                      disabled={confirm.isPending}
-                      onClick={() =>
-                        confirm.mutate(data.id, {
-                          onSuccess: () => {
-                            toast.success("Запись подтверждена ✓");
-                            void qc.invalidateQueries({ queryKey: ["bookings", "detail", data.id] });
-                          },
-                        })
-                      }
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      Подтвердить запись
-                    </Button>
+                    {data.needs_consultation ? (
+                      <Button
+                        type="button"
+                        className="w-full gap-2 bg-green-600 text-white hover:bg-green-700"
+                        onClick={() => setScheduleOpen(true)}
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Назначить время и подтвердить
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        className="w-full gap-2 bg-green-600 text-white hover:bg-green-700"
+                        disabled={confirm.isPending}
+                        onClick={() =>
+                          confirm.mutate(data.id, {
+                            onSuccess: () => {
+                              toast.success("Запись подтверждена ✓");
+                              void qc.invalidateQueries({ queryKey: ["bookings", "detail", data.id] });
+                            },
+                          })
+                        }
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Подтвердить запись
+                      </Button>
+                    )}
                   </div>
                 )}
 
@@ -289,6 +302,18 @@ export function BookingDetailDrawer({
           </div>
         </DrawerContent>
       </Drawer>
+
+      {data && scheduleOpen && (
+        <ConsultationScheduleModal
+          open={scheduleOpen}
+          onOpenChange={setScheduleOpen}
+          booking={data}
+          salonTz={salonTz}
+          onConfirmed={() => {
+            void qc.invalidateQueries({ queryKey: ["bookings", "detail", bookingId] });
+          }}
+        />
+      )}
 
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <DialogContent>

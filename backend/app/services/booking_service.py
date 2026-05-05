@@ -347,10 +347,10 @@ async def booking_stats(
 async def get_booking_detail(db: AsyncSession, user: User, booking_id: UUID) -> BookingDetailOut:
     b = await get_booking(db, user, booking_id)
     client = await db.get(Client, b.client_id)
-    master = await db.get(Master, b.master_id)
     service = await db.get(Service, b.service_id)
-    if client is None or master is None or service is None:
+    if client is None or service is None:
         raise NotFoundError("Booking relation not found")
+    master = await db.get(Master, b.master_id) if b.master_id else None
     base = BookingOut.model_validate(b)
     return BookingDetailOut(
         **base.model_dump(),
@@ -365,7 +365,7 @@ async def get_booking_detail(db: AsyncSession, user: User, booking_id: UUID) -> 
             id=master.id,
             display_name=master.display_name,
             color_hex=master.color_hex,
-        ),
+        ) if master else None,
         service=BookingDetailServiceOut(
             id=service.id,
             name_i18n=dict(service.name_i18n or {}),
@@ -387,25 +387,30 @@ async def update_booking(
 ) -> Booking:
     b = await get_booking(db, user, booking_id)
     payload = data.model_dump(exclude_unset=True)
-    new_start = ensure_aware(payload.get("starts_at", b.starts_at))
-    new_end = ensure_aware(payload.get("ends_at", b.ends_at))
-    if new_start is None or new_end is None:
-        raise InvalidScheduleError("starts_at and ends_at are required")
-    if "starts_at" in payload and "ends_at" not in payload:
-        _, duration_min = await _resolve_pricing(db, b.master_id, b.service_id)
-        new_end = new_start + timedelta(minutes=duration_min)
-    if "starts_at" in payload or "ends_at" in payload:
-        await _assert_slot_free(
-            db,
-            master_id=b.master_id,
-            starts_at=new_start,
-            ends_at=new_end,
-            exclude_booking_id=b.id,
-        )
+
+    changing_time = "starts_at" in payload or "ends_at" in payload
+    if changing_time:
+        new_start = ensure_aware(payload.get("starts_at", b.starts_at))
+        new_end = ensure_aware(payload.get("ends_at", b.ends_at))
+        if new_start is None or new_end is None:
+            raise InvalidScheduleError("starts_at and ends_at are required")
+        effective_master_id = payload.get("master_id", b.master_id)
+        if "starts_at" in payload and "ends_at" not in payload:
+            _, duration_min = await _resolve_pricing(db, effective_master_id, b.service_id)
+            new_end = new_start + timedelta(minutes=duration_min)
+        if effective_master_id:
+            await _assert_slot_free(
+                db,
+                master_id=effective_master_id,
+                starts_at=new_start,
+                ends_at=new_end,
+                exclude_booking_id=b.id,
+            )
+        if "ends_at" not in payload and "starts_at" in payload:
+            payload["ends_at"] = new_end
+
     for k, v in payload.items():
         setattr(b, k, v)
-    if "starts_at" in payload and "ends_at" not in payload:
-        b.ends_at = new_end
     await db.flush()
     return b
 
@@ -450,7 +455,8 @@ async def cancel_booking(
     policy = settings.late_cancellation_policy if settings else LateCancellationPolicy.no_cancel
     fine_amt = settings.fine_amount if settings else None
 
-    hours_left = (b.starts_at - now).total_seconds() / 3600.0
+    # Consultation bookings have no starts_at — allow free cancellation
+    hours_left = (b.starts_at - now).total_seconds() / 3600.0 if b.starts_at else float("inf")
     if hours_left >= free_h:
         b.status = BookingStatus.cancelled_by_client
         b.cancelled_at = now

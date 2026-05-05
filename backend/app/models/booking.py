@@ -27,6 +27,7 @@ from app.models.enums import BookingCreatedVia, BookingStatus, PrepaymentStatus
 from app.models.mixins import CreatedAtMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.catalog import Service
     from app.models.client import Client
     from app.models.master import Master
 
@@ -111,6 +112,7 @@ class Booking(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         uselist=False,
         foreign_keys="Review.booking_id",
     )
+    service: Mapped["Service | None"] = relationship("Service", foreign_keys=[service_id])
     master: Mapped["Master | None"] = relationship("Master", foreign_keys=[master_id])
     client: Mapped["Client"] = relationship("Client", foreign_keys=[client_id])
 

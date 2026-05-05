@@ -69,11 +69,12 @@ export interface Booking {
   id: string;
   service_name: string;
   master_name: string;
-  starts_at: string;
-  ends_at?: string;
+  starts_at: string | null;
+  ends_at?: string | null;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
   price?: number;
   duration_minutes?: number;
+  needs_consultation?: boolean;
 }
 
 export interface BookingCreatePayload {

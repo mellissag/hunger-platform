@@ -528,12 +528,10 @@ async def list_my_bookings(
     if client is None:
         return []
 
-    from sqlalchemy import nulls_last
-
     stmt = (
         select(Booking)
         .where(Booking.client_id == client.id)
-        .order_by(nulls_last(Booking.starts_at.desc()))
+        .order_by(Booking.starts_at.desc().nulls_last())
         .limit(50)
         .options(
             selectinload(Booking.service),
@@ -749,7 +747,7 @@ async def cancel_booking(
             detail=f"Cannot cancel booking with status '{booking.status.value}'",
         )
 
-    booking.status = BookingStatus.cancelled
+    booking.status = BookingStatus.cancelled_by_client
     await db.commit()
     await db.refresh(booking)
 

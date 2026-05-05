@@ -26,12 +26,14 @@ class BookingCreate(BaseModel):
 class BookingUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    master_id: UUID | None = None
     starts_at: datetime | None = None
     ends_at: datetime | None = None
     status: BookingStatus | None = None
     price: Decimal | None = Field(default=None, ge=0)
     notes: str | None = None
     prepayment_status: PrepaymentStatus | None = None
+    needs_consultation: bool | None = None
 
 
 class BookingCancel(BaseModel):

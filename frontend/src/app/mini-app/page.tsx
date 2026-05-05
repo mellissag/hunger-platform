@@ -42,7 +42,7 @@ export default function HomePage() {
   }, [router]);
 
   const upcoming = bookings.filter(b => ['confirmed', 'pending'].includes(b.status));
-  const nextBooking = upcoming[0] ?? null;
+  const nextBooking = upcoming.find(b => b.starts_at != null) ?? null;
 
   // Client display name: registration form name > Telegram name > guest
   const clientName = profile?.first_name || user?.first_name || t.greetingGuest;
@@ -83,68 +83,18 @@ export default function HomePage() {
 
       {/* ── Greeting ── */}
       <div style={{ padding: '0 22px 14px' }}>
-        <div style={{ fontSize: 13, color: MUTED, fontWeight: 400, lineHeight: 1.2 }}>{t.greeting},</div>
-        <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 600, color: NEAR_BLACK, letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: 2 }}>{clientName}</div>
-      </div>
-
-      {/* ── Live Activity Card ── */}
-      <div style={{
-        margin: '0 16px 0',
-        padding: '18px 20px',
-        background: 'linear-gradient(135deg, rgba(255,255,255,.50), rgba(237,229,213,.65))',
-        borderRadius: 24,
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(154,114,48,.20)',
-        boxShadow: '0 6px 24px rgba(154,114,48,.15)',
-      }}>
-        {nextBooking ? (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: GOLD, boxShadow: `0 0 8px ${GOLD}` }} />
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.homeLiveLabel}</div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <div style={{ flex: 1, paddingRight: 12 }}>
-                <div style={{ fontFamily: SERIF, fontSize: 21, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.15, letterSpacing: '-0.01em' }}>
-                  {nextBooking.service_name}
-                </div>
-                <div style={{ fontSize: 12, color: SOFT, marginTop: 5 }}>
-                  {nextBooking.master_name} · {formatLocalDate(nextBooking.starts_at, t.daysShort, t.monthsGen)}
-                </div>
-              </div>
-              <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: GOLD, lineHeight: 1, letterSpacing: '-0.02em', flexShrink: 0 }}>
-                {isoToTimeInZone(nextBooking.starts_at, TZ)}
-              </div>
-            </div>
-            <div style={{ marginTop: 14 }}>
-              <div style={{ height: 3, borderRadius: 3, background: 'rgba(154,114,48,.15)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: '35%', background: `linear-gradient(90deg, ${GOLD}, ${GOLD_HI})` }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: MUTED, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                <span>{t.homeLiveUntil}</span>
-                <span style={{ cursor: 'pointer', color: GOLD }} onClick={() => router.push('/mini-app/bookings')}>
-                  {t.homeLiveDetails}
-                </span>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '6px 0' }}>
-            <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: MUTED, textTransform: 'uppercase', marginBottom: 8 }}>{t.homeNoBookings}</div>
-            <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 600, color: NEAR_BLACK }}>{t.homePlanVisit}</div>
-          </div>
-        )}
+        <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 600, color: NEAR_BLACK, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+          {t.greeting}, {clientName}
+        </div>
       </div>
 
       {/* ── Magazine Hero ── */}
-      <div style={{ padding: '20px 26px 16px' }}>
+      <div style={{ padding: '12px 26px 16px' }}>
         <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>
           {t.homeIssuePrefix} {issueNum} · {monthName}
         </div>
-        <div style={{ fontFamily: SERIF, fontSize: 46, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 12, letterSpacing: '-0.025em' }}>
-          {t.homeH1}<br />
-          <span style={{ fontStyle: 'italic', color: GOLD }}>{t.homeH1i}</span>.
+        <div style={{ fontFamily: SERIF, fontSize: 46, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.1, marginTop: 12, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
+          {t.homeH1} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.homeH1i}</span>.
         </div>
         <div style={{ fontSize: 14, color: SOFT, lineHeight: 1.55, marginTop: 14, maxWidth: 290 }}>
           {t.homeDesc}
@@ -179,6 +129,58 @@ export default function HomePage() {
       {/* ── Ornament ── */}
       <div style={{ textAlign: 'center', color: GOLD, opacity: .55, letterSpacing: '0.6em', fontSize: 12, padding: '6px 0', fontFamily: SERIF }}>
         ⸻ ✦ ⸻
+      </div>
+
+      {/* ── Live Activity Card ── */}
+      <div style={{
+        margin: '8px 16px 0',
+        padding: '18px 20px',
+        background: 'linear-gradient(135deg, rgba(255,255,255,.50), rgba(237,229,213,.65))',
+        borderRadius: 24,
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(154,114,48,.20)',
+        boxShadow: '0 6px 24px rgba(154,114,48,.15)',
+      }}>
+        {nextBooking ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: GOLD, boxShadow: `0 0 8px ${GOLD}` }} />
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.homeLiveLabel}</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1, paddingRight: 12 }}>
+                <div style={{ fontFamily: SERIF, fontSize: 21, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.15, letterSpacing: '-0.01em' }}>
+                  {nextBooking.service_name}
+                </div>
+                <div style={{ fontSize: 12, color: SOFT, marginTop: 5 }}>
+                  {nextBooking.master_name}{nextBooking.starts_at ? ` · ${formatLocalDate(nextBooking.starts_at, t.daysShort, t.monthsGen)}` : ''}
+                </div>
+              </div>
+              {nextBooking.starts_at && (
+                <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: GOLD, lineHeight: 1, letterSpacing: '-0.02em', flexShrink: 0 }}>
+                  {isoToTimeInZone(nextBooking.starts_at, TZ)}
+                </div>
+              )}
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <div style={{ height: 3, borderRadius: 3, background: 'rgba(154,114,48,.15)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: '35%', background: `linear-gradient(90deg, ${GOLD}, ${GOLD_HI})` }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: MUTED, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                <span>{t.homeLiveUntil}</span>
+                <span style={{ cursor: 'pointer', color: GOLD }} onClick={() => router.push('/mini-app/bookings')}>
+                  {t.homeLiveDetails}
+                </span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '6px 0' }}>
+            <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: MUTED, textTransform: 'uppercase', marginBottom: 8 }}>{t.homeNoBookings}</div>
+            <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 600, color: NEAR_BLACK }}>{t.homePlanVisit}</div>
+          </div>
+        )}
       </div>
 
       {/* ── Dark Card "Подборка дня" — static placeholder ── */}
@@ -228,7 +230,7 @@ export default function HomePage() {
             return (
               <>
                 <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.2 }}>{last.service_name}</div>
-                <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{formatLocalDate(last.starts_at, t.daysShort, t.monthsGen)}</div>
+                <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{last.starts_at ? formatLocalDate(last.starts_at, t.daysShort, t.monthsGen) : ''}</div>
               </>
             );
           })() : (

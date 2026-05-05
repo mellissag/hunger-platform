@@ -175,7 +175,13 @@ export function usePatchBooking() {
       body,
     }: {
       id: string;
-      body: Partial<{ notes: string | null; status: string; starts_at: string }>;
+      body: Partial<{
+        notes: string | null;
+        status: string;
+        starts_at: string;
+        master_id: string;
+        needs_consultation: boolean;
+      }>;
     }) =>
       apiJson<BookingOut>(`/bookings/${id}`, {
         method: "PATCH",

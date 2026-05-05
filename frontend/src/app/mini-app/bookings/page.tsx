@@ -36,9 +36,20 @@ export default function BookingsPage() {
   const { data: bookings = [], isLoading } = useMyBookings();
   const cancelMutation = useCancelBooking();
 
-  const upcoming = bookings.filter(b => ['confirmed', 'pending'].includes(b.status));
-  const history  = bookings.filter(b => !['confirmed', 'pending'].includes(b.status));
-  const nextBooking = upcoming[0] ?? null;
+  const upcoming = bookings
+    .filter(b => ['confirmed', 'pending'].includes(b.status))
+    .sort((a, b) => {
+      // Consultation (no time yet) → top
+      if (a.needs_consultation && !b.needs_consultation) return -1;
+      if (!a.needs_consultation && b.needs_consultation) return 1;
+      // Both have starts_at → soonest first
+      if (!a.starts_at && !b.starts_at) return 0;
+      if (!a.starts_at) return -1;
+      if (!b.starts_at) return 1;
+      return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
+    });
+  const history = bookings.filter(b => !['confirmed', 'pending'].includes(b.status));
+  const nextBooking = upcoming.find(b => b.starts_at != null) ?? null;
   const shown = activeTab === 'upcoming' ? upcoming : history;
 
   function formatDateLabel(iso: string): string {
@@ -113,7 +124,7 @@ export default function BookingsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: GOLD, boxShadow: `0 0 7px ${GOLD}` }} />
               <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>
-                {t.listLivePrefix} · {timeUntil(nextBooking.starts_at)}
+                {t.listLivePrefix} · {nextBooking.starts_at ? timeUntil(nextBooking.starts_at) : ''}
               </div>
             </div>
             {/* Content */}
@@ -123,12 +134,14 @@ export default function BookingsPage() {
                   {nextBooking.service_name}
                 </div>
                 <div style={{ fontSize: 13, color: SOFT, marginTop: 5 }}>
-                  {nextBooking.master_name} · {formatDateLabel(nextBooking.starts_at)}
+                  {nextBooking.master_name}{nextBooking.starts_at ? ` · ${formatDateLabel(nextBooking.starts_at)}` : ''}
                 </div>
               </div>
-              <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 600, color: GOLD, lineHeight: 1, letterSpacing: '-0.02em', marginLeft: 12 }}>
-                {isoToTimeInZone(nextBooking.starts_at, TZ)}
-              </div>
+              {nextBooking.starts_at && (
+                <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 600, color: GOLD, lineHeight: 1, letterSpacing: '-0.02em', marginLeft: 12 }}>
+                  {isoToTimeInZone(nextBooking.starts_at, TZ)}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -209,7 +222,7 @@ export default function BookingsPage() {
               >
                 {/* Date row */}
                 <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: MUTED, marginBottom: 8 }}>
-                  {formatDateLabel(b.starts_at)}
+                  {b.starts_at ? formatDateLabel(b.starts_at) : t.listConsultation}
                 </div>
 
                 {/* Service + time */}
@@ -217,9 +230,11 @@ export default function BookingsPage() {
                   <div style={{ fontFamily: SERIF, fontSize: 19, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.2, flex: 1, paddingRight: 12 }}>
                     {b.service_name}
                   </div>
-                  <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 600, color: GOLD, lineHeight: 1, letterSpacing: '-0.01em', flexShrink: 0 }}>
-                    {isoToTimeInZone(b.starts_at, TZ)}
-                  </div>
+                  {b.starts_at && (
+                    <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 600, color: GOLD, lineHeight: 1, letterSpacing: '-0.01em', flexShrink: 0 }}>
+                      {isoToTimeInZone(b.starts_at, TZ)}
+                    </div>
+                  )}
                 </div>
 
                 {/* Master + status row */}
