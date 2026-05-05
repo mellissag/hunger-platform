@@ -157,6 +157,16 @@ export function useConfirmBooking() {
   });
 }
 
+export function useConsultationBookings() {
+  return useQuery({
+    queryKey: ["bookings", "consultation"],
+    queryFn: () =>
+      apiJson<Paginated<BookingOut>>("/bookings?needs_consultation=true&status=pending&limit=50"),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  });
+}
+
 export function usePatchBooking() {
   const qc = useQueryClient();
   return useMutation({

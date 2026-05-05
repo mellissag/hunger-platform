@@ -56,6 +56,8 @@ class ServiceCreate(BaseModel):
     name_i18n: dict[str, str]
     description_i18n: dict[str, str] = Field(default_factory=dict)
     duration_minutes: int = Field(ge=1, le=24 * 60)
+    duration_type: str = "fixed"
+    duration_max_minutes: int | None = None
     price: Decimal = Field(ge=0)
     photo_url: str | None = None
     is_active: bool = True
@@ -74,6 +76,8 @@ class ServiceUpdate(BaseModel):
     name_i18n: dict[str, str] | None = None
     description_i18n: dict[str, str] | None = None
     duration_minutes: int | None = Field(default=None, ge=1, le=24 * 60)
+    duration_type: str | None = None
+    duration_max_minutes: int | None = None
     price: Decimal | None = Field(default=None, ge=0)
     photo_url: str | None = None
     is_active: bool | None = None
@@ -95,6 +99,8 @@ class ServiceOut(BaseModel):
     name_i18n: dict[str, str]
     description_i18n: dict[str, str]
     duration_minutes: int
+    duration_type: str
+    duration_max_minutes: int | None
     price: Decimal
     photo_url: str | None
     is_active: bool

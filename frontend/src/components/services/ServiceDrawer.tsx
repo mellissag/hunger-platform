@@ -30,6 +30,8 @@ const serviceSchema = z.object({
   category_id: z.string().uuid().optional().nullable(),
   price: z.coerce.number().min(0),
   duration_minutes: z.coerce.number().int().min(1),
+  duration_type: z.enum(["fixed", "range"]),
+  duration_max_minutes: z.coerce.number().int().min(1).optional().nullable(),
   sort_order: z.coerce.number().int(),
   is_active: z.boolean(),
   name_ru: z.string().min(1, "Обязательное поле"),
@@ -77,12 +79,15 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
     reset,
     setValue,
     watch,
+    getValues,
     formState: { errors },
   } = useForm<ServiceForm>({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
       is_active: true,
       duration_minutes: 60,
+      duration_type: "fixed",
+      duration_max_minutes: null,
       price: 0,
       sort_order: 0,
       name_ru: "",
@@ -95,6 +100,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
       desc_bg: "",
     },
   });
+  const durationType = watch("duration_type") ?? "fixed";
 
   useEffect(() => {
     if (open && service) {
@@ -102,6 +108,8 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
         category_id: service.category_id ?? undefined,
         price: Number(service.price),
         duration_minutes: service.duration_minutes,
+        duration_type: (service.duration_type as "fixed" | "range") ?? "fixed",
+        duration_max_minutes: service.duration_max_minutes ?? null,
         sort_order: service.sort_order ?? 0,
         is_active: service.is_active,
         name_ru: service.name_i18n.ru ?? "",
@@ -118,6 +126,8 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
         category_id: undefined,
         price: 0,
         duration_minutes: 60,
+        duration_type: "fixed",
+        duration_max_minutes: null,
         sort_order: 0,
         is_active: true,
         name_ru: "",
@@ -175,6 +185,8 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
       category_id: values.category_id || null,
       price: values.price,
       duration_minutes: values.duration_minutes,
+      duration_type: values.duration_type,
+      duration_max_minutes: values.duration_type === "range" ? (values.duration_max_minutes ?? null) : null,
       sort_order: values.sort_order,
       is_active: values.is_active,
       name_i18n: { ru: values.name_ru, en: values.name_en, uk: values.name_uk, bg: values.name_bg },
@@ -338,20 +350,91 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
             </select>
           </div>
 
-          {/* Price + Duration */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+          {/* Price */}
+          <div className="space-y-1.5">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
               {t("drawerPrice")}
             </Label>
-              <Input type="number" step="0.01" min={0} {...register("price")} />
-            </div>
-            <div className="space-y-1.5">
+            <Input type="number" step="0.01" min={0} {...register("price")} />
+          </div>
+
+          {/* Duration with type toggle */}
+          <div className="space-y-2">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
               {t("drawerDuration")}
             </Label>
-              <Input type="number" min={1} {...register("duration_minutes")} />
+            {/* Fixed / Range toggle */}
+            <div className="flex rounded border border-border overflow-hidden w-fit">
+              <button
+                type="button"
+                onClick={() => setValue("duration_type", "fixed")}
+                className={cn(
+                  "px-3 py-1.5 text-[11px] font-semibold tracking-wide transition-colors",
+                  durationType === "fixed"
+                    ? "bg-foreground text-background"
+                    : "bg-background text-muted-foreground hover:bg-muted",
+                )}
+              >
+                Фиксированная
+              </button>
+              <button
+                type="button"
+                onClick={() => setValue("duration_type", "range")}
+                className={cn(
+                  "px-3 py-1.5 text-[11px] font-semibold tracking-wide border-l border-border transition-colors",
+                  durationType === "range"
+                    ? "bg-foreground text-background"
+                    : "bg-background text-muted-foreground hover:bg-muted",
+                )}
+              >
+                Диапазон
+              </button>
             </div>
+
+            {durationType === "fixed" ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={5}
+                  step={5}
+                  className="w-28"
+                  {...register("duration_minutes")}
+                  placeholder="60"
+                />
+                <span className="text-sm text-muted-foreground">мин</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">от</span>
+                  <Input
+                    type="number"
+                    min={5}
+                    step={5}
+                    className="w-24"
+                    {...register("duration_minutes")}
+                    placeholder="60"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">до</span>
+                  <Input
+                    type="number"
+                    min={10}
+                    step={5}
+                    className="w-24"
+                    {...register("duration_max_minutes")}
+                    placeholder="120"
+                  />
+                </div>
+                <span className="text-sm text-muted-foreground">мин</span>
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground">
+              {durationType === "fixed"
+                ? "Ровно указанное количество минут"
+                : "Зависит от конкретного случая"}
+            </p>
           </div>
 
           {/* Sort order */}

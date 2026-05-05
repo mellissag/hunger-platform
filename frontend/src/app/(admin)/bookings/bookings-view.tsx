@@ -66,6 +66,7 @@ import { cn } from "@/lib/utils";
 
 import { BookingCreateDrawer } from "./booking-create-drawer";
 import { BookingDetailDrawer } from "./booking-detail-drawer";
+import { ConsultationRequestsPanel } from "./consultation-requests-panel";
 import { WeekCalendar } from "./week-calendar";
 
 const DEFAULT_FILTERS: BookingFiltersState = {
@@ -224,11 +225,13 @@ export function BookingsView() {
         header: t("colWhen"),
         enableSorting: true,
         cell: ({ row }) =>
-          new Intl.DateTimeFormat(locale, {
-            dateStyle: "short",
-            timeStyle: "short",
-            timeZone,
-          }).format(new Date(row.original.starts_at)),
+          row.original.starts_at
+            ? new Intl.DateTimeFormat(locale, {
+                dateStyle: "short",
+                timeStyle: "short",
+                timeZone,
+              }).format(new Date(row.original.starts_at))
+            : "—",
       },
       {
         id: "client",
@@ -256,15 +259,17 @@ export function BookingsView() {
       {
         id: "master",
         header: t("colMaster"),
-        cell: ({ row }) => nameMaster(row.original.master_id),
+        cell: ({ row }) => nameMaster(row.original.master_id ?? ""),
       },
       {
         id: "duration",
         header: t("colDuration"),
         cell: ({ row }) =>
-          t("durationMin", {
-            n: durationMinutes(row.original.starts_at, row.original.ends_at),
-          }),
+          row.original.starts_at && row.original.ends_at
+            ? t("durationMin", {
+                n: durationMinutes(row.original.starts_at, row.original.ends_at),
+              })
+            : "—",
       },
       {
         accessorKey: "price",
@@ -409,6 +414,9 @@ export function BookingsView() {
 
   return (
     <div className="space-y-6">
+      {/* Consultation requests — above everything else */}
+      <ConsultationRequestsPanel salonTz={timeZone} />
+
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div>

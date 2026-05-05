@@ -13,33 +13,46 @@ const SOFT = '#4A3F2E';
 const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 
-const CAT_GRADIENTS: { [key: string]: string } = {
-  hair:  'linear-gradient(160deg, #C9A84C33 0%, #9A723018 50%, #EDE5D5 100%)',
-  nails: 'linear-gradient(160deg, #F9A8D433 0%, #F472B618 50%, #EDE5D5 100%)',
-  face:  'linear-gradient(160deg, #86EFAC33 0%, #4ADE8018 50%, #EDE5D5 100%)',
-  body:  'linear-gradient(160deg, #93C5FD33 0%, #60A5FA18 50%, #EDE5D5 100%)',
-};
-const CAT_DEFAULT = 'linear-gradient(160deg, #D1D5DB33 0%, #9CA3AF18 50%, #EDE5D5 100%)';
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
-function getCatGradient(cat?: string): string {
-  if (!cat) return CAT_DEFAULT;
-  const lc = cat.toLowerCase();
-  if (lc.includes('волос') || lc.includes('hair') || lc.includes('коса')) return CAT_GRADIENTS.hair ?? CAT_DEFAULT;
-  if (lc.includes('ногт') || lc.includes('nail') || lc.includes('нокт')) return CAT_GRADIENTS.nails ?? CAT_DEFAULT;
-  if (lc.includes('лиц') || lc.includes('face') || lc.includes('обличч')) return CAT_GRADIENTS.face ?? CAT_DEFAULT;
-  if (lc.includes('тело') || lc.includes('body') || lc.includes('тіл')) return CAT_GRADIENTS.body ?? CAT_DEFAULT;
-  return CAT_DEFAULT;
+function formatDuration(
+  minutes?: number,
+  maxMinutes?: number | null,
+  type: string = 'fixed',
+): string {
+  if (!minutes) return '—';
+
+  const fmt = (m: number): string => {
+    if (m < 60) return `${m} мин`;
+    const h = Math.floor(m / 60);
+    const rem = m % 60;
+    return rem > 0 ? `${h}ч ${rem}мин` : `${h}ч`;
+  };
+
+  if (type === 'range' && maxMinutes) {
+    return `${fmt(minutes)} — ${fmt(maxMinutes)}`;
+  }
+  return fmt(minutes);
 }
 
-function formatDur(min: number): string {
-  if (min < 60) return `${min} min`;
-  const h = Math.floor(min / 60), m = min % 60;
-  return m ? `${h}h ${m}m` : `${h}h`;
+function formatServiceTitle(name: string): React.ReactNode {
+  const plusIdx = name.indexOf(' + ');
+  if (plusIdx === -1) return <>{name}</>;
+  return (
+    <>
+      {name.slice(0, plusIdx)}
+      <span style={{ fontStyle: 'italic', color: GOLD_HI }}>
+        {name.slice(plusIdx)}
+      </span>
+    </>
+  );
 }
 
 function getMasterInitials(name: string): string {
-  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  return name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
+
+// ── Component ──────────────────────────────────────────────────────────────────
 
 export default function ServiceDetailPage() {
   const router = useRouter();
@@ -47,120 +60,346 @@ export default function ServiceDetailPage() {
   const id = params.id as string;
   const { t } = useT();
   const { data: services = [] } = useServices();
-  const svc = services.find(s => s.id === id);
+  const svc = services.find((s) => s.id === id);
   const { data: masters = [] } = useMastersByService(id);
 
   if (!svc) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', fontFamily: SERIF, fontSize: 20, color: NEAR_BLACK }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100dvh',
+          fontFamily: SERIF,
+          fontSize: 20,
+          color: NEAR_BLACK,
+        }}
+      >
         {t.loading}
       </div>
     );
   }
 
   const name = pickI18n(svc.name_i18n ?? { ru: svc.name });
-  const desc = svc.description ? (typeof svc.description === 'string' ? svc.description : pickI18n(svc.description as Record<string, string>)) : '';
-  const gradient = getCatGradient(svc.category);
+  const desc =
+    svc.description_i18n
+      ? pickI18n(svc.description_i18n as Record<string, string>)
+      : svc.description
+        ? typeof svc.description === 'string'
+          ? svc.description
+          : pickI18n(svc.description as Record<string, string>)
+        : '';
+  const categoryName =
+    svc.category_name_i18n ? pickI18n(svc.category_name_i18n as Record<string, string>) : (svc.category ?? '');
+
+  const hasPhoto = Boolean(svc.photo_url);
+  const photoUrl = svc.photo_url
+    ? `${process.env.NEXT_PUBLIC_API_URL ?? ''}${svc.photo_url}`
+    : null;
 
   return (
-    <div style={{ minHeight: '100dvh', background: IVORY, fontFamily: BODY, color: NEAR_BLACK, overflowX: 'hidden' }}>
-
-      {/* Hero */}
-      <div style={{ position: 'relative', height: 320, background: gradient, overflow: 'hidden' }}>
-        {/* Radial highlight */}
-        <div style={{ position: 'absolute', right: -60, top: -60, width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,.25), transparent 70%)' }} />
-        {/* Large serif letter */}
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontFamily: SERIF, fontSize: 180, fontStyle: 'italic', color: GOLD, opacity: 0.12, lineHeight: 1, userSelect: 'none' }}>H</span>
-        </div>
+    <div
+      style={{
+        minHeight: '100dvh',
+        background: IVORY,
+        fontFamily: BODY,
+        color: NEAR_BLACK,
+        overflowX: 'hidden',
+      }}
+    >
+      {/* ── HERO ───────────────────────────────────────────────────────── */}
+      <div
+        style={{
+          position: 'relative',
+          height: 320,
+          background: hasPhoto
+            ? `url(${photoUrl}) center/cover no-repeat`
+            : 'linear-gradient(135deg, #2a1f0a 0%, #1C1408 40%, #0d0a05 100%)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Bottom gradient for readability */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'linear-gradient(to bottom, rgba(0,0,0,.30) 0%, rgba(0,0,0,.0) 30%, rgba(0,0,0,.65) 70%, rgba(0,0,0,.88) 100%)',
+          }}
+        />
 
         {/* Back button */}
         <button
           onClick={() => router.back()}
           style={{
-            position: 'absolute', top: 48, left: 16,
-            width: 40, height: 40, borderRadius: '50%',
-            background: 'rgba(250,248,243,0.75)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(154,114,48,.20)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: NEAR_BLACK,
+            position: 'absolute',
+            top: 52,
+            left: 16,
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,.18)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M15 6l-6 6 6 6"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </button>
 
-        {/* Overlay gradient bottom */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 140, background: 'linear-gradient(transparent, rgba(250,248,243,1))' }} />
-
-        {/* Hero text */}
-        <div style={{ position: 'absolute', bottom: 22, left: 22, right: 22 }}>
-          {svc.category && (
-            <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: GOLD, marginBottom: 6 }}>
-              {svc.category}
+        {/* Category eyebrow + service title — bottom of hero */}
+        <div style={{ position: 'absolute', bottom: 24, left: 20, right: 20 }}>
+          {categoryName && (
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'rgba(255,255,255,.70)',
+                marginBottom: 8,
+              }}
+            >
+              {categoryName}
             </div>
           )}
-          <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.05, letterSpacing: '-0.02em' }}>
-            {name}
+          <div
+            style={{
+              fontFamily: SERIF,
+              fontSize: 36,
+              fontWeight: 500,
+              color: '#fff',
+              lineHeight: 1.05,
+              letterSpacing: '-0.01em',
+            }}
+          >
+            {formatServiceTitle(name)}
           </div>
         </div>
       </div>
 
-      {/* Body */}
-      <div style={{ padding: '20px 22px' }}>
-
-        {/* Stats row */}
-        <div style={{
-          display: 'flex', gap: 0,
-          borderBottom: '1px dotted rgba(154,114,48,.25)',
-          paddingBottom: 20, marginBottom: 20,
-        }}>
-          <div style={{ flex: 1, borderRight: '1px dotted rgba(154,114,48,.25)', paddingRight: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: MUTED, marginBottom: 4 }}>{t.detailDuration}</div>
-            <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 600, color: NEAR_BLACK }}>{formatDur(svc.duration_minutes)}</div>
+      {/* ── CONTENT (rounded top) ─────────────────────────────────────── */}
+      <div
+        style={{
+          background: IVORY,
+          borderRadius: '24px 24px 0 0',
+          marginTop: -16,
+          position: 'relative',
+          paddingBottom: 140,
+        }}
+      >
+        {/* Duration + Price row */}
+        <div
+          style={{
+            display: 'flex',
+            padding: '24px 20px 18px',
+            borderBottom: '1px solid rgba(28,20,9,.08)',
+          }}
+        >
+          {/* Duration */}
+          <div style={{ flex: 1 }}>
+            <div
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: GOLD,
+                marginBottom: 6,
+              }}
+            >
+              {t.detailDuration}
+            </div>
+            <div
+              style={{
+                fontFamily: SERIF,
+                fontSize: 20,
+                fontWeight: 600,
+                color: NEAR_BLACK,
+              }}
+            >
+              {formatDuration(svc.duration_minutes, svc.duration_max_minutes, svc.duration_type)}
+            </div>
           </div>
-          <div style={{ flex: 1, paddingLeft: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: MUTED, marginBottom: 4 }}>{t.detailPrice}</div>
-            <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 500, color: GOLD }}>€{svc.price}</div>
+
+          {/* Divider */}
+          <div
+            style={{
+              width: 1,
+              background: 'rgba(28,20,9,.10)',
+              margin: '0 20px',
+            }}
+          />
+
+          {/* Price */}
+          <div style={{ flex: 1 }}>
+            <div
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: GOLD,
+                marginBottom: 6,
+              }}
+            >
+              {t.detailPrice}
+            </div>
+            <div
+              style={{
+                fontFamily: SERIF,
+                fontSize: 24,
+                fontWeight: 600,
+                color: GOLD,
+                letterSpacing: '-0.01em',
+              }}
+            >
+              €{svc.price}
+            </div>
           </div>
         </div>
 
         {/* Description */}
         {desc && (
-          <p style={{ fontSize: 14, color: SOFT, lineHeight: 1.65, marginBottom: 24, margin: '0 0 24px' }}>
-            {desc}
-          </p>
+          <div style={{ padding: '18px 20px 0' }}>
+            <p
+              style={{
+                fontSize: 14,
+                lineHeight: 1.65,
+                color: SOFT,
+                margin: 0,
+              }}
+            >
+              {desc}
+            </p>
+          </div>
         )}
 
         {/* Masters */}
         {masters.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: GOLD, marginBottom: 14 }}>
+          <div style={{ padding: '22px 20px 0' }}>
+            <div
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: GOLD,
+                marginBottom: 14,
+              }}
+            >
               {t.detailMasters}
             </div>
-            {masters.slice(0, 3).map(m => {
-              const mName = m.display_name ?? m.name ?? '';
-              const spec = typeof m.specialization === 'object' ? pickI18n(m.specialization) : (m.specialization ?? '');
+
+            {masters.map((master, idx) => {
+              const mName = master.display_name ?? master.name ?? '';
+              const spec =
+                typeof master.specialization === 'object'
+                  ? pickI18n(master.specialization as Record<string, string>)
+                  : (master.specialization ?? '');
               const initials = getMasterInitials(mName);
+              const isLast = idx === masters.length - 1;
+
               return (
-                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
-                  <div style={{
-                    width: 52, height: 52, borderRadius: '50%',
-                    background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#fff', fontFamily: SERIF, fontSize: 18, fontWeight: 500, flexShrink: 0,
-                  }}>
-                    {initials}
+                <div
+                  key={master.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    padding: '12px 0',
+                    borderBottom: isLast ? 'none' : '1px solid rgba(28,20,9,.06)',
+                  }}
+                >
+                  {/* Avatar */}
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: '50%',
+                      background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {master.photo_url ? (
+                      <img
+                        src={master.photo_url}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                        }}
+                        alt={mName}
+                      />
+                    ) : (
+                      <span
+                        style={{
+                          fontFamily: SERIF,
+                          fontSize: 18,
+                          fontWeight: 600,
+                          color: '#fff',
+                        }}
+                      >
+                        {initials}
+                      </span>
+                    )}
                   </div>
+
+                  {/* Name + spec */}
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>{mName}</div>
-                    {spec && <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{spec}</div>}
+                    <div
+                      style={{
+                        fontFamily: SERIF,
+                        fontSize: 16,
+                        fontWeight: 500,
+                        color: NEAR_BLACK,
+                      }}
+                    >
+                      {mName}
+                    </div>
+                    {spec && (
+                      <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{spec}</div>
+                    )}
                   </div>
-                  {m.rating_avg && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: GOLD }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill={GOLD} stroke="none"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>
-                      {m.rating_avg.toFixed(1)}
+
+                  {/* Rating */}
+                  {master.rating_avg && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        color: GOLD,
+                        fontSize: 13,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill={GOLD}>
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                      {master.rating_avg.toFixed(1)}
+                      {master.rating_count != null && master.rating_count > 0 && (
+                        <span style={{ color: GOLD, fontWeight: 400, fontSize: 11 }}>
+                          · {master.rating_count}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -170,29 +409,50 @@ export default function ServiceDetailPage() {
         )}
       </div>
 
-      {/* Sticky CTA */}
-      <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        padding: '16px 22px calc(16px + env(safe-area-inset-bottom, 0px))',
-        background: 'linear-gradient(transparent, rgba(250,248,243,.95) 30%)',
-      }}>
+      {/* ── CTA button — fixed above tab bar ──────────────────────────── */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 'calc(72px + env(safe-area-inset-bottom, 8px))',
+          left: 16,
+          right: 16,
+          zIndex: 50,
+        }}
+      >
         <button
-          onClick={() => router.push('/mini-app/book')}
+          onClick={() => router.push(`/mini-app/book?service_id=${svc.id}`)}
           style={{
             width: '100%',
-            background: NEAR_BLACK, border: 'none', color: IVORY,
-            padding: '16px 22px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-            letterSpacing: '0.10em', textTransform: 'uppercase', fontFamily: BODY,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            boxShadow: '0 8px 24px rgba(28,20,9,.18)', cursor: 'pointer',
+            background: NEAR_BLACK,
+            color: IVORY,
+            border: 'none',
+            borderRadius: 999,
+            padding: '17px 22px',
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            fontFamily: BODY,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            boxShadow: '0 8px 32px rgba(28,20,9,.22)',
           }}
         >
           {t.detailBook}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M5 12h14M12 5l7 7-7 7"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </button>
       </div>
-
-      <div style={{ height: 100 }} />
     </div>
   );
 }

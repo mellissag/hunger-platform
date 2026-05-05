@@ -50,18 +50,19 @@ class Booking(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         ForeignKey("client.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    master_id: Mapped[uuid.UUID] = mapped_column(
+    master_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("master.id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
     )
     service_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("service.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    needs_consultation: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     status: Mapped[BookingStatus] = mapped_column(
         SQLEnum(
             BookingStatus,
@@ -110,7 +111,7 @@ class Booking(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         uselist=False,
         foreign_keys="Review.booking_id",
     )
-    master: Mapped["Master"] = relationship("Master", foreign_keys=[master_id])
+    master: Mapped["Master | None"] = relationship("Master", foreign_keys=[master_id])
     client: Mapped["Client"] = relationship("Client", foreign_keys=[client_id])
 
 

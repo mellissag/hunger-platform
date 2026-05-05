@@ -220,11 +220,15 @@ async def list_bookings(
     master_id: UUID | None = None,
     service_id: UUID | None = None,
     status: str | None = None,
+    needs_consultation: bool | None = None,
 ) -> tuple[list[Booking], int]:
     base_scope = booking_scope_filter(user)
     stmt = select(Booking).where(base_scope)
     count_stmt = select(func.count(Booking.id.distinct())).select_from(Booking).where(base_scope)
 
+    if needs_consultation is not None:
+        stmt = stmt.where(Booking.needs_consultation == needs_consultation)
+        count_stmt = count_stmt.where(Booking.needs_consultation == needs_consultation)
     if date_from is not None:
         stmt = stmt.where(Booking.starts_at >= date_from)
         count_stmt = count_stmt.where(Booking.starts_at >= date_from)

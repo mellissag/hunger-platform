@@ -50,6 +50,8 @@ describe("ServiceDrawer", () => {
       name_i18n: { ru: "Стрижка", en: "Haircut" },
       description_i18n: { ru: "", en: "" },
       duration_minutes: 60,
+      duration_type: "fixed" as const,
+      duration_max_minutes: null,
       price: "35",
       is_active: true,
       sort_order: 0,

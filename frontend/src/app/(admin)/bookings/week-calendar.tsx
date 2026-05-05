@@ -97,12 +97,13 @@ export function WeekCalendar({
     const HIDDEN_STATUSES = new Set(["cancelled_by_client", "cancelled_by_salon", "no_show"]);
     for (const b of bookings) {
       if (HIDDEN_STATUSES.has(b.status)) continue;
+      if (!b.starts_at) continue; // consultation bookings have no time
       const { dayKey } = minutesInZone(b.starts_at, timeZone);
       const list = map.get(dayKey);
       if (list) list.push(b);
     }
     for (const list of map.values()) {
-      list.sort((a, c) => new Date(a.starts_at).getTime() - new Date(c.starts_at).getTime());
+      list.sort((a, c) => new Date(a.starts_at!).getTime() - new Date(c.starts_at!).getTime());
     }
     return map;
   }, [bookings, days, timeZone]);
@@ -216,12 +217,13 @@ export function WeekCalendar({
                   })}
 
                   {dayBookings.map((b) => {
+                    if (!b.starts_at || !b.ends_at) return null;
                     const sm = minutesInZone(b.starts_at, timeZone);
                     if (sm.dayKey !== dayKey) return null;
                     const dur = durationMinutes(b.starts_at, b.ends_at);
                     const top = (sm.minutes - GRID_START_MIN) * PX_PER_MIN;
                     const height = Math.max(dur * PX_PER_MIN, 18);
-                    const col = masterColor(b.master_id);
+                    const col = masterColor(b.master_id ?? "");
                     const isPending = b.status === "pending";
                     return (
                       <button

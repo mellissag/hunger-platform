@@ -58,10 +58,10 @@ class BookingOut(BaseModel):
 
     id: UUID
     client_id: UUID
-    master_id: UUID
+    master_id: UUID | None
     service_id: UUID
-    starts_at: datetime
-    ends_at: datetime
+    starts_at: datetime | None
+    ends_at: datetime | None
     status: BookingStatus
     price: Decimal
     prepayment_amount: Decimal | None
@@ -71,6 +71,7 @@ class BookingOut(BaseModel):
     created_at: datetime
     cancelled_at: datetime | None
     cancellation_reason: str | None
+    needs_consultation: bool
 
 
 class BookingStatsOut(BaseModel):
@@ -102,5 +103,5 @@ class BookingDetailServiceOut(BaseModel):
 
 class BookingDetailOut(BookingOut):
     client: BookingDetailClientOut
-    master: BookingDetailMasterOut
+    master: BookingDetailMasterOut | None
     service: BookingDetailServiceOut

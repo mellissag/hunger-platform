@@ -168,9 +168,9 @@ export function BookingCreateDrawer({
     form.reset({
       client_id: editDetail.client.id,
       service_id: editDetail.service_id,
-      master_id: editDetail.master_id,
-      date: isoToDateInZone(editDetail.starts_at, salonTz),
-      time: isoToTimeInZone(editDetail.starts_at, salonTz),
+      master_id: editDetail.master_id ?? undefined,
+      date: editDetail.starts_at ? isoToDateInZone(editDetail.starts_at, salonTz) : "",
+      time: editDetail.starts_at ? isoToTimeInZone(editDetail.starts_at, salonTz) : "",
       notes: editDetail.notes ?? "",
     });
     setClientLabel(

@@ -938,7 +938,7 @@ function PendingBookingsWidget({
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium leading-tight">{b.cn}</p>
                     <p className="truncate text-[11px] text-muted-foreground">
-                      {formatBookingTime(b.starts_at)} · {b.sn}
+                      {b.starts_at ? formatBookingTime(b.starts_at) : "—"} · {b.sn}
                     </p>
                   </div>
                 </div>

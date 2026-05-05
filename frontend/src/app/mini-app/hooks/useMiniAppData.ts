@@ -31,6 +31,8 @@ export interface Service {
   name_i18n?: Record<string, string>;
   description_i18n?: Record<string, string>;
   duration_minutes: number;
+  duration_type: string;
+  duration_max_minutes?: number | null;
   price: number;
   category?: string;
   category_id?: string | null;
@@ -54,6 +56,7 @@ export interface Master {
   avatar_url?: string;
   photo_url?: string | null;
   rating_avg?: number | null;
+  rating_count?: number;
 }
 
 export interface TimeSlot {
@@ -75,8 +78,9 @@ export interface Booking {
 
 export interface BookingCreatePayload {
   service_id: string;
-  master_id: string;
-  starts_at: string;
+  master_id?: string;
+  starts_at?: string;
+  needs_consultation?: boolean;
   client_name?: string;
   client_phone?: string;
   telegram_id?: number;
@@ -97,6 +101,15 @@ export function useServices() {
   return useQuery<Service[]>({
     queryKey: ['mini-app', 'services'],
     queryFn: () => apiFetch('/api/v1/mini-app/services'),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useServiceById(serviceId: string | null) {
+  return useQuery<Service>({
+    queryKey: ['mini-app', 'service', serviceId],
+    queryFn: () => apiFetch(`/api/v1/mini-app/services/${serviceId}`),
+    enabled: !!serviceId,
     staleTime: 5 * 60_000,
   });
 }

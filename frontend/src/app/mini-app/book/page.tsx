@@ -56,8 +56,8 @@ function dateToISO(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// Steps: 0=service, 1=master, 2=date+time, 3=confirm, 4=success
-type Step = 0 | 1 | 2 | 3 | 4;
+// Steps: 0=service, 1=master, 2=date+time, 3=confirm, 4=success, 5=confirm-consultation
+type Step = 0 | 1 | 2 | 3 | 4 | 5;
 
 const pageBg: React.CSSProperties = {
   minHeight: '100dvh',
@@ -93,6 +93,8 @@ function BookContent() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [calMonth, setCalMonth] = useState(() => new Date());
+  const [consultationMode, setConsultationMode] = useState(false);
+  const [isSubmittingConsultation, setIsSubmittingConsultation] = useState(false);
 
   const { data: services = [] } = useServices();
   const { data: masters = [] } = useMastersByService(selectedService?.id ?? null);
@@ -138,6 +140,24 @@ function BookContent() {
       alert(t.bookErrorMsg);
     }
   }, [selectedService, selectedMaster, selectedDate, selectedTime, user, createBooking, t]);
+
+  const handleSubmitConsultation = useCallback(async () => {
+    if (!selectedService) return;
+    setIsSubmittingConsultation(true);
+    try {
+      await createBooking.mutateAsync({
+        service_id: selectedService.id,
+        needs_consultation: true,
+        client_name: user ? `${user.first_name} ${user.last_name ?? ''}`.trim() : undefined,
+        telegram_id: user?.id,
+      });
+      setStep(4);
+    } catch {
+      alert(t.bookErrorMsg);
+    } finally {
+      setIsSubmittingConsultation(false);
+    }
+  }, [selectedService, user, createBooking, t]);
 
   const CAT_KEYS: Array<'catAll'|'catHair'|'catNails'|'catFace'|'catBody'> = ['catAll','catHair','catNails','catFace','catBody'];
   const CAT_KWMAP: Record<typeof CAT_KEYS[number], string[]> = {
@@ -204,7 +224,7 @@ function BookContent() {
   if (step === 1) {
     return (
       <div style={pageBg}>
-        <BackBar onBack={() => setStep(0)} label={selectedService ? getServiceName(selectedService) : t.back} />
+        <BackBar onBack={() => { setStep(0); setConsultationMode(false); }} label={selectedService ? getServiceName(selectedService) : t.back} />
         <div style={{ padding: '20px 22px 16px' }}>
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookStep1}</div>
           <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 10, letterSpacing: '-0.02em' }}>
@@ -212,49 +232,135 @@ function BookContent() {
           </div>
         </div>
 
-        {masters.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '24px', color: MUTED, fontFamily: SERIF, fontSize: 18 }}>
-            {t.bookNoMasters}
+        {/* ── Consultation checkpoint ── */}
+        <div style={{ padding: '0 16px 4px' }}>
+          <div
+            onClick={() => setConsultationMode(prev => !prev)}
+            style={{
+              padding: '14px 16px',
+              borderRadius: 16,
+              border: consultationMode
+                ? `1.5px solid ${GOLD}`
+                : '1px solid rgba(28,20,9,.12)',
+              background: consultationMode
+                ? 'rgba(154,114,48,.07)'
+                : 'rgba(255,255,255,.6)',
+              display: 'flex', alignItems: 'center', gap: 14,
+              cursor: 'pointer',
+              transition: 'all .15s ease',
+            }}
+          >
+            {/* Checkbox circle */}
+            <div style={{
+              width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+              border: consultationMode ? 'none' : '1.5px solid rgba(28,20,9,.25)',
+              background: consultationMode ? `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})` : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {consultationMode && (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 13l4 4L19 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+            {/* Text */}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: SERIF, fontSize: 14, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.3 }}>
+                Не знаю к какому мастеру
+              </div>
+              <div style={{ fontSize: 11, color: MUTED, marginTop: 3, lineHeight: 1.4 }}>
+                Обсудим детали и подберём специалиста на созвоне
+              </div>
+            </div>
+            {/* Phone icon */}
+            <div style={{ color: consultationMode ? GOLD : '#C4B99A' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 9.63a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+              </svg>
+            </div>
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '0 16px' }}>
-            {masters.map(m => {
-              const mName = getMasterName(m);
-              const spec = typeof m.specialization === 'object' ? pickI18n(m.specialization) : (m.specialization ?? '');
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => { setSelectedMaster(m); setStep(2); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 14,
-                    background: '#fff', border: '1px solid rgba(228,221,208,1)',
-                    borderRadius: 16, padding: '16px 18px', cursor: 'pointer', textAlign: 'left',
-                  }}
-                >
-                  <div style={{
-                    width: 50, height: 50, borderRadius: '50%', flexShrink: 0,
-                    background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#fff', fontFamily: SERIF, fontSize: 18, fontWeight: 500,
-                  }}>
-                    {getMasterInitials(mName)}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>{mName}</div>
-                    {spec && <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{spec}</div>}
-                  </div>
-                  {m.rating_avg && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: GOLD }}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill={GOLD} stroke="none"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>
-                      {m.rating_avg.toFixed(1)}
+        </div>
+
+        {/* "или выберите мастера" divider */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '14px 20px 8px',
+          opacity: consultationMode ? 0.35 : 1,
+          transition: 'opacity .2s ease',
+        }}>
+          <div style={{ flex: 1, height: 1, background: 'rgba(28,20,9,.08)' }}/>
+          <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.20em', textTransform: 'uppercase', color: GOLD }}>
+            или выберите мастера
+          </span>
+          <div style={{ flex: 1, height: 1, background: 'rgba(28,20,9,.08)' }}/>
+        </div>
+
+        {/* Masters list — dimmed when consultation mode active */}
+        <div style={{ opacity: consultationMode ? 0.35 : 1, pointerEvents: consultationMode ? 'none' : 'auto', transition: 'opacity .2s ease' }}>
+          {masters.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '24px', color: MUTED, fontFamily: SERIF, fontSize: 18 }}>
+              {t.bookNoMasters}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '0 16px' }}>
+              {masters.map(m => {
+                const mName = getMasterName(m);
+                const spec = typeof m.specialization === 'object' ? pickI18n(m.specialization) : (m.specialization ?? '');
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => { setSelectedMaster(m); setStep(2); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      background: '#fff', border: '1px solid rgba(228,221,208,1)',
+                      borderRadius: 16, padding: '16px 18px', cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    <div style={{
+                      width: 50, height: 50, borderRadius: '50%', flexShrink: 0,
+                      background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#fff', fontFamily: SERIF, fontSize: 18, fontWeight: 500,
+                    }}>
+                      {getMasterInitials(mName)}
                     </div>
-                  )}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.5"><path d="M9 6l6 6-6 6"/></svg>
-                </button>
-              );
-            })}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>{mName}</div>
+                      {spec && <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{spec}</div>}
+                    </div>
+                    {m.rating_avg && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: GOLD }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill={GOLD} stroke="none"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>
+                        {m.rating_avg.toFixed(1)}
+                      </div>
+                    )}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.5"><path d="M9 6l6 6-6 6"/></svg>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* CTA when consultation mode */}
+        {consultationMode && (
+          <div style={{ padding: '20px 16px 40px', position: 'sticky', bottom: 0 }}>
+            <button
+              onClick={() => setStep(5)}
+              style={{
+                width: '100%', background: NEAR_BLACK, border: 'none', color: IVORY,
+                padding: '15px 22px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                letterSpacing: '0.10em', textTransform: 'uppercase', fontFamily: BODY,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: '0 8px 24px rgba(28,20,9,.18)', cursor: 'pointer',
+              }}
+            >
+              Продолжить
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
           </div>
         )}
+
         <div style={{ height: 110 }} />
       </div>
     );
@@ -465,6 +571,81 @@ function BookContent() {
           >
             {createBooking.isPending ? t.bookBtnPending : t.bookBtnConfirm}
             {!createBooking.isPending && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Step 5: Consultation confirmation ─────────────────────────────────────
+  if (step === 5) {
+    return (
+      <div style={pageBg}>
+        <BackBar onBack={() => setStep(1)} label={t.back} />
+        <div style={{ padding: '24px 20px 0', textAlign: 'center' }}>
+          {/* Phone icon */}
+          <div style={{
+            width: 64, height: 64, borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(154,114,48,.12), rgba(201,168,76,.18))',
+            border: `1px solid rgba(154,114,48,.25)`,
+            margin: '16px auto 24px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.6">
+              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 9.63a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+            </svg>
+          </div>
+
+          {/* Title */}
+          <div style={{ fontFamily: SERIF, fontSize: 30, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.15, marginBottom: 12 }}>
+            Мы{' '}
+            <span style={{ fontStyle: 'italic', color: GOLD }}>свяжемся</span>
+            {' '}с вами
+          </div>
+
+          {/* Sub */}
+          <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.6, maxWidth: 280, margin: '0 auto 24px' }}>
+            Наш администратор подберёт для вас мастера и удобное время. Ожидайте звонка.
+          </p>
+
+          {/* Summary card */}
+          <div style={{
+            background: '#fff',
+            border: '1px solid rgba(28,20,9,.10)',
+            borderRadius: 16,
+            padding: '16px 20px',
+            textAlign: 'left',
+            marginBottom: 24,
+          }}>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: GOLD, marginBottom: 10 }}>
+              Ваша заявка
+            </div>
+            <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>
+              {selectedService ? getServiceName(selectedService) : '—'}
+            </div>
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
+              Мастер и время — уточним при звонке
+            </div>
+          </div>
+
+          {/* Submit button */}
+          <button
+            onClick={handleSubmitConsultation}
+            disabled={isSubmittingConsultation}
+            style={{
+              width: '100%', background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`, border: 'none', color: '#fff',
+              padding: '16px 22px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+              letterSpacing: '0.10em', textTransform: 'uppercase', fontFamily: BODY,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              boxShadow: `0 8px 28px rgba(154,114,48,.35)`,
+              cursor: isSubmittingConsultation ? 'wait' : 'pointer',
+              opacity: isSubmittingConsultation ? 0.7 : 1,
+            }}
+          >
+            {isSubmittingConsultation ? 'Отправляем...' : 'Отправить заявку'}
+            {!isSubmittingConsultation && (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            )}
           </button>
         </div>
       </div>

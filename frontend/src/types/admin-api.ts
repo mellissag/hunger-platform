@@ -220,6 +220,8 @@ export type ServiceOut = {
   name_i18n: Record<string, string>;
   description_i18n: Record<string, string>;
   duration_minutes: number;
+  duration_type: string;
+  duration_max_minutes: number | null;
   price: string;
   is_active: boolean;
   sort_order: number;
@@ -250,10 +252,10 @@ export type ServiceCategoryOut = {
 export type BookingOut = {
   id: string;
   client_id: string;
-  master_id: string;
+  master_id: string | null;
   service_id: string;
-  starts_at: string;
-  ends_at: string;
+  starts_at: string | null;
+  ends_at: string | null;
   status: string;
   price: string;
   prepayment_amount?: string | null;
@@ -263,6 +265,7 @@ export type BookingOut = {
   created_at?: string;
   cancelled_at?: string | null;
   cancellation_reason?: string | null;
+  needs_consultation?: boolean;
 };
 
 export type BookingDetailClient = {

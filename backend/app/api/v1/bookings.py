@@ -72,6 +72,7 @@ async def list_bookings(
     master_id: UUID | None = None,
     service_id: UUID | None = None,
     status: str | None = None,
+    needs_consultation: bool | None = None,
 ) -> PaginatedResponse[BookingOut]:
     rows, total = await booking_service.list_bookings(
         db,
@@ -84,6 +85,7 @@ async def list_bookings(
         master_id=master_id,
         service_id=service_id,
         status=status,
+        needs_consultation=needs_consultation,
     )
     return PaginatedResponse(
         items=[BookingOut.model_validate(b) for b in rows],

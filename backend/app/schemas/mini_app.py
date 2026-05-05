@@ -22,6 +22,8 @@ class MiniAppServiceOut(BaseModel):
     description_i18n: dict[str, Any]
     price: float
     duration_minutes: int
+    duration_type: str
+    duration_max_minutes: int | None
     photo_url: str | None
     category_id: str | None
     category_name_i18n: dict[str, Any]
@@ -49,14 +51,18 @@ class MiniAppAvailabilityResponse(BaseModel):
 
 
 class MiniAppBookingCreate(BaseModel):
-    master_id: str
     service_id: str
-    starts_at: str  # ISO datetime string
+    master_id: str | None = None
+    starts_at: str | None = None  # ISO datetime string; None for consultation bookings
+    needs_consultation: bool = False
+    client_name: str | None = None
+    notes: str | None = None
 
 
 class MiniAppBookingOut(BaseModel):
     id: str
     status: str
-    starts_at: str
-    ends_at: str
+    starts_at: str | None
+    ends_at: str | None
     price: float
+    needs_consultation: bool = False

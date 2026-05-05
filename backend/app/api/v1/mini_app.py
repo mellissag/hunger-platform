@@ -197,6 +197,8 @@ async def list_services(
                 description_i18n=svc.description_i18n,
                 price=float(svc.price),
                 duration_minutes=svc.duration_minutes,
+                duration_type=svc.duration_type,
+                duration_max_minutes=svc.duration_max_minutes,
                 photo_url=svc.photo_url,
                 category_id=str(svc.category_id) if svc.category_id else None,
                 category_name_i18n=cat_name,
@@ -204,6 +206,54 @@ async def list_services(
             )
         )
     return out
+
+
+@router.get("/services/{service_id}", response_model=MiniAppServiceOut)
+async def get_service(
+    service_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> MiniAppServiceOut:
+    """Public: single service by id."""
+    import uuid as _uuid
+
+    try:
+        sid = _uuid.UUID(service_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid service_id")
+
+    svc = (
+        await db.execute(
+            select(Service)
+            .where(Service.id == sid)
+            .options(selectinload(Service.category))
+        )
+    ).scalar_one_or_none()
+
+    if svc is None:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    from sqlalchemy import func as sqlfunc
+    master_count_row = (
+        await db.execute(
+            select(sqlfunc.count(MasterService.master_id))
+            .where(MasterService.service_id == svc.id)
+        )
+    ).scalar_one()
+
+    cat_name = svc.category.name_i18n if svc.category else {}
+    return MiniAppServiceOut(
+        id=str(svc.id),
+        name_i18n=svc.name_i18n,
+        description_i18n=svc.description_i18n,
+        price=float(svc.price),
+        duration_minutes=svc.duration_minutes,
+        duration_type=svc.duration_type,
+        duration_max_minutes=svc.duration_max_minutes,
+        photo_url=svc.photo_url,
+        category_id=str(svc.category_id) if svc.category_id else None,
+        category_name_i18n=cat_name,
+        masters_count=master_count_row,
+    )
 
 
 @router.get("/masters", response_model=list[MiniAppMasterOut])
@@ -367,11 +417,58 @@ async def create_booking(
     client = await _get_or_create_client(current_user, db)
 
     import uuid as _uuid
+    from decimal import Decimal as _Decimal
+
+    from app.models.enums import BookingCreatedVia, BookingStatus
+
+    # ── Consultation booking (no master / time) ──────────────────────────
+    if payload.needs_consultation:
+        if not payload.service_id:
+            raise HTTPException(status_code=400, detail="service_id required")
+
+        try:
+            sid = _uuid.UUID(payload.service_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid service_id")
+
+        svc = await db.get(Service, sid)
+        if not svc:
+            raise HTTPException(status_code=404, detail="Service not found")
+
+        booking = Booking(
+            client_id=client.id,
+            service_id=sid,
+            master_id=None,
+            starts_at=None,
+            ends_at=None,
+            price=svc.price,
+            status=BookingStatus.pending,
+            created_via=BookingCreatedVia.bot,
+            needs_consultation=True,
+            notes=payload.notes,
+        )
+        db.add(booking)
+        await db.commit()
+        await db.refresh(booking)
+
+        return MiniAppBookingOut(
+            id=str(booking.id),
+            status=booking.status.value,
+            starts_at=None,
+            ends_at=None,
+            price=float(booking.price),
+            needs_consultation=True,
+        )
+
+    # ── Regular booking ────────────────────────────────────────────────────
     from datetime import UTC as _UTC
     from datetime import datetime as _dt
     from zoneinfo import ZoneInfo as _ZoneInfo
 
     from app.core.exceptions import ClientBlacklistedError, SlotTakenError
+
+    if not payload.master_id or not payload.starts_at:
+        raise HTTPException(status_code=400, detail="master_id and starts_at required for regular booking")
 
     # Parse starts_at; the mini-app sends local salon-timezone times (from the slots endpoint)
     # so a naive datetime must be treated as salon local time, NOT UTC.
@@ -399,9 +496,10 @@ async def create_booking(
     return MiniAppBookingOut(
         id=str(booking.id),
         status=booking.status.value,
-        starts_at=booking.starts_at.isoformat(),
-        ends_at=booking.ends_at.isoformat(),
+        starts_at=booking.starts_at.isoformat() if booking.starts_at else None,
+        ends_at=booking.ends_at.isoformat() if booking.ends_at else None,
         price=float(booking.price),
+        needs_consultation=False,
     )
 
 
@@ -430,10 +528,12 @@ async def list_my_bookings(
     if client is None:
         return []
 
+    from sqlalchemy import nulls_last
+
     stmt = (
         select(Booking)
         .where(Booking.client_id == client.id)
-        .order_by(Booking.starts_at.desc())
+        .order_by(nulls_last(Booking.starts_at.desc()))
         .limit(50)
         .options(
             selectinload(Booking.service),
@@ -453,9 +553,10 @@ async def list_my_bookings(
             MiniAppMyBookingOut(
                 id=str(b.id),
                 status=b.status.value,
-                starts_at=b.starts_at.isoformat(),
-                ends_at=b.ends_at.isoformat(),
+                starts_at=b.starts_at.isoformat() if b.starts_at else None,
+                ends_at=b.ends_at.isoformat() if b.ends_at else None,
                 price=float(b.price),
+                needs_consultation=b.needs_consultation,
                 service_name=svc_name,
                 master_name=master_name,
             )

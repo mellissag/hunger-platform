@@ -118,7 +118,7 @@ export function BookingDetailDrawer({
   };
 
   const fmtWhen = useMemo(() => {
-    if (!data) return "";
+    if (!data?.starts_at) return data?.needs_consultation ? "Созвон (уточняется)" : "—";
     return new Intl.DateTimeFormat(locale, {
       dateStyle: "full",
       timeStyle: "short",
@@ -126,7 +126,7 @@ export function BookingDetailDrawer({
     }).format(new Date(data.starts_at));
   }, [data, locale, salonTz]);
 
-  const dur = data ? durationMinutes(data.starts_at, data.ends_at) : 0;
+  const dur = data?.starts_at && data?.ends_at ? durationMinutes(data.starts_at, data.ends_at) : 0;
 
   const tgDomain = data?.client.tg_username?.replace(/^@/, "") ?? "";
 
