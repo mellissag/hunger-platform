@@ -476,25 +476,38 @@ function BookContent() {
           )}
         </div>
 
-        {/* CTA */}
-        <div style={{ padding: '16px 22px 40px', marginTop: 8 }}>
-          <button
-            onClick={() => selectedDate && selectedTime && setStep(3)}
-            disabled={!selectedDate || !selectedTime}
-            style={{
-              width: '100%', background: NEAR_BLACK, border: 'none', color: IVORY,
-              padding: '15px 22px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-              letterSpacing: '0.10em', textTransform: 'uppercase', fontFamily: BODY,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              boxShadow: '0 8px 24px rgba(28,20,9,.18)',
-              cursor: selectedDate && selectedTime ? 'pointer' : 'not-allowed',
-              opacity: selectedDate && selectedTime ? 1 : 0.45,
-            }}
-          >
-            {t.bookBtnNext}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </button>
-        </div>
+        {/* Bottom spacer so content isn't hidden under sticky CTA */}
+        <div style={{ height: 100 }} />
+
+        {/* Sticky CTA — only visible when a time slot is selected */}
+        {selectedTime && (
+          <div style={{
+            position: 'fixed',
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 76px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 'calc(100% - 32px)',
+            maxWidth: 420,
+            zIndex: 200,
+          }}>
+            <button
+              onClick={() => setStep(3)}
+              style={{
+                width: '100%',
+                background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`,
+                border: 'none', color: '#fff',
+                padding: '15px 22px', borderRadius: 999, fontSize: 12, fontWeight: 700,
+                letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: BODY,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: `0 8px 28px rgba(154,114,48,.45)`,
+                cursor: 'pointer',
+              }}
+            >
+              {t.bookBtnNext}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+        )}
       </div>
     );
   }

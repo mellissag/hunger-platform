@@ -113,21 +113,25 @@ function TabBar() {
 
         if (tab.isFab) {
           return (
-            <button
+            <div
               key={tab.href}
-              onClick={() => router.push(tab.href)}
-              style={{
-                width: 50, height: 50, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #9A7230, #C9A84C)',
-                border: 'none', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', color: '#fff', cursor: 'pointer',
-                transform: 'translateY(-8px)',
-                boxShadow: '0 8px 24px rgba(154,114,48,.40), 0 2px 8px rgba(28,20,9,.15)',
-                flexShrink: 0,
-              }}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <Icon size={24} />
-            </button>
+              <button
+                onClick={() => router.push(tab.href)}
+                style={{
+                  width: 50, height: 50, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #9A7230, #C9A84C)',
+                  border: 'none', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', color: '#fff', cursor: 'pointer',
+                  transform: 'translateY(-8px)',
+                  boxShadow: '0 8px 24px rgba(154,114,48,.40), 0 2px 8px rgba(28,20,9,.15)',
+                  flexShrink: 0,
+                }}
+              >
+                <Icon size={24} />
+              </button>
+            </div>
           );
         }
 

@@ -53,16 +53,16 @@ interface TelegramWebApp {
   };
 }
 
+const SESSION_KEY = 'tg_init_data';
+
 /**
- * Read initData from the URL hash as a synchronous fallback.
- * Telegram always embeds initData in the URL as:
- *   #tgWebAppData=<url-encoded-string>&tgWebAppVersion=...
- * This works even before telegram-web-app.js finishes loading.
+ * Read initData from the URL hash (Telegram embeds it as #tgWebAppData=…).
+ * Works synchronously even before telegram-web-app.js finishes loading.
  */
 function readInitDataFromHash(): string {
   if (typeof window === 'undefined') return '';
   try {
-    const hash = window.location.hash.slice(1); // remove leading #
+    const hash = window.location.hash.slice(1);
     if (!hash) return '';
     const params = new URLSearchParams(hash);
     return params.get('tgWebAppData') ?? '';
@@ -71,10 +71,25 @@ function readInitDataFromHash(): string {
   }
 }
 
+/** Persist a valid initData so other launch methods (e.g. Reply Keyboard) can reuse it. */
+function cacheInitData(data: string) {
+  if (!data) return;
+  try { sessionStorage.setItem(SESSION_KEY, data); } catch { /* ignore */ }
+}
+
+function readCachedInitData(): string {
+  try { return sessionStorage.getItem(SESSION_KEY) ?? ''; } catch { return ''; }
+}
+
 export function useTelegram() {
   const [webApp, setWebApp] = useState<TelegramWebApp | null>(null);
   const [user, setUser] = useState<TelegramUser | null>(null);
-  const [initData, setInitData] = useState<string>(() => readInitDataFromHash());
+  const [initData, setInitData] = useState<string>(() => {
+    // Immediate sync read: hash → sessionStorage cache
+    const fromHash = readInitDataFromHash();
+    if (fromHash) { cacheInitData(fromHash); return fromHash; }
+    return readCachedInitData();
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -88,7 +103,9 @@ export function useTelegram() {
         tg.expand();
         setWebApp(tg);
         setUser(tg.initDataUnsafe.user ?? null);
-        setInitData(tg.initData || readInitDataFromHash());
+        const data = tg.initData || readInitDataFromHash() || readCachedInitData();
+        cacheInitData(data);
+        setInitData(data);
         return;
       }
       // Retry up to 30 × 100 ms = 3 s while SDK loads
@@ -109,5 +126,9 @@ export function useTelegram() {
 
 export function getInitData(): string {
   if (typeof window === 'undefined') return '';
-  return window.Telegram?.WebApp?.initData || readInitDataFromHash();
+  const sdk = window.Telegram?.WebApp?.initData;
+  if (sdk) { cacheInitData(sdk); return sdk; }
+  const hash = readInitDataFromHash();
+  if (hash) { cacheInitData(hash); return hash; }
+  return readCachedInitData();
 }

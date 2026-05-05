@@ -160,10 +160,28 @@ export interface SalonInfo {
   phone: string;
 }
 
+const SALON_NAME_KEY = 'ma_salon_name';
+
+function readCachedSalonName(): string {
+  try { return sessionStorage.getItem(SALON_NAME_KEY) ?? ''; } catch { return ''; }
+}
+
 export function useSalonInfo() {
   return useQuery<SalonInfo>({
     queryKey: ['mini-app', 'salon'],
-    queryFn: () => apiFetch('/api/v1/mini-app/salon'),
+    queryFn: async () => {
+      const data = await apiFetch<SalonInfo>('/api/v1/mini-app/salon');
+      if (data.name) {
+        try { sessionStorage.setItem(SALON_NAME_KEY, data.name); } catch { /* ignore */ }
+      }
+      return data;
+    },
+    placeholderData: () => ({
+      name: readCachedSalonName(),
+      description: '',
+      address: '',
+      phone: '',
+    }),
     staleTime: 10 * 60_000,
   });
 }

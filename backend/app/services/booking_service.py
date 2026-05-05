@@ -391,13 +391,16 @@ async def update_booking(
     changing_time = "starts_at" in payload or "ends_at" in payload
     if changing_time:
         new_start = ensure_aware(payload.get("starts_at", b.starts_at))
-        new_end = ensure_aware(payload.get("ends_at", b.ends_at))
-        if new_start is None or new_end is None:
-            raise InvalidScheduleError("starts_at and ends_at are required")
         effective_master_id = payload.get("master_id", b.master_id)
+        # Compute ends_at from duration when only starts_at is provided
+        # (covers consultation bookings where b.ends_at is NULL)
         if "starts_at" in payload and "ends_at" not in payload:
             _, duration_min = await _resolve_pricing(db, effective_master_id, b.service_id)
-            new_end = new_start + timedelta(minutes=duration_min)
+            new_end = new_start + timedelta(minutes=duration_min) if new_start else None
+        else:
+            new_end = ensure_aware(payload.get("ends_at", b.ends_at))
+        if new_start is None or new_end is None:
+            raise InvalidScheduleError("starts_at and ends_at are required")
         if effective_master_id:
             await _assert_slot_free(
                 db,
