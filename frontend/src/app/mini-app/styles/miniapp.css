@@ -1,0 +1,211 @@
+@import './tokens.css';
+
+/* Mini App root */
+.miniapp-root {
+  font-family: var(--ff-body);
+  background: var(--l-bg);
+  color: var(--l-fg);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Magazine background — ivory + subtle gold radial glow */
+.miniapp-bg {
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(201,168,76,.10), transparent 50%),
+    radial-gradient(ellipse at 0% 100%, rgba(237,229,213,.5), transparent 50%),
+    var(--l-bg);
+}
+
+/* Floating tab bar */
+.miniapp-tabbar {
+  position: fixed;
+  bottom: env(safe-area-inset-bottom, 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  height: 60px;
+  border-radius: 28px;
+  background: rgba(250, 248, 243, 0.72);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(154,114,48,.14);
+  box-shadow: 0 8px 32px rgba(28,20,9,.10);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 8px;
+  z-index: 100;
+}
+
+.miniapp-tabbar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 14px;
+  border-radius: 18px;
+  transition: background .15s ease, color .15s ease;
+  color: rgba(28,20,9,.4);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: var(--ff-body);
+}
+
+.miniapp-tabbar-item.active {
+  background: rgba(154,114,48,.12);
+  color: var(--l-gold);
+}
+
+/* Gold pill button (primary CTA) */
+.btn-primary-miniapp {
+  background: var(--l-fg);
+  color: var(--l-bg);
+  border: none;
+  border-radius: 999px;
+  padding: 14px 22px;
+  font-family: var(--ff-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(28,20,9,.15);
+}
+
+.btn-gold-miniapp {
+  background: linear-gradient(135deg, var(--l-gold), var(--l-gold-hi));
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 22px;
+  font-family: var(--ff-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.btn-outline-miniapp {
+  background: transparent;
+  color: var(--l-fg);
+  border: 1px solid rgba(28,20,9,.2);
+  border-radius: 999px;
+  padding: 14px 22px;
+  font-family: var(--ff-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+/* Serif display headline */
+.miniapp-headline {
+  font-family: var(--ff-display-miniapp);
+  font-size: 38px;
+  font-weight: 500;
+  line-height: 1.0;
+  letter-spacing: -0.02em;
+  color: var(--l-fg);
+}
+
+.miniapp-headline em {
+  font-style: italic;
+  color: var(--l-gold);
+}
+
+/* Eyebrow label */
+.miniapp-eyebrow {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--l-gold);
+}
+
+/* Card — sharp corners, subtle border */
+.miniapp-card {
+  background: #fff;
+  border: 1px solid var(--l-border);
+  border-radius: var(--r-sharp);
+  padding: 16px;
+}
+
+/* Dark card — near-black with gold top stripe */
+.miniapp-card-dark {
+  background: var(--l-fg);
+  border-radius: 20px;
+  padding: 20px;
+  color: var(--d-fg);
+  position: relative;
+  overflow: hidden;
+}
+
+.miniapp-card-dark::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--d-gold), transparent);
+}
+
+/* Glass card */
+.miniapp-glass {
+  background: rgba(250, 248, 243, 0.65);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(154,114,48,.18);
+  border-radius: 20px;
+}
+
+/* Ornament divider */
+.miniapp-ornament {
+  text-align: center;
+  color: var(--l-gold);
+  opacity: .5;
+  letter-spacing: 0.6em;
+  font-size: 12px;
+  font-family: var(--ff-serif);
+  padding: 10px 0;
+}
+
+/* Safe area padding bottom */
+.miniapp-scroll-content {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 16px));
+}
+
+/* Hide scrollbars in pills/chips */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Field inputs */
+.miniapp-field input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(28,20,9,.15);
+  background: #fff;
+  border-radius: 14px;
+  font-size: 16px;
+  font-family: var(--ff-body);
+  color: var(--l-fg);
+  outline: none;
+  transition: border-color .15s ease;
+}
+
+.miniapp-field input:focus {
+  border-color: var(--l-gold);
+  box-shadow: 0 0 0 3px rgba(154,114,48,.08);
+}

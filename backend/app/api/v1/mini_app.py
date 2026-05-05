@@ -538,3 +538,68 @@ async def ai_chat(
             reply="Извините, AI-консультант временно недоступен. Попробуйте позже.",
             conversation_id=None,
         )
+
+
+# ─── Cancel booking ────────────────────────────────────────────────────────────
+
+
+@router.post("/bookings/{booking_id}/cancel", response_model=MiniAppMyBookingOut)
+async def cancel_booking(
+    booking_id: str,
+    current_user: MiniAppUser,
+    db: AsyncSession = Depends(get_db),
+) -> MiniAppMyBookingOut:
+    """Authenticated: cancel a client's own booking."""
+    from app.models.booking import BookingStatus
+
+    if not current_user.tg_user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
+
+    client = (
+        await db.execute(select(Client).where(Client.tg_user_id == current_user.tg_user_id))
+    ).scalar_one_or_none()
+    if client is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+
+    import uuid as _uuid
+
+    try:
+        bk_uuid = _uuid.UUID(booking_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid booking id")
+
+    booking = (
+        await db.execute(
+            select(Booking)
+            .where(Booking.id == bk_uuid, Booking.client_id == client.id)
+            .options(selectinload(Booking.service), selectinload(Booking.master))
+        )
+    ).scalar_one_or_none()
+    if booking is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+
+    if booking.status not in (BookingStatus.pending, BookingStatus.confirmed):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot cancel booking with status '{booking.status.value}'",
+        )
+
+    booking.status = BookingStatus.cancelled
+    await db.commit()
+    await db.refresh(booking)
+
+    svc_name = ""
+    if booking.service:
+        n = booking.service.name_i18n
+        svc_name = n.get("ru") or n.get("en") or next(iter(n.values()), "") if n else ""
+    master_name = booking.master.display_name if booking.master else ""
+
+    return MiniAppMyBookingOut(
+        id=str(booking.id),
+        status=booking.status.value,
+        starts_at=booking.starts_at.isoformat(),
+        ends_at=booking.ends_at.isoformat(),
+        price=float(booking.price),
+        service_name=svc_name,
+        master_name=master_name,
+    )

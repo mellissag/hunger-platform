@@ -1,107 +1,212 @@
-"use client";
+'use client';
 
-import type { ReactNode } from "react";
-import Script from "next/script";
-import { useEffect } from "react";
+import { type ReactNode } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import Script from 'next/script';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useState } from 'react';
+import './styles/miniapp.css';
 
-declare global {
-  interface Window {
-    Telegram: {
-      WebApp: {
-        ready(): void;
-        expand(): void;
-        close(): void;
-        sendData(data: string): void;
-        colorScheme: "light" | "dark";
-        themeParams: Record<string, string>;
-        initData: string;
-        initDataUnsafe: {
-          user?: {
-            id: number;
-            first_name: string;
-            last_name?: string;
-            username?: string;
-            language_code?: string;
-          };
-        };
-        MainButton: {
-          show(): void;
-          hide(): void;
-          setText(text: string): void;
-          onClick(fn: () => void): void;
-          offClick(fn: () => void): void;
-          enable(): void;
-          disable(): void;
-          showProgress(leaveActive?: boolean): void;
-          hideProgress(): void;
-          isVisible: boolean;
-          text: string;
-        };
-        BackButton: {
-          show(): void;
-          hide(): void;
-          onClick(fn: () => void): void;
-          offClick(fn: () => void): void;
-        };
-        HapticFeedback: {
-          impactOccurred(style: "light" | "medium" | "heavy" | "rigid" | "soft"): void;
-          notificationOccurred(type: "error" | "success" | "warning"): void;
-          selectionChanged(): void;
-        };
-      };
-    };
-  }
+// ── Inline SVG Icons ─────────────────────────────────────────────────────────
+
+function HomeIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 11l9-8 9 8M5 10v10h14V10"/>
+    </svg>
+  );
 }
 
-function MiniAppContent({ children }: { children: ReactNode }) {
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.Telegram?.WebApp) return;
-    window.Telegram.WebApp.ready();
-    window.Telegram.WebApp.expand();
-  }, []);
+function CalendarIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="2"/>
+      <path d="M3 9h18M8 3v4M16 3v4"/>
+    </svg>
+  );
+}
 
+function PlusIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14"/>
+    </svg>
+  );
+}
+
+function SparkleIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>
+    </svg>
+  );
+}
+
+function UserIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 21c0-4 4-7 8-7s8 3 8 7"/>
+    </svg>
+  );
+}
+
+// ── Tab Config ───────────────────────────────────────────────────────────────
+
+interface TabItem {
+  icon: ({ size }: { size?: number }) => JSX.Element;
+  label: string;
+  href: string;
+  isFab?: boolean;
+}
+
+const TABS: TabItem[] = [
+  { icon: HomeIcon, label: 'Главная', href: '/mini-app' },
+  { icon: CalendarIcon, label: 'Записи', href: '/mini-app/bookings' },
+  { icon: PlusIcon, label: '', href: '/mini-app/book', isFab: true },
+  { icon: SparkleIcon, label: 'AI', href: '/mini-app/ai' },
+  { icon: UserIcon, label: 'Профиль', href: '/mini-app/profile' },
+];
+
+// Routes that should NOT show the tab bar
+const NO_TAB_ROUTES = ['/mini-app/onboarding'];
+
+// ── Tab Bar Component ────────────────────────────────────────────────────────
+
+function TabBar() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  if (NO_TAB_ROUTES.some(r => pathname?.startsWith(r))) return null;
+
+  function isActive(href: string): boolean {
+    if (href === '/mini-app') return pathname === '/mini-app';
+    return pathname?.startsWith(href) ?? false;
+  }
+
+  return (
+    <nav style={{
+      position: 'fixed',
+      bottom: 'env(safe-area-inset-bottom, 16px)',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      width: 'calc(100% - 32px)',
+      maxWidth: 420,
+      height: 60,
+      borderRadius: 28,
+      background: 'rgba(250, 248, 243, 0.72)',
+      backdropFilter: 'blur(24px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+      border: '1px solid rgba(154,114,48,.14)',
+      boxShadow: '0 8px 32px rgba(28,20,9,.10)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-around',
+      padding: '0 8px',
+      zIndex: 100,
+    }}>
+      {TABS.map((tab) => {
+        const active = !tab.isFab && isActive(tab.href);
+        const Icon = tab.icon;
+
+        if (tab.isFab) {
+          return (
+            <button
+              key={tab.href}
+              onClick={() => router.push(tab.href)}
+              style={{
+                width: 50,
+                height: 50,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #9A7230, #C9A84C)',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                cursor: 'pointer',
+                transform: 'translateY(-8px)',
+                boxShadow: '0 8px 24px rgba(154,114,48,.40), 0 2px 8px rgba(28,20,9,.15)',
+                flexShrink: 0,
+              }}
+            >
+              <Icon size={24} />
+            </button>
+          );
+        }
+
+        return (
+          <button
+            key={tab.href}
+            onClick={() => router.push(tab.href)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 2,
+              padding: '6px 14px',
+              borderRadius: 18,
+              transition: 'background .15s ease, color .15s ease',
+              color: active ? '#9A7230' : 'rgba(28,20,9,.4)',
+              background: active ? 'rgba(154,114,48,.12)' : 'none',
+              border: 'none',
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: '0.02em',
+              cursor: 'pointer',
+              fontFamily: '"Inter", system-ui, sans-serif',
+              flex: 1,
+            }}
+          >
+            <Icon size={22} />
+            {tab.label && <span>{tab.label}</span>}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+// ── Layout ───────────────────────────────────────────────────────────────────
+
+function MiniAppInner({ children }: { children: ReactNode }) {
   return (
     <div
       style={{
-        fontFamily: "'Inter', system-ui, sans-serif",
-        minHeight: "100vh",
-        backgroundColor: "var(--bg)",
-        color: "var(--fg)",
-        WebkitFontSmoothing: "antialiased",
+        fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
+        background: '#FAF8F3',
+        color: '#1C1408',
+        minHeight: '100dvh',
+        WebkitFontSmoothing: 'antialiased',
       }}
     >
       {children}
+      <TabBar />
     </div>
   );
 }
 
 export default function MiniAppLayout({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 30_000,
+            retry: 1,
+            refetchOnWindowFocus: false,
+          },
+        },
+      }),
+  );
+
   return (
-    <>
-      <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap"
-        rel="stylesheet"
+    <QueryClientProvider client={queryClient}>
+      <Script
+        src="https://telegram.org/js/telegram-web-app.js"
+        strategy="beforeInteractive"
       />
-      <style>{`
-        :root {
-          --gold: #9A7230;
-          --gold-l: rgba(154,114,48,.10);
-          --gold-g: rgba(154,114,48,.20);
-          --bg: #f5f0ea;
-          --fg: #1a1a1a;
-          --muted: #8a7d6b;
-          --card: #ffffff;
-          --border: #e8e0d4;
-          --dim: #faf7f3;
-          --ok: #3A7D44;
-          --err: #B54040;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { overflow-x: hidden; }
-        .serif { font-family: "Cormorant Garamond", serif; }
-      `}</style>
-      <MiniAppContent>{children}</MiniAppContent>
-    </>
+      <MiniAppInner>{children}</MiniAppInner>
+    </QueryClientProvider>
   );
 }
