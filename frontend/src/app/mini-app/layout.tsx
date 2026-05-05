@@ -33,10 +33,11 @@ function PlusIcon({ size = 24 }: { size?: number }) {
   );
 }
 
-function SparkleIcon({ size = 22 }: { size?: number }) {
+function GridIcon({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>
+      <rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/>
+      <rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/>
     </svg>
   );
 }
@@ -61,9 +62,9 @@ interface TabItem {
 
 const TABS: TabItem[] = [
   { icon: HomeIcon, label: 'Главная', href: '/mini-app' },
-  { icon: CalendarIcon, label: 'Записи', href: '/mini-app/bookings' },
+  { icon: GridIcon, label: 'Каталог', href: '/mini-app/catalog' },
   { icon: PlusIcon, label: '', href: '/mini-app/book', isFab: true },
-  { icon: SparkleIcon, label: 'AI', href: '/mini-app/ai' },
+  { icon: CalendarIcon, label: 'Записи', href: '/mini-app/bookings' },
   { icon: UserIcon, label: 'Профиль', href: '/mini-app/profile' },
 ];
 

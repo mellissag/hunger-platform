@@ -129,12 +129,12 @@ export function useMonthAvailability(masterId: string | null, year: number, mont
   });
 }
 
-export function useMyBookings(telegramId: number | null) {
+export function useMyBookings() {
   return useQuery<Booking[]>({
-    queryKey: ['mini-app', 'my-bookings', telegramId],
+    queryKey: ['mini-app', 'my-bookings'],
     queryFn: () => apiFetch('/api/v1/mini-app/my-bookings'),
-    enabled: !!telegramId,
     staleTime: 30_000,
+    retry: 1,
   });
 }
 

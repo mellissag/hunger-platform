@@ -15,7 +15,7 @@ const BODY = '"Inter", system-ui, sans-serif';
 export default function ProfilePage() {
   const router = useRouter();
   const { user } = useTelegram();
-  const { data: bookings = [] } = useMyBookings(user?.id ?? null);
+  const { data: bookings = [] } = useMyBookings();
 
   const firstName = user?.first_name ?? 'Гость';
   const initLetter = firstName.charAt(0).toUpperCase();

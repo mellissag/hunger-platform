@@ -25,7 +25,7 @@ function formatDur(min: number): string {
 export default function HomePage() {
   const router = useRouter();
   const { user } = useTelegram();
-  const { data: bookings = [] } = useMyBookings(user?.id ?? null);
+  const { data: bookings = [] } = useMyBookings();
   const { data: services = [] } = useServices();
 
   useEffect(() => {
