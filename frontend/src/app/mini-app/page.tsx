@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTelegram } from './hooks/useTelegram';
-import { useMyBookings, useMeProfile, pickI18n } from './hooks/useMiniAppData';
+import { useMyBookings, useMeProfile, useSalonInfo, pickI18n } from './hooks/useMiniAppData';
 import { isoToTimeInZone } from '@/lib/date-local';
 import { useT } from './i18n/context';
 
@@ -32,6 +32,7 @@ export default function HomePage() {
   const { t } = useT();
   const { data: bookings = [] } = useMyBookings();
   const { data: profile } = useMeProfile();
+  const { data: salonInfo } = useSalonInfo();
 
   useEffect(() => {
     try {
@@ -64,19 +65,14 @@ export default function HomePage() {
 
       {/* ── Top Bar ── */}
       <div style={{ padding: '16px 22px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 600, letterSpacing: '-0.01em' }}>
-            Hunger <span style={{ fontStyle: 'italic', color: GOLD }}>Atelier</span>
-          </div>
+        <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 600, letterSpacing: '-0.01em', fontStyle: 'italic', color: GOLD }}>
+          {salonInfo?.name || 'Hunger Atelier'}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(250,248,243,0.65)', backdropFilter: 'blur(20px)', border: '1px solid rgba(154,114,48,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTED }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M6 9a6 6 0 1112 0c0 4 2 6 2 6H4s2-2 2-6zM10 20a2 2 0 004 0"/>
             </svg>
-          </div>
-          <div style={{ width: 38, height: 38, borderRadius: '50%', background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: SERIF, fontSize: 15, fontWeight: 600 }}>
-            {initLetter}
           </div>
         </div>
       </div>

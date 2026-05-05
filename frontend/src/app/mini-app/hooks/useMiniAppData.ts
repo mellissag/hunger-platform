@@ -153,6 +153,21 @@ export function useMonthAvailability(masterId: string | null, year: number, mont
   });
 }
 
+export interface SalonInfo {
+  name: string;
+  description: string;
+  address: string;
+  phone: string;
+}
+
+export function useSalonInfo() {
+  return useQuery<SalonInfo>({
+    queryKey: ['mini-app', 'salon'],
+    queryFn: () => apiFetch('/api/v1/mini-app/salon'),
+    staleTime: 10 * 60_000,
+  });
+}
+
 export function useMyBookings() {
   const { initData } = useTelegram();
   return useQuery<Booking[]>({

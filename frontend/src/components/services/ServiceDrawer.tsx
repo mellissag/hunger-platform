@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Wand2, X } from "lucide-react";
+import { ImagePlus, Loader2, Trash2, Wand2, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { apiJson } from "@/lib/api";
+import { apiJson, uploadImageFile } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import {
   useCreateService,
@@ -59,6 +59,9 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
   const [activeLang, setActiveLang] = useState<Lang>(locale === "en" ? "en" : "ru");
   const [translating, setTranslating] = useState(false);
   const [selectedMasters, setSelectedMasters] = useState<string[]>([]);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: catData } = useServiceCategories();
   const { data: mastersData } = useQuery({
@@ -121,6 +124,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
         desc_uk: service.description_i18n?.uk ?? "",
         desc_bg: service.description_i18n?.bg ?? "",
       });
+      setPhotoUrl(service.photo_url ?? null);
     } else if (open && !service) {
       reset({
         category_id: undefined,
@@ -140,6 +144,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
         desc_bg: "",
       });
       setSelectedMasters([]);
+      setPhotoUrl(null);
     }
   }, [open, service, reset]);
 
@@ -180,6 +185,21 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
     }
   }
 
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadImageFile(file, "services");
+      setPhotoUrl(url);
+    } catch {
+      toast.error("Ошибка загрузки фото");
+    } finally {
+      setUploadingPhoto(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
+    }
+  }
+
   function onSubmit(values: ServiceForm) {
     const body = {
       category_id: values.category_id || null,
@@ -189,6 +209,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
       duration_max_minutes: values.duration_type === "range" ? (values.duration_max_minutes ?? null) : null,
       sort_order: values.sort_order,
       is_active: values.is_active,
+      photo_url: photoUrl ?? null,
       name_i18n: { ru: values.name_ru, en: values.name_en, uk: values.name_uk, bg: values.name_bg },
       description_i18n: {
         ru: values.desc_ru ?? "",
@@ -330,6 +351,59 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Photo upload */}
+          <div className="space-y-2">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              Фото услуги
+            </Label>
+            <p className="text-[10px] text-muted-foreground -mt-1">
+              Квадратный формат (1:1). JPG, PNG, WebP — до 5 МБ.
+            </p>
+
+            {photoUrl ? (
+              <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-border">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={photoUrl}
+                  alt="Фото услуги"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPhotoUrl(null)}
+                  className="absolute top-1.5 right-1.5 h-6 w-6 flex items-center justify-center rounded-full bg-red-500/90 text-white hover:bg-red-600 transition-colors"
+                  title="Удалить фото"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="flex h-32 w-32 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/40 text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted disabled:opacity-60"
+              >
+                {uploadingPhoto ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ImagePlus className="h-5 w-5" />
+                )}
+                <span className="text-[10px] font-medium">
+                  {uploadingPhoto ? "Загрузка…" : "Добавить фото"}
+                </span>
+              </button>
+            )}
+
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
           </div>
 
           {/* Category */}

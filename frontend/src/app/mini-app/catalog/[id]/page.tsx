@@ -94,9 +94,8 @@ export default function ServiceDetailPage() {
     svc.category_name_i18n ? pickI18n(svc.category_name_i18n as Record<string, string>) : (svc.category ?? '');
 
   const hasPhoto = Boolean(svc.photo_url);
-  const photoUrl = svc.photo_url
-    ? `${process.env.NEXT_PUBLIC_API_URL ?? ''}${svc.photo_url}`
-    : null;
+  // photo_url is stored as an absolute URL (e.g. https://…/media/services/…)
+  const photoUrl = svc.photo_url ?? null;
 
   return (
     <div
