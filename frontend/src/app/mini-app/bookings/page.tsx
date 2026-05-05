@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMyBookings, useCancelBooking, type Booking } from '../hooks/useMiniAppData';
 import { isoToTimeInZone, isoToDateInZone } from '@/lib/date-local';
+import { useT } from '../i18n/context';
 
 const GOLD = '#9A7230';
 const GOLD_HI = '#C9A84C';
@@ -15,43 +16,7 @@ const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 const TZ = 'Europe/Sofia';
 
-const DAYS_RU = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
-const MONTHS_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-
-function formatDateLabel(iso: string): string {
-  try {
-    const dateStr = isoToDateInZone(iso, TZ);
-    // dateStr like "12 мая" — parse to get day of week
-    const d = new Date(iso);
-    const day = DAYS_RU[d.getDay()];
-    return `${day} · ${dateStr}`;
-  } catch {
-    return iso.slice(0, 10);
-  }
-}
-
-function timeUntil(iso: string): string {
-  const diff = new Date(iso).getTime() - Date.now();
-  if (diff < 0) return '';
-  const days = Math.floor(diff / 86400000);
-  const hours = Math.floor((diff % 86400000) / 3600000);
-  if (days > 0) return `через ${days} ${days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'}`;
-  if (hours > 0) return `через ${hours} ч`;
-  return 'скоро';
-}
-
 type StatusKind = 'ok' | 'gold' | 'muted' | 'err';
-
-function statusInfo(s: Booking['status']): { label: string; kind: StatusKind } {
-  switch (s) {
-    case 'confirmed': return { label: 'Подтверждено', kind: 'ok' };
-    case 'pending':   return { label: 'Ожидание', kind: 'gold' };
-    case 'cancelled': return { label: 'Отменено', kind: 'muted' };
-    case 'completed': return { label: 'Завершено', kind: 'muted' };
-    case 'no_show':   return { label: 'Не пришёл', kind: 'err' };
-    default:          return { label: s, kind: 'muted' };
-  }
-}
 
 function statusColors(kind: StatusKind) {
   return ({
@@ -64,6 +29,7 @@ function statusColors(kind: StatusKind) {
 
 export default function BookingsPage() {
   const router = useRouter();
+  const { t } = useT();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
@@ -75,11 +41,42 @@ export default function BookingsPage() {
   const nextBooking = upcoming[0] ?? null;
   const shown = activeTab === 'upcoming' ? upcoming : history;
 
+  function formatDateLabel(iso: string): string {
+    try {
+      const dateStr = isoToDateInZone(iso, TZ);
+      const d = new Date(iso);
+      return `${t.daysShort[d.getDay()]} · ${dateStr}`;
+    } catch {
+      return iso.slice(0, 10);
+    }
+  }
+
+  function timeUntil(iso: string): string {
+    const diff = new Date(iso).getTime() - Date.now();
+    if (diff < 0) return '';
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    if (days > 0) return t.listLiveDays(days);
+    if (hours > 0) return t.listLiveHours(hours);
+    return t.listLiveSoon;
+  }
+
+  function statusInfo(s: Booking['status']): { label: string; kind: StatusKind } {
+    switch (s) {
+      case 'confirmed': return { label: t.stConfirmed, kind: 'ok' };
+      case 'pending':   return { label: t.stPending, kind: 'gold' };
+      case 'cancelled': return { label: t.stCancelled, kind: 'muted' };
+      case 'completed': return { label: t.stCompleted, kind: 'muted' };
+      case 'no_show':   return { label: t.stNoShow, kind: 'err' };
+      default:          return { label: s, kind: 'muted' };
+    }
+  }
+
   async function handleCancel(id: string) {
-    if (!confirm('Отменить запись?')) return;
+    if (!confirm(t.listCancelConfirm)) return;
     setCancellingId(id);
     try { await cancelMutation.mutateAsync(id); }
-    catch { alert('Не удалось отменить запись'); }
+    catch { alert(t.listCancelError); }
     finally { setCancellingId(null); }
   }
 
@@ -96,10 +93,10 @@ export default function BookingsPage() {
       {/* Header */}
       <div style={{ padding: '18px 22px 14px' }}>
         <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>
-          Личное
+          {t.listEyebrow}
         </div>
         <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, marginTop: 10, letterSpacing: '-0.02em' }}>
-          Мои <span style={{ fontStyle: 'italic', color: GOLD }}>записи</span>.
+          {t.listH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.listHi}</span>.
         </div>
       </div>
 
@@ -116,7 +113,7 @@ export default function BookingsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: GOLD, boxShadow: `0 0 7px ${GOLD}` }} />
               <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>
-                Live · {timeUntil(nextBooking.starts_at)}
+                {t.listLivePrefix} · {timeUntil(nextBooking.starts_at)}
               </div>
             </div>
             {/* Content */}
@@ -142,7 +139,7 @@ export default function BookingsPage() {
         {(['upcoming', 'history'] as const).map(tab => {
           const isActive = activeTab === tab;
           const count = tab === 'upcoming' ? upcoming.length : history.length;
-          const label = tab === 'upcoming' ? 'Предстоящие' : 'Прошедшие';
+          const label = tab === 'upcoming' ? t.listTabUpcoming : t.listTabHistory;
           return (
             <button
               key={tab}
@@ -170,13 +167,13 @@ export default function BookingsPage() {
       {/* Booking list */}
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '32px', fontFamily: SERIF, fontSize: 18, color: MUTED }}>
-          Загрузка...
+          {t.loading}
         </div>
       ) : shown.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 22px' }}>
           <div style={{ textAlign: 'center', color: GOLD, opacity: .4, letterSpacing: '0.6em', fontSize: 12, padding: '6px 0', fontFamily: SERIF }}>⸻ ✦ ⸻</div>
           <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 500, color: NEAR_BLACK, marginTop: 12 }}>
-            Пока записей нет
+            {t.listEmpty}
           </div>
           {activeTab === 'upcoming' && (
             <button
@@ -188,7 +185,7 @@ export default function BookingsPage() {
                 cursor: 'pointer',
               }}
             >
-              Записаться
+              {t.listBtnNew}
             </button>
           )}
         </div>
@@ -251,7 +248,7 @@ export default function BookingsPage() {
                       opacity: cancelling ? 0.6 : 1,
                     }}
                   >
-                    {cancelling ? 'Отменяем...' : 'Отменить'}
+                    {cancelling ? t.listCancellingBtn : t.listCancelBtn}
                   </button>
                 )}
               </div>

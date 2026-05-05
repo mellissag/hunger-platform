@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTelegram } from './hooks/useTelegram';
 import { useMyBookings, useServices, pickI18n } from './hooks/useMiniAppData';
 import { isoToTimeInZone, isoToDateInZone } from '@/lib/date-local';
+import { useT } from './i18n/context';
 
 const GOLD = '#9A7230';
 const GOLD_HI = '#C9A84C';
@@ -25,6 +26,7 @@ function formatDur(min: number): string {
 export default function HomePage() {
   const router = useRouter();
   const { user } = useTelegram();
+  const { t } = useT();
   const { data: bookings = [] } = useMyBookings();
   const { data: services = [] } = useServices();
 
@@ -39,12 +41,11 @@ export default function HomePage() {
   const upcoming = bookings.filter(b => ['confirmed', 'pending'].includes(b.status));
   const nextBooking = upcoming[0] ?? null;
   const firstService = services[0] ?? null;
-  const initLetter = user?.first_name?.charAt(0)?.toUpperCase() ?? 'G';
+  const initLetter = user?.first_name?.charAt(0)?.toUpperCase() ?? 'H';
 
   const today = new Date();
   const issueNum = String(today.getMonth() + 1).padStart(2, '0');
-  const months = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-  const monthName = months[today.getMonth()];
+  const monthName = t.monthsLong[today.getMonth()];
 
   return (
     <div style={{
@@ -92,7 +93,7 @@ export default function HomePage() {
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: GOLD, boxShadow: `0 0 8px ${GOLD}` }} />
-              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>Live · Ближайшая запись</div>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.homeLiveLabel}</div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
               <div>
@@ -112,20 +113,20 @@ export default function HomePage() {
                 <div style={{ height: '100%', width: '35%', background: `linear-gradient(90deg, ${GOLD}, ${GOLD_HI})` }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: MUTED, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                <span>До записи</span>
+                <span>{t.homeLiveUntil}</span>
                 <span
                   style={{ cursor: 'pointer', color: GOLD }}
                   onClick={() => router.push('/mini-app/bookings')}
                 >
-                  Подробнее →
+                  {t.homeLiveDetails}
                 </span>
               </div>
             </div>
           </>
         ) : (
           <div style={{ textAlign: 'center', padding: '8px 0' }}>
-            <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: MUTED, textTransform: 'uppercase', marginBottom: 8 }}>Нет записей</div>
-            <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 500, color: NEAR_BLACK }}>Запланируйте визит</div>
+            <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: MUTED, textTransform: 'uppercase', marginBottom: 8 }}>{t.homeNoBookings}</div>
+            <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 500, color: NEAR_BLACK }}>{t.homePlanVisit}</div>
           </div>
         )}
       </div>
@@ -133,14 +134,14 @@ export default function HomePage() {
       {/* ── Magazine Hero ── */}
       <div style={{ padding: '22px 28px 18px' }}>
         <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>
-          № {issueNum} · {monthName}
+          {t.homeIssuePrefix} {issueNum} · {monthName}
         </div>
         <div style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 14, letterSpacing: '-0.025em' }}>
-          Записаться<br />
-          <span style={{ fontStyle: 'italic', color: GOLD }}>сейчас</span>.
+          {t.homeH1}<br />
+          <span style={{ fontStyle: 'italic', color: GOLD }}>{t.homeH1i}</span>.
         </div>
         <div style={{ fontSize: 14, color: SOFT, lineHeight: 1.5, marginTop: 16, maxWidth: 280 }}>
-          Любимые мастера, ваш ритм и ваше расписание — всё в одном жесте.
+          {t.homeDesc}
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
           <button
@@ -153,18 +154,18 @@ export default function HomePage() {
               boxShadow: '0 8px 24px rgba(28,20,9,.18)', cursor: 'pointer',
             }}
           >
-            Выбрать слот
+            {t.homeBtnSlot}
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </button>
           <button
-            onClick={() => router.push('/mini-app/book')}
+            onClick={() => router.push('/mini-app/catalog')}
             style={{
               background: 'transparent', border: '1px solid rgba(28,20,9,.2)', color: NEAR_BLACK,
               padding: '13px 18px', borderRadius: 999, fontSize: 11, fontWeight: 600,
               letterSpacing: '0.10em', textTransform: 'uppercase', fontFamily: BODY, cursor: 'pointer',
             }}
           >
-            Услуги
+            {t.homeBtnServices}
           </button>
         </div>
       </div>
@@ -182,7 +183,7 @@ export default function HomePage() {
         }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${GOLD_HI}, transparent)` }} />
           <div style={{ position: 'absolute', right: -40, bottom: -40, width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,.25), transparent 70%)' }} />
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD_HI, textTransform: 'uppercase' }}>Подборка дня</div>
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD_HI, textTransform: 'uppercase' }}>{t.homeDayPick}</div>
           {firstService ? (
             <>
               <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 500, marginTop: 10, lineHeight: 1.15, position: 'relative' }}>
@@ -219,7 +220,7 @@ export default function HomePage() {
               fontFamily: BODY, cursor: 'pointer', position: 'relative',
             }}
           >
-            Записаться
+            {t.homeBtnBook}
           </button>
         </div>
       </div>
@@ -234,7 +235,7 @@ export default function HomePage() {
           border: '1px solid rgba(154,114,48,.18)',
           borderRadius: 20, padding: '16px 14px',
         }}>
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', color: MUTED, textTransform: 'uppercase', marginBottom: 6 }}>Прошлый визит</div>
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', color: MUTED, textTransform: 'uppercase', marginBottom: 6 }}>{t.homePastVisit}</div>
           {bookings.find(b => b.status === 'completed') ? (() => {
             const last = bookings.find(b => b.status === 'completed')!;
             return (
@@ -244,7 +245,7 @@ export default function HomePage() {
               </>
             );
           })() : (
-            <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.2, opacity: 0.5 }}>Нет данных</div>
+            <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.2, opacity: 0.5 }}>{t.noData}</div>
           )}
         </div>
         {/* Адрес */}
@@ -255,14 +256,14 @@ export default function HomePage() {
           border: '1px solid rgba(154,114,48,.18)',
           borderRadius: 20, padding: '16px 14px',
         }}>
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', color: MUTED, textTransform: 'uppercase', marginBottom: 6 }}>Адрес</div>
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', color: MUTED, textTransform: 'uppercase', marginBottom: 6 }}>{t.homeAddress}</div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" style={{ flexShrink: 0, marginTop: 2 }}>
               <path d="M12 21s7-7 7-12a7 7 0 10-14 0c0 5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>
             </svg>
             <div style={{ fontFamily: SERIF, fontSize: 14, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.3 }}>ул. Витоша, 24</div>
           </div>
-          <div style={{ fontSize: 10, color: MUTED }}>София · Болгария</div>
+          <div style={{ fontSize: 10, color: MUTED }}>{t.homeCity}</div>
         </div>
       </div>
 

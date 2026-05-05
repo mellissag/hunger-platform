@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { LanguageProvider, useT } from './i18n/context';
 import './styles/miniapp.css';
 
 // ── Inline SVG Icons ─────────────────────────────────────────────────────────
@@ -55,17 +56,17 @@ function UserIcon({ size = 22 }: { size?: number }) {
 
 interface TabItem {
   icon: ({ size }: { size?: number }) => JSX.Element;
-  label: string;
+  labelKey: 'tabHome' | 'tabCatalog' | 'tabBookings' | 'tabProfile';
   href: string;
   isFab?: boolean;
 }
 
 const TABS: TabItem[] = [
-  { icon: HomeIcon, label: 'Главная', href: '/mini-app' },
-  { icon: GridIcon, label: 'Каталог', href: '/mini-app/catalog' },
-  { icon: PlusIcon, label: '', href: '/mini-app/book', isFab: true },
-  { icon: CalendarIcon, label: 'Записи', href: '/mini-app/bookings' },
-  { icon: UserIcon, label: 'Профиль', href: '/mini-app/profile' },
+  { icon: HomeIcon, labelKey: 'tabHome', href: '/mini-app' },
+  { icon: GridIcon, labelKey: 'tabCatalog', href: '/mini-app/catalog' },
+  { icon: PlusIcon, labelKey: 'tabHome', href: '/mini-app/book', isFab: true },
+  { icon: CalendarIcon, labelKey: 'tabBookings', href: '/mini-app/bookings' },
+  { icon: UserIcon, labelKey: 'tabProfile', href: '/mini-app/profile' },
 ];
 
 // Routes that should NOT show the tab bar
@@ -76,6 +77,7 @@ const NO_TAB_ROUTES = ['/mini-app/onboarding'];
 function TabBar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useT();
 
   if (NO_TAB_ROUTES.some(r => pathname?.startsWith(r))) return null;
 
@@ -115,16 +117,10 @@ function TabBar() {
               key={tab.href}
               onClick={() => router.push(tab.href)}
               style={{
-                width: 50,
-                height: 50,
-                borderRadius: '50%',
+                width: 50, height: 50, borderRadius: '50%',
                 background: 'linear-gradient(135deg, #9A7230, #C9A84C)',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                cursor: 'pointer',
+                border: 'none', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', color: '#fff', cursor: 'pointer',
                 transform: 'translateY(-8px)',
                 boxShadow: '0 8px 24px rgba(154,114,48,.40), 0 2px 8px rgba(28,20,9,.15)',
                 flexShrink: 0,
@@ -140,26 +136,17 @@ function TabBar() {
             key={tab.href}
             onClick={() => router.push(tab.href)}
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 2,
-              padding: '6px 14px',
-              borderRadius: 18,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              padding: '6px 14px', borderRadius: 18,
               transition: 'background .15s ease, color .15s ease',
               color: active ? '#9A7230' : 'rgba(28,20,9,.4)',
               background: active ? 'rgba(154,114,48,.12)' : 'none',
-              border: 'none',
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: '0.02em',
-              cursor: 'pointer',
-              fontFamily: '"Inter", system-ui, sans-serif',
-              flex: 1,
+              border: 'none', fontSize: 10, fontWeight: 600, letterSpacing: '0.02em',
+              cursor: 'pointer', fontFamily: '"Inter", system-ui, sans-serif', flex: 1,
             }}
           >
             <Icon size={22} />
-            {tab.label && <span>{tab.label}</span>}
+            <span>{t[tab.labelKey]}</span>
           </button>
         );
       })}
@@ -224,11 +211,13 @@ export default function MiniAppLayout({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Script
-        src="https://telegram.org/js/telegram-web-app.js"
-        strategy="beforeInteractive"
-      />
-      <MiniAppInner>{children}</MiniAppInner>
+      <LanguageProvider>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+        <MiniAppInner>{children}</MiniAppInner>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }

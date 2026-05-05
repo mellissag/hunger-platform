@@ -3,6 +3,7 @@
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useServices, useMastersByService, pickI18n } from '../../hooks/useMiniAppData';
+import { useT } from '../../i18n/context';
 
 const GOLD = '#9A7230';
 const GOLD_HI = '#C9A84C';
@@ -14,23 +15,27 @@ const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 
 const CAT_GRADIENTS: { [key: string]: string } = {
-  'Волосы': 'linear-gradient(160deg, #C9A84C33 0%, #9A723018 50%, #EDE5D5 100%)',
-  'Ногти':  'linear-gradient(160deg, #F9A8D433 0%, #F472B618 50%, #EDE5D5 100%)',
-  'Лицо':   'linear-gradient(160deg, #86EFAC33 0%, #4ADE8018 50%, #EDE5D5 100%)',
-  'Тело':   'linear-gradient(160deg, #93C5FD33 0%, #60A5FA18 50%, #EDE5D5 100%)',
+  hair:  'linear-gradient(160deg, #C9A84C33 0%, #9A723018 50%, #EDE5D5 100%)',
+  nails: 'linear-gradient(160deg, #F9A8D433 0%, #F472B618 50%, #EDE5D5 100%)',
+  face:  'linear-gradient(160deg, #86EFAC33 0%, #4ADE8018 50%, #EDE5D5 100%)',
+  body:  'linear-gradient(160deg, #93C5FD33 0%, #60A5FA18 50%, #EDE5D5 100%)',
 };
 const CAT_DEFAULT = 'linear-gradient(160deg, #D1D5DB33 0%, #9CA3AF18 50%, #EDE5D5 100%)';
 
 function getCatGradient(cat?: string): string {
   if (!cat) return CAT_DEFAULT;
-  const k = Object.keys(CAT_GRADIENTS).find(k => cat.toLowerCase().includes(k.toLowerCase()));
-  return k ? (CAT_GRADIENTS[k] ?? CAT_DEFAULT) : CAT_DEFAULT;
+  const lc = cat.toLowerCase();
+  if (lc.includes('волос') || lc.includes('hair') || lc.includes('коса')) return CAT_GRADIENTS.hair ?? CAT_DEFAULT;
+  if (lc.includes('ногт') || lc.includes('nail') || lc.includes('нокт')) return CAT_GRADIENTS.nails ?? CAT_DEFAULT;
+  if (lc.includes('лиц') || lc.includes('face') || lc.includes('обличч')) return CAT_GRADIENTS.face ?? CAT_DEFAULT;
+  if (lc.includes('тело') || lc.includes('body') || lc.includes('тіл')) return CAT_GRADIENTS.body ?? CAT_DEFAULT;
+  return CAT_DEFAULT;
 }
 
 function formatDur(min: number): string {
-  if (min < 60) return `${min} мин`;
+  if (min < 60) return `${min} min`;
   const h = Math.floor(min / 60), m = min % 60;
-  return m ? `${h}ч ${m}м` : `${h}ч`;
+  return m ? `${h}h ${m}m` : `${h}h`;
 }
 
 function getMasterInitials(name: string): string {
@@ -40,6 +45,7 @@ function getMasterInitials(name: string): string {
 export default function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { t } = useT();
   const { data: services = [] } = useServices();
   const svc = services.find(s => s.id === id);
   const { data: masters = [] } = useMastersByService(id);
@@ -47,7 +53,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
   if (!svc) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', fontFamily: SERIF, fontSize: 20, color: NEAR_BLACK }}>
-        Загрузка...
+        {t.loading}
       </div>
     );
   }
@@ -111,11 +117,11 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
           paddingBottom: 20, marginBottom: 20,
         }}>
           <div style={{ flex: 1, borderRight: '1px dotted rgba(154,114,48,.25)', paddingRight: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: MUTED, marginBottom: 4 }}>Длительность</div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: MUTED, marginBottom: 4 }}>{t.detailDuration}</div>
             <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 500, color: NEAR_BLACK }}>{formatDur(svc.duration_minutes)}</div>
           </div>
           <div style={{ flex: 1, paddingLeft: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: MUTED, marginBottom: 4 }}>Цена</div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: MUTED, marginBottom: 4 }}>{t.detailPrice}</div>
             <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 500, color: GOLD }}>€{svc.price}</div>
           </div>
         </div>
@@ -131,7 +137,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         {masters.length > 0 && (
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: GOLD, marginBottom: 14 }}>
-              Мастер
+              {t.detailMasters}
             </div>
             {masters.slice(0, 3).map(m => {
               const mName = m.display_name ?? m.name ?? '';
@@ -181,7 +187,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
             boxShadow: '0 8px 24px rgba(28,20,9,.18)', cursor: 'pointer',
           }}
         >
-          Записаться
+          {t.detailBook}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </button>
       </div>

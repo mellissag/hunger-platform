@@ -13,6 +13,7 @@ import {
   type Master,
 } from '../hooks/useMiniAppData';
 import { zonedToUtcIso, isoToTimeInZone, isoToDateInZone } from '@/lib/date-local';
+import { useT } from '../i18n/context';
 
 const GOLD = '#9A7230';
 const GOLD_HI = '#C9A84C';
@@ -24,15 +25,10 @@ const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 const TZ = 'Europe/Sofia';
 
-const CATEGORIES = ['Все', 'Волосы', 'Ногти', 'Лицо', 'Тело'];
-const DAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-const MONTHS_RU = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-const MONTHS_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-
 function formatDur(min: number) {
-  if (min < 60) return `${min} мин`;
+  if (min < 60) return `${min} min`;
   const h = Math.floor(min / 60), m = min % 60;
-  return m ? `${h}ч ${m}м` : `${h}ч`;
+  return m ? `${h}h ${m}m` : `${h}h`;
 }
 
 function getMasterName(m: Master): string {
@@ -80,7 +76,7 @@ function BackBar({ onBack, label }: { onBack: () => void; label?: string }) {
         style={{ display: 'flex', alignItems: 'center', gap: 6, color: MUTED, fontSize: 12, fontWeight: 500, letterSpacing: '0.06em', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
-        {label ?? 'Назад'}
+        {label}
       </button>
     </div>
   );
@@ -89,8 +85,9 @@ function BackBar({ onBack, label }: { onBack: () => void; label?: string }) {
 function BookContent() {
   const router = useRouter();
   const { user } = useTelegram();
+  const { t } = useT();
   const [step, setStep] = useState<Step>(0);
-  const [activeCat, setActiveCat] = useState('Все');
+  const [activeCatKey, setActiveCatKey] = useState<'catAll'|'catHair'|'catNails'|'catFace'|'catBody'>('catAll');
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedMaster, setSelectedMaster] = useState<Master | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -138,32 +135,42 @@ function BookContent() {
       });
       setStep(4);
     } catch {
-      alert('Не удалось создать запись. Попробуйте ещё раз.');
+      alert(t.bookErrorMsg);
     }
-  }, [selectedService, selectedMaster, selectedDate, selectedTime, user, createBooking]);
+  }, [selectedService, selectedMaster, selectedDate, selectedTime, user, createBooking, t]);
+
+  const CAT_KEYS: Array<'catAll'|'catHair'|'catNails'|'catFace'|'catBody'> = ['catAll','catHair','catNails','catFace','catBody'];
+  const CAT_KWMAP: Record<typeof CAT_KEYS[number], string[]> = {
+    catAll: [], catHair: ['волос','hair','коса'], catNails: ['ногт','nail','нокт'],
+    catFace: ['лиц','face','обличч'], catBody: ['тело','body','тіл'],
+  };
 
   // ── Step 0: Service catalog ──────────────────────────────────────────────
   if (step === 0) {
-    const filtered = services.filter(s => activeCat === 'Все' || (s.category ?? '').toLowerCase().includes(activeCat.toLowerCase()));
+    const filtered = services.filter(s => {
+      if (activeCatKey === 'catAll') return true;
+      const catField = (s.category ?? '').toLowerCase();
+      return (CAT_KWMAP[activeCatKey] ?? []).some(kw => catField.includes(kw));
+    });
     return (
       <div style={pageBg}>
         <div style={{ padding: '18px 22px 12px' }}>
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>Бронирование</div>
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookEyebrow}</div>
           <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, marginTop: 10, letterSpacing: '-0.02em' }}>
-            Коллекция <span style={{ fontStyle: 'italic', color: GOLD }}>услуг</span>.
+            {t.bookCatH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookCatHi}</span>.
           </div>
         </div>
 
         {/* Category chips */}
         <div style={{ display: 'flex', gap: 8, padding: '0 16px 14px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {CATEGORIES.map(cat => (
-            <button key={cat} onClick={() => setActiveCat(cat)} style={{
+          {CAT_KEYS.map(catKey => (
+            <button key={catKey} onClick={() => setActiveCatKey(catKey)} style={{
               flexShrink: 0, padding: '7px 16px', borderRadius: 999,
-              border: `1px solid ${activeCat === cat ? 'transparent' : 'rgba(28,20,9,.15)'}`,
-              background: activeCat === cat ? NEAR_BLACK : 'transparent',
-              color: activeCat === cat ? IVORY : SOFT,
+              border: `1px solid ${activeCatKey === catKey ? 'transparent' : 'rgba(28,20,9,.15)'}`,
+              background: activeCatKey === catKey ? NEAR_BLACK : 'transparent',
+              color: activeCatKey === catKey ? IVORY : SOFT,
               fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: BODY, cursor: 'pointer',
-            }}>{cat}</button>
+            }}>{t[catKey]}</button>
           ))}
         </div>
 
@@ -197,17 +204,17 @@ function BookContent() {
   if (step === 1) {
     return (
       <div style={pageBg}>
-        <BackBar onBack={() => setStep(0)} label={selectedService ? getServiceName(selectedService) : 'Назад'} />
+        <BackBar onBack={() => setStep(0)} label={selectedService ? getServiceName(selectedService) : t.back} />
         <div style={{ padding: '20px 22px 16px' }}>
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>Шаг 1 из 3</div>
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookStep1}</div>
           <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, marginTop: 10, letterSpacing: '-0.02em' }}>
-            Выберите <span style={{ fontStyle: 'italic', color: GOLD }}>мастера</span>.
+            {t.bookMasterH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookMasterHi}</span>.
           </div>
         </div>
 
         {masters.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px', color: MUTED, fontFamily: SERIF, fontSize: 18 }}>
-            Нет доступных мастеров
+            {t.bookNoMasters}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '0 16px' }}>
@@ -255,19 +262,19 @@ function BookContent() {
 
   // ── Step 2: Date + Time (combined, screen 06 style) ────────────────────────
   if (step === 2) {
-    const monthLabel = `${MONTHS_RU[calMonth.getMonth()]} ${calMonth.getFullYear()}`;
+    const monthLabel = `${t.monthsLong[calMonth.getMonth()]} ${calMonth.getFullYear()}`;
     const dayLabel = selectedDate ? (() => {
       const d = new Date(selectedDate + 'T12:00:00');
-      return `${DAYS_RU[d.getDay()]} · ${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`;
+      return `${t.daysShort[d.getDay()]} · ${d.getDate()} ${t.monthsGen[d.getMonth()]}`;
     })() : '—';
 
     return (
       <div style={pageBg}>
-        <BackBar onBack={() => setStep(1)} label={selectedMaster ? getMasterName(selectedMaster) : 'Назад'} />
+        <BackBar onBack={() => setStep(1)} label={selectedMaster ? getMasterName(selectedMaster) : t.back} />
         <div style={{ padding: '20px 22px 10px' }}>
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>Шаг 2 из 3</div>
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookStep2}</div>
           <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, marginTop: 10, letterSpacing: '-0.02em' }}>
-            Когда вам <span style={{ fontStyle: 'italic', color: GOLD }}>удобно</span>?
+            {t.bookWhenH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookWhenHi}</span>?
           </div>
         </div>
 
@@ -307,7 +314,7 @@ function BookContent() {
                 }}
               >
                 <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', opacity: selected ? 0.85 : 0.6 }}>
-                  {DAYS_RU[d.getDay()]}
+                  {t.daysShort[d.getDay()]}
                 </span>
                 <span style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 500, lineHeight: 1 }}>
                   {d.getDate()}
@@ -326,7 +333,7 @@ function BookContent() {
         <div style={{ padding: '14px 16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: GOLD }}>
-              Свободное время
+              {t.bookFreeTime}
             </div>
             {selectedDate && (
               <div style={{ fontSize: 11, color: MUTED, fontWeight: 500 }}>{dayLabel}</div>
@@ -334,9 +341,9 @@ function BookContent() {
           </div>
 
           {!selectedDate ? (
-            <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13 }}>Выберите дату</div>
+            <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13 }}>{t.bookSelectDate}</div>
           ) : slots.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13, fontFamily: SERIF }}>Нет свободного времени</div>
+            <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13, fontFamily: SERIF }}>{t.bookNoSlots}</div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
               {slots.map(slot => {
@@ -378,7 +385,7 @@ function BookContent() {
               opacity: selectedDate && selectedTime ? 1 : 0.45,
             }}
           >
-            К подтверждению
+            {t.bookBtnNext}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </button>
         </div>
@@ -390,16 +397,16 @@ function BookContent() {
   if (step === 3) {
     const dayLabel = selectedDate ? (() => {
       const d = new Date(selectedDate + 'T12:00:00');
-      return `${DAYS_RU[d.getDay()]} · ${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`;
+      return `${t.daysShort[d.getDay()]} · ${d.getDate()} ${t.monthsGen[d.getMonth()]}`;
     })() : '—';
 
     return (
       <div style={pageBg}>
-        <BackBar onBack={() => setStep(2)} />
+        <BackBar onBack={() => setStep(2)} label={t.back} />
         <div style={{ padding: '20px 22px 16px' }}>
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>Шаг 3 из 3</div>
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookStep3}</div>
           <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, marginTop: 10, letterSpacing: '-0.02em' }}>
-            Подтвердите <span style={{ fontStyle: 'italic', color: GOLD }}>запись</span>.
+            {t.bookConfirmH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookConfirmHi}</span>.
           </div>
         </div>
 
@@ -410,7 +417,7 @@ function BookContent() {
           <div style={{ padding: '20px 20px' }}>
             {/* Service */}
             <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(228,221,208,.8)' }}>
-              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.20em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>Услуга</div>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.20em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookSvcLabel}</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 500, color: NEAR_BLACK }}>{selectedService ? getServiceName(selectedService) : '—'}</div>
                 <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 500, color: GOLD }}>€{selectedService?.price}</div>
@@ -421,7 +428,7 @@ function BookContent() {
             </div>
             {/* Master */}
             <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(228,221,208,.8)' }}>
-              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.20em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>Мастер</div>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.20em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookMasterLabel}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: SERIF, fontSize: 14, fontWeight: 500, flexShrink: 0 }}>
                   {selectedMaster ? getMasterInitials(getMasterName(selectedMaster)) : '?'}
@@ -431,7 +438,7 @@ function BookContent() {
             </div>
             {/* Date + time */}
             <div>
-              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.20em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>Дата и время</div>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.20em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookDateTimeLabel}</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 500, color: NEAR_BLACK }}>{dayLabel}</div>
                 <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 600, color: GOLD, letterSpacing: '-0.02em' }}>{selectedTime}</div>
@@ -456,7 +463,7 @@ function BookContent() {
               opacity: createBooking.isPending ? 0.7 : 1,
             }}
           >
-            {createBooking.isPending ? 'Создаём запись...' : 'Подтвердить запись'}
+            {createBooking.isPending ? t.bookBtnPending : t.bookBtnConfirm}
             {!createBooking.isPending && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>}
           </button>
         </div>
@@ -472,10 +479,10 @@ function BookContent() {
       </div>
       <div style={{ textAlign: 'center', color: GOLD, opacity: .5, letterSpacing: '0.6em', fontSize: 12, padding: '4px 0', fontFamily: SERIF }}>⸻ ✦ ⸻</div>
       <div style={{ fontFamily: SERIF, fontSize: 40, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 16, letterSpacing: '-0.02em' }}>
-        Запись <span style={{ fontStyle: 'italic', color: GOLD }}>создана</span>.
+        {t.bookSuccessH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookSuccessHi}</span>.
       </div>
       <div style={{ marginTop: 12, color: MUTED, fontSize: 13, lineHeight: 1.6, maxWidth: 280 }}>
-        Ждём вас! Напомним о записи заранее.
+        {t.bookSuccessSub}
       </div>
       <div style={{ width: 56, height: 1, background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`, margin: '24px auto' }} />
       <button
@@ -487,7 +494,7 @@ function BookContent() {
           boxShadow: '0 8px 24px rgba(154,114,48,.35)', cursor: 'pointer',
         }}
       >
-        Мои записи
+        {t.bookSuccessBtn}
       </button>
     </div>
   );
@@ -495,7 +502,7 @@ function BookContent() {
 
 export default function BookPage() {
   return (
-    <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', fontFamily: '"Cormorant Garamond", serif', fontSize: 20, color: '#1C1408' }}>Загрузка...</div>}>
+    <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', fontFamily: '"Cormorant Garamond", serif', fontSize: 20, color: '#1C1408' }}>...</div>}>
       <BookContent />
     </Suspense>
   );

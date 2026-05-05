@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useTelegram } from '../hooks/useTelegram';
 import { useMyBookings } from '../hooks/useMiniAppData';
+import { useT } from '../i18n/context';
 
 const GOLD = '#9A7230';
 const GOLD_HI = '#C9A84C';
@@ -15,9 +16,10 @@ const BODY = '"Inter", system-ui, sans-serif';
 export default function ProfilePage() {
   const router = useRouter();
   const { user } = useTelegram();
+  const { t, lang } = useT();
   const { data: bookings = [] } = useMyBookings();
 
-  const firstName = user?.first_name ?? 'Гость';
+  const firstName = user?.first_name ?? 'H';
   const initLetter = firstName.charAt(0).toUpperCase();
   const totalVisits = bookings.filter(b => b.status === 'completed').length;
   const upcoming = bookings.filter(b => ['confirmed', 'pending'].includes(b.status)).length;
@@ -85,9 +87,9 @@ export default function ProfilePage() {
         margin: '24px 22px 0',
       }}>
         {[
-          { val: totalVisits, label: 'Визитов' },
-          { val: upcoming, label: 'Предстоящих' },
-          { val: '−15%', label: 'Скидка' },
+          { val: totalVisits, label: t.profVisits },
+          { val: upcoming, label: t.listTabUpcoming },
+          { val: '−15%', label: 'VIP' },
         ].map((stat, i) => (
           <div key={stat.label} style={{
             textAlign: 'center',
@@ -115,24 +117,24 @@ export default function ProfilePage() {
           {[
             {
               icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>,
-              label: 'История визитов',
+              label: t.profHistory,
               badge: String(totalVisits),
               action: () => router.push('/mini-app/bookings'),
             },
             {
               icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8"><path d="M6 9a6 6 0 1112 0c0 4 2 6 2 6H4s2-2 2-6zM10 20a2 2 0 004 0"/></svg>,
-              label: 'Уведомления',
+              label: t.profNotif,
               action: () => {},
             },
             {
               icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20"/></svg>,
-              label: 'Язык интерфейса',
-              badge: (user?.language_code?.slice(0,2)?.toUpperCase() ?? 'RU'),
+              label: t.profLang,
+              badge: lang.toUpperCase(),
               action: () => router.push('/mini-app/onboarding'),
             },
             {
               icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8"><path d="M21 12a9 9 0 11-9-9M21 3l-9 9"/><path d="M21 3h-6m6 0v6"/></svg>,
-              label: 'Связаться с салоном',
+              label: t.profContact,
               action: () => { window.open('https://t.me/hunger_beauty', '_blank'); },
             },
           ].map((item, i, arr) => (
@@ -165,7 +167,7 @@ export default function ProfilePage() {
           onClick={handleSignOut}
           style={{ fontSize: 11, color: MUTED, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', fontFamily: BODY }}
         >
-          Выйти
+          {t.profSignOut}
         </button>
       </div>
 

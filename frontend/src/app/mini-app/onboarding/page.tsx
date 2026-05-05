@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '../i18n/context';
 
 const GOLD = '#9A7230';
 const GOLD_HI = '#C9A84C';
@@ -101,15 +102,21 @@ const T: Record<Lang, {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { setLang: setContextLang } = useT();
   const [screen, setScreen] = useState<Screen>(-1);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [lang, setLang] = useState<Lang>('ru');
+  const [lang, setLangState] = useState<Lang>('ru');
   const [theme, setTheme] = useState<Theme>('light');
   const [saving, setSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   const t = T[lang];
+
+  function setLang(l: Lang) {
+    setLangState(l);
+    setContextLang(l);
+  }
 
   useEffect(() => {
     setMounted(true);
