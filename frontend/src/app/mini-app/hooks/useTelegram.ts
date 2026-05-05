@@ -53,29 +53,61 @@ interface TelegramWebApp {
   };
 }
 
+/**
+ * Read initData from the URL hash as a synchronous fallback.
+ * Telegram always embeds initData in the URL as:
+ *   #tgWebAppData=<url-encoded-string>&tgWebAppVersion=...
+ * This works even before telegram-web-app.js finishes loading.
+ */
+function readInitDataFromHash(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    const hash = window.location.hash.slice(1); // remove leading #
+    if (!hash) return '';
+    const params = new URLSearchParams(hash);
+    return params.get('tgWebAppData') ?? '';
+  } catch {
+    return '';
+  }
+}
+
 export function useTelegram() {
   const [webApp, setWebApp] = useState<TelegramWebApp | null>(null);
   const [user, setUser] = useState<TelegramUser | null>(null);
+  const [initData, setInitData] = useState<string>(() => readInitDataFromHash());
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.ready();
-      tg.expand();
-      setWebApp(tg);
-      setUser(tg.initDataUnsafe.user ?? null);
+    let mounted = true;
+    let attempts = 0;
+
+    function tryInit() {
+      if (!mounted) return;
+      const tg = window.Telegram?.WebApp;
+      if (tg) {
+        tg.ready();
+        tg.expand();
+        setWebApp(tg);
+        setUser(tg.initDataUnsafe.user ?? null);
+        setInitData(tg.initData || readInitDataFromHash());
+        return;
+      }
+      // Retry up to 30 × 100 ms = 3 s while SDK loads
+      if (++attempts < 30) setTimeout(tryInit, 100);
     }
+
+    tryInit();
+    return () => { mounted = false; };
   }, []);
 
   return {
     webApp,
     user,
-    initData: webApp?.initData ?? '',
+    initData,
     haptic: () => webApp?.HapticFeedback?.selectionChanged(),
   };
 }
 
 export function getInitData(): string {
   if (typeof window === 'undefined') return '';
-  return window.Telegram?.WebApp?.initData ?? '';
+  return window.Telegram?.WebApp?.initData || readInitDataFromHash();
 }

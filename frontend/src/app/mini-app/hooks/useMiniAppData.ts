@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getInitData } from './useTelegram';
+import { getInitData, useTelegram } from './useTelegram';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 
@@ -154,9 +154,12 @@ export function useMonthAvailability(masterId: string | null, year: number, mont
 }
 
 export function useMyBookings() {
+  const { initData } = useTelegram();
   return useQuery<Booking[]>({
-    queryKey: ['mini-app', 'my-bookings'],
+    // Include initData in key: re-fetches automatically once SDK delivers auth
+    queryKey: ['mini-app', 'my-bookings', !!initData],
     queryFn: () => apiFetch('/api/v1/mini-app/my-bookings'),
+    enabled: !!initData,
     staleTime: 0,
     retry: 1,
     refetchOnMount: 'always',
@@ -164,9 +167,11 @@ export function useMyBookings() {
 }
 
 export function useMeProfile() {
+  const { initData } = useTelegram();
   return useQuery<ClientProfile>({
-    queryKey: ['mini-app', 'me'],
+    queryKey: ['mini-app', 'me', !!initData],
     queryFn: () => apiFetch('/api/v1/mini-app/me'),
+    enabled: !!initData,
     staleTime: 5 * 60_000,
     retry: false,
   });
