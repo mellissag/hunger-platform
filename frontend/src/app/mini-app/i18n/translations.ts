@@ -5,6 +5,10 @@ export interface AppTranslations {
   tabHome: string; tabCatalog: string; tabBookings: string; tabProfile: string;
   // Common
   back: string; continueBtn: string; loading: string; noData: string;
+  // Greeting
+  greeting: string; greetingGuest: string;
+  // Language picker
+  langPickerTitle: string; langPickerConfirm: string;
   // Months (full name for month selector) and genitive (for date labels)
   monthsLong: string[]; monthsGen: string[]; daysShort: string[];
   // Home
@@ -58,6 +62,8 @@ export interface AppTranslations {
 const RU: AppTranslations = {
   tabHome: 'Главная', tabCatalog: 'Каталог', tabBookings: 'Записи', tabProfile: 'Профиль',
   back: 'Назад', continueBtn: 'Продолжить', loading: 'Загрузка...', noData: 'Нет данных',
+  greeting: 'Здравствуйте', greetingGuest: 'Гость',
+  langPickerTitle: 'Язык интерфейса', langPickerConfirm: 'Подтвердить',
   monthsLong: ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
   monthsGen:  ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],
   daysShort: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],
@@ -105,6 +111,8 @@ const RU: AppTranslations = {
 const EN: AppTranslations = {
   tabHome: 'Home', tabCatalog: 'Catalog', tabBookings: 'Bookings', tabProfile: 'Profile',
   back: 'Back', continueBtn: 'Continue', loading: 'Loading...', noData: 'No data',
+  greeting: 'Hello', greetingGuest: 'Guest',
+  langPickerTitle: 'Interface language', langPickerConfirm: 'Confirm',
   monthsLong: ['January','February','March','April','May','June','July','August','September','October','November','December'],
   monthsGen:  ['January','February','March','April','May','June','July','August','September','October','November','December'],
   daysShort: ['Su','Mo','Tu','We','Th','Fr','Sa'],
@@ -152,6 +160,8 @@ const EN: AppTranslations = {
 const UK: AppTranslations = {
   tabHome: 'Головна', tabCatalog: 'Каталог', tabBookings: 'Записи', tabProfile: 'Профіль',
   back: 'Назад', continueBtn: 'Продовжити', loading: 'Завантаження...', noData: 'Немає даних',
+  greeting: 'Вітаємо', greetingGuest: 'Гість',
+  langPickerTitle: 'Мова інтерфейсу', langPickerConfirm: 'Підтвердити',
   monthsLong: ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'],
   monthsGen:  ['січня','лютого','березня','квітня','травня','червня','липня','серпня','вересня','жовтня','листопада','грудня'],
   daysShort: ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'],
@@ -199,6 +209,8 @@ const UK: AppTranslations = {
 const BG: AppTranslations = {
   tabHome: 'Начало', tabCatalog: 'Каталог', tabBookings: 'Записи', tabProfile: 'Профил',
   back: 'Назад', continueBtn: 'Продължи', loading: 'Зареждане...', noData: 'Няма данни',
+  greeting: 'Здравейте', greetingGuest: 'Гост',
+  langPickerTitle: 'Език на интерфейса', langPickerConfirm: 'Потвърди',
   monthsLong: ['Януари','Февруари','Март','Април','Май','Юни','Юли','Август','Септември','Октомври','Ноември','Декември'],
   monthsGen:  ['януари','февруари','март','април','май','юни','юли','август','септември','октомври','ноември','декември'],
   daysShort: ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'],

@@ -156,7 +156,7 @@ function BookContent() {
       <div style={pageBg}>
         <div style={{ padding: '18px 22px 12px' }}>
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookEyebrow}</div>
-          <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, marginTop: 10, letterSpacing: '-0.02em' }}>
+          <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 10, letterSpacing: '-0.02em' }}>
             {t.bookCatH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookCatHi}</span>.
           </div>
         </div>
@@ -207,7 +207,7 @@ function BookContent() {
         <BackBar onBack={() => setStep(0)} label={selectedService ? getServiceName(selectedService) : t.back} />
         <div style={{ padding: '20px 22px 16px' }}>
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookStep1}</div>
-          <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, marginTop: 10, letterSpacing: '-0.02em' }}>
+          <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 10, letterSpacing: '-0.02em' }}>
             {t.bookMasterH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookMasterHi}</span>.
           </div>
         </div>
@@ -273,7 +273,7 @@ function BookContent() {
         <BackBar onBack={() => setStep(1)} label={selectedMaster ? getMasterName(selectedMaster) : t.back} />
         <div style={{ padding: '20px 22px 10px' }}>
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookStep2}</div>
-          <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, marginTop: 10, letterSpacing: '-0.02em' }}>
+          <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 10, letterSpacing: '-0.02em' }}>
             {t.bookWhenH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookWhenHi}</span>?
           </div>
         </div>
@@ -405,7 +405,7 @@ function BookContent() {
         <BackBar onBack={() => setStep(2)} label={t.back} />
         <div style={{ padding: '20px 22px 16px' }}>
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookStep3}</div>
-          <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, marginTop: 10, letterSpacing: '-0.02em' }}>
+          <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 10, letterSpacing: '-0.02em' }}>
             {t.bookConfirmH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookConfirmHi}</span>.
           </div>
         </div>
@@ -478,7 +478,7 @@ function BookContent() {
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
       </div>
       <div style={{ textAlign: 'center', color: GOLD, opacity: .5, letterSpacing: '0.6em', fontSize: 12, padding: '4px 0', fontFamily: SERIF }}>⸻ ✦ ⸻</div>
-      <div style={{ fontFamily: SERIF, fontSize: 40, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 16, letterSpacing: '-0.02em' }}>
+      <div style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 16, letterSpacing: '-0.02em' }}>
         {t.bookSuccessH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookSuccessHi}</span>.
       </div>
       <div style={{ marginTop: 12, color: MUTED, fontSize: 13, lineHeight: 1.6, maxWidth: 280 }}>

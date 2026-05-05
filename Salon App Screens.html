@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Hunger Beauty · App Screens</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+:root {
+  --gold: #C9A84C; --gold-hi: #E0CF6A; --gold-lo: #9A7230; --gold-deep: #6F5020;
+  --ivory: #FAF8F3; --ivory-2: #F0E8D8; --near-black: #1C1408; --muted: #7A6E58; --soft: #4A3F2E;
+  --serif: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  --serif-disp: "Playfair Display", "Cormorant Garamond", Georgia, serif;
+  --body: -apple-system, "SF Pro", "Inter", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #2a2622; font-family: var(--body); color: var(--near-black); }
+.lab {
+  min-height: 100vh; padding: 60px 40px 80px;
+  background:
+    radial-gradient(ellipse at top, rgba(201,168,76,.08), transparent 60%),
+    linear-gradient(180deg, #2a2622, #1a1715);
+}
+.lab-head { max-width: 1400px; margin: 0 auto 48px; color: var(--ivory); }
+.lab-head .eb { font-size: 11px; letter-spacing: 0.32em; color: var(--gold); text-transform: uppercase; }
+.lab-head h1 { font-family: var(--serif-disp); font-size: 48px; font-weight: 500; margin: 12px 0 8px; letter-spacing: -0.02em; }
+.lab-head h1 em { color: var(--gold); }
+.lab-head p { color: rgba(240,235,224,.6); margin: 0; max-width: 600px; line-height: 1.6; }
+.grid {
+  display: grid; grid-template-columns: repeat(auto-fill, 390px);
+  gap: 56px 32px; justify-content: center; max-width: 1400px; margin: 0 auto;
+}
+.frame-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.frame-label { color: rgba(240,235,224,.7); font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600; text-align: center; }
+.frame-label b { color: var(--gold); font-weight: 700; margin-right: 8px; }
+
+/* ── iPhone frame ── */
+.phone {
+  width: 390px; height: 844px; border-radius: 48px; overflow: hidden;
+  position: relative; background: var(--ivory);
+  box-shadow: 0 40px 80px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05);
+}
+.phone.dark { background: #060604; }
+.island { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 126px; height: 37px; border-radius: 24px; background: #000; z-index: 50; }
+.statusbar { position: absolute; top: 0; left: 0; right: 0; z-index: 10; height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 18px 30px 0; }
+.statusbar .t { font-family: -apple-system, "SF Pro", system-ui; font-weight: 590; font-size: 17px; color: var(--near-black); }
+.phone.dark .statusbar .t { color: #fff; }
+.statusbar .icons { display: flex; gap: 5px; align-items: center; }
+.statusbar .icons svg { display: block; }
+.home-ind { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 139px; height: 5px; border-radius: 100px; background: rgba(0,0,0,0.25); z-index: 60; }
+.phone.dark .home-ind { background: rgba(255,255,255,0.7); }
+.body-bg-light { position: absolute; inset: 0; background: radial-gradient(ellipse at 100% 0%, rgba(201,168,76,.10), transparent 50%), var(--ivory); }
+.body-bg-dark { position: absolute; inset: 0; background: radial-gradient(ellipse at 80% 0%, rgba(201,168,76,.18), transparent 55%), radial-gradient(ellipse at 0% 100%, rgba(154,114,48,.10), transparent 50%), linear-gradient(180deg, #0c0a06 0%, #050505 100%); }
+.scr { position: relative; height: 100%; padding-top: 60px; overflow: hidden; }
+
+/* ── reusable bits ── */
+.eb { font-size: 10px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-lo); font-family: var(--body); }
+.dark .eb { color: var(--gold); }
+.h-mag { font-family: var(--serif-disp); font-weight: 500; letter-spacing: -0.025em; line-height: 1; color: var(--near-black); }
+.dark .h-mag { color: #F0EBE0; }
+.italic-gold { font-style: italic; color: var(--gold-lo); }
+.dark .italic-gold { color: var(--gold); }
+.ornament { text-align: center; color: var(--gold-lo); opacity: 0.55; letter-spacing: 0.6em; font-size: 12px; padding: 8px 0; font-family: var(--serif); }
+
+.avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--gold-lo), var(--gold-hi)); display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--serif); font-weight: 600; font-size: 17px; flex-shrink: 0; }
+.avatar-lg { width: 64px; height: 64px; font-size: 24px; }
+.avatar-sm { width: 36px; height: 36px; font-size: 14px; }
+
+.btn-primary {
+  background: var(--near-black); border: none; color: var(--ivory);
+  padding: 14px 22px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.10em; text-transform: uppercase; font-family: var(--body);
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  box-shadow: 0 8px 24px rgba(28,20,9,.18);
+}
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold-lo), var(--gold)); border: none; color: #fff;
+  padding: 14px 22px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.10em; text-transform: uppercase; font-family: var(--body);
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  box-shadow: 0 8px 24px rgba(154,114,48,.25);
+}
+.btn-ghost {
+  background: transparent; border: 1px solid rgba(28,20,9,.2); color: var(--near-black);
+  padding: 14px 22px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.10em; text-transform: uppercase; font-family: var(--body); cursor: pointer;
+}
+
+/* glass surface (light) */
+.glass {
+  position: relative; border-radius: 22px; overflow: hidden;
+  background: rgba(255,255,255,0.5); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 0.5px solid rgba(0,0,0,0.06); box-shadow: inset 1px 1px 0 rgba(255,255,255,0.7);
+}
+.glass-d {
+  position: relative; border-radius: 22px; overflow: hidden;
+  background: rgba(120,120,128,0.22); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 0.5px solid rgba(255,255,255,0.12);
+}
+
+/* Floating tab bar */
+.tabbar {
+  position: absolute; left: 16px; right: 16px; bottom: 22px; height: 60px;
+  border-radius: 28px; overflow: hidden; z-index: 30;
+  background: rgba(255,255,255,0.55); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 0.5px solid rgba(0,0,0,0.06);
+  display: flex; align-items: center; justify-content: space-around; padding: 0 8px;
+}
+.tabbar.dark { background: rgba(120,120,128,0.22); border-color: rgba(255,255,255,0.12); }
+.tab { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 14px; border-radius: 18px; color: rgba(0,0,0,0.5); flex: 1; }
+.tabbar.dark .tab { color: rgba(255,255,255,0.55); }
+.tab.active { background: rgba(154,114,48,.14); color: var(--gold-lo); }
+.tabbar.dark .tab.active { background: rgba(201,168,76,.18); color: var(--gold); }
+.tab span { font-size: 10px; font-weight: 600; }
+
+/* Live activity card */
+.live-card {
+  margin: 14px 16px 0; padding: 20px 22px;
+  background: linear-gradient(135deg, rgba(255,255,255,.45), rgba(237,229,213,.6));
+  border-radius: 28px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(154,114,48,.18); box-shadow: 0 8px 32px rgba(154,114,48,.18);
+}
+.live-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold-lo); box-shadow: 0 0 8px var(--gold-lo); }
+.live-grid { display: flex; justify-content: space-between; align-items: flex-end; }
+.live-svc { font-family: var(--serif-disp); font-size: 22px; font-weight: 500; color: var(--near-black); line-height: 1.15; letter-spacing: -0.01em; }
+.live-meta { font-size: 13px; color: var(--soft); margin-top: 6px; }
+.live-time { font-family: var(--serif-disp); font-size: 36px; font-weight: 600; color: var(--gold-lo); line-height: 1; letter-spacing: -0.02em; }
+.live-progress { margin-top: 16px; }
+.live-bar { height: 4px; border-radius: 4px; background: rgba(154,114,48,.15); overflow: hidden; }
+.live-fill { height: 100%; width: 40%; background: linear-gradient(90deg, var(--gold-lo), var(--gold-hi)); }
+.live-foot { display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* Cards / lists */
+.section-h { padding: 24px 22px 12px; display: flex; justify-content: space-between; align-items: baseline; }
+.section-t { font-family: var(--serif-disp); font-size: 20px; font-weight: 500; letter-spacing: -0.01em; color: var(--near-black); }
+.dark .section-t { color: #F0EBE0; }
+.section-link { font-size: 11px; color: var(--gold-lo); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.dark .section-link { color: var(--gold); }
+
+/* Service photo card */
+.svc-photo {
+  width: 100%; height: 100%; display: flex; align-items: flex-end;
+  background-size: cover; background-position: center;
+}
+.svc-grad {
+  width: 100%; padding: 16px 14px;
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,.7));
+  color: #fff;
+}
+
+/* Form field */
+.field { margin: 0 22px 16px; }
+.field label { display: block; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.field input {
+  width: 100%; padding: 14px 16px; border: 1px solid rgba(28,20,9,.15); background: #fff; border-radius: 14px;
+  font-size: 16px; font-family: var(--body); color: var(--near-black); outline: none;
+}
+.field input:focus { border-color: var(--gold-lo); }
+
+/* dotted divider */
+.dot-line { border-bottom: 1px dotted rgba(154,114,48,.25); }
+</style>
+</head>
+<body>
+
+<div class="lab">
+<header class="lab-head">
+  <div class="eb">Hunger · Beauty Atelier</div>
+  <h1>Прототипы <em>экранов</em>.</h1>
+  <p>iOS 26 · Liquid Glass · magazine-light. Полный пользовательский поток: онбординг, регистрация, главная, каталог, услуга с фото, выбор времени, подтверждение, мои записи, детали, AI и профиль.</p>
+</header>
+
+<div class="grid">
+
+<!-- ═════════════ 01 · Onboarding Welcome ═════════════ -->
+<div class="frame-wrap">
+<div class="phone">
+  <div class="body-bg-light"></div>
+  <div class="island"></div>
+  <div class="statusbar"><div class="t">9:41</div><div></div></div>
+  <div class="home-ind"></div>
+  <div class="scr">
+    <div style="height:80px"></div>
+    <div style="text-align:center; padding:24px 28px">
+      <div class="eb" style="letter-spacing:0.32em">Atelier · Sofia</div>
+      <div style="margin:32px auto 0; width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--gold-lo), var(--gold-hi)); display:flex; align-items:center; justify-content:center; box-shadow: 0 12px 40px rgba(154,114,48,.3)">
+        <span style="font-family: var(--serif-disp); font-size: 56px; font-weight: 500; color:#fff">H</span>
+      </div>
+      <div class="h-mag" style="font-size:42px; margin-top:36px">
+        Hunger<br><span class="italic-gold" style="font-style:italic">Beauty</span>
+      </div>
+      <div style="margin: 20px auto; width: 80px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold-lo), transparent)"></div>
+      <div style="font-size:14px; color:var(--soft); line-height:1.6; margin-top:18px; max-width:280px; margin-left:auto; margin-right:auto">
+        Запись в любимый салон —<br>
+        в одном жесте. Любимые мастера, ваш ритм, ваше время.
+      </div>
+    </div>
+    <div style="position:absolute; bottom:60px; left:24px; right:24px">
+      <button class="btn-primary" style="width:100%; justify-content:center">
+        Начать <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <div style="text-align:center; margin-top:14px; font-size:12px; color:var(--muted)">Уже есть аккаунт? <span style="color:var(--gold-lo); font-weight:600">Войти</span></div>
+    </div>
+  </div>
+</div>
+<div class="frame-label"><b>01</b> Welcome</div>
+</div>
+
+<!-- ═════════════ 02 · Sign Up — name + phone ═════════════ -->
+<div class="frame-wrap">
+<div class="phone">
+  <div class="body-bg-light"></div>
+  <div class="island"></div>
+  <div class="statusbar"><div class="t">9:41</div><div></div></div>
+  <div class="home-ind"></div>
+  <div class="scr">
+    <div style="padding: 20px 22px 0">
+      <div style="display:flex; align-items:center; gap:6px; color:var(--muted); font-size:12px; font-weight:500; letter-spacing:0.06em">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        Назад
+      </div>
+    </div>
+    <div style="padding: 32px 28px 20px">
+      <div class="eb">Шаг 1 из 3</div>
+      <div class="h-mag" style="font-size:36px; margin-top:14px; max-width:300px">
+        Знакомство.<br>
+        Только <span class="italic-gold" style="font-style:italic">имя</span><br>
+        и телефон.
+      </div>
+      <div style="font-size:13px; color:var(--soft); margin-top:14px; line-height:1.5">
+        Чтобы напомнить о записи и подтвердить визит.
+      </div>
+    </div>
+    <div class="ornament" style="margin: 4px 0 18px">⸻ ✦ ⸻</div>
+    <div class="field">
+      <label>Имя</label>
+      <input type="text" value="Екатерина" />
+    </div>
+    <div class="field">
+      <label>Телефон</label>
+      <input type="text" value="+359 87 123 4567" />
+    </div>
+    <div style="padding: 8px 22px; font-size:11px; color:var(--muted); line-height:1.5">
+      Нажимая «Продолжить», вы соглашаетесь с условиями и политикой конфиденциальности.
+    </div>
+    <div style="position:absolute; bottom:40px; left:22px; right:22px">
+      <button class="btn-primary" style="width:100%; justify-content:center">
+        Продолжить <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="frame-label"><b>02</b> Sign Up</div>
+</div>
+
+<!-- ═════════════ 03 · HOME (Continuous + Live) ═════════════ -->
+<div class="frame-wrap">
+<div class="phone">
+  <div class="body-bg-light"></div>
+  <div class="island"></div>
+  <div class="statusbar"><div class="t">9:41</div><div></div></div>
+  <div class="home-ind"></div>
+  <div class="scr" style="overflow:auto">
+    <!-- Greeting -->
+    <div style="padding: 14px 22px 8px; display:flex; justify-content:space-between; align-items:center">
+      <div>
+        <div style="font-size:13px; color:var(--muted)">Здравствуйте,</div>
+        <div class="h-mag" style="font-size:26px; margin-top:2px">Екатерина</div>
+      </div>
+      <div class="avatar">ЕИ</div>
+    </div>
+
+    <!-- Live activity -->
+    <div class="live-card">
+      <div class="live-row">
+        <div class="live-dot"></div>
+        <div class="eb">Live · Ближайшая запись</div>
+      </div>
+      <div class="live-grid">
+        <div>
+          <div class="live-svc">Окрашивание + уход</div>
+          <div class="live-meta">Анна К. · Сб · 18 апр</div>
+        </div>
+        <div class="live-time">14:00</div>
+      </div>
+      <div class="live-progress">
+        <div class="live-bar"><div class="live-fill"></div></div>
+        <div class="live-foot"><span>Через 3 дня</span><span>Маршрут →</span></div>
+      </div>
+    </div>
+
+    <!-- Magazine hero -->
+    <div style="padding: 26px 28px 20px">
+      <div class="eb" style="letter-spacing:0.28em">№ 04 · Апрель</div>
+      <div class="h-mag" style="font-size:44px; margin-top:14px">
+        Записаться<br><span class="italic-gold" style="font-style:italic">сейчас</span>.
+      </div>
+      <div style="font-size:14px; color:var(--soft); line-height:1.5; margin-top:18px; max-width:280px">
+        Восемнадцать услуг, двенадцать мастеров и ваше расписание — всё в одном жесте.
+      </div>
+      <div style="display:flex; gap:8px; margin-top:22px">
+        <button class="btn-primary">Выбрать слот <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <button class="btn-ghost">Услуги</button>
+      </div>
+    </div>
+
+    <div class="ornament">⸻ ✦ ⸻</div>
+
+    <!-- Story card -->
+    <div style="padding: 14px 16px">
+      <div style="background:var(--near-black); border-radius:24px; padding:22px; color:#F0EBE0; position:relative; overflow:hidden">
+        <div style="position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, transparent, var(--gold), transparent)"></div>
+        <div style="position:absolute; right:-40px; bottom:-40px; width:160px; height:160px; border-radius:50%; background:radial-gradient(circle, rgba(201,168,76,.25), transparent 70%)"></div>
+        <div class="eb" style="color:var(--gold)">Подборка дня</div>
+        <div style="font-family:var(--serif); font-size:26px; font-weight:500; margin-top:10px; line-height:1.15; position:relative">
+          «Весенний <span style="font-style:italic; color:var(--gold)">уход</span>»<br>
+          три услуги — €180
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; position:relative">
+          <div style="border:1px solid rgba(201,168,76,.4); padding:5px 10px; border-radius:2px; font-size:10px; letter-spacing:0.06em">Уход за лицом</div>
+          <div style="border:1px solid rgba(201,168,76,.4); padding:5px 10px; border-radius:2px; font-size:10px; letter-spacing:0.06em">Маникюр</div>
+          <div style="border:1px solid rgba(201,168,76,.4); padding:5px 10px; border-radius:2px; font-size:10px; letter-spacing:0.06em">Массаж</div>
+        </div>
+      </div>
+    </div>
+    <div style="height:120px"></div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tabbar">
+    <div class="tab active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg><span>Главная</span></div>
+    <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg><span>Записи</span></div>
+    <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg><span>AI</span></div>
+    <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg><span>Профиль</span></div>
+  </div>
+</div>
+<div class="frame-label"><b>03</b> Главная</div>
+</div>
+
+<!-- ═════════════ 04 · Services Catalog ═════════════ -->
+<div class="frame-wrap">
+<div class="phone">
+  <div class="body-bg-light"></div>
+  <div class="island"></div>
+  <div class="statusbar"><div class="t">9:41</div><div></div></div>
+  <div class="home-ind"></div>
+  <div class="scr" style="overflow:auto">
+    <div style="padding: 14px 22px 8px">
+      <div class="eb">Каталог</div>
+      <div class="h-mag" style="font-size:36px; margin-top:8px">
+        Коллекция<br><span class="italic-gold" style="font-style:italic">услуг</span>.
+      </div>
+    </div>
+
+    <!-- Search pill -->
+    <div style="padding: 14px 16px">
+      <div class="glass" style="height:46px; padding: 0 16px; display:flex; align-items:center; gap:10px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg>
+        <span style="font-size:14px; color:var(--muted)">Услуга или мастер</span>
+      </div>
+    </div>
+
+    <!-- Categories chips -->
+    <div style="display:flex; gap:8px; padding:0 16px 14px; overflow-x:auto">
+      <div style="flex-shrink:0; padding:8px 14px; background:var(--near-black); color:var(--ivory); font-size:10px; font-weight:600; letter-spacing:0.10em; text-transform:uppercase; border-radius:999px">Все</div>
+      <div style="flex-shrink:0; padding:8px 14px; border:1px solid rgba(28,20,9,.15); color:var(--soft); font-size:10px; font-weight:600; letter-spacing:0.10em; text-transform:uppercase; border-radius:999px">Волосы</div>
+      <div style="flex-shrink:0; padding:8px 14px; border:1px solid rgba(28,20,9,.15); color:var(--soft); font-size:10px; font-weight:600; letter-spacing:0.10em; text-transform:uppercase; border-radius:999px">Ногти</div>
+      <div style="flex-shrink:0; padding:8px 14px; border:1px solid rgba(28,20,9,.15); color:var(--soft); font-size:10px; font-weight:600; letter-spacing:0.10em; text-transform:uppercase; border-radius:999px">Лицо</div>
+      <div style="flex-shrink:0; padding:8px 14px; border:1px solid rgba(28,20,9,.15); color:var(--soft); font-size:10px; font-weight:600; letter-spacing:0.10em; text-transform:uppercase; border-radius:999px">Тело</div>
+    </div>
+
+    <!-- Service grid 2-up -->
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; padding: 0 16px 16px">
+      <!-- card 1 -->
+      <div style="border-radius:20px; overflow:hidden; background:#fff; border:1px solid rgba(228,221,208,1)">
+        <div style="height:120px; background: linear-gradient(135deg, #d4b896, #8a6e44); position:relative">
+          <div style="position:absolute; right:8px; top:8px; padding:4px 8px; border-radius:2px; background:rgba(255,255,255,.92); font-size:9px; font-weight:700; letter-spacing:0.10em; text-transform:uppercase; color:var(--gold-lo)">Топ</div>
+        </div>
+        <div style="padding:12px 14px">
+          <div style="font-family:var(--serif-disp); font-size:16px; font-weight:500; color:var(--near-black); letter-spacing:-0.01em">Окрашивание</div>
+          <div style="font-size:10px; color:var(--muted); margin-top:4px; letter-spacing:0.06em; text-transform:uppercase">180 мин</div>
+          <div style="font-family:var(--serif); font-size:18px; font-weight:600; color:var(--gold-lo); margin-top:6px">€120</div>
+        </div>
+      </div>
+      <!-- card 2 -->
+      <div style="border-radius:20px; overflow:hidden; background:#fff; border:1px solid rgba(228,221,208,1)">
+        <div style="height:120px; background: linear-gradient(135deg, #c4a880, #6e5430)"></div>
+        <div style="padding:12px 14px">
+          <div style="font-family:var(--serif-disp); font-size:16px; font-weight:500; letter-spacing:-0.01em">Стрижка</div>
+          <div style="font-size:10px; color:var(--muted); margin-top:4px; letter-spacing:0.06em; text-transform:uppercase">60 мин</div>
+          <div style="font-family:var(--serif); font-size:18px; font-weight:600; color:var(--gold-lo); margin-top:6px">€55</div>
+        </div>
+      </div>
+      <!-- card 3 -->
+      <div style="border-radius:20px; overflow:hidden; background:#fff; border:1px solid rgba(228,221,208,1)">
+        <div style="height:120px; background: linear-gradient(135deg, #e0d4b0, #a8895c)"></div>
+        <div style="padding:12px 14px">
+          <div style="font-family:var(--serif-disp); font-size:16px; font-weight:500; letter-spacing:-0.01em">Маникюр</div>
+          <div style="font-size:10px; color:var(--muted); margin-top:4px; letter-spacing:0.06em; text-transform:uppercase">60 мин</div>
+          <div style="font-family:var(--serif); font-size:18px; font-weight:600; color:var(--gold-lo); margin-top:6px">€35</div>
+        </div>
+      </div>
+      <!-- card 4 -->
+      <div style="border-radius:20px; overflow:hidden; background:#fff; border:1px solid rgba(228,221,208,1)">
+        <div style="height:120px; background: linear-gradient(135deg, #d8c098, #8a6c40)"></div>
+        <div style="padding:12px 14px">
+          <div style="font-family:var(--serif-disp); font-size:16px; font-weight:500; letter-spacing:-0.01em">Уход за лицом</div>
+          <div style="font-size:10px; color:var(--muted); margin-top:4px; letter-spacing:0.06em; text-transform:uppercase">90 мин</div>
+          <div style="font-family:var(--serif); font-size:18px; font-weight:600; color:var(--gold-lo); margin-top:6px">€80</div>
+        </div>
+      </div>
+    </div>
+    <div style="height:110px"></div>
+  </div>
+  <div class="tabbar">
+    <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg><span>Главная</span></div>
+    <div class="tab active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Каталог</span></div>
+    <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg><span>AI</span></div>
+    <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg><span>Профиль</span></div>
+  </div>
+</div>
+<div class="frame-label"><b>04</b> Каталог услуг</div>
+</div>
+
+<!-- ═════════════ 05 · Service Detail with photo ═════════════ -->
+<div class="frame-wrap">
+<div class="phone">
+  <div class="body-bg-light"></div>
+  <div class="island"></div>
+  <div class="home-ind"></div>
+  <div class="scr" style="padding-top:0; overflow:auto">
+    <!-- Hero photo -->
+    <div style="position:relative; height:380px; background: linear-gradient(135deg, #d4b896 0%, #8a6e44 60%, #4a3a20 100%); overflow:hidden">
+      <div style="position:absolute; inset:0; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.2), transparent 50%)"></div>
+      <div class="statusbar" style="z-index:10"><div class="t" style="color:#fff">9:41</div><div></div></div>
+      <div class="island"></div>
+      <!-- back + heart -->
+      <div style="position:absolute; top:62px; left:16px; right:16px; display:flex; justify-content:space-between; z-index:5">
+        <div style="width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,.25); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); display:flex; align-items:center; justify-content:center; color:#fff">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </div>
+        <div style="width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,.25); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); display:flex; align-items:center; justify-content:center; color:#fff">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 10c0 5.5-7 10-7 10z"/></svg>
+        </div>
+      </div>
+      <!-- bottom gradient + label -->
+      <div style="position:absolute; left:0; right:0; bottom:0; padding:24px 22px 28px; background: linear-gradient(180deg, transparent, rgba(0,0,0,.55))">
+        <div style="font-size:10px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:rgba(255,255,255,.85)">Волосы</div>
+        <div class="h-mag" style="color:#fff; font-size:36px; margin-top:6px">
+          Окрашивание<br><span style="color:var(--gold-hi); font-style:italic">+ уход</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:20px 22px 12px">
+      <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:14px; border-bottom: 1px dotted rgba(154,114,48,.25)">
+        <div>
+          <div style="font-size:10px; color:var(--muted); letter-spacing:0.10em; text-transform:uppercase; font-weight:600">Длительность</div>
+          <div style="font-family:var(--serif-disp); font-size:18px; font-weight:500; color:var(--near-black); margin-top:2px">180 минут</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px; color:var(--muted); letter-spacing:0.10em; text-transform:uppercase; font-weight:600">Цена</div>
+          <div style="font-family:var(--serif); font-size:30px; font-weight:600; color:var(--gold-lo); line-height:1; margin-top:2px">€120</div>
+        </div>
+      </div>
+      <div style="font-size:14px; color:var(--soft); line-height:1.6; margin-top:16px">
+        Полный сервис: подбор оттенка, окрашивание профессиональными красителями, восстанавливающий уход и укладка. Используем только премиум-составы.
+      </div>
+
+      <!-- Master row -->
+      <div style="margin-top:22px">
+        <div class="eb">Мастер</div>
+        <div style="display:flex; align-items:center; gap:12px; margin-top:10px">
+          <div class="avatar avatar-lg">АК</div>
+          <div style="flex:1">
+            <div style="font-family:var(--serif-disp); font-size:18px; font-weight:500">Анна К.</div>
+            <div style="font-size:12px; color:var(--muted); margin-top:2px">Колорист · 8 лет опыта</div>
+            <div style="display:flex; align-items:center; gap:4px; color:var(--gold-lo); margin-top:4px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.6 6.4.8-4.7 4.4 1.2 6.2L12 17l-5.5 3 1.2-6.2L3 9.4l6.4-.8z"/></svg>
+              <span style="font-size:12px; font-weight:600">4.9 · 286 отзывов</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:120px"></div>
+  </div>
+
+  <!-- Sticky CTA -->
+  <div style="position:absolute; left:16px; right:16px; bottom:22px; z-index:30; display:flex; gap:10px">
+    <button class="btn-primary" style="flex:1; justify-content:center">Записаться <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  </div>
+</div>
+<div class="frame-label"><b>05</b> Услуга · фото</div>
+</div>
+
+<!-- ═════════════ 06 · Date + Time ═════════════ -->
+<div class="frame-wrap">
+<div class="phone">
+  <div class="body-bg-light"></div>
+  <div class="island"></div>
+  <div class="statusbar"><div class="t">9:41</div><div></div></div>
+  <div class="home-ind"></div>
+  <div class="scr" style="overflow:auto">
+    <div style="padding: 18px 22px 0; display:flex; align-items:center; gap:6px; color:var(--muted); font-size:12px; font-weight:500">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> Окрашивание + уход
+    </div>
+    <div style="padding: 14px 22px 0">
+      <div class="eb">Шаг 2 из 3</div>
+      <div class="h-mag" style="font-size:34px; margin-top:8px">
+        Когда вам<br><span class="italic-gold" style="font-style:italic">удобно</span>?
+      </div>
+    </div>
+
+    <!-- Month selector -->
+    <div style="display:flex; justify-content:space-between; align-items:center; padding: 24px 22px 16px">
+      <div style="font-family:var(--serif-disp); font-size:18px; font-weight:500">Апрель 2026</div>
+      <div style="display:flex; gap:8px">
+        <div style="width:32px; height:32px; border-radius:50%; border:1px solid rgba(28,20,9,.15); display:flex; align-items:center; justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
+        <div style="width:32px; height:32px; border-radius:50%; border:1px solid rgba(28,20,9,.15); display:flex; align-items:center; justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Day rail -->
+    <div style="display:flex; gap:8px; padding: 0 16px 18px; overflow-x:auto">
+      <div style="flex-shrink:0; width:54px; height:74px; border-radius:18px; background:#fff; border:1px solid rgba(228,221,208,1); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px">
+        <span style="font-size:10px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase">Ср</span>
+        <span style="font-family:var(--serif-disp); font-size:22px; font-weight:600">15</span>
+      </div>
+      <div style="flex-shrink:0; width:54px; height:74px; border-radius:18px; background:#fff; border:1px solid rgba(228,221,208,1); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px">
+        <span style="font-size:10px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase">Чт</span>
+        <span style="font-family:var(--serif-disp); font-size:22px; font-weight:600">16</span>
+      </div>
+      <div style="flex-shrink:0; width:54px; height:74px; border-radius:18px; background:#fff; border:1px solid rgba(228,221,208,1); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px">
+        <span style="font-size:10px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase">Пт</span>
+        <span style="font-family:var(--serif-disp); font-size:22px; font-weight:600">17</span>
+      </div>
+      <div style="flex-shrink:0; width:54px; height:74px; border-radius:18px; background: linear-gradient(135deg, var(--gold-lo), var(--gold)); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; box-shadow: 0 6px 18px rgba(154,114,48,.3)">
+        <span style="font-size:10px; letter-spacing:0.08em; text-transform:uppercase; opacity:0.9">Сб</span>
+        <span style="font-family:var(--serif-disp); font-size:22px; font-weight:600">18</span>
+      </div>
+      <div style="flex-shrink:0; width:54px; height:74px; border-radius:18px; background:#fff; border:1px solid rgba(228,221,208,1); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px">
+        <span style="font-size:10px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase">Вс</span>
+        <span style="font-family:var(--serif-disp); font-size:22px; font-weight:600">19</span>
+      </div>
+      <div style="flex-shrink:0; width:54px; height:74px; border-radius:18px; background:#fff; border:1px solid rgba(228,221,208,1); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; opacity:.4">
+        <span style="font-size:10px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase">Пн</span>
+        <span style="font-family:var(--serif-disp); font-size:22px; font-weight:600">20</span>
+      </div>
+    </div>
+
+    <div class="ornament">⸻ ✦ ⸻</div>
+
+    <!-- Time slots -->
+    <div style="padding: 18px 22px 0">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px">
+        <div style="font-family:var(--serif-disp); font-size:18px; font-weight:500">Свободное время</div>
+        <span class="section-link">Сб · 18 апр</span>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px">
+        <div style="padding:14px 0; text-align:center; border:1px solid rgba(228,221,208,1); border-radius:14px; background:#fff; font-family:var(--serif-disp); font-weight:500; font-size:16px">10:00</div>
+        <div style="padding:14px 0; text-align:center; border:1px solid rgba(228,221,208,1); border-radius:14px; background:#fff; font-family:var(--serif-disp); font-weight:500; font-size:16px">11:30</div>
+        <div style="padding:14px 0; text-align:center; border:1px solid rgba(228,221,208,1); border-radius:14px; background:#fff; opacity:.4; font-family:var(--serif-disp); font-weight:500; font-size:16px; text-decoration:line-through; text-decoration-color:rgba(154,114,48,.4)">13:00</div>
+        <div style="padding:14px 0; text-align:center; background: linear-gradient(135deg, var(--gold-lo), var(--gold)); border-radius:14px; color:#fff; font-family:var(--serif-disp); font-weight:600; font-size:16px; box-shadow: 0 6px 18px rgba(154,114,48,.3)">14:00</div>
+        <div style="padding:14px 0; text-align:center; border:1px solid rgba(228,221,208,1); border-radius:14px; background:#fff; font-family:var(--serif-disp); font-weight:500; font-size:16px">16:30</div>
+        <div style="padding:14px 0; text-align:center; border:1px solid rgba(228,221,208,1); border-radius:14px; background:#fff; font-family:var(--serif-disp); font-weight:500; font-size:16px">18:00</div>
+      </div>
+    </div>
+
+    <div style="height:140px"></div>
+  </div>
+
+  <div style="position:absolute; left:16px; right:16px; bottom:22px; z-index:30">
+    <button class="btn-primary" style="width:100%; justify-content:center">К подтверждению <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  </div>
+</div>
+<div class="frame-label"><b>06</b> Дата · время</div>
+</div>
+
+<!-- ═════════════ 07 · Confirmation ═════════════ -->
+<div class="frame-wrap">
+<div class="phone">
+  <div class="body-bg-light"></div>
+  <div class="island"></div>
+  <div class="statusbar"><div class="t">9:41</div><div></div></div>
+  <div class="home-ind"></div>
+  <div class="scr" style="overflow:auto">
+    <div style="padding: 18px 22px 0; display:flex; align-items:center; gap:6px; color:var(--muted); font-size:12px; font-weight:500">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> Назад
+    </div>
+    <div style="padding:14px 22px 0">
+      <div class="eb">Шаг 3 из 3</div>
+      <div class="h-mag" style="font-size:34px; margin-top:8px">
+        Подтвердите<br><span class="italic-gold" style="font-style:italic">детали</span>.
+      </div>
+    </div>
+
+    <!-- Summary card -->
+    <div style="padding:20px 16px 0">
+      <div style="background:#fff; border-radius:24px; border:1px solid rgba(228,221,208,1); overflow:hidden; position:relative">
+        <div style="position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, transparent, var(--gold-lo), transparent)"></div>
+        <div style="padding:20px 22px 0">
+          <div class="eb">Запись</div>
+          <div style="font-family:var(--serif-disp); font-size:22px; font-weight:500; margin-top:8px">Окрашивание + уход</div>
+        </div>
+        <div style="padding: 14px 22px 16px">
+          <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px dotted rgba(154,114,48,.2)">
+            <span style="font-size:11px; letter-spacing:0.10em; text-transform:uppercase; color:var(--muted); font-weight:600">Мастер</span>
+            <span style="font-family:var(--serif-disp); font-size:14px">Анна К.</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px dotted rgba(154,114,48,.2)">
+            <span style="font-size:11px; letter-spacing:0.10em; text-transform:uppercase; color:var(--muted); font-weight:600">Дата</span>
+            <span style="font-family:var(--serif-disp); font-size:14px">Сб, 18 апреля</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px dotted rgba(154,114,48,.2)">
+            <span style="font-size:11px; letter-spacing:0.10em; text-transform:uppercase; color:var(--muted); font-weight:600">Время</span>
+            <span style="font-family:var(--serif-disp); font-size:14px">14:00 · 180 мин</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:10px 0">
+            <span style="font-size:11px; letter-spacing:0.10em; text-transform:uppercase; color:var(--muted); font-weight:600">Адрес</span>
+            <span style="font-family:var(--serif-disp); font-size:14px">ул. Витоша, 24</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; padding:14px 0 0; margin-top:8px; border-top:1px solid rgba(154,114,48,.25)">
+            <span style="font-size:12px; letter-spacing:0.10em; text-transform:uppercase; color:var(--near-black); font-weight:600">Итого</span>
+            <span style="font-family:var(--serif); font-size:32px; font-weight:600; color:var(--gold-lo)">€120</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notice -->
+    <div style="padding: 16px 22px 0">
+      <div style="display:flex; gap:10px; padding:12px 14px; background:rgba(154,114,48,.06); border-radius:12px; border:1px solid rgba(154,114,48,.15)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold-lo)" stroke-width="1.8" style="flex-shrink:0; margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <div style="font-size:11px; color:var(--soft); line-height:1.5">
+          Напоминания придут за 24 ч, 2 ч и 30 мин до записи. Отмена — бесплатно за 4 часа.
+        </div>
+      </div>
+    </div>
+
+    <div style="height:140px"></div>
+  </div>
+
+  <div style="position:absolute; left:16px; right:16px; bottom:22px; z-index:30">
+    <button class="btn-gold" style="width:100%; justify-content:center">Подтвердить запись <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5L20 7"/></svg></button>
+  </div>
+</div>
+<div class="frame-label"><b>07</b> Подтверждение</div>
+</div>
+
+<!-- ═════════════ 08 · My Bookings ═════════════ -->
+<div class="frame-wrap">
+<div class="phone">
+  <div class="body-bg-light"></div>
+  <div class="island"></div>
+  <div class="statusbar"><div class="t">9:41</div><div></div></div>
+  <div class="home-ind"></div>
+  <div class="scr" style="overflow:auto">
+    <div style="padding: 14px 22px 8px">
+      <div class="eb">Личное</div>
+      <div class="h-mag" style="font-size:36px; margin-top:8px">
+        Мои <span class="italic-gold" style="font-style:italic">записи</span>.
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex; gap:24px; padding:16px 22px 0; border-bottom:1px solid rgba(228,221,208,1)">
+      <div style="padding-bottom:12px; font-size:13px; font-weight:600; color:var(--near-black); border-bottom:2px solid var(--gold-lo)">Предстоящие <span style="color:var(--muted); font-weight:500">3</span></div>
+      <div style="padding-bottom:12px; font-size:13px; color:var(--muted)">Прошедшие <span>12</span></div>
+    </div>
+
+    <!-- Booking row 1 -->
+    <div style="padding:20px 16px 0">
+      <div class="live-card">
+        <div class="live-row">
+          <div class="live-dot"></div>
+          <div class="eb">Live · через 3 дня</div>
+        </div>
+        <div class="live-grid">
+          <div>
+            <div class="live-svc">Окрашивание + уход</div>
+            <div class="live-meta">Анна К. · Сб · 18 апр</div>
+          </div>
+          <div class="live-time">14:00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Other bookings -->
+    <div style="padding:14px 16px 0">
+      <div style="background:#fff; border-radius:20px; border:1px solid rgba(228,221,208,1); padding:18px 20px; margin-bottom:10px">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start">
+          <div>
+            <div style="font-size:10px; color:var(--muted); letter-spacing:0.10em; text-transform:uppercase; font-weight:600">Чт · 25 апр</div>
+            <div style="font-family:var(--serif-disp); font-size:18px; font-weight:500; margin-top:4px">Маникюр</div>
+            <div style="font-size:12px; color:var(--soft); margin-top:2px">Елена С.</div>
+          </div>
+          <div style="font-family:var(--serif); font-size:22px; font-weight:600; color:var(--gold-lo)">11:30</div>
+        </div>
+      </div>
+      <div style="background:#fff; border-radius:20px; border:1px solid rgba(228,221,208,1); padding:18px 20px">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start">
+          <div>
+            <div style="font-size:10px; color:var(--muted); letter-spacing:0.10em; text-transform:uppercase; font-weight:600">Сб · 02 мая</div>
+            <div style="font-family:var(--serif-disp); font-size:18px; font-weight:500; margin-top:4px">Стрижка</div>
+            <div style="font-size:12px; color:var(--soft); margin-top:2px">Мария Р.</div>
+          </div>
+          <div style="font-family:var(--serif); font-size:22px; font-weight:600; color:var(--gold-lo)">16:00</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:120px"></div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg><span>Главная</span></div>
+    <div class="tab active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg><span>Записи</span></div>
+    <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg><span>AI</span></div>
+    <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg><span>Профиль</span></div>
+  </div>
+</div>
+<div class="frame-label"><b>08</b> Мои записи</div>
+</div>
+
+<!-- ═════════════ 09 · Booking Detail ═════════════ -->
+<div class="frame-wrap">
+<div class="phone">
+  <div class="body-bg-light"></div>
+  <div class="island"></div>
+  <div class="statusbar"><div class="t">9:41</div><div></div></div>
+  <div class="home-ind"></div>
+  <div class="scr" style="overflow:auto">
+    <div style="padding: 18px 22px 0; display:flex; justify-content:space-between; align-items:center">
+      <div style="display:flex; align-items:center; gap:6px; color:var(--muted); font-size:12px; font-weight:500">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> Назад
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:rgba(58,125,68,.08); border:1px solid rgba(58,125,68,.2)">
+        <div style="width:6px; height:6px; border-radius:50%; background:#3A7D44"></div>
+        <span style="font-size:10px; font-weight:600; color:#3A7D44; letter-spacing:0.10em; text-transform:uppercase">Подтверждено</span>
+      </div>
+    </div>
+
+    <div style="padding: 16px 22px 0">
+      <div class="eb">Запись № 248</div>
+      <div class="h-mag" style="font-size:30px; margin-top:8px">
+        Окрашивание<br><span class="italic-gold" style="font-style:italic">+ уход</span>
+      </div>
+    </div>
+
+    <!-- Big date/time -->
+    <div style="padding: 24px 16px 0">
+      <div class="live-card">
+        <div style="display:flex; align-items:center; justify-content:space-between">
+          <div>
+            <div class="eb" style="color:var(--muted)">Когда</div>
+            <div style="font-family:var(--serif-disp); font-size:22px; font-weight:500; margin-top:4px">Суббота</div>
+            <div style="font-size:13px; color:var(--soft); margin-top:2px">18 апреля 2026</div>
+          </div>
+          <div style="text-align:right">
+            <div class="eb" style="color:var(--muted)">Время</div>
+            <div style="font-family:var(--serif-disp); font-size:36px; font-weight:600; color:var(--gold-lo); line-height:1; letter-spacing:-0.02em; margin-top:4px">14:00</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:4px">180 минут</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Master block -->
+    <div style="padding:18px 22px 0">
+      <div class="eb">Мастер</div>
+      <div style="display:flex; align-items:center; gap:12px; margin-top:10px; padding:14px 0; border-bottom:1px dotted rgba(154,114,48,.25)">
+        <div class="avatar avatar-lg">АК</div>
+        <div style="flex:1">
+          <div style="font-family:var(--serif-disp); font-size:17px; font-weight:500">Анна К.</div>
+          <div style="font-size:12px; color:var(--muted); margin-top:2px">Колорист</div>
+        </div>
+        <div style="width:36px; height:36px; border-radius:50%; border:1px solid rgba(28,20,9,.12); display:flex; align-items:center; justify-content:center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a8 8 0 11-3-6.2L21 5l-1 4a8 8 0 011 3z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Location -->
+    <div style="padding:14px 22px 0">
+      <div class="eb">Адрес</div>
+      <div style="display:flex; gap:12px; margin-top:10px; padding:14px 0">
+        <div style="width:44px; height:44px; border-radius:12px; background: linear-gradient(135deg, var(--gold-lo), var(--gold)); display:flex; align-items:center; justify-content:center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 21s7-7 7-12a7 7 0 10-14 0c0 5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        </div>
+        <div style="flex:1">
+          <div style="font-family:var(--serif-disp); font-size:15px; font-weight:500">ул. Витоша, 24</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px">София · 1.2 км</div>
+        </div>
+        <div style="font-size:11px; color:var(--gold-lo); font-weight:600; letter-spacing:0.10em; text-transform:uppercase; align-self:center">Маршрут →</div>
+      </div>
+    </div>
+
+    <div style="height:130px"></div>
+  </div>
+
+  <div style="position:absolute; left:16px; right:16px; bottom:22px; z-index:30; display:flex; gap:8px">
+    <button style="flex:1; padding:14px; border-radius:999px; border:1px solid rgba(181,64,64,.3); background:transparent; color:#B54040; font-size:11px; font-weight:600; letter-spacing:0.10em; text-transform:uppercase; font-family:var(--body)">Отменить</button>
+    <button class="btn-primary" style="flex:2; justify-content:center">Перенести</button>
+  </div>
+</div>
+<div class="frame-label"><b>09</b> Детали записи</div>
+</div>
+
+<!-- ═════════════ 10 · AI Chat ═════════════ -->
+<div class="frame-wrap">
+<div class="phone">
+  <div class="body-bg-light"></div>
+  <div class="island"></div>
+  <div class="statusbar"><div class="t">9:41</div><div></div></div>
+  <div class="home-ind"></div>
+  <div class="scr" style="overflow:auto">
+    <div style="padding: 16px 22px 0; display:flex; align-items:center; gap:12px">
+      <div style="width:40px; height:40px; border-radius:50%; background: linear-gradient(135deg, var(--gold-lo), var(--gold-hi)); display:flex; align-items:center; justify-content:center; color:#fff">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg>
+      </div>
+      <div>
+        <div style="font-family:var(--serif-disp); font-size:17px; font-weight:500">AI-консультант</div>
+        <div style="display:flex; align-items:center; gap:6px; margin-top:2px">
+          <div style="width:6px; height:6px; border-radius:50%; background:#3A7D44"></div>
+          <span style="font-size:11px; color:var(--muted)">подбирает услугу</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ornament" style="margin: 18px 0 8px">⸻ ✦ ⸻</div>
+
+    <!-- Messages -->
+    <div style="padding: 6px 22px 0; display:flex; flex-direction:column; gap:14px">
+      <div style="max-width:78%; padding:14px 16px; background:#fff; border-radius:20px 20px 20px 4px; border:1px solid rgba(228,221,208,1); font-family:var(--serif); font-size:16px; line-height:1.45">
+        Здравствуйте! Расскажите, что вас интересует — подберу подходящую услугу.
+      </div>
+      <div style="align-self:flex-end; max-width:78%; padding:14px 16px; background: linear-gradient(135deg, var(--gold-lo), var(--gold)); color:#fff; border-radius:20px 20px 4px 20px; font-size:14px; line-height:1.45">
+        Хочу освежить цвет волос к выходным, бюджет до €150.
+      </div>
+      <div style="max-width:82%; padding:14px 16px; background:#fff; border-radius:20px 20px 20px 4px; border:1px solid rgba(228,221,208,1); font-family:var(--serif); font-size:16px; line-height:1.45">
+        Прекрасно. Под ваш бюджет — <span style="color:var(--gold-lo); font-style:italic">«Окрашивание + уход»</span> с Анной К. Свободно 18 апреля в 14:00.
+      </div>
+      <!-- Suggestion card -->
+      <div style="background:#fff; border-radius:20px; border:1px solid rgba(228,221,208,1); padding:14px 16px; margin-left:0; max-width:90%">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start">
+          <div>
+            <div style="font-family:var(--serif-disp); font-size:16px; font-weight:500">Окрашивание + уход</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px">Анна К. · 180 мин</div>
+          </div>
+          <div style="font-family:var(--serif); font-size:20px; font-weight:600; color:var(--gold-lo)">€120</div>
+        </div>
+        <button class="btn-primary" style="margin-top:12px; width:100%; justify-content:center; padding:10px 14px">Записаться <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
+    </div>
+
+    <div style="height:120px"></div>
+  </div>
+
+  <!-- Composer -->
+  <div style="position:absolute; left:16px; right:16px; bottom:22px; z-index:30">
+    <div class="glass" style="height:50px; padding: 0 6px 0 18px; display:flex; align-items:center; gap:10px; border-radius:999px">
+      <span style="flex:1; font-size:14px; color:var(--muted)">Сообщение</span>
+      <div style="width:38px; height:38px; border-radius:50%; background: linear-gradient(135deg, var(--gold-lo), var(--gold)); display:flex; align-items:center; justify-content:center; color:#fff">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="frame-label"><b>10</b> AI-консультант</div>
+</div>
+
+<!-- ═════════════ 11 · Profile ═════════════ -->
+<div class="frame-wrap">
+<div class="phone">
+  <div class="body-bg-light"></div>
+  <div class="island"></div>
+  <div class="statusbar"><div class="t">9:41</div><div></div></div>
+  <div class="home-ind"></div>
+  <div class="scr" style="overflow:auto">
+    <!-- Hero -->
+    <div style="padding: 20px 22px 0; text-align:center">
+      <div class="avatar avatar-lg" style="margin: 16px auto 0; width:80px; height:80px; font-size:30px; box-shadow: 0 12px 40px rgba(154,114,48,.3)">ЕИ</div>
+      <div class="h-mag" style="font-size:26px; margin-top:14px">Екатерина</div>
+      <div style="font-size:12px; color:var(--muted); margin-top:4px">+359 87 123 4567</div>
+      <div style="display:inline-flex; align-items:center; gap:6px; margin-top:14px; padding:6px 14px; border-radius:999px; background: rgba(154,114,48,.08); border:1px solid rgba(154,114,48,.25)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--gold-lo)" stroke-width="2"><path d="M3 8l4 5 5-7 5 7 4-5v10H3z"/></svg>
+        <span style="font-size:10px; font-weight:700; color:var(--gold-lo); letter-spacing:0.16em; text-transform:uppercase">VIP · Gold</span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0; padding: 26px 22px 14px; border-top:1px dotted rgba(154,114,48,.2); border-bottom:1px dotted rgba(154,114,48,.2); margin: 24px 22px 0">
+      <div style="text-align:center">
+        <div style="font-family:var(--serif-disp); font-size:24px; font-weight:600; color:var(--gold-lo)">15</div>
+        <div style="font-size:9px; color:var(--muted); letter-spacing:0.14em; text-transform:uppercase; margin-top:2px">Визитов</div>
+      </div>
+      <div style="text-align:center; border-left:1px dotted rgba(154,114,48,.2); border-right:1px dotted rgba(154,114,48,.2)">
+        <div style="font-family:var(--serif-disp); font-size:24px; font-weight:600; color:var(--gold-lo)">3</div>
+        <div style="font-size:9px; color:var(--muted); letter-spacing:0.14em; text-transform:uppercase; margin-top:2px">Любимых</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:var(--serif-disp); font-size:24px; font-weight:600; color:var(--gold-lo)">−15%</div>
+        <div style="font-size:9px; color:var(--muted); letter-spacing:0.14em; text-transform:uppercase; margin-top:2px">Скидка</div>
+      </div>
+    </div>
+
+    <!-- Menu list -->
+    <div style="padding: 24px 16px 0">
+      <div class="glass" style="border-radius:22px; overflow:hidden">
+        <div style="padding:14px 18px; display:flex; align-items:center; gap:14px; border-bottom:0.5px solid rgba(60,60,67,0.12)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold-lo)" stroke-width="1.8"><path d="M12 20s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 10c0 5.5-7 10-7 10z"/></svg>
+          <span style="flex:1; font-size:15px">Любимые мастера</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(60,60,67,.3)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+        <div style="padding:14px 18px; display:flex; align-items:center; gap:14px; border-bottom:0.5px solid rgba(60,60,67,0.12)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold-lo)" stroke-width="1.8"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>
+          <span style="flex:1; font-size:15px">История визитов</span>
+          <span style="font-size:13px; color:var(--muted); margin-right:6px">12</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(60,60,67,.3)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+        <div style="padding:14px 18px; display:flex; align-items:center; gap:14px; border-bottom:0.5px solid rgba(60,60,67,0.12)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold-lo)" stroke-width="1.8"><path d="M6 9a6 6 0 1112 0c0 4 2 6 2 6H4s2-2 2-6zM10 20a2 2 0 004 0"/></svg>
+          <span style="flex:1; font-size:15px">Уведомления</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(60,60,67,.3)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+        <div style="padding:14px 18px; display:flex; align-items:center; gap:14px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold-lo)" stroke-width="1.8"><path d="M12 21s7-7 7-12a7 7 0 10-14 0c0 5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+          <span style="flex:1; font-size:15px">О салоне</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(60,60,67,.3)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 14px 22px 0; text-align:center">
+      <span style="font-size:11px; color:var(--muted); letter-spacing:0.12em; text-transform:uppercase; font-weight:500">Выйти</span>
+    </div>
+
+    <div style="height:120px"></div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg><span>Главная</span></div>
+    <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg><span>Записи</span></div>
+    <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg><span>AI</span></div>
+    <div class="tab active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg><span>Профиль</span></div>
+  </div>
+</div>
+<div class="frame-label"><b>11</b> Профиль</div>
+</div>
+
+</div>
+</div>
+
+</body>
+</html>

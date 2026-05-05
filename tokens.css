@@ -1,0 +1,249 @@
+/* ══════════════════════════════════════════════════════════════
+   Hunger Beauty Platform — Design Tokens
+   Premium Theme (Gold × Black / Gold × Ivory)
+   ══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ─── DARK VARIANT (Mini App default) ──────────────────── */
+  --d-bg:      #080808;
+  --d-bg-elev: #141414;
+  --d-fg:      #F0EBE0;
+  --d-fg-2:    #C9C2B2;
+  --d-muted:   #8A7D6A;
+  --d-gold:    #C9A84C;
+  --d-gold-hi: #E0CF6A;
+  --d-gold-lo: #9A7230;
+  --d-gold-l:  rgba(201, 168, 76, .12);  /* low-alpha tint */
+  --d-gold-g:  rgba(201, 168, 76, .25);  /* glow */
+  --d-card:    #141414;
+  --d-border:  rgba(201, 168, 76, .14);
+  --d-line:    rgba(255, 255, 255, .05);
+  --d-dim:     #1C1C1C;
+  --d-ok:      #6FCF97;
+  --d-ok-l:    rgba(111, 207, 151, .10);
+  --d-err:     #EB5757;
+  --d-err-l:   rgba(235, 87, 87, .08);
+  --d-warn:    #E5B95E;
+
+  /* ─── LIGHT VARIANT (Admin default) ────────────────────── */
+  --l-bg:      #FAF8F3;
+  --l-bg-elev: #F5F1E8;
+  --l-fg:      #1C1408;
+  --l-fg-2:    #4A3F2E;
+  --l-muted:   #7A6E58;
+  --l-gold:    #9A7230;
+  --l-gold-hi: #C9A84C;
+  --l-gold-lo: #6F5020;
+  --l-gold-l:  rgba(154, 114, 48, .10);
+  --l-gold-g:  rgba(154, 114, 48, .20);
+  --l-card:    #FFFFFF;
+  --l-border:  #E4DDD0;
+  --l-line:    #F0EAE0;
+  --l-dim:     #F5F1E8;
+  --l-accent:  #EDE5D5;
+  --l-ok:      #3A7D44;
+  --l-ok-l:    rgba(58, 125, 68, .08);
+  --l-err:     #B54040;
+  --l-err-l:   rgba(181, 64, 64, .06);
+  --l-warn:    #9A6D1A;
+  --l-warn-l:  rgba(154, 109, 26, .07);
+
+  /* ─── GRADIENTS ────────────────────────────────────────── */
+  --grad-gold-dark:  linear-gradient(135deg, #C9A84C, #E0CF6A);
+  --grad-gold-light: linear-gradient(135deg, #9A7230, #C9A84C);
+  --grad-gold-text:  linear-gradient(135deg, #C9A84C, #E8CF80, #9A7230);
+  --grad-divider-d:  linear-gradient(90deg, transparent, rgba(201,168,76,.5), transparent);
+  --grad-divider-l:  linear-gradient(90deg, transparent, rgba(154,114,48,.5), transparent);
+
+  /* ─── TYPE FAMILIES ────────────────────────────────────── */
+  --ff-display-miniapp: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  --ff-display-admin:   "Playfair Display", "Cormorant Garamond", Georgia, serif;
+  --ff-body:            "Inter", system-ui, -apple-system, sans-serif;
+  --ff-serif:           "Cormorant Garamond", "Playfair Display", Georgia, serif;
+
+  /* ─── TYPE SCALE ───────────────────────────────────────── */
+  --fs-xxs: 9px;   /* micro eyebrows */
+  --fs-xs:  10px;  /* uppercase labels */
+  --fs-sm:  11px;  /* meta, captions */
+  --fs-ms:  12px;  /* secondary body */
+  --fs-md:  13px;  /* body default */
+  --fs-lg:  15px;  /* emphasized body */
+  --fs-xl:  18px;  /* card titles */
+  --fs-h3:  22px;  /* H3 serif */
+  --fs-h2:  28px;  /* H2 serif */
+  --fs-h1:  36px;  /* H1 serif */
+  --fs-display: 48px;
+
+  /* ─── LETTER SPACING ───────────────────────────────────── */
+  --ls-display: -0.02em;  /* tight for headlines */
+  --ls-title:    0.02em;  /* slight open for serif titles */
+  --ls-body:     0;
+  --ls-label:    0.10em;  /* uppercase eyebrows */
+  --ls-label-wide: 0.14em;
+  --ls-mega:     0.22em;  /* nav titles in admin */
+
+  /* ─── LINE HEIGHT ──────────────────────────────────────── */
+  --lh-tight:  1.1;
+  --lh-snug:   1.3;
+  --lh-base:   1.55;
+  --lh-loose:  1.7;
+
+  /* ─── RADII (Premium = sharp) ──────────────────────────── */
+  --r-sharp: 2px;   /* default — EVERYWHERE */
+  --r-pill:  999px; /* status dots, badges (rare) */
+  --r-round: 50%;   /* avatars */
+
+  /* ─── BORDER WIDTHS ────────────────────────────────────── */
+  --bw-hair: 1px;
+  --bw-thin: 1px;
+  --bw-accent: 2px; /* gold accent lines */
+
+  /* ─── SPACING (4px base) ───────────────────────────────── */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-7: 28px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+
+  /* ─── SHADOWS ──────────────────────────────────────────── */
+  --sh-card-l:   0 1px 4px rgba(28, 20, 9, .06);
+  --sh-card-l-hover: 0 8px 24px rgba(28, 20, 9, .08);
+  --sh-phone-d:  0 24px 80px rgba(0,0,0,.85), 0 0 0 1px rgba(201,168,76,.18), inset 0 1px 0 rgba(201,168,76,.12);
+  --sh-phone-l:  0 24px 60px rgba(0,0,0,.25), 0 0 0 1px rgba(154,114,48,.12);
+  --sh-gold-glow-d: 0 0 18px rgba(201, 168, 76, .25);
+  --sh-gold-glow-l: 0 4px 16px rgba(154, 114, 48, .25);
+  --sh-btn-gold:    0 4px 16px rgba(154, 114, 48, .25);
+
+  /* ─── MOTION ───────────────────────────────────────────── */
+  --ease:        cubic-bezier(.4, 0, .2, 1);
+  --ease-out:    cubic-bezier(0, 0, .2, 1);
+  --ease-in-out: cubic-bezier(.4, 0, .2, 1);
+  --dur-fast:    .15s;
+  --dur-base:    .2s;
+  --dur-slow:    .3s;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SEMANTIC ELEMENT STYLES (light theme default)
+   Prefix with .dark or apply dark class to use dark variant.
+   ══════════════════════════════════════════════════════════════ */
+
+html, body {
+  font-family: var(--ff-body);
+  font-size: var(--fs-md);
+  line-height: var(--lh-base);
+  color: var(--l-fg);
+  background: var(--l-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Display / Headings — serif with slight letter-spacing */
+.h-display, h1.display {
+  font-family: var(--ff-display-admin);
+  font-size: var(--fs-display);
+  font-weight: 500;
+  letter-spacing: var(--ls-display);
+  line-height: var(--lh-tight);
+}
+h1, .h1 {
+  font-family: var(--ff-display-admin);
+  font-size: var(--fs-h1);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: var(--lh-tight);
+}
+h2, .h2 {
+  font-family: var(--ff-display-admin);
+  font-size: var(--fs-h2);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: var(--lh-snug);
+}
+h3, .h3 {
+  font-family: var(--ff-display-admin);
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  letter-spacing: var(--ls-title);
+}
+h4, .h4 {
+  font-family: var(--ff-display-admin);
+  font-size: var(--fs-xl);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* Italic serif for accent words */
+.italic-accent {
+  font-style: italic;
+  color: var(--l-gold);
+}
+
+/* Uppercase eyebrow labels — canonical Premium element */
+.eyebrow {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--ls-label-wide);
+  text-transform: uppercase;
+  color: var(--l-gold);
+}
+.eyebrow-muted {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--ls-label-wide);
+  text-transform: uppercase;
+  color: var(--l-muted);
+}
+
+/* Body + paragraph */
+p, .p { font-size: var(--fs-md); line-height: var(--lh-base); color: var(--l-fg); }
+.p-muted { color: var(--l-muted); }
+.p-sm { font-size: var(--fs-sm); }
+
+/* Gold gradient text — reserved for hero wordmark */
+.text-gradient-gold {
+  background: var(--grad-gold-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Pricing numerals — serif, gold */
+.price {
+  font-family: var(--ff-serif);
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  color: var(--l-gold);
+}
+
+/* Code / mono — rare; used only in admin status lines */
+code, .mono {
+  font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  font-size: var(--fs-sm);
+}
+
+/* Ornamental divider */
+.ornament {
+  text-align: center;
+  color: var(--l-gold);
+  opacity: .5;
+  letter-spacing: 1em;
+  font-size: var(--fs-md);
+}
+.ornament::before { content: "⸻ ✦ ⸻"; }
+
+/* Thin gold gradient rule */
+.rule-gold {
+  height: 1px;
+  background: var(--grad-divider-l);
+  border: 0;
+  margin: var(--s-4) 0;
+}
+.dark .rule-gold { background: var(--grad-divider-d); }

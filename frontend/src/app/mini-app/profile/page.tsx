@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTelegram } from '../hooks/useTelegram';
-import { useMyBookings } from '../hooks/useMiniAppData';
+import { useMyBookings, useMeProfile } from '../hooks/useMiniAppData';
 import { useT } from '../i18n/context';
+import type { Lang } from '../i18n/translations';
 
 const GOLD = '#9A7230';
 const GOLD_HI = '#C9A84C';
@@ -13,22 +15,37 @@ const MUTED = '#7A6E58';
 const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 
+const LANG_OPTIONS: Array<{ code: Lang; label: string; flag: string }> = [
+  { code: 'bg', label: 'Български', flag: '🇧🇬' },
+  { code: 'en', label: 'English', flag: '🇬🇧' },
+  { code: 'uk', label: 'Українська', flag: '🇺🇦' },
+  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+];
+
 export default function ProfilePage() {
   const router = useRouter();
   const { user } = useTelegram();
-  const { t, lang } = useT();
+  const { t, lang, setLang } = useT();
   const { data: bookings = [] } = useMyBookings();
+  const { data: profile } = useMeProfile();
 
-  const firstName = user?.first_name ?? 'H';
+  const [langModalOpen, setLangModalOpen] = useState(false);
+  const [pendingLang, setPendingLang] = useState<Lang>(lang);
+
+  // Use registration form name (not Telegram name)
+  const firstName = profile?.first_name || t.greetingGuest;
   const initLetter = firstName.charAt(0).toUpperCase();
   const totalVisits = bookings.filter(b => b.status === 'completed').length;
-  const upcoming = bookings.filter(b => ['confirmed', 'pending'].includes(b.status)).length;
+  const upcomingCount = bookings.filter(b => ['confirmed', 'pending'].includes(b.status)).length;
 
   function handleSignOut() {
-    try {
-      localStorage.clear();
-    } catch { /* ignore */ }
+    try { localStorage.clear(); } catch { /* ignore */ }
     router.replace('/mini-app/onboarding');
+  }
+
+  function handleLangConfirm() {
+    setLang(pendingLang);
+    setLangModalOpen(false);
   }
 
   const pageBg: React.CSSProperties = {
@@ -55,47 +72,32 @@ export default function ProfilePage() {
             {initLetter}
           </span>
         </div>
-        <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 500, marginTop: 14, letterSpacing: '-0.01em' }}>
+        <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 600, marginTop: 14, letterSpacing: '-0.01em' }}>
           {firstName}
-          {user?.last_name ? ` ${user.last_name}` : ''}
         </div>
         {user?.username && (
           <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
             @{user.username}
           </div>
         )}
-        {/* VIP badge */}
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 14,
-          padding: '6px 14px', borderRadius: 999,
-          background: 'rgba(154,114,48,.08)', border: '1px solid rgba(154,114,48,.25)',
-        }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2">
-            <path d="M3 8l4 5 5-7 5 7 4-5v10H3z"/>
-          </svg>
-          <span style={{ fontSize: 10, fontWeight: 700, color: GOLD, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-            Hunger · Gold
-          </span>
-        </div>
       </div>
 
       {/* ── Stats ── */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-        padding: '24px 22px 18px',
+        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
+        padding: '20px 22px 16px',
         borderTop: '1px dotted rgba(154,114,48,.2)', borderBottom: '1px dotted rgba(154,114,48,.2)',
-        margin: '24px 22px 0',
+        margin: '20px 22px 0',
       }}>
         {[
           { val: totalVisits, label: t.profVisits },
-          { val: upcoming, label: t.listTabUpcoming },
-          { val: '−15%', label: 'VIP' },
+          { val: upcomingCount, label: t.listTabUpcoming },
         ].map((stat, i) => (
           <div key={stat.label} style={{
             textAlign: 'center',
             borderLeft: i > 0 ? '1px dotted rgba(154,114,48,.2)' : 'none',
           }}>
-            <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 600, color: GOLD }}>
+            <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 600, color: GOLD }}>
               {stat.val}
             </div>
             <div style={{ fontSize: 9, color: MUTED, letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 2 }}>
@@ -130,7 +132,7 @@ export default function ProfilePage() {
               icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20"/></svg>,
               label: t.profLang,
               badge: lang.toUpperCase(),
-              action: () => router.push('/mini-app/onboarding'),
+              action: () => { setPendingLang(lang); setLangModalOpen(true); },
             },
             {
               icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8"><path d="M21 12a9 9 0 11-9-9M21 3l-9 9"/><path d="M21 3h-6m6 0v6"/></svg>,
@@ -172,6 +174,72 @@ export default function ProfilePage() {
       </div>
 
       <div style={{ height: 100 }} />
+
+      {/* ── Language Picker Modal ── */}
+      {langModalOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={() => setLangModalOpen(false)}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(28,20,9,.45)',
+              backdropFilter: 'blur(4px)', zIndex: 200,
+            }}
+          />
+          {/* Sheet */}
+          <div style={{
+            position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+            width: '100%', maxWidth: 480,
+            background: IVORY, borderRadius: '24px 24px 0 0',
+            padding: '28px 24px calc(28px + env(safe-area-inset-bottom, 16px))',
+            zIndex: 201, boxShadow: '0 -16px 60px rgba(28,20,9,.15)',
+          }}>
+            {/* Handle */}
+            <div style={{ width: 36, height: 4, borderRadius: 4, background: 'rgba(28,20,9,.15)', margin: '0 auto 20px' }} />
+            <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 600, color: NEAR_BLACK, marginBottom: 20, letterSpacing: '-0.01em' }}>
+              {t.langPickerTitle}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+              {LANG_OPTIONS.map(opt => {
+                const selected = pendingLang === opt.code;
+                return (
+                  <button
+                    key={opt.code}
+                    onClick={() => setPendingLang(opt.code)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '14px 18px', borderRadius: 16,
+                      border: `1.5px solid ${selected ? GOLD : 'rgba(28,20,9,.10)'}`,
+                      background: selected ? 'rgba(154,114,48,.06)' : '#fff',
+                      cursor: 'pointer', fontFamily: BODY, textAlign: 'left',
+                      transition: 'all .15s ease',
+                    }}
+                  >
+                    <span style={{ fontSize: 24 }}>{opt.flag}</span>
+                    <span style={{ flex: 1, fontSize: 16, fontWeight: 500, color: NEAR_BLACK }}>{opt.label}</span>
+                    {selected && (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2.5">
+                        <polyline points="20,6 9,17 4,12"/>
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={handleLangConfirm}
+              style={{
+                width: '100%', background: NEAR_BLACK, border: 'none', color: IVORY,
+                padding: '15px 22px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                letterSpacing: '0.10em', textTransform: 'uppercase', fontFamily: BODY,
+                cursor: 'pointer', boxShadow: '0 8px 24px rgba(28,20,9,.18)',
+              }}
+            >
+              {t.langPickerConfirm}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

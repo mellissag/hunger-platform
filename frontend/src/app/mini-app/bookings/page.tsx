@@ -95,7 +95,7 @@ export default function BookingsPage() {
         <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>
           {t.listEyebrow}
         </div>
-        <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, marginTop: 10, letterSpacing: '-0.02em' }}>
+        <div style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 10, letterSpacing: '-0.02em' }}>
           {t.listH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.listHi}</span>.
         </div>
       </div>

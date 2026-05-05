@@ -1,7 +1,6 @@
 'use client';
 
-import { use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useServices, useMastersByService, pickI18n } from '../../hooks/useMiniAppData';
 import { useT } from '../../i18n/context';
 
@@ -42,9 +41,10 @@ function getMasterInitials(name: string): string {
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
-export default function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function ServiceDetailPage() {
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
   const { t } = useT();
   const { data: services = [] } = useServices();
   const svc = services.find(s => s.id === id);
@@ -101,7 +101,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
               {svc.category}
             </div>
           )}
-          <div style={{ fontFamily: SERIF, fontSize: 32, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, letterSpacing: '-0.02em' }}>
+          <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.05, letterSpacing: '-0.02em' }}>
             {name}
           </div>
         </div>
@@ -118,7 +118,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         }}>
           <div style={{ flex: 1, borderRight: '1px dotted rgba(154,114,48,.25)', paddingRight: 16 }}>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: MUTED, marginBottom: 4 }}>{t.detailDuration}</div>
-            <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 500, color: NEAR_BLACK }}>{formatDur(svc.duration_minutes)}</div>
+            <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 600, color: NEAR_BLACK }}>{formatDur(svc.duration_minutes)}</div>
           </div>
           <div style={{ flex: 1, paddingLeft: 16 }}>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: MUTED, marginBottom: 4 }}>{t.detailPrice}</div>

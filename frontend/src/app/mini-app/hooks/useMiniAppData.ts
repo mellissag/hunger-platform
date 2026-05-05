@@ -29,11 +29,21 @@ export interface Service {
   id: string;
   name: string;
   name_i18n?: Record<string, string>;
+  description_i18n?: Record<string, string>;
   duration_minutes: number;
   price: number;
   category?: string;
-  category_id?: string;
+  category_id?: string | null;
+  category_name_i18n?: Record<string, string>;
   description?: string;
+  photo_url?: string | null;
+}
+
+export interface ClientProfile {
+  first_name: string;
+  phone: string;
+  lang: string;
+  onboarded: boolean;
 }
 
 export interface Master {
@@ -133,8 +143,18 @@ export function useMyBookings() {
   return useQuery<Booking[]>({
     queryKey: ['mini-app', 'my-bookings'],
     queryFn: () => apiFetch('/api/v1/mini-app/my-bookings'),
-    staleTime: 30_000,
+    staleTime: 0,
     retry: 1,
+    refetchOnMount: 'always',
+  });
+}
+
+export function useMeProfile() {
+  return useQuery<ClientProfile>({
+    queryKey: ['mini-app', 'me'],
+    queryFn: () => apiFetch('/api/v1/mini-app/me'),
+    staleTime: 5 * 60_000,
+    retry: false,
   });
 }
 

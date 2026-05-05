@@ -3,8 +3,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTelegram } from './hooks/useTelegram';
-import { useMyBookings, useServices, pickI18n } from './hooks/useMiniAppData';
-import { isoToTimeInZone, isoToDateInZone } from '@/lib/date-local';
+import { useMyBookings, useMeProfile, pickI18n } from './hooks/useMiniAppData';
+import { isoToTimeInZone } from '@/lib/date-local';
 import { useT } from './i18n/context';
 
 const GOLD = '#9A7230';
@@ -17,10 +17,13 @@ const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 const TZ = 'Europe/Sofia';
 
-function formatDur(min: number): string {
-  if (min < 60) return `${min} мин`;
-  const h = Math.floor(min / 60), m = min % 60;
-  return m ? `${h}ч ${m}м` : `${h}ч`;
+function formatLocalDate(iso: string, daysShort: string[], monthsGen: string[]): string {
+  try {
+    const d = new Date(iso);
+    return `${daysShort[d.getDay()]} · ${d.getDate()} ${monthsGen[d.getMonth()]}`;
+  } catch {
+    return iso.slice(0, 10);
+  }
 }
 
 export default function HomePage() {
@@ -28,7 +31,7 @@ export default function HomePage() {
   const { user } = useTelegram();
   const { t } = useT();
   const { data: bookings = [] } = useMyBookings();
-  const { data: services = [] } = useServices();
+  const { data: profile } = useMeProfile();
 
   useEffect(() => {
     try {
@@ -40,8 +43,10 @@ export default function HomePage() {
 
   const upcoming = bookings.filter(b => ['confirmed', 'pending'].includes(b.status));
   const nextBooking = upcoming[0] ?? null;
-  const firstService = services[0] ?? null;
-  const initLetter = user?.first_name?.charAt(0)?.toUpperCase() ?? 'H';
+
+  // Client display name: registration form name > Telegram name > guest
+  const clientName = profile?.first_name || user?.first_name || t.greetingGuest;
+  const initLetter = clientName.charAt(0).toUpperCase();
 
   const today = new Date();
   const issueNum = String(today.getMonth() + 1).padStart(2, '0');
@@ -58,89 +63,90 @@ export default function HomePage() {
     }}>
 
       {/* ── Top Bar ── */}
-      <div style={{ padding: '14px 22px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: '16px 22px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 500, letterSpacing: '-0.01em' }}>
+          <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 600, letterSpacing: '-0.01em' }}>
             Hunger <span style={{ fontStyle: 'italic', color: GOLD }}>Atelier</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Bell icon */}
           <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(250,248,243,0.65)', backdropFilter: 'blur(20px)', border: '1px solid rgba(154,114,48,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTED }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M6 9a6 6 0 1112 0c0 4 2 6 2 6H4s2-2 2-6zM10 20a2 2 0 004 0"/>
             </svg>
           </div>
-          {/* Avatar */}
-          <div style={{ width: 38, height: 38, borderRadius: '50%', background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: SERIF, fontSize: 16, fontWeight: 600 }}>
+          <div style={{ width: 38, height: 38, borderRadius: '50%', background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: SERIF, fontSize: 15, fontWeight: 600 }}>
             {initLetter}
           </div>
         </div>
       </div>
 
+      {/* ── Greeting ── */}
+      <div style={{ padding: '0 22px 14px' }}>
+        <div style={{ fontSize: 13, color: MUTED, fontWeight: 400, lineHeight: 1.2 }}>{t.greeting},</div>
+        <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 600, color: NEAR_BLACK, letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: 2 }}>{clientName}</div>
+      </div>
+
       {/* ── Live Activity Card ── */}
       <div style={{
-        margin: '8px 16px 0',
-        padding: '20px 22px',
-        background: 'linear-gradient(135deg, rgba(255,255,255,.45), rgba(237,229,213,.6))',
-        borderRadius: 28,
+        margin: '0 16px 0',
+        padding: '18px 20px',
+        background: 'linear-gradient(135deg, rgba(255,255,255,.50), rgba(237,229,213,.65))',
+        borderRadius: 24,
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(154,114,48,.18)',
-        boxShadow: '0 8px 32px rgba(154,114,48,.18)',
+        border: '1px solid rgba(154,114,48,.20)',
+        boxShadow: '0 6px 24px rgba(154,114,48,.15)',
       }}>
         {nextBooking ? (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: GOLD, boxShadow: `0 0 8px ${GOLD}` }} />
-              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.homeLiveLabel}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: GOLD, boxShadow: `0 0 8px ${GOLD}` }} />
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.homeLiveLabel}</div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <div>
-                <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.15, letterSpacing: '-0.01em' }}>
+              <div style={{ flex: 1, paddingRight: 12 }}>
+                <div style={{ fontFamily: SERIF, fontSize: 21, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.15, letterSpacing: '-0.01em' }}>
                   {nextBooking.service_name}
                 </div>
-                <div style={{ fontSize: 13, color: SOFT, marginTop: 6 }}>
-                  {nextBooking.master_name} · {isoToDateInZone(nextBooking.starts_at, TZ).replace(/\d{4}-/, '').replace('-', ' ')}
+                <div style={{ fontSize: 12, color: SOFT, marginTop: 5 }}>
+                  {nextBooking.master_name} · {formatLocalDate(nextBooking.starts_at, t.daysShort, t.monthsGen)}
                 </div>
               </div>
-              <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 600, color: GOLD, lineHeight: 1, letterSpacing: '-0.02em' }}>
+              <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: GOLD, lineHeight: 1, letterSpacing: '-0.02em', flexShrink: 0 }}>
                 {isoToTimeInZone(nextBooking.starts_at, TZ)}
               </div>
             </div>
-            <div style={{ marginTop: 16 }}>
-              <div style={{ height: 4, borderRadius: 4, background: 'rgba(154,114,48,.15)', overflow: 'hidden' }}>
+            <div style={{ marginTop: 14 }}>
+              <div style={{ height: 3, borderRadius: 3, background: 'rgba(154,114,48,.15)', overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: '35%', background: `linear-gradient(90deg, ${GOLD}, ${GOLD_HI})` }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: MUTED, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 <span>{t.homeLiveUntil}</span>
-                <span
-                  style={{ cursor: 'pointer', color: GOLD }}
-                  onClick={() => router.push('/mini-app/bookings')}
-                >
+                <span style={{ cursor: 'pointer', color: GOLD }} onClick={() => router.push('/mini-app/bookings')}>
                   {t.homeLiveDetails}
                 </span>
               </div>
             </div>
           </>
         ) : (
-          <div style={{ textAlign: 'center', padding: '8px 0' }}>
+          <div style={{ textAlign: 'center', padding: '6px 0' }}>
             <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: MUTED, textTransform: 'uppercase', marginBottom: 8 }}>{t.homeNoBookings}</div>
-            <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 500, color: NEAR_BLACK }}>{t.homePlanVisit}</div>
+            <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 600, color: NEAR_BLACK }}>{t.homePlanVisit}</div>
           </div>
         )}
       </div>
 
       {/* ── Magazine Hero ── */}
-      <div style={{ padding: '22px 28px 18px' }}>
+      <div style={{ padding: '20px 26px 16px' }}>
         <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>
           {t.homeIssuePrefix} {issueNum} · {monthName}
         </div>
-        <div style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 14, letterSpacing: '-0.025em' }}>
+        <div style={{ fontFamily: SERIF, fontSize: 46, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 12, letterSpacing: '-0.025em' }}>
           {t.homeH1}<br />
           <span style={{ fontStyle: 'italic', color: GOLD }}>{t.homeH1i}</span>.
         </div>
-        <div style={{ fontSize: 14, color: SOFT, lineHeight: 1.5, marginTop: 16, maxWidth: 280 }}>
+        <div style={{ fontSize: 14, color: SOFT, lineHeight: 1.55, marginTop: 14, maxWidth: 290 }}>
           {t.homeDesc}
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
@@ -171,11 +177,11 @@ export default function HomePage() {
       </div>
 
       {/* ── Ornament ── */}
-      <div style={{ textAlign: 'center', color: GOLD, opacity: .55, letterSpacing: '0.6em', fontSize: 12, padding: '8px 0', fontFamily: SERIF }}>
+      <div style={{ textAlign: 'center', color: GOLD, opacity: .55, letterSpacing: '0.6em', fontSize: 12, padding: '6px 0', fontFamily: SERIF }}>
         ⸻ ✦ ⸻
       </div>
 
-      {/* ── Dark Card "Подборка дня" ── */}
+      {/* ── Dark Card "Подборка дня" — static placeholder ── */}
       <div style={{ padding: '0 16px', marginTop: 8 }}>
         <div style={{
           background: NEAR_BLACK, borderRadius: 24, padding: '22px', color: '#F0EBE0',
@@ -184,33 +190,15 @@ export default function HomePage() {
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${GOLD_HI}, transparent)` }} />
           <div style={{ position: 'absolute', right: -40, bottom: -40, width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,.25), transparent 70%)' }} />
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD_HI, textTransform: 'uppercase' }}>{t.homeDayPick}</div>
-          {firstService ? (
-            <>
-              <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 500, marginTop: 10, lineHeight: 1.15, position: 'relative' }}>
-                «<span style={{ fontStyle: 'italic', color: GOLD_HI }}>{pickI18n(firstService.name_i18n ?? { ru: firstService.name })}</span>»<br />
-                {firstService.price && <span style={{ fontSize: 20 }}>{firstService.price} €</span>}
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginTop: 14, position: 'relative' }}>
-                {firstService.duration_minutes && (
-                  <div style={{ border: '1px solid rgba(201,168,76,.4)', padding: '5px 10px', borderRadius: 2, fontSize: 10, letterSpacing: '0.06em', color: '#F0EBE0' }}>
-                    {formatDur(firstService.duration_minutes)}
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 500, marginTop: 10, lineHeight: 1.15, position: 'relative' }}>
-                «Весенний <span style={{ fontStyle: 'italic', color: GOLD_HI }}>уход</span>»<br />
-                <span style={{ fontSize: 20 }}>три услуги — €180</span>
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginTop: 14, position: 'relative' }}>
-                {['Уход за лицом', 'Маникюр', 'Массаж'].map(tag => (
-                  <div key={tag} style={{ border: '1px solid rgba(201,168,76,.4)', padding: '5px 10px', borderRadius: 2, fontSize: 10, letterSpacing: '0.06em' }}>{tag}</div>
-                ))}
-              </div>
-            </>
-          )}
+          <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 600, marginTop: 10, lineHeight: 1.15, position: 'relative' }}>
+            «Весенний <span style={{ fontStyle: 'italic', color: GOLD_HI }}>уход</span>»<br />
+            <span style={{ fontSize: 20, fontWeight: 500 }}>три услуги — €180</span>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginTop: 14, position: 'relative' }}>
+            {['Уход за лицом', 'Маникюр', 'Массаж'].map(tag => (
+              <div key={tag} style={{ border: '1px solid rgba(201,168,76,.4)', padding: '5px 10px', borderRadius: 2, fontSize: 10, letterSpacing: '0.06em' }}>{tag}</div>
+            ))}
+          </div>
           <button
             onClick={() => router.push('/mini-app/book')}
             style={{
@@ -227,7 +215,6 @@ export default function HomePage() {
 
       {/* ── 2-column glass cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '14px 16px' }}>
-        {/* Прошлый визит */}
         <div style={{
           background: 'rgba(250,248,243,0.65)',
           backdropFilter: 'blur(20px) saturate(160%)',
@@ -240,15 +227,14 @@ export default function HomePage() {
             const last = bookings.find(b => b.status === 'completed')!;
             return (
               <>
-                <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.2 }}>{last.service_name}</div>
-                <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{isoToDateInZone(last.starts_at, TZ)}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.2 }}>{last.service_name}</div>
+                <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{formatLocalDate(last.starts_at, t.daysShort, t.monthsGen)}</div>
               </>
             );
           })() : (
-            <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.2, opacity: 0.5 }}>{t.noData}</div>
+            <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.2, opacity: 0.4 }}>{t.noData}</div>
           )}
         </div>
-        {/* Адрес */}
         <div style={{
           background: 'rgba(250,248,243,0.65)',
           backdropFilter: 'blur(20px) saturate(160%)',
@@ -267,7 +253,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Bottom padding for tab bar */}
       <div style={{ height: 100 }} />
     </div>
   );

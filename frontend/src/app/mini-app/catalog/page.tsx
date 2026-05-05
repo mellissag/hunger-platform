@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useServices, pickI18n, type Service } from '../hooks/useMiniAppData';
+import { useServices, pickI18n } from '../hooks/useMiniAppData';
 import { useT } from '../i18n/context';
 
 const GOLD = '#9A7230';
@@ -14,59 +14,51 @@ const SOFT = '#4A3F2E';
 const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 
-const CAT_GRADIENTS: { [key: string]: string } = {
-  hair:  'linear-gradient(135deg, rgba(201,168,76,.18) 0%, rgba(154,114,48,.08) 100%)',
-  nails: 'linear-gradient(135deg, rgba(244,163,193,.25) 0%, rgba(236,72,153,.08) 100%)',
-  face:  'linear-gradient(135deg, rgba(134,239,172,.22) 0%, rgba(74,222,128,.08) 100%)',
-  body:  'linear-gradient(135deg, rgba(147,197,253,.22) 0%, rgba(96,165,250,.08) 100%)',
-};
+// Category-based gradient by category_id (or derived from name)
+const CAT_GRADIENTS = [
+  'linear-gradient(135deg, rgba(201,168,76,.22) 0%, rgba(154,114,48,.10) 100%)',
+  'linear-gradient(135deg, rgba(244,163,193,.28) 0%, rgba(236,72,153,.08) 100%)',
+  'linear-gradient(135deg, rgba(134,239,172,.25) 0%, rgba(74,222,128,.08) 100%)',
+  'linear-gradient(135deg, rgba(147,197,253,.25) 0%, rgba(96,165,250,.08) 100%)',
+  'linear-gradient(135deg, rgba(253,224,132,.25) 0%, rgba(234,179,8,.08) 100%)',
+  'linear-gradient(135deg, rgba(196,181,253,.25) 0%, rgba(139,92,246,.08) 100%)',
+];
 const CAT_DEFAULT = 'linear-gradient(135deg, rgba(209,213,219,.25) 0%, rgba(156,163,175,.08) 100%)';
-
-function getCatGradient(cat?: string): string {
-  if (!cat) return CAT_DEFAULT;
-  const lc = cat.toLowerCase();
-  if (lc.includes('волос') || lc.includes('hair') || lc.includes('коса') || lc.includes('волосс')) return CAT_GRADIENTS.hair ?? CAT_DEFAULT;
-  if (lc.includes('ногт') || lc.includes('nail') || lc.includes('нокт')) return CAT_GRADIENTS.nails ?? CAT_DEFAULT;
-  if (lc.includes('лиц') || lc.includes('face') || lc.includes('обличч')) return CAT_GRADIENTS.face ?? CAT_DEFAULT;
-  if (lc.includes('тело') || lc.includes('body') || lc.includes('тіл')) return CAT_GRADIENTS.body ?? CAT_DEFAULT;
-  return CAT_DEFAULT;
-}
-
-function formatDur(min: number, t: { loading: string }): string {
-  if (min < 60) return `${min} min`;
-  const h = Math.floor(min / 60), m = min % 60;
-  return m ? `${h}h ${m}m` : `${h}h`;
-}
-
-type CatKey = 'catAll' | 'catHair' | 'catNails' | 'catFace' | 'catBody';
 
 export default function CatalogPage() {
   const router = useRouter();
-  const { t } = useT();
-  const [activeCatKey, setActiveCatKey] = useState<CatKey>('catAll');
+  const { t, lang } = useT();
+  const [activeCatId, setActiveCatId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const { data: services = [], isLoading } = useServices();
 
-  const categories: CatKey[] = ['catAll', 'catHair', 'catNails', 'catFace', 'catBody'];
+  // Derive unique categories from services
+  const categories = useMemo(() => {
+    const seen = new Map<string, { id: string; name: string }>();
+    for (const svc of services) {
+      if (svc.category_id && svc.category_name_i18n && !seen.has(svc.category_id)) {
+        const name = pickI18n(svc.category_name_i18n, lang) || pickI18n(svc.category_name_i18n);
+        if (name) seen.set(svc.category_id, { id: svc.category_id, name });
+      }
+    }
+    return Array.from(seen.values());
+  }, [services, lang]);
 
-  function matchesCategory(svc: Service): boolean {
-    if (activeCatKey === 'catAll') return true;
-    const catField = (svc.category ?? '').toLowerCase();
-    const keywords: Record<CatKey, string[]> = {
-      catAll: [],
-      catHair:  ['волос', 'hair', 'коса'],
-      catNails: ['ногт', 'nail', 'нокт'],
-      catFace:  ['лиц', 'face', 'обличч'],
-      catBody:  ['тело', 'body', 'тіл'],
-    };
-    return (keywords[activeCatKey] ?? []).some(kw => catField.includes(kw));
-  }
+  // Build gradient map by category index
+  const catGradient = useMemo(() => {
+    const map: Record<string, string> = {};
+    categories.forEach((c, i) => {
+      map[c.id] = CAT_GRADIENTS[i % CAT_GRADIENTS.length] ?? CAT_DEFAULT;
+    });
+    return map;
+  }, [categories]);
 
-  const filtered = services.filter(svc => {
-    const name = pickI18n(svc.name_i18n ?? { ru: svc.name }).toLowerCase();
+  const filtered = useMemo(() => services.filter(svc => {
+    const name = pickI18n(svc.name_i18n ?? { ru: svc.name }, lang).toLowerCase();
     const matchSearch = !search || name.includes(search.toLowerCase());
-    return matchSearch && matchesCategory(svc);
-  });
+    const matchCat = !activeCatId || svc.category_id === activeCatId;
+    return matchSearch && matchCat;
+  }), [services, search, activeCatId, lang]);
 
   return (
     <div style={{
@@ -83,7 +75,7 @@ export default function CatalogPage() {
         <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>
           {t.catEyebrow}
         </div>
-        <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.05, marginTop: 10, letterSpacing: '-0.02em' }}>
+        <div style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 10, letterSpacing: '-0.02em' }}>
           {t.catH1}<br />
           <span style={{ fontStyle: 'italic', color: GOLD }}>{t.catH1i}</span>.
         </div>
@@ -119,28 +111,44 @@ export default function CatalogPage() {
         </div>
       </div>
 
-      {/* Category chips */}
-      <div style={{ display: 'flex', gap: 8, padding: '0 16px 16px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-        {categories.map(catKey => {
-          const active = activeCatKey === catKey;
-          return (
-            <button
-              key={catKey}
-              onClick={() => setActiveCatKey(catKey)}
-              style={{
-                flexShrink: 0, padding: '7px 16px', borderRadius: 999,
-                border: `1px solid ${active ? 'transparent' : 'rgba(28,20,9,.15)'}`,
-                background: active ? NEAR_BLACK : 'transparent',
-                color: active ? IVORY : SOFT,
-                fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
-                textTransform: 'uppercase', fontFamily: BODY, cursor: 'pointer',
-              }}
-            >
-              {t[catKey]}
-            </button>
-          );
-        })}
-      </div>
+      {/* Category chips — dynamic from backend */}
+      {categories.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, padding: '0 16px 16px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {/* "All" chip */}
+          <button
+            onClick={() => setActiveCatId(null)}
+            style={{
+              flexShrink: 0, padding: '7px 16px', borderRadius: 999,
+              border: `1px solid ${!activeCatId ? 'transparent' : 'rgba(28,20,9,.15)'}`,
+              background: !activeCatId ? NEAR_BLACK : 'transparent',
+              color: !activeCatId ? IVORY : SOFT,
+              fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+              textTransform: 'uppercase', fontFamily: BODY, cursor: 'pointer',
+            }}
+          >
+            {t.catAll}
+          </button>
+          {categories.map(cat => {
+            const active = activeCatId === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCatId(active ? null : cat.id)}
+                style={{
+                  flexShrink: 0, padding: '7px 16px', borderRadius: 999,
+                  border: `1px solid ${active ? 'transparent' : 'rgba(28,20,9,.15)'}`,
+                  background: active ? NEAR_BLACK : 'transparent',
+                  color: active ? IVORY : SOFT,
+                  fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+                  textTransform: 'uppercase', fontFamily: BODY, cursor: 'pointer',
+                }}
+              >
+                {cat.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Service grid */}
       {isLoading ? (
@@ -150,17 +158,20 @@ export default function CatalogPage() {
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 22px' }}>
           <div style={{ textAlign: 'center', color: GOLD, opacity: .5, letterSpacing: '0.6em', fontSize: 12, padding: '8px 0', fontFamily: SERIF }}>⸻ ✦ ⸻</div>
-          <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 500, color: NEAR_BLACK, marginTop: 12 }}>{t.catNotFound}</div>
+          <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, color: NEAR_BLACK, marginTop: 12 }}>{t.catNotFound}</div>
           <div style={{ fontSize: 13, color: MUTED, marginTop: 6 }}>{t.catTryOther}</div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '0 16px 16px' }}>
           {filtered.map((svc, idx) => {
-            const name = pickI18n(svc.name_i18n ?? { ru: svc.name });
-            const gradient = getCatGradient(svc.category);
+            const name = pickI18n(svc.name_i18n ?? { ru: svc.name }, lang);
+            const gradient = svc.category_id ? (catGradient[svc.category_id] ?? CAT_DEFAULT) : CAT_DEFAULT;
+            const catName = svc.category_name_i18n ? pickI18n(svc.category_name_i18n, lang) : (svc.category ?? '');
             const isFeatured = idx === 0;
             const durMin = svc.duration_minutes;
-            const durStr = durMin < 60 ? `${durMin} min` : `${Math.floor(durMin/60)}h${durMin%60 ? ' ' + (durMin%60) + 'm' : ''}`;
+            const durStr = durMin < 60
+              ? `${durMin} min`
+              : `${Math.floor(durMin/60)}h${durMin%60 ? ' ' + (durMin%60) + 'm' : ''}`;
             return (
               <button
                 key={svc.id}
@@ -176,7 +187,12 @@ export default function CatalogPage() {
                   height: 120, background: gradient, position: 'relative',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <span style={{ fontFamily: SERIF, fontSize: 44, fontStyle: 'italic', color: GOLD, opacity: 0.4, userSelect: 'none' }}>H</span>
+                  {svc.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={svc.photo_url} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <span style={{ fontFamily: SERIF, fontSize: 44, fontStyle: 'italic', color: GOLD, opacity: 0.35, userSelect: 'none' }}>H</span>
+                  )}
                   {isFeatured && (
                     <div style={{
                       position: 'absolute', top: 10, left: 10,
@@ -189,18 +205,18 @@ export default function CatalogPage() {
                   )}
                 </div>
                 <div style={{ padding: '12px 14px 16px' }}>
-                  {svc.category && (
+                  {catName && (
                     <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.20em', textTransform: 'uppercase', color: MUTED, marginBottom: 4 }}>
-                      {svc.category}
+                      {catName}
                     </div>
                   )}
-                  <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.2, marginBottom: 8 }}>
+                  <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.2, marginBottom: 8 }}>
                     {name}
                   </div>
                   <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>
                     {durStr}
                   </div>
-                  <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 500, color: GOLD }}>
+                  <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 600, color: GOLD }}>
                     €{svc.price}
                   </div>
                 </div>
