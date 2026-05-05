@@ -463,6 +463,70 @@ async def list_my_bookings(
     return result
 
 
+# ─── Me / Register ────────────────────────────────────────────────────────────
+
+
+class MiniAppMeOut(_BM):
+    first_name: str
+    phone: str
+    lang: str
+    onboarded: bool
+
+
+class MiniAppRegisterIn(_BM):
+    first_name: str
+    phone: str = ""
+    lang: str = "ru"
+    theme: str = "light"
+
+
+@router.get("/me", response_model=MiniAppMeOut)
+async def get_me(
+    current_user: MiniAppUser,
+    db: AsyncSession = Depends(get_db),
+) -> MiniAppMeOut:
+    """Authenticated: return client profile (or 404 if not yet registered)."""
+    if not current_user.tg_user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
+    client = (
+        await db.execute(select(Client).where(Client.tg_user_id == current_user.tg_user_id))
+    ).scalar_one_or_none()
+    if client is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not registered")
+    return MiniAppMeOut(
+        first_name=client.first_name or "",
+        phone=client.phone or "",
+        lang=client.lang or "ru",
+        onboarded=bool(client.phone),
+    )
+
+
+@router.post("/register", response_model=MiniAppMeOut)
+async def register_client(
+    payload: MiniAppRegisterIn,
+    current_user: MiniAppUser,
+    db: AsyncSession = Depends(get_db),
+) -> MiniAppMeOut:
+    """Authenticated: save name, phone, lang from onboarding."""
+    if not current_user.tg_user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
+    client = await _get_or_create_client(current_user, db)
+    if payload.first_name.strip():
+        client.first_name = payload.first_name.strip()
+    if payload.phone.strip():
+        client.phone = payload.phone.strip()
+    resolved = _resolve_lang(payload.lang)
+    client.lang = resolved
+    await db.commit()
+    await db.refresh(client)
+    return MiniAppMeOut(
+        first_name=client.first_name or "",
+        phone=client.phone or "",
+        lang=client.lang or "ru",
+        onboarded=bool(client.phone),
+    )
+
+
 # ─── Salon info ───────────────────────────────────────────────────────────────
 
 

@@ -1,10 +1,9 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
 import './styles/miniapp.css';
 
 // ── Inline SVG Icons ─────────────────────────────────────────────────────────
@@ -167,17 +166,39 @@ function TabBar() {
   );
 }
 
+// ── Theme-aware root wrapper ──────────────────────────────────────────────────
+
+const LIGHT_STYLES = {
+  background: '#FAF8F3',
+  color: '#1C1408',
+};
+const DARK_STYLES = {
+  background: '#1C1408',
+  color: '#FAF8F3',
+};
+
 // ── Layout ───────────────────────────────────────────────────────────────────
 
 function MiniAppInner({ children }: { children: ReactNode }) {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('hunger_theme');
+      if (saved === 'dark') setTheme('dark');
+    } catch { /**/ }
+  }, []);
+
+  const themeStyles = theme === 'dark' ? DARK_STYLES : LIGHT_STYLES;
+
   return (
     <div
+      data-theme={theme}
       style={{
         fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
-        background: '#FAF8F3',
-        color: '#1C1408',
         minHeight: '100dvh',
         WebkitFontSmoothing: 'antialiased',
+        ...themeStyles,
       }}
     >
       {children}

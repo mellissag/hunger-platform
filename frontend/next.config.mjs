@@ -8,6 +8,18 @@ const nextConfig = {
       { protocol: "http", hostname: "localhost", port: "8000", pathname: "/media/**" },
     ],
   },
+  async headers() {
+    return [
+      {
+        // Force Telegram (and any proxy) to always fetch latest mini-app HTML
+        source: "/mini-app/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-store, must-revalidate" },
+          { key: "Pragma", value: "no-cache" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
