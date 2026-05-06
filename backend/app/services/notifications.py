@@ -10,6 +10,7 @@ from aiogram.exceptions import TelegramForbiddenError
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.messages import get_message
 from app.models.booking import Booking
 from app.models.catalog import Service
 from app.models.client import Client
@@ -151,12 +152,13 @@ async def notify_client_booking_confirmed(booking_id: UUID, bot: Bot | None, db:
         return
     m = await db.get(Master, b.master_id)
     svc = await db.get(Service, b.service_id)
-    text = (
-        f"\U0001f389 <b>Ваша запись подтверждена!</b>\n\n"
-        f"\U0001f487 Услуга: {_svc_name(svc)}\n"
-        f"\U0001f469\u200d\U0001f9b0 Мастер: {m.display_name if m else '—'}\n"
-        f"\U0001f4c6 Дата: {format_booking_datetime(b.starts_at, client.lang or 'ru')}\n\n"
-        f"Ждём вас! До встречи \u2728"
+    lang = client.lang or "ru"
+    text = get_message(
+        "booking_confirmed",
+        lang=lang,
+        service=_svc_name(svc),
+        master=m.display_name if m else "—",
+        date=format_booking_datetime(b.starts_at, lang),
     )
     try:
         await bot.send_message(chat_id=int(client.tg_user_id), text=text, parse_mode="HTML")
@@ -178,13 +180,15 @@ async def notify_client_booking_rejected(
     if client is None or not client.tg_user_id:
         return
     svc = await db.get(Service, b.service_id)
-    reason_part = f"\n\U0001f4dd Причина: {reason}" if reason else ""
-    text = (
-        f"\u274c <b>Запись отменена</b>\n\n"
-        f"\U0001f487 Услуга: {_svc_name(svc)}\n"
-        f"\U0001f4c6 Дата: {format_booking_datetime(b.starts_at, client.lang or 'ru')}"
-        f"{reason_part}\n\n"
-        f"Вы можете записаться на другое удобное время."
+    lang = client.lang or "ru"
+    reason_labels = {"ru": "Причина", "en": "Reason", "uk": "Причина", "bg": "Причина"}
+    reason_part = f"\n📝 {reason_labels.get(lang, 'Причина')}: {reason}" if reason else ""
+    text = get_message(
+        "booking_rejected",
+        lang=lang,
+        service=_svc_name(svc),
+        date=format_booking_datetime(b.starts_at, lang),
+        reason_part=reason_part,
     )
     try:
         await bot.send_message(chat_id=int(client.tg_user_id), text=text, parse_mode="HTML")
@@ -206,13 +210,12 @@ async def notify_client_booking_rescheduled(booking_id: UUID, bot: "Bot | None",
     m = await db.get(Master, b.master_id)
     svc = await db.get(Service, b.service_id)
     lang = client.lang or "ru"
-    new_dt = format_booking_datetime(b.starts_at, lang)
-    text = (
-        f"\U0001f504 <b>Ваша запись перенесена</b>\n\n"
-        f"\U0001f487 Услуга: {_svc_name(svc)}\n"
-        f"\U0001f469\u200d\U0001f9b0 Мастер: {m.display_name if m else '—'}\n"
-        f"\U0001f4c6 Новое время: {new_dt}\n\n"
-        f"Ждём вас! \u2728"
+    text = get_message(
+        "booking_rescheduled",
+        lang=lang,
+        service=_svc_name(svc),
+        master=m.display_name if m else "—",
+        date=format_booking_datetime(b.starts_at, lang),
     )
     try:
         await bot.send_message(chat_id=int(client.tg_user_id), text=text, parse_mode="HTML")

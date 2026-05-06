@@ -10,6 +10,7 @@ from app.models.broadcast import Broadcast, BroadcastRecipient
 from app.models.catalog import MasterService, Service, ServiceCategory
 from app.models.client import Client, ClientNote
 from app.models.color_formula import ColorFormula
+from app.models.daily_pick import DailyPick
 from app.models.inventory import Product, ProductWriteOff, SupplyInvoice, SupplyInvoiceItem
 from app.models.knowledge import KBChunk, KBDocument
 from app.models.master import Master
@@ -33,6 +34,7 @@ __all__ = [
     "Client",
     "ClientNote",
     "ColorFormula",
+    "DailyPick",
     "KBChunk",
     "KBDocument",
     "Master",

@@ -27,6 +27,10 @@ interface TelegramWebApp {
   initDataUnsafe: { user?: TelegramUser; start_param?: string };
   colorScheme: 'light' | 'dark';
   themeParams: Record<string, string>;
+  isClosingConfirmationEnabled?: boolean;
+  enableClosingConfirmation?(): void;
+  disableClosingConfirmation?(): void;
+  disableVerticalSwipes?(): void;
   MainButton: {
     text: string;
     show(): void;
@@ -101,6 +105,16 @@ export function useTelegram() {
       if (tg) {
         tg.ready();
         tg.expand();
+
+        // Prevent accidental close by swipe (Bot API 6.2+)
+        if (typeof tg.enableClosingConfirmation === 'function') {
+          tg.enableClosingConfirmation();
+        }
+        // Prevent vertical swipe-to-close (Bot API 7.7+)
+        if (typeof tg.disableVerticalSwipes === 'function') {
+          tg.disableVerticalSwipes();
+        }
+
         setWebApp(tg);
         setUser(tg.initDataUnsafe.user ?? null);
         const data = tg.initData || readInitDataFromHash() || readCachedInitData();

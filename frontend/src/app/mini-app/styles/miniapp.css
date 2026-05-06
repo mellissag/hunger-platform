@@ -1,5 +1,12 @@
 @import './tokens.css';
 
+/* Prevent pull-to-refresh and swipe-to-close on mobile */
+html,
+body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Mini App root */
 .miniapp-root {
   font-family: var(--ff-body);

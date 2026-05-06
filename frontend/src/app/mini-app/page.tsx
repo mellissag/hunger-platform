@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTelegram } from './hooks/useTelegram';
-import { useMyBookings, useMeProfile, useSalonInfo, pickI18n } from './hooks/useMiniAppData';
+import { useMyBookings, useMeProfile, useSalonInfo, useDailyPick, pickI18n } from './hooks/useMiniAppData';
 import { isoToTimeInZone } from '@/lib/date-local';
 import { useT } from './i18n/context';
 
@@ -29,10 +29,11 @@ function formatLocalDate(iso: string, daysShort: string[], monthsGen: string[]):
 export default function HomePage() {
   const router = useRouter();
   const { user } = useTelegram();
-  const { t } = useT();
+  const { t, lang } = useT();
   const { data: bookings = [] } = useMyBookings();
   const { data: profile } = useMeProfile();
-  const { data: salonInfo } = useSalonInfo();
+  const { data: salonInfo } = useSalonInfo(lang);
+  const { data: dailyPick } = useDailyPick(lang);
 
   useEffect(() => {
     try {
@@ -45,9 +46,7 @@ export default function HomePage() {
   const upcoming = bookings.filter(b => ['confirmed', 'pending'].includes(b.status));
   const nextBooking = upcoming.find(b => b.starts_at != null) ?? null;
 
-  // Client display name: registration form name > Telegram name > guest
   const clientName = profile?.first_name || user?.first_name || t.greetingGuest;
-  const initLetter = clientName.charAt(0).toUpperCase();
 
   const today = new Date();
   const issueNum = String(today.getMonth() + 1).padStart(2, '0');
@@ -77,24 +76,25 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── Greeting ── */}
-      <div style={{ padding: '0 22px 14px' }}>
-        <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 600, color: NEAR_BLACK, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-          {t.greeting}, {clientName}
-        </div>
-      </div>
-
       {/* ── Magazine Hero ── */}
       <div style={{ padding: '12px 26px 16px' }}>
-        <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase', marginBottom: 10 }}>
           {t.homeIssuePrefix} {issueNum} · {monthName}
         </div>
-        <div style={{ fontFamily: SERIF, fontSize: 46, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.1, marginTop: 12, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
-          {t.homeH1} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.homeH1i}</span>.
+        <div style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.0, letterSpacing: '-0.02em', marginBottom: 14 }}>
+          {t.greeting},{' '}
+          <span style={{ fontStyle: 'italic', color: GOLD }}>{clientName}</span>
+          <span style={{ fontStyle: 'normal', color: NEAR_BLACK }}>.</span>
         </div>
-        <div style={{ fontSize: 14, color: SOFT, lineHeight: 1.55, marginTop: 14, maxWidth: 290 }}>
-          {t.homeDesc}
-        </div>
+        {salonInfo?.description ? (
+          <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, margin: '0 0 18px', maxWidth: 300 }}>
+            {salonInfo.description}
+          </div>
+        ) : (
+          <div style={{ fontSize: 14, color: SOFT, lineHeight: 1.55, marginTop: 0, marginBottom: 18, maxWidth: 290 }}>
+            {t.homeDesc}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
           <button
             onClick={() => router.push('/mini-app/book')}
@@ -179,37 +179,43 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ── Dark Card "Подборка дня" — static placeholder ── */}
-      <div style={{ padding: '0 16px', marginTop: 8 }}>
-        <div style={{
-          background: NEAR_BLACK, borderRadius: 24, padding: '22px', color: '#F0EBE0',
-          position: 'relative', overflow: 'hidden',
-        }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${GOLD_HI}, transparent)` }} />
-          <div style={{ position: 'absolute', right: -40, bottom: -40, width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,.25), transparent 70%)' }} />
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD_HI, textTransform: 'uppercase' }}>{t.homeDayPick}</div>
-          <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 600, marginTop: 10, lineHeight: 1.15, position: 'relative' }}>
-            «Весенний <span style={{ fontStyle: 'italic', color: GOLD_HI }}>уход</span>»<br />
-            <span style={{ fontSize: 20, fontWeight: 500 }}>три услуги — €180</span>
+      {/* ── Dark Card "Подборка дня" — from Admin ── */}
+      {dailyPick && (
+        <div style={{ padding: '0 16px', marginTop: 8 }}>
+          <div style={{
+            background: NEAR_BLACK, borderRadius: 24, padding: '22px', color: '#F0EBE0',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${GOLD_HI}, transparent)` }} />
+            <div style={{ position: 'absolute', right: -40, bottom: -40, width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,.25), transparent 70%)' }} />
+            <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD_HI, textTransform: 'uppercase' }}>{t.homeDayPick}</div>
+            <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 600, marginTop: 10, lineHeight: 1.15, position: 'relative' }}>
+              <span style={{ fontStyle: 'italic', color: GOLD_HI }}>{dailyPick.title}</span>
+              {dailyPick.price != null && (
+                <><br /><span style={{ fontSize: 20, fontWeight: 500 }}>€{dailyPick.price}</span></>
+              )}
+            </div>
+            {dailyPick.tags.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginTop: 14, position: 'relative' }}>
+                {dailyPick.tags.map(tag => (
+                  <div key={tag} style={{ border: '1px solid rgba(201,168,76,.4)', padding: '5px 10px', borderRadius: 2, fontSize: 10, letterSpacing: '0.06em' }}>{tag}</div>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => router.push(dailyPick.service_id ? `/mini-app/catalog/${dailyPick.service_id}` : '/mini-app/book')}
+              style={{
+                marginTop: 16, background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`,
+                border: 'none', color: '#fff', padding: '11px 20px', borderRadius: 999,
+                fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase',
+                fontFamily: BODY, cursor: 'pointer', position: 'relative',
+              }}
+            >
+              {t.homeBtnBook}
+            </button>
           </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginTop: 14, position: 'relative' }}>
-            {['Уход за лицом', 'Маникюр', 'Массаж'].map(tag => (
-              <div key={tag} style={{ border: '1px solid rgba(201,168,76,.4)', padding: '5px 10px', borderRadius: 2, fontSize: 10, letterSpacing: '0.06em' }}>{tag}</div>
-            ))}
-          </div>
-          <button
-            onClick={() => router.push('/mini-app/book')}
-            style={{
-              marginTop: 16, background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`,
-              border: 'none', color: '#fff', padding: '11px 20px', borderRadius: 999,
-              fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase',
-              fontFamily: BODY, cursor: 'pointer', position: 'relative',
-            }}
-          >
-            {t.homeBtnBook}
-          </button>
         </div>
-      </div>
+      )}
 
       {/* ── 2-column glass cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '14px 16px' }}>

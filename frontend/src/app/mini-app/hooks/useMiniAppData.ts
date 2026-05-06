@@ -166,11 +166,11 @@ function readCachedSalonName(): string {
   try { return sessionStorage.getItem(SALON_NAME_KEY) ?? ''; } catch { return ''; }
 }
 
-export function useSalonInfo() {
+export function useSalonInfo(lang = 'ru') {
   return useQuery<SalonInfo>({
-    queryKey: ['mini-app', 'salon'],
+    queryKey: ['mini-app', 'salon', lang],
     queryFn: async () => {
-      const data = await apiFetch<SalonInfo>('/api/v1/mini-app/salon');
+      const data = await apiFetch<SalonInfo>(`/api/v1/mini-app/salon?lang=${lang}`);
       if (data.name) {
         try { sessionStorage.setItem(SALON_NAME_KEY, data.name); } catch { /* ignore */ }
       }
@@ -183,6 +183,22 @@ export function useSalonInfo() {
       phone: '',
     }),
     staleTime: 10 * 60_000,
+  });
+}
+
+export interface DailyPick {
+  id: number;
+  title: string;
+  tags: string[];
+  price: number | null;
+  service_id: string | null;
+}
+
+export function useDailyPick(lang = 'ru') {
+  return useQuery<DailyPick | null>({
+    queryKey: ['mini-app', 'daily-pick', lang],
+    queryFn: () => apiFetch<DailyPick | null>(`/api/v1/mini-app/daily-pick?lang=${lang}`),
+    staleTime: 30 * 60_000,
   });
 }
 

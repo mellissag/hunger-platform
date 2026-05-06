@@ -637,20 +637,261 @@ class MiniAppSalonInfo(_BM):
 
 
 @router.get("/salon", response_model=MiniAppSalonInfo)
-async def get_salon_info(db: AsyncSession = Depends(get_db)) -> MiniAppSalonInfo:
-    """Public: return basic salon info."""
+async def get_salon_info(
+    lang: str = "ru",
+    db: AsyncSession = Depends(get_db),
+) -> MiniAppSalonInfo:
+    """Public: return basic salon info. lang param selects description language."""
     salon = (await db.execute(select(Salon).limit(1))).scalar_one_or_none()
     if salon is None:
         return MiniAppSalonInfo()
     contacts: dict[str, Any] = salon.contacts or {}
     desc_dict: dict[str, Any] = salon.description if isinstance(salon.description, dict) else {}
-    desc = desc_dict.get("ru") or desc_dict.get("en") or ""
+    resolved_lang = lang if lang in _SUPPORTED_LANGS else "en"
+    desc = (
+        desc_dict.get(resolved_lang)
+        or desc_dict.get("ru")
+        or desc_dict.get("en")
+        or next(iter(desc_dict.values()), "")
+        or ""
+    )
     return MiniAppSalonInfo(
         name=salon.name or "",
         description=desc,
         address=contacts.get("address", ""),
         phone=contacts.get("phone", ""),
     )
+
+
+# ─── Daily Pick ──────────────────────────────────────────────────────────────
+
+
+class MiniAppDailyPickOut(_BM):
+    id: str
+    title: str
+    tags: list[str]
+    price: float | None = None
+    service_id: str | None = None
+
+
+class DailyPickUpsert(_BM):
+    title_ru: str = ""
+    title_en: str = ""
+    title_uk: str = ""
+    title_bg: str = ""
+    tags_ru: str = ""
+    tags_en: str = ""
+    tags_uk: str = ""
+    tags_bg: str = ""
+    price: float | None = None
+    service_id: str | None = None
+    active: bool = True
+    valid_from: str | None = None
+    valid_to: str | None = None
+
+
+@router.get("/daily-pick", response_model=MiniAppDailyPickOut | None)
+async def get_daily_pick(
+    lang: str = "ru",
+    db: AsyncSession = Depends(get_db),
+) -> MiniAppDailyPickOut | None:
+    """Public: return today's active daily pick for Mini App."""
+    from datetime import date as _date
+
+    from sqlalchemy import or_
+
+    from app.models.daily_pick import DailyPick
+
+    today = _date.today()
+    q = (
+        select(DailyPick)
+        .where(
+            DailyPick.active.is_(True),
+            or_(DailyPick.valid_from.is_(None), DailyPick.valid_from <= today),
+            or_(DailyPick.valid_to.is_(None), DailyPick.valid_to >= today),
+        )
+        .order_by(DailyPick.updated_at.desc())
+        .limit(1)
+    )
+    result = await db.execute(q)
+    pick = result.scalar_one_or_none()
+    if not pick:
+        return None
+
+    resolved = lang if lang in _SUPPORTED_LANGS else "ru"
+    title = (
+        getattr(pick, f"title_{resolved}", None)
+        or pick.title_ru
+        or pick.title_en
+        or ""
+    )
+    raw_tags = getattr(pick, f"tags_{resolved}", None) or pick.tags_ru or ""
+    tags = [t.strip() for t in raw_tags.split(",") if t.strip()] if raw_tags else []
+
+    return MiniAppDailyPickOut(
+        id=str(pick.id),
+        title=title,
+        tags=tags,
+        price=float(pick.price) if pick.price is not None else None,
+        service_id=str(pick.service_id) if pick.service_id else None,
+    )
+
+
+@router.get("/daily-pick/admin", response_model=list[MiniAppDailyPickOut])
+async def list_daily_picks_admin(
+    db: AsyncSession = Depends(get_db),
+) -> list[MiniAppDailyPickOut]:
+    """Admin: list all daily picks."""
+    from app.models.daily_pick import DailyPick
+
+    rows = (
+        await db.execute(select(DailyPick).order_by(DailyPick.updated_at.desc()))
+    ).scalars().all()
+
+    out = []
+    for p in rows:
+        raw = p.tags_ru or ""
+        tags = [t.strip() for t in raw.split(",") if t.strip()]
+        out.append(MiniAppDailyPickOut(
+            id=str(p.id),
+            title=p.title_ru or p.title_en or "",
+            tags=tags,
+            price=float(p.price) if p.price is not None else None,
+            service_id=str(p.service_id) if p.service_id else None,
+        ))
+    return out
+
+
+class DailyPickFull(_BM):
+    id: str
+    title_ru: str
+    title_en: str
+    title_uk: str
+    title_bg: str
+    tags_ru: str
+    tags_en: str
+    tags_uk: str
+    tags_bg: str
+    price: float | None = None
+    service_id: str | None = None
+    active: bool
+    valid_from: str | None = None
+    valid_to: str | None = None
+
+
+@router.get("/daily-pick/admin/{pick_id}", response_model=DailyPickFull)
+async def get_daily_pick_admin(
+    pick_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> DailyPickFull:
+    """Admin: get full daily pick by id."""
+    import uuid as _uuid
+
+    from app.models.daily_pick import DailyPick
+
+    p = await db.get(DailyPick, _uuid.UUID(pick_id))
+    if not p:
+        raise HTTPException(404, "Not found")
+    return DailyPickFull(
+        id=str(p.id),
+        title_ru=p.title_ru or "",
+        title_en=p.title_en or "",
+        title_uk=p.title_uk or "",
+        title_bg=p.title_bg or "",
+        tags_ru=p.tags_ru or "",
+        tags_en=p.tags_en or "",
+        tags_uk=p.tags_uk or "",
+        tags_bg=p.tags_bg or "",
+        price=float(p.price) if p.price is not None else None,
+        service_id=str(p.service_id) if p.service_id else None,
+        active=p.active,
+        valid_from=p.valid_from.isoformat() if p.valid_from else None,
+        valid_to=p.valid_to.isoformat() if p.valid_to else None,
+    )
+
+
+@router.post("/daily-pick/admin", response_model=DailyPickFull, status_code=201)
+async def create_daily_pick(
+    payload: DailyPickUpsert,
+    db: AsyncSession = Depends(get_db),
+) -> DailyPickFull:
+    """Admin: create a daily pick."""
+    import uuid as _uuid
+    from datetime import date as _date
+
+    from app.models.daily_pick import DailyPick
+
+    p = DailyPick(
+        title_ru=payload.title_ru or None,
+        title_en=payload.title_en or None,
+        title_uk=payload.title_uk or None,
+        title_bg=payload.title_bg or None,
+        tags_ru=payload.tags_ru or None,
+        tags_en=payload.tags_en or None,
+        tags_uk=payload.tags_uk or None,
+        tags_bg=payload.tags_bg or None,
+        price=payload.price,
+        service_id=_uuid.UUID(payload.service_id) if payload.service_id else None,
+        active=payload.active,
+        valid_from=_date.fromisoformat(payload.valid_from) if payload.valid_from else None,
+        valid_to=_date.fromisoformat(payload.valid_to) if payload.valid_to else None,
+    )
+    db.add(p)
+    await db.commit()
+    await db.refresh(p)
+    return await get_daily_pick_admin(str(p.id), db)
+
+
+@router.patch("/daily-pick/admin/{pick_id}", response_model=DailyPickFull)
+async def update_daily_pick(
+    pick_id: str,
+    payload: DailyPickUpsert,
+    db: AsyncSession = Depends(get_db),
+) -> DailyPickFull:
+    """Admin: update a daily pick."""
+    import uuid as _uuid
+    from datetime import date as _date
+
+    from app.models.daily_pick import DailyPick
+
+    p = await db.get(DailyPick, _uuid.UUID(pick_id))
+    if not p:
+        raise HTTPException(404, "Not found")
+
+    p.title_ru = payload.title_ru or None
+    p.title_en = payload.title_en or None
+    p.title_uk = payload.title_uk or None
+    p.title_bg = payload.title_bg or None
+    p.tags_ru = payload.tags_ru or None
+    p.tags_en = payload.tags_en or None
+    p.tags_uk = payload.tags_uk or None
+    p.tags_bg = payload.tags_bg or None
+    p.price = payload.price
+    p.service_id = _uuid.UUID(payload.service_id) if payload.service_id else None
+    p.active = payload.active
+    p.valid_from = _date.fromisoformat(payload.valid_from) if payload.valid_from else None
+    p.valid_to = _date.fromisoformat(payload.valid_to) if payload.valid_to else None
+
+    await db.commit()
+    await db.refresh(p)
+    return await get_daily_pick_admin(str(p.id), db)
+
+
+@router.delete("/daily-pick/admin/{pick_id}", status_code=204)
+async def delete_daily_pick(
+    pick_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Admin: delete a daily pick."""
+    import uuid as _uuid
+
+    from app.models.daily_pick import DailyPick
+
+    p = await db.get(DailyPick, _uuid.UUID(pick_id))
+    if not p:
+        raise HTTPException(404, "Not found")
+    await db.delete(p)
+    await db.commit()
 
 
 # ─── AI chat ─────────────────────────────────────────────────────────────────

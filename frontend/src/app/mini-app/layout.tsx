@@ -26,10 +26,11 @@ function CalendarIcon({ size = 22 }: { size?: number }) {
   );
 }
 
-function PlusIcon({ size = 24 }: { size?: number }) {
+function ScissorsIcon({ size = 20 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-      <path d="M12 5v14M5 12h14"/>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+      <path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/>
     </svg>
   );
 }
@@ -64,7 +65,7 @@ interface TabItem {
 const TABS: TabItem[] = [
   { icon: HomeIcon, labelKey: 'tabHome', href: '/mini-app' },
   { icon: GridIcon, labelKey: 'tabCatalog', href: '/mini-app/catalog' },
-  { icon: PlusIcon, labelKey: 'tabHome', href: '/mini-app/book', isFab: true },
+  { icon: ScissorsIcon, labelKey: 'tabHome', href: '/mini-app/book', isFab: true },
   { icon: CalendarIcon, labelKey: 'tabBookings', href: '/mini-app/bookings' },
   { icon: UserIcon, labelKey: 'tabProfile', href: '/mini-app/profile' },
 ];
