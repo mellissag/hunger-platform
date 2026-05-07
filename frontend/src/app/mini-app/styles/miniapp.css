@@ -15,6 +15,7 @@ body {
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  padding-top: var(--tg-content-top, 80px);
 }
 
 /* Magazine background — ivory + subtle gold radial glow */

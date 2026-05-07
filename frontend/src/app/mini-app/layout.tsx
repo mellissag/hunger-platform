@@ -176,6 +176,24 @@ function MiniAppInner({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (!tg) return;
+
+    tg.ready();
+    tg.expand();
+
+    // In fullscreen mode we need contentSafeAreaInset, not safeAreaInset.
+    // contentSafeAreaInset.top = space taken by the floating TG close button.
+    const systemTop  = tg.safeAreaInset?.top        ?? 0;
+    const contentTop = tg.contentSafeAreaInset?.top ?? 0;
+    const totalTop   = systemTop + contentTop;
+
+    document.documentElement.style.setProperty(
+      '--tg-content-top', `${totalTop}px`
+    );
+  }, []);
+
+  useEffect(() => {
     try {
       const saved = localStorage.getItem('hunger_theme');
       if (saved === 'dark') setTheme('dark');
