@@ -182,15 +182,21 @@ function MiniAppInner({ children }: { children: ReactNode }) {
     tg.ready();
     tg.expand();
 
-    // In fullscreen mode we need contentSafeAreaInset, not safeAreaInset.
-    // contentSafeAreaInset.top = space taken by the floating TG close button.
-    const systemTop  = (tg as any).safeAreaInset?.top        ?? 0;
-    const contentTop = (tg as any).contentSafeAreaInset?.top ?? 0;
-    const totalTop   = systemTop + contentTop;
+    const applyInsets = () => {
+      const sys     = (tg as any).safeAreaInset?.top        ?? 0;
+      const content = (tg as any).contentSafeAreaInset?.top ?? 0;
+      const total   = Math.max(sys + content, 90);
+      document.documentElement.style.setProperty('--tg-content-top', `${total}px`);
+    };
 
-    document.documentElement.style.setProperty(
-      '--tg-content-top', `${totalTop}px`
-    );
+    applyInsets();
+    tg.onEvent('safeAreaChanged',        applyInsets);
+    tg.onEvent('contentSafeAreaChanged', applyInsets);
+
+    return () => {
+      tg.offEvent('safeAreaChanged',        applyInsets);
+      tg.offEvent('contentSafeAreaChanged', applyInsets);
+    };
   }, []);
 
   useEffect(() => {
@@ -204,6 +210,7 @@ function MiniAppInner({ children }: { children: ReactNode }) {
 
   return (
     <div
+      className="miniapp-root"
       data-theme={theme}
       style={{
         fontFamily: '"Inter", system-ui, -apple-system, sans-serif',

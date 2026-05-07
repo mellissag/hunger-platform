@@ -183,6 +183,7 @@ export default function OnboardingPage() {
 
   const pageBg: React.CSSProperties = {
     position: 'fixed', inset: 0,
+    paddingTop: 'var(--tg-content-top, 90px)',
     background: `radial-gradient(ellipse at 100% 0%, rgba(201,168,76,.10), transparent 50%),
       radial-gradient(ellipse at 0% 100%, rgba(237,229,213,.5), transparent 50%), ${IVORY}`,
     fontFamily: BODY, color: NEAR_BLACK,
@@ -202,7 +203,7 @@ export default function OnboardingPage() {
   // ── Screen -1: Welcome Splash ──────────────────────────────────────────────
   if (screen === -1) {
     return (
-      <div style={{ ...pageBg, alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 32px' }}>
+      <div style={{ ...pageBg, alignItems: 'center', justifyContent: 'center', textAlign: 'center', paddingLeft: 32, paddingRight: 32 }}>
         <div style={{ marginBottom: 32 }}>
           <div style={{
             width: 88, height: 88, borderRadius: '50%',
@@ -411,6 +412,7 @@ export default function OnboardingPage() {
     // Live-preview: background and text flip immediately when theme is tapped
     const s3bg: React.CSSProperties = {
       position: 'fixed', inset: 0,
+      paddingTop: 'var(--tg-content-top, 90px)',
       background: dk
         ? `radial-gradient(ellipse at 100% 0%, rgba(201,168,76,.06), transparent 50%), ${NEAR_BLACK}`
         : `radial-gradient(ellipse at 100% 0%, rgba(201,168,76,.10), transparent 50%),
@@ -538,7 +540,7 @@ export default function OnboardingPage() {
 
   // ── Screen 4: Celebration ──────────────────────────────────────────────────
   return (
-    <div style={{ ...pageBg, alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 32px' }}>
+    <div style={{ ...pageBg, alignItems: 'center', justifyContent: 'center', textAlign: 'center', paddingLeft: 32, paddingRight: 32 }}>
       <div style={{ marginBottom: 32 }}>
         <div style={{
           width: 80, height: 80, borderRadius: '50%',
