@@ -184,8 +184,8 @@ function MiniAppInner({ children }: { children: ReactNode }) {
 
     // In fullscreen mode we need contentSafeAreaInset, not safeAreaInset.
     // contentSafeAreaInset.top = space taken by the floating TG close button.
-    const systemTop  = tg.safeAreaInset?.top        ?? 0;
-    const contentTop = tg.contentSafeAreaInset?.top ?? 0;
+    const systemTop  = (tg as any).safeAreaInset?.top        ?? 0;
+    const contentTop = (tg as any).contentSafeAreaInset?.top ?? 0;
     const totalTop   = systemTop + contentTop;
 
     document.documentElement.style.setProperty(
