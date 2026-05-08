@@ -28,6 +28,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { useTheme } from "@/providers/ThemeProvider";
 import { NotificationsBell } from "@/components/layout/NotificationsBell";
+import { useChatList } from "@/hooks/useChatData";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -135,6 +136,13 @@ export function AdminAppShell({
 
   const displayName = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email;
 
+  // Live unread chat count for sidebar badge
+  const canReadChats = can(user, "read", "chats");
+  const { data: chatList = [] } = useChatList();
+  const totalUnreadChats = canReadChats
+    ? chatList.reduce((s, c) => s + c.unread_count, 0)
+    : 0;
+
   return (
     <div className="flex min-h-screen min-w-0 bg-background text-foreground">
       <aside className="hidden w-60 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
@@ -166,11 +174,15 @@ export function AdminAppShell({
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="flex-1">{t(`nav.${item.labelKey}` as never)}</span>
-                {item.badge && (
+                {item.href === "/chats" && totalUnreadChats > 0 ? (
+                  <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    {totalUnreadChats > 99 ? "99+" : totalUnreadChats}
+                  </span>
+                ) : item.badge && item.href !== "/chats" ? (
                   <span className="rounded border border-muted-foreground/30 bg-muted px-1.5 py-0 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
                     {t(`nav.${item.badge}` as never)}
                   </span>
-                )}
+                ) : null}
               </Link>
             );
           })}
@@ -205,8 +217,13 @@ export function AdminAppShell({
                       onClick={() => setMobileOpen(false)}
                       className="flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted"
                     >
-                      <Icon className="h-4 w-4" />
-                      {t(`nav.${item.labelKey}` as never)}
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="flex-1">{t(`nav.${item.labelKey}` as never)}</span>
+                      {item.href === "/chats" && totalUnreadChats > 0 && (
+                        <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                          {totalUnreadChats > 99 ? "99+" : totalUnreadChats}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}

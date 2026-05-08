@@ -1,0 +1,420 @@
+"""Admin Chat API — REST + WebSocket для real-time чата с клиентами через бота."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+from pathlib import Path
+from typing import Annotated
+from uuid import UUID
+
+import aiofiles
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
+)
+from pydantic import BaseModel
+from sqlalchemy import func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.security import decode_access_token, parse_access_payload
+from app.deps import get_db, get_redis, get_telegram_bot, require_roles
+from app.models.chat_message import ChatMessage, MessageDirection, MessageType
+from app.models.client import Client
+from app.models.enums import UserRole
+
+router = APIRouter(prefix="/admin/chats", tags=["admin-chat"])
+
+_UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "./data/uploads"))
+_CHAT_MEDIA_DIR = _UPLOAD_DIR / "chat"
+
+
+def _ensure_media_dir() -> None:
+    _CHAT_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _media_url(path: str | None) -> str | None:
+    """Convert absolute file path to /media/... URL."""
+    if not path:
+        return None
+    p = Path(path)
+    try:
+        rel = p.relative_to(_UPLOAD_DIR)
+        return f"/media/{rel}"
+    except ValueError:
+        return f"/media/chat/{p.name}"
+
+
+# ── Schemas ───────────────────────────────────────────────────────────────────
+
+class ChatListItem(BaseModel):
+    client_id: UUID
+    tg_user_id: int | None
+    first_name: str | None
+    last_name: str | None
+    last_message: str | None
+    last_message_at: str | None
+    unread_count: int
+
+    model_config = {"from_attributes": True}
+
+
+class MessageOut(BaseModel):
+    id: UUID
+    client_id: UUID
+    direction: str
+    message_type: str
+    text: str | None
+    media_path: str | None
+    tg_message_id: int | None
+    is_read: bool
+    created_at: str
+
+    model_config = {"from_attributes": True}
+
+
+class SendTextPayload(BaseModel):
+    text: str
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _msg_to_out(m: ChatMessage) -> MessageOut:
+    return MessageOut(
+        id=m.id,
+        client_id=m.client_id,
+        direction=m.direction.value,
+        message_type=m.message_type.value,
+        text=m.text,
+        media_path=_media_url(m.media_path),
+        tg_message_id=m.tg_message_id,
+        is_read=m.is_read,
+        created_at=m.created_at.isoformat(),
+    )
+
+
+async def _publish(redis, event: str, payload: dict) -> None:
+    if redis is None:
+        return
+    payload["_event"] = event
+    await redis.publish(f"chat:{event}", json.dumps(payload))
+
+
+# ── List of chats ─────────────────────────────────────────────────────────────
+
+@router.get("", response_model=list[ChatListItem])
+async def list_chats(
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Список клиентов с диалогами, сортированных по последнему сообщению."""
+    last_at_subq = (
+        select(
+            ChatMessage.client_id,
+            func.max(ChatMessage.created_at).label("last_at"),
+        )
+        .group_by(ChatMessage.client_id)
+        .subquery()
+    )
+    unread_subq = (
+        select(
+            ChatMessage.client_id,
+            func.count(ChatMessage.id).label("unread"),
+        )
+        .where(
+            ChatMessage.direction == MessageDirection.inbound,
+            ChatMessage.is_read.is_(False),
+        )
+        .group_by(ChatMessage.client_id)
+        .subquery()
+    )
+
+    rows = await db.execute(
+        select(Client, last_at_subq.c.last_at, unread_subq.c.unread)
+        .join(last_at_subq, last_at_subq.c.client_id == Client.id)
+        .outerjoin(unread_subq, unread_subq.c.client_id == Client.id)
+        .order_by(last_at_subq.c.last_at.desc())
+    )
+
+    result: list[ChatListItem] = []
+    for client, last_at, unread in rows:
+        last_msg_row = await db.execute(
+            select(ChatMessage)
+            .where(ChatMessage.client_id == client.id)
+            .order_by(ChatMessage.created_at.desc())
+            .limit(1)
+        )
+        last = last_msg_row.scalar_one_or_none()
+        preview = last.text if last and last.text else (f"[{last.message_type.value}]" if last else None)
+        result.append(
+            ChatListItem(
+                client_id=client.id,
+                tg_user_id=client.tg_user_id,
+                first_name=client.first_name,
+                last_name=client.last_name,
+                last_message=preview,
+                last_message_at=last_at.isoformat() if last_at else None,
+                unread_count=unread or 0,
+            )
+        )
+    return result
+
+
+# ── Message history ───────────────────────────────────────────────────────────
+
+@router.get("/{client_id}/messages", response_model=list[MessageOut])
+async def get_messages(
+    client_id: UUID,
+    limit: int = 50,
+    before_id: UUID | None = None,
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception)),
+    db: AsyncSession = Depends(get_db),
+):
+    q = select(ChatMessage).where(ChatMessage.client_id == client_id)
+    if before_id:
+        pivot = await db.get(ChatMessage, before_id)
+        if pivot:
+            q = q.where(ChatMessage.created_at < pivot.created_at)
+    q = q.order_by(ChatMessage.created_at.desc()).limit(limit)
+    rows = await db.execute(q)
+    msgs = list(reversed(rows.scalars().all()))
+    return [_msg_to_out(m) for m in msgs]
+
+
+# ── Mark as read ──────────────────────────────────────────────────────────────
+
+@router.post("/{client_id}/read")
+async def mark_read(
+    client_id: UUID,
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception)),
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
+):
+    await db.execute(
+        update(ChatMessage)
+        .where(
+            ChatMessage.client_id == client_id,
+            ChatMessage.direction == MessageDirection.inbound,
+            ChatMessage.is_read.is_(False),
+        )
+        .values(is_read=True)
+    )
+    await db.commit()
+    await _publish(redis, "read", {"client_id": str(client_id)})
+    return {"ok": True}
+
+
+# ── Send text ─────────────────────────────────────────────────────────────────
+
+@router.post("/{client_id}/send/text")
+async def send_text(
+    client_id: UUID,
+    payload: SendTextPayload,
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception)),
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
+    bot=Depends(get_telegram_bot),
+):
+    client = await db.get(Client, client_id)
+    if not client:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Client not found")
+    if not client.tg_user_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Client has no Telegram account")
+
+    tg_msg = await bot.send_message(chat_id=client.tg_user_id, text=payload.text)
+
+    msg = ChatMessage(
+        client_id=client_id,
+        direction=MessageDirection.outbound,
+        message_type=MessageType.text,
+        text=payload.text,
+        tg_message_id=tg_msg.message_id,
+        is_read=True,
+    )
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+
+    await _publish(redis, "new_message", {
+        "id": str(msg.id),
+        "client_id": str(client_id),
+        "direction": "outbound",
+        "message_type": "text",
+        "text": payload.text,
+        "media_path": None,
+        "tg_message_id": tg_msg.message_id,
+        "is_read": True,
+        "created_at": msg.created_at.isoformat(),
+    })
+    return {"ok": True, "message_id": str(msg.id)}
+
+
+# ── Send media ────────────────────────────────────────────────────────────────
+
+@router.post("/{client_id}/send/media")
+async def send_media(
+    client_id: UUID,
+    file: UploadFile = File(...),
+    caption: str | None = Form(None),
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception)),
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
+    bot=Depends(get_telegram_bot),
+):
+    client = await db.get(Client, client_id)
+    if not client:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Client not found")
+    if not client.tg_user_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Client has no Telegram account")
+
+    _ensure_media_dir()
+    content_type = file.content_type or ""
+    safe_name = (file.filename or "file").replace("/", "_")
+    dest = _CHAT_MEDIA_DIR / f"{client_id}_{safe_name}"
+
+    async with aiofiles.open(str(dest), "wb") as f:
+        await f.write(await file.read())
+
+    if content_type.startswith("image/"):
+        msg_type = MessageType.photo
+        with open(str(dest), "rb") as fh:
+            tg_msg = await bot.send_photo(chat_id=client.tg_user_id, photo=fh, caption=caption)
+    elif content_type.startswith("video/"):
+        msg_type = MessageType.video
+        with open(str(dest), "rb") as fh:
+            tg_msg = await bot.send_video(chat_id=client.tg_user_id, video=fh, caption=caption)
+    elif content_type.startswith("audio/") or safe_name.endswith(".ogg"):
+        msg_type = MessageType.voice
+        with open(str(dest), "rb") as fh:
+            tg_msg = await bot.send_voice(chat_id=client.tg_user_id, voice=fh)
+    else:
+        msg_type = MessageType.document
+        with open(str(dest), "rb") as fh:
+            tg_msg = await bot.send_document(chat_id=client.tg_user_id, document=fh, caption=caption)
+
+    tg_message_id = getattr(tg_msg, "message_id", None)
+    media_path = str(dest)
+
+    msg = ChatMessage(
+        client_id=client_id,
+        direction=MessageDirection.outbound,
+        message_type=msg_type,
+        text=caption,
+        media_path=media_path,
+        tg_message_id=tg_message_id,
+        is_read=True,
+    )
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+
+    await _publish(redis, "new_message", {
+        "id": str(msg.id),
+        "client_id": str(client_id),
+        "direction": "outbound",
+        "message_type": msg_type.value,
+        "text": caption,
+        "media_path": _media_url(media_path),
+        "tg_message_id": tg_message_id,
+        "is_read": True,
+        "created_at": msg.created_at.isoformat(),
+    })
+    return {"ok": True, "message_id": str(msg.id)}
+
+
+# ── WebSocket connection manager ──────────────────────────────────────────────
+
+class _Manager:
+    def __init__(self) -> None:
+        self._connections: list[WebSocket] = []
+
+    async def connect(self, ws: WebSocket) -> None:
+        await ws.accept()
+        self._connections.append(ws)
+
+    def disconnect(self, ws: WebSocket) -> None:
+        self._connections.discard(ws) if hasattr(self._connections, "discard") else (
+            self._connections.remove(ws) if ws in self._connections else None
+        )
+
+    async def broadcast(self, data: str) -> None:
+        dead: list[WebSocket] = []
+        for ws in list(self._connections):
+            try:
+                await ws.send_text(data)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            if ws in self._connections:
+                self._connections.remove(ws)
+
+
+_manager = _Manager()
+
+
+# ── WebSocket endpoint ────────────────────────────────────────────────────────
+
+@router.websocket("/ws")
+async def chat_ws(
+    websocket: WebSocket,
+    token: str | None = None,
+    redis=Depends(get_redis),
+):
+    """
+    WebSocket для real-time обновлений чата.
+    Аутентификация через query-параметр ?token=<jwt>.
+    """
+    # Validate JWT token
+    if not token:
+        await websocket.close(code=4001)
+        return
+    try:
+        payload = decode_access_token(token)
+        parse_access_payload(payload)
+    except Exception:
+        await websocket.close(code=4001)
+        return
+
+    await _manager.connect(websocket)
+
+    if redis is None:
+        # No Redis — just keep the connection alive, no events
+        try:
+            while True:
+                await websocket.receive_text()
+        except WebSocketDisconnect:
+            _manager.disconnect(websocket)
+        return
+
+    pubsub = redis.pubsub()
+    await pubsub.subscribe("chat:new_message", "chat:read")
+
+    async def _listen() -> None:
+        async for raw in pubsub.listen():
+            if raw["type"] != "message":
+                continue
+            data = raw["data"]
+            if isinstance(data, bytes):
+                data = data.decode()
+            await _manager.broadcast(data)
+
+    listen_task = asyncio.create_task(_listen())
+
+    try:
+        while True:
+            await websocket.receive_text()  # keep-alive pings
+    except WebSocketDisconnect:
+        pass
+    finally:
+        _manager.disconnect(websocket)
+        listen_task.cancel()
+        await pubsub.unsubscribe("chat:new_message", "chat:read")
+        await pubsub.aclose()

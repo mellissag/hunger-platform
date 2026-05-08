@@ -8,6 +8,7 @@ from app.models.audit import AuditLog
 from app.models.booking import BlacklistEntry, Booking, Review
 from app.models.broadcast import Broadcast, BroadcastRecipient
 from app.models.catalog import MasterService, Service, ServiceCategory
+from app.models.chat_message import ChatMessage
 from app.models.client import Client, ClientNote
 from app.models.color_formula import ColorFormula
 from app.models.daily_pick import DailyPick
@@ -31,6 +32,7 @@ __all__ = [
     "BotVisitStat",
     "Broadcast",
     "BroadcastRecipient",
+    "ChatMessage",
     "Client",
     "ClientNote",
     "ColorFormula",

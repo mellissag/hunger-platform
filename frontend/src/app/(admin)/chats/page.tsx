@@ -1,191 +1,429 @@
 "use client";
 
-import Link from "next/link";
-import { MessageSquare, Search, Users } from "lucide-react";
-import { useState } from "react";
-import { useTranslations } from "next-intl";
+import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { MessageSquare, Paperclip, Search, Send } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { getPublicApiBaseUrl } from "@/lib/env";
 import { cn } from "@/lib/utils";
+import {
+  chatKeys,
+  ChatListItem,
+  ChatMessage,
+  useChatList,
+  useChatMessages,
+  useChatWebSocket,
+  useMarkRead,
+  useSendMedia,
+  useSendText,
+  WsEvent,
+} from "@/hooks/useChatData";
 
-const FAKE_CHATS = [
-  {
-    id: "1",
-    name: "Мария Иванова",
-    avatar: "МИ",
-    color: "#9A7230",
-    preview: "Хочу записаться на окрашивание...",
-    time: "10:24",
-    unread: 2,
-    online: true,
-  },
-  {
-    id: "2",
-    name: "Карина Бойко",
-    avatar: "КБ",
-    color: "#16a34a",
-    preview: "Спасибо, жду вашего подтверждения!",
-    time: "Вчера",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: "3",
-    name: "Алина Дорошенко",
-    avatar: "АД",
-    color: "#2563eb",
-    preview: "Можно перенести запись на пятницу?",
-    time: "Вт",
-    unread: 1,
-    online: false,
-  },
-  {
-    id: "4",
-    name: "Виктория Семенова",
-    avatar: "ВС",
-    color: "#9333ea",
-    preview: "Отлично, спасибо за ответ 😊",
-    time: "Пн",
-    unread: 0,
-    online: true,
-  },
-];
+// ── Sound notification ────────────────────────────────────────────────────────
 
-export default function ChatsPage() {
-  const t = useTranslations("pages.chats");
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<string | null>(null);
+function playNotify() {
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.35);
+  } catch {
+    // AudioContext not available
+  }
+}
 
-  const filtered = FAKE_CHATS.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()),
-  );
+// ── Time formatter ────────────────────────────────────────────────────────────
+
+function fmtTime(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  if (d.toDateString() === now.toDateString()) {
+    return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  }
+  return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+}
+
+// ── Message bubble ────────────────────────────────────────────────────────────
+
+function MessageBubble({ msg }: { msg: ChatMessage }) {
+  const API = getPublicApiBaseUrl();
+  const isOut = msg.direction === "outbound";
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden rounded-xl border border-border shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-      {/* Left panel — chat list */}
+    <div
+      className={cn(
+        "flex max-w-[72%] flex-col rounded-2xl px-3 py-2 shadow-sm",
+        isOut
+          ? "ml-auto bg-primary text-primary-foreground"
+          : "mr-auto border border-border bg-card text-foreground",
+      )}
+    >
+      {msg.message_type === "photo" && msg.media_path && (
+        <a href={`${API}${msg.media_path}`} target="_blank" rel="noreferrer" className="block">
+          <Image
+            src={`${API}${msg.media_path}`}
+            alt="photo"
+            width={260}
+            height={200}
+            className="max-h-48 w-full rounded-xl object-cover"
+            unoptimized
+          />
+        </a>
+      )}
+      {msg.message_type === "video" && msg.media_path && (
+        <video
+          src={`${API}${msg.media_path}`}
+          controls
+          className="max-h-48 w-full rounded-xl"
+        />
+      )}
+      {msg.message_type === "voice" && msg.media_path && (
+        <audio src={`${API}${msg.media_path}`} controls className="w-full" />
+      )}
+      {msg.message_type === "document" && msg.media_path && (
+        <a
+          href={`${API}${msg.media_path}`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-sm underline"
+        >
+          📎 Документ
+        </a>
+      )}
+      {msg.text && (
+        <p className="mt-1 whitespace-pre-wrap text-sm leading-snug">{msg.text}</p>
+      )}
+      <span
+        className={cn(
+          "mt-1 self-end text-[10px]",
+          isOut ? "text-primary-foreground/60" : "text-muted-foreground",
+        )}
+      >
+        {fmtTime(msg.created_at)}
+      </span>
+    </div>
+  );
+}
+
+// ── Chat list item ────────────────────────────────────────────────────────────
+
+function ChatListRow({
+  chat,
+  active,
+  onClick,
+}: {
+  chat: ChatListItem;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const initials = `${(chat.first_name ?? "?").charAt(0)}${(chat.last_name ?? "").charAt(0)}`.toUpperCase();
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40",
+        active && "border-l-2 border-primary bg-primary/5 hover:bg-primary/5",
+      )}
+    >
+      <div className="relative shrink-0">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-xs font-semibold text-primary-foreground">
+          {initials}
+        </div>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between">
+          <span className="truncate text-sm font-medium">
+            {chat.first_name} {chat.last_name ?? ""}
+          </span>
+          {chat.last_message_at && (
+            <span className="ml-1 shrink-0 text-[10px] text-muted-foreground">
+              {fmtTime(chat.last_message_at)}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center justify-between gap-1">
+          <p className="max-w-[140px] truncate text-xs text-muted-foreground">
+            {chat.last_message ?? "—"}
+          </p>
+          {chat.unread_count > 0 && (
+            <span className="ml-1 flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+              {chat.unread_count > 9 ? "9+" : chat.unread_count}
+            </span>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
+export default function ChatsPage() {
+  const qc = useQueryClient();
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [input, setInput] = useState("");
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const { data: chatList = [] } = useChatList();
+  const { data: messages = [], isLoading: msgsLoading } = useChatMessages(activeId);
+  const markRead = useMarkRead();
+  const sendText = useSendText();
+  const sendMedia = useSendMedia();
+
+  // ── WebSocket event handler ──────────────────────────────────────────────────
+  const handleWsEvent = useCallback(
+    (event: WsEvent) => {
+      if (event._event === "new_message") {
+        const msg = event as ChatMessage & { _event: string };
+
+        // Append to open conversation cache
+        qc.setQueryData<ChatMessage[]>(chatKeys.messages(msg.client_id), (old = []) => {
+          if (old.find((m) => m.id === msg.id)) return old;
+          return [...old, msg];
+        });
+
+        // Update chat list
+        qc.setQueryData<ChatListItem[]>(chatKeys.list, (old = []) => {
+          const preview =
+            msg.text ?? (msg.message_type !== "text" ? `[${msg.message_type}]` : "");
+          const exists = old.find((c) => c.client_id === msg.client_id);
+          let updated: ChatListItem[];
+          if (exists) {
+            updated = old.map((c) =>
+              c.client_id === msg.client_id
+                ? {
+                    ...c,
+                    last_message: preview,
+                    last_message_at: msg.created_at,
+                    unread_count:
+                      msg.direction === "inbound" && msg.client_id !== activeId
+                        ? c.unread_count + 1
+                        : c.unread_count,
+                  }
+                : c,
+            );
+          } else {
+            // Unknown client — refetch the list
+            void qc.invalidateQueries({ queryKey: chatKeys.list });
+            return old;
+          }
+          return [...updated].sort((a, b) =>
+            (b.last_message_at ?? "").localeCompare(a.last_message_at ?? ""),
+          );
+        });
+
+        // Play sound only for inbound messages in background dialogs
+        if (msg.direction === "inbound" && msg.client_id !== activeId) {
+          playNotify();
+        }
+      }
+
+      if (event._event === "read") {
+        qc.setQueryData<ChatListItem[]>(chatKeys.list, (old = []) =>
+          old.map((c) =>
+            c.client_id === (event as { client_id: string }).client_id
+              ? { ...c, unread_count: 0 }
+              : c,
+          ),
+        );
+      }
+    },
+    [activeId, qc],
+  );
+
+  useChatWebSocket(handleWsEvent);
+
+  // ── Auto-scroll ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  // ── Open chat ──────────────────────────────────────────────────────────────
+  function openChat(clientId: string) {
+    setActiveId(clientId);
+    markRead.mutate(clientId);
+  }
+
+  // ── Send text ──────────────────────────────────────────────────────────────
+  function handleSend() {
+    if (!activeId || !input.trim()) return;
+    const text = input.trim();
+    setInput("");
+    sendText.mutate(
+      { clientId: activeId, text },
+      {
+        onSuccess: () => {
+          void qc.invalidateQueries({ queryKey: chatKeys.messages(activeId) });
+        },
+      },
+    );
+  }
+
+  // ── Send media ─────────────────────────────────────────────────────────────
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !activeId) return;
+    sendMedia.mutate(
+      { clientId: activeId, file },
+      {
+        onSuccess: () => {
+          void qc.invalidateQueries({ queryKey: chatKeys.messages(activeId) });
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        },
+      },
+    );
+  }
+
+  const filteredChats = chatList.filter((c) => {
+    const name = `${c.first_name ?? ""} ${c.last_name ?? ""}`.toLowerCase();
+    return name.includes(search.toLowerCase());
+  });
+
+  const activeClient = chatList.find((c) => c.client_id === activeId);
+  const totalUnread = chatList.reduce((s, c) => s + c.unread_count, 0);
+
+  return (
+    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden rounded-xl border border-border bg-background shadow-sm">
+
+      {/* ── Left: chat list ────────────────────────────────────────────────── */}
       <aside className="flex w-72 shrink-0 flex-col border-r border-border bg-card">
         {/* Header */}
-        <div className="border-b border-border px-4 py-3">
-          <h1 className="font-playfair text-lg font-semibold">{t("title")}</h1>
-          <p className="text-xs text-muted-foreground">{t("subtitle")}</p>
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+          <h1 className="font-playfair text-base font-semibold">Чаты</h1>
+          {totalUnread > 0 && (
+            <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+              {totalUnread > 99 ? "99+" : totalUnread}
+            </span>
+          )}
         </div>
 
         {/* Search */}
         <div className="border-b border-border p-3">
           <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-1.5">
-            <Search className="h-3.5 w-3.5 text-muted-foreground" />
+            <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <input
               type="text"
-              placeholder={t("searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              placeholder="Поиск клиентов..."
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
           </div>
         </div>
 
-        {/* Chat list */}
+        {/* List */}
         <div className="flex-1 overflow-y-auto">
-          {filtered.map((chat) => (
-            <button
-              key={chat.id}
-              type="button"
-              onClick={() => setSelected(chat.id)}
-              className={cn(
-                "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40",
-                selected === chat.id && "bg-primary/5 hover:bg-primary/5",
-              )}
-            >
-              {/* Avatar */}
-              <div className="relative shrink-0">
-                <div
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-semibold text-white"
-                  style={{ backgroundColor: chat.color }}
-                >
-                  {chat.avatar}
-                </div>
-                {chat.online && (
-                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card bg-green-500" />
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="truncate text-sm font-medium">{chat.name}</span>
-                  <span className="ml-1 shrink-0 text-[10px] text-muted-foreground">
-                    {chat.time}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-1">
-                  <p className="truncate text-xs text-muted-foreground">{chat.preview}</p>
-                  {chat.unread > 0 && (
-                    <span className="ml-1 flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-white">
-                      {chat.unread}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </button>
+          {filteredChats.map((chat) => (
+            <ChatListRow
+              key={chat.client_id}
+              chat={chat}
+              active={activeId === chat.client_id}
+              onClick={() => openChat(chat.client_id)}
+            />
           ))}
-
-          {filtered.length === 0 && (
+          {filteredChats.length === 0 && (
             <p className="p-6 text-center text-sm text-muted-foreground">
-              {t("noResults")}
+              {chatList.length === 0 ? "Нет диалогов" : "Ничего не найдено"}
             </p>
           )}
         </div>
-
-        {/* Coming soon banner */}
-        <div className="border-t border-border bg-muted/20 p-4">
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-center">
-            <span className="text-[11px] font-medium text-primary">
-              {t("devBadge")}
-            </span>
-            <p className="mt-0.5 text-[10px] text-muted-foreground">
-              {t("devNote")}
-            </p>
-          </div>
-        </div>
       </aside>
 
-      {/* Right panel — empty state */}
-      <main className="flex flex-1 flex-col items-center justify-center gap-5 bg-background p-8 text-center">
-        <div className="rounded-2xl border border-dashed border-border p-10">
-          <MessageSquare
-            className="mx-auto mb-4 text-muted-foreground/20"
-            style={{ width: 70, height: 70 }}
-          />
-          <h2 className="font-playfair text-xl font-semibold">{t("comingSoonTitle")}</h2>
-          <p className="mx-auto mt-2 max-w-xs text-sm text-muted-foreground">
-            {t("comingSoonDesc")}
-          </p>
+      {/* ── Right: conversation ────────────────────────────────────────────── */}
+      {activeId ? (
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Header */}
+          <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-xs font-semibold text-primary-foreground">
+              {`${(activeClient?.first_name ?? "?").charAt(0)}${(activeClient?.last_name ?? "").charAt(0)}`.toUpperCase()}
+            </div>
+            <div>
+              <p className="text-sm font-medium">
+                {activeClient?.first_name} {activeClient?.last_name ?? ""}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Telegram ID: {activeClient?.tg_user_id ?? "—"}
+              </p>
+            </div>
+          </div>
 
-          <div className="mt-6 flex flex-col items-center gap-3">
-            <Button asChild>
-              <Link href="/clients">
-                <Users className="mr-2 h-4 w-4" />
-                {t("writeClientBtn")}
-              </Link>
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              {t("writeClientHint")}
-            </p>
+          {/* Messages */}
+          <div className="flex flex-1 flex-col gap-2 overflow-y-auto bg-muted/20 px-4 py-3">
+            {msgsLoading && (
+              <p className="text-center text-xs text-muted-foreground">Загрузка…</p>
+            )}
+            {messages.map((msg) => (
+              <MessageBubble key={msg.id} msg={msg} />
+            ))}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input bar */}
+          <div className="flex items-end gap-2 border-t border-border bg-card px-3 py-3">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title="Прикрепить файл"
+            >
+              <Paperclip className="h-4 w-4" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*,audio/*,.ogg,.pdf,.doc,.docx"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 112)}px`;
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="Напишите сообщение… (Enter — отправить, Shift+Enter — новая строка)"
+              rows={1}
+              className="max-h-28 min-h-[38px] flex-1 resize-none overflow-auto rounded-xl border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!input.trim() || sendText.isPending}
+              className="flex-shrink-0 rounded-xl bg-primary p-2 text-primary-foreground transition-colors hover:bg-primary/80 disabled:opacity-40"
+              title="Отправить (Enter)"
+            >
+              <Send className="h-4 w-4" />
+            </button>
           </div>
         </div>
-
-        {/* Feature roadmap hint */}
-        <div className="flex flex-wrap justify-center gap-3">
-          {([t("feature1"), t("feature2"), t("feature3"), t("feature4")] as string[]).map((feature) => (
-            <span
-              key={feature}
-              className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground"
-            >
-              {feature}
-            </span>
-          ))}
+      ) : (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 text-muted-foreground">
+          <MessageSquare className="h-14 w-14 text-muted-foreground/20" strokeWidth={1.2} />
+          <p className="text-sm">Выберите диалог слева</p>
         </div>
-      </main>
+      )}
     </div>
   );
 }

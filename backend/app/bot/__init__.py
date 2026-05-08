@@ -12,12 +12,27 @@ from app.bot.middlewares import (
     ThrottleMiddleware,
     TgUserMiddleware,
 )
-from app.bot.routers import about, ai_consult, booking, language, master_bookings, my_bookings, profile, review, start
 from app.config import Settings
 
 
 def build_dispatcher(settings: Settings) -> Dispatcher:
     """FSM в Redis при REDIS_URL, иначе Memory (тесты)."""
+    # Routers imported lazily inside the function to avoid circular imports
+    # that arise when app.bot.messages triggers bot/__init__.py top-level load
+    # while services/notifications.py is still being initialised.
+    from app.bot.routers import (  # noqa: PLC0415
+        about,
+        ai_consult,
+        booking,
+        language,
+        master_bookings,
+        my_bookings,
+        profile,
+        review,
+        start,
+    )
+    from app.bot.routers import chat as chat_router_module  # noqa: PLC0415
+
     if settings.redis_url:
         storage = RedisStorage.from_url(
             settings.redis_url,
@@ -42,6 +57,8 @@ def build_dispatcher(settings: Settings) -> Dispatcher:
     dp.include_router(review.router)
     dp.include_router(profile.router)
     dp.include_router(about.router)
+    # Chat inbound handler must be last to avoid intercepting FSM-managed messages
+    dp.include_router(chat_router_module.router)
     return dp
 
 

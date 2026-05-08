@@ -29,6 +29,7 @@ from app.models.mixins import UUIDPrimaryKeyMixin
 from sqlalchemy import Enum as SQLEnum
 
 if TYPE_CHECKING:
+    from app.models.chat_message import ChatMessage
     from app.models.user import User
 
 
@@ -90,6 +91,12 @@ class Client(UUIDPrimaryKeyMixin, Base):
         "ClientNote",
         back_populates="client",
         cascade="all, delete-orphan",
+    )
+    chat_messages: Mapped[list["ChatMessage"]] = relationship(
+        "ChatMessage",
+        back_populates="client",
+        cascade="all, delete-orphan",
+        order_by="ChatMessage.created_at",
     )
 
 

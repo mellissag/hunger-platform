@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.api.v1 import (
+    admin_chat,
     ai_chat,
     audit,
     auth,
@@ -32,6 +33,7 @@ from app.api.v1 import (
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth")
+api_router.include_router(admin_chat.router)
 api_router.include_router(clients.router)
 api_router.include_router(masters.router)
 api_router.include_router(service_categories.router)
