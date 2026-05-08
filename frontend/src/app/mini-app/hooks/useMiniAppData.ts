@@ -48,6 +48,24 @@ export interface ClientProfile {
   onboarded: boolean;
 }
 
+export interface ClientProfileFull {
+  id: string;
+  first_name: string;
+  last_name?: string | null;
+  phone?: string | null;
+  lang: string;
+  tg_username?: string | null;
+  total_bookings: number;
+}
+
+export interface ServiceCategory {
+  id: string;
+  name: string;
+  name_i18n: Record<string, string>;
+  icon?: string | null;
+  sort_order: number;
+}
+
 export interface Master {
   id: string;
   name: string;
@@ -251,5 +269,43 @@ export function useCancelBooking() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mini-app', 'my-bookings'] });
     },
+  });
+}
+
+export function useClientProfile() {
+  const { initData } = useTelegram();
+  return useQuery<ClientProfileFull>({
+    queryKey: ['mini-app', 'client-profile'],
+    queryFn: () => apiFetch('/api/v1/mini-app/client/profile'),
+    enabled: !!initData,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
+
+export function useUpdateClientProfile() {
+  const qc = useQueryClient();
+  return useMutation<
+    ClientProfileFull,
+    Error,
+    Partial<Pick<ClientProfileFull, 'first_name' | 'phone' | 'lang'>>
+  >({
+    mutationFn: (data) =>
+      apiFetch('/api/v1/mini-app/client/profile', {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (updated) => {
+      qc.setQueryData(['mini-app', 'client-profile'], updated);
+      qc.invalidateQueries({ queryKey: ['mini-app', 'me'] });
+    },
+  });
+}
+
+export function useServiceCategories(lang = 'ru') {
+  return useQuery<ServiceCategory[]>({
+    queryKey: ['mini-app', 'service-categories', lang],
+    queryFn: () => apiFetch(`/api/v1/mini-app/service-categories?lang=${lang}`),
+    staleTime: 10 * 60_000,
   });
 }

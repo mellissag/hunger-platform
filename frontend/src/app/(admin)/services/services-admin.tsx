@@ -10,10 +10,18 @@ import { ServiceDrawer } from "@/components/services/ServiceDrawer";
 import { ServiceFilterTabs } from "@/components/services/ServiceFilterTabs";
 import { ServicesChart } from "@/components/services/ServicesChart";
 import { ServicesKPI } from "@/components/services/ServicesKPI";
-import { useServiceCategories, useServices } from "@/hooks/useServices";
+import {
+  useServiceCategories,
+  useServices,
+  useCreateServiceCategory,
+  useUpdateServiceCategory,
+  useDeleteServiceCategory,
+} from "@/hooks/useServices";
 import { useHealth } from "@/hooks/useServiceStats";
 import { useDebounce } from "@/hooks/useDebounce";
-import type { ServiceOut } from "@/types/admin-api";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import type { ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
 
 function SyncBadge({ syncActive, syncInactive }: { syncActive: string; syncInactive: string }) {
   const { data: health } = useHealth();
@@ -42,6 +50,53 @@ export function ServicesAdmin() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editServiceId, setEditServiceId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ServiceOut | null>(null);
+
+  // ── Category dialog state ─────────────────────────────────────────────────
+  const [catDialogOpen, setCatDialogOpen] = useState(false);
+  const [editingCat, setEditingCat] = useState<ServiceCategoryOut | null>(null);
+  const emptyCatForm = () => ({ name_i18n: { ru: '', en: '', uk: '', bg: '' }, icon: '', sort_order: 0 });
+  const [catForm, setCatForm] = useState(emptyCatForm());
+
+  const createCategory = useCreateServiceCategory();
+  const updateCategory = useUpdateServiceCategory();
+  const deleteCategory = useDeleteServiceCategory();
+  const isCatPending = createCategory.isPending || updateCategory.isPending || deleteCategory.isPending;
+
+  const openCreateCat = () => {
+    setEditingCat(null);
+    setCatForm(emptyCatForm());
+    setCatDialogOpen(true);
+  };
+  const openEditCat = (cat: ServiceCategoryOut) => {
+    setEditingCat(cat);
+    setCatForm({
+      name_i18n: { ru: '', en: '', uk: '', bg: '', ...cat.name_i18n },
+      icon: cat.icon ?? '',
+      sort_order: cat.sort_order,
+    });
+    setCatDialogOpen(true);
+  };
+  const closeCatDialog = () => { setCatDialogOpen(false); setEditingCat(null); };
+
+  const saveCat = async () => {
+    const payload = {
+      name_i18n: catForm.name_i18n,
+      icon: catForm.icon.trim() || undefined,
+      sort_order: catForm.sort_order,
+    };
+    if (editingCat) {
+      await updateCategory.mutateAsync({ id: editingCat.id, ...payload });
+    } else {
+      await createCategory.mutateAsync(payload);
+    }
+    closeCatDialog();
+  };
+  const deleteCat = async () => {
+    if (!editingCat) return;
+    if (!confirm(`Удалить категорию "${editingCat.name_i18n[locale] ?? editingCat.name_i18n.ru}"?`)) return;
+    await deleteCategory.mutateAsync(editingCat.id);
+    closeCatDialog();
+  };
 
   const { data: catData } = useServiceCategories();
   const { data: svcData, isLoading } = useServices(activeCategoryId, search);
@@ -122,6 +177,48 @@ export function ServicesAdmin() {
 
       {/* ── Analytics Row ── */}
       <ServicesChart />
+
+      {/* ── Categories section ── */}
+      <div className="rounded border border-border bg-card shadow-[0_1px_4px_rgba(28,20,9,.06)] px-6 py-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="font-playfair text-lg font-medium">Категории</h2>
+            <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">
+              Группы услуг
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openCreateCat}
+            className="inline-flex items-center gap-2 rounded border border-border px-4 py-2
+                       text-[11px] font-medium uppercase tracking-wider transition-colors
+                       hover:border-primary hover:text-primary"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Добавить
+          </button>
+        </div>
+        {categories.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">Нет категорий. Создайте первую.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => openEditCat(cat)}
+                className="group flex items-center gap-1.5 px-3 py-1.5 border border-border
+                           rounded-sm bg-background hover:border-primary/40 transition-colors"
+              >
+                {cat.icon && <span className="text-sm">{cat.icon}</span>}
+                <span className="text-sm font-medium">
+                  {cat.name_i18n[locale] ?? cat.name_i18n.ru ?? cat.name_i18n.en ?? 'Без названия'}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* ── Services CRUD ── */}
       <div className="rounded border border-border bg-card shadow-[0_1px_4px_rgba(28,20,9,.06)]">
@@ -219,6 +316,91 @@ export function ServicesAdmin() {
 
       {/* ── Delete Modal ── */}
       <ServiceDeleteModal service={deleteTarget} onClose={() => setDeleteTarget(null)} />
+
+      {/* ── Category Dialog ── */}
+      <Dialog open={catDialogOpen} onOpenChange={(o) => { if (!o) closeCatDialog(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingCat ? 'Редактировать категорию' : 'Новая категория'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {(['ru', 'en', 'uk', 'bg'] as const).map((lang) => (
+              <div key={lang} className="space-y-1">
+                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {lang.toUpperCase()}
+                </label>
+                <Input
+                  value={catForm.name_i18n[lang] ?? ''}
+                  onChange={(e) =>
+                    setCatForm((f) => ({
+                      ...f,
+                      name_i18n: { ...f.name_i18n, [lang]: e.target.value },
+                    }))
+                  }
+                  placeholder={
+                    lang === 'ru' ? 'Волосы' :
+                    lang === 'en' ? 'Hair' :
+                    lang === 'uk' ? 'Волосся' : 'Коса'
+                  }
+                />
+              </div>
+            ))}
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Иконка
+              </label>
+              <Input
+                value={catForm.icon}
+                onChange={(e) => setCatForm((f) => ({ ...f, icon: e.target.value }))}
+                placeholder="✂️ или оставь пустым"
+                maxLength={4}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Порядок сортировки
+              </label>
+              <Input
+                type="number"
+                value={catForm.sort_order}
+                onChange={(e) =>
+                  setCatForm((f) => ({ ...f, sort_order: Number(e.target.value) }))
+                }
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            {editingCat && (
+              <button
+                type="button"
+                onClick={deleteCat}
+                disabled={isCatPending}
+                className="inline-flex items-center gap-1 rounded border border-destructive
+                           px-3 py-2 text-[11px] font-medium text-destructive
+                           hover:bg-destructive/10 transition-colors"
+              >
+                Удалить
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={saveCat}
+              disabled={isCatPending}
+              className="inline-flex items-center rounded bg-primary px-4 py-2 text-[11px]
+                         font-medium uppercase tracking-wider text-primary-foreground
+                         hover:bg-primary/90 transition-colors disabled:opacity-60"
+            >
+              {isCatPending ? 'Сохраняем...' : 'Сохранить'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

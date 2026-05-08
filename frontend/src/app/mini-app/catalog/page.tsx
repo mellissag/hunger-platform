@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useServices, pickI18n } from '../hooks/useMiniAppData';
+import { useServices, useServiceCategories, pickI18n } from '../hooks/useMiniAppData';
 import { useT } from '../i18n/context';
 
 const GOLD = '#9A7230';
@@ -31,10 +31,14 @@ export default function CatalogPage() {
   const [activeCatId, setActiveCatId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const { data: services = [], isLoading } = useServices();
+  const { data: apiCategories = [] } = useServiceCategories(lang);
 
-  // Derive unique categories from services
+  // Prefer API categories (with icons); fall back to categories derived from services
   const categories = useMemo(() => {
-    const seen = new Map<string, { id: string; name: string }>();
+    if (apiCategories.length > 0) {
+      return apiCategories.map(c => ({ id: c.id, name: c.name, icon: c.icon ?? undefined }));
+    }
+    const seen = new Map<string, { id: string; name: string; icon?: string }>();
     for (const svc of services) {
       if (svc.category_id && svc.category_name_i18n && !seen.has(svc.category_id)) {
         const name = pickI18n(svc.category_name_i18n, lang) || pickI18n(svc.category_name_i18n);
@@ -42,7 +46,7 @@ export default function CatalogPage() {
       }
     }
     return Array.from(seen.values());
-  }, [services, lang]);
+  }, [apiCategories, services, lang]);
 
   // Build gradient map by category index
   const catGradient = useMemo(() => {
@@ -118,7 +122,7 @@ export default function CatalogPage() {
           <button
             onClick={() => setActiveCatId(null)}
             style={{
-              flexShrink: 0, padding: '7px 16px', borderRadius: 999,
+              flexShrink: 0, padding: '7px 16px', borderRadius: 4,
               border: `1px solid ${!activeCatId ? 'transparent' : 'rgba(28,20,9,.15)'}`,
               background: !activeCatId ? NEAR_BLACK : 'transparent',
               color: !activeCatId ? IVORY : SOFT,
@@ -135,7 +139,8 @@ export default function CatalogPage() {
                 key={cat.id}
                 onClick={() => setActiveCatId(active ? null : cat.id)}
                 style={{
-                  flexShrink: 0, padding: '7px 16px', borderRadius: 999,
+                  flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '7px 16px', borderRadius: 4,
                   border: `1px solid ${active ? 'transparent' : 'rgba(28,20,9,.15)'}`,
                   background: active ? NEAR_BLACK : 'transparent',
                   color: active ? IVORY : SOFT,
@@ -143,6 +148,7 @@ export default function CatalogPage() {
                   textTransform: 'uppercase', fontFamily: BODY, cursor: 'pointer',
                 }}
               >
+                {cat.icon && <span style={{ textTransform: 'none' }}>{cat.icon}</span>}
                 {cat.name}
               </button>
             );

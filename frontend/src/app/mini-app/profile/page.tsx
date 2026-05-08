@@ -1,245 +1,297 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useClientProfile, useUpdateClientProfile } from '../hooks/useMiniAppData';
 import { useTelegram } from '../hooks/useTelegram';
-import { useMyBookings, useMeProfile } from '../hooks/useMiniAppData';
 import { useT } from '../i18n/context';
 import type { Lang } from '../i18n/translations';
 
-const GOLD = '#9A7230';
-const GOLD_HI = '#C9A84C';
-const NEAR_BLACK = '#1C1408';
-const IVORY = '#FAF8F3';
-const MUTED = '#7A6E58';
-const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
-const BODY = '"Inter", system-ui, sans-serif';
+const THEME_KEY = 'hunger_theme';
 
-const LANG_OPTIONS: Array<{ code: Lang; label: string; flag: string }> = [
-  { code: 'bg', label: 'Български', flag: '🇧🇬' },
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'uk', label: 'Українська', flag: '🇺🇦' },
-  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+const LANGS: Array<{ code: Lang; label: string }> = [
+  { code: 'ru', label: 'Русский' },
+  { code: 'en', label: 'English' },
+  { code: 'uk', label: 'Українська' },
+  { code: 'bg', label: 'Български' },
 ];
 
 export default function ProfilePage() {
-  const router = useRouter();
-  const { user } = useTelegram();
-  const { t, lang, setLang } = useT();
-  const { data: bookings = [] } = useMyBookings();
-  const { data: profile } = useMeProfile();
+  const { user: tgUser } = useTelegram();
+  const { data: profile, isLoading } = useClientProfile();
+  const { mutate: updateProfile, isPending } = useUpdateClientProfile();
+  const { lang, setLang } = useT();
 
-  const [langModalOpen, setLangModalOpen] = useState(false);
-  const [pendingLang, setPendingLang] = useState<Lang>(lang);
+  const [editingName, setEditingName] = useState(false);
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [nameVal, setNameVal] = useState('');
+  const [phoneVal, setPhoneVal] = useState('');
 
-  // Use registration form name (not Telegram name)
-  const firstName = profile?.first_name || t.greetingGuest;
-  const initLetter = firstName.charAt(0).toUpperCase();
-  const totalVisits = bookings.filter(b => b.status === 'completed').length;
-  const upcomingCount = bookings.filter(b => ['confirmed', 'pending'].includes(b.status)).length;
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light';
+    return (localStorage.getItem(THEME_KEY) as 'light' | 'dark') ?? 'light';
+  });
 
-  function handleSignOut() {
-    try { localStorage.clear(); } catch { /* ignore */ }
-    router.replace('/mini-app/onboarding');
-  }
-
-  function handleLangConfirm() {
-    setLang(pendingLang);
-    setLangModalOpen(false);
-  }
-
-  const pageBg: React.CSSProperties = {
-    minHeight: '100dvh',
-    background: `
-      radial-gradient(ellipse at 100% 0%, rgba(201,168,76,.10), transparent 50%),
-      radial-gradient(ellipse at 0% 100%, rgba(237,229,213,.5), transparent 50%),
-      ${IVORY}`,
-    fontFamily: BODY, color: NEAR_BLACK, overflowX: 'hidden',
+  const handleThemeToggle = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch { /* ignore */ }
+    // Update live on the miniapp root element
+    const root = document.querySelector('.miniapp-root');
+    if (root) root.setAttribute('data-theme', next);
   };
 
+  const handleSaveName = () => {
+    if (!nameVal.trim()) return;
+    updateProfile({ first_name: nameVal.trim() });
+    setEditingName(false);
+  };
+
+  const handleSavePhone = () => {
+    updateProfile({ phone: phoneVal.trim() || '' });
+    setEditingPhone(false);
+  };
+
+  const handleLangChange = (code: Lang) => {
+    updateProfile({ lang: code });
+    setLang(code);
+  };
+
+  const displayName = profile?.first_name || tgUser?.first_name || '?';
+
+  if (isLoading) return <ProfileSkeleton />;
+
   return (
-    <div style={pageBg}>
-      {/* ── Avatar + Name ── */}
-      <div style={{ padding: '20px 22px 0', textAlign: 'center' }}>
-        <div style={{
-          width: 80, height: 80, borderRadius: '50%',
-          background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '16px auto 0',
-          boxShadow: '0 12px 40px rgba(154,114,48,.3)',
-        }}>
-          <span style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: '#fff', fontStyle: 'italic' }}>
-            {initLetter}
-          </span>
-        </div>
-        <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 600, marginTop: 14, letterSpacing: '-0.01em' }}>
-          {firstName}
-        </div>
-        {user?.username && (
-          <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
-            @{user.username}
-          </div>
-        )}
-      </div>
+    <div className="min-h-dvh pb-28" style={{ background: 'var(--l-bg, #FAF8F3)' }}>
 
-      {/* ── Stats ── */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
-        padding: '20px 22px 16px',
-        borderTop: '1px dotted rgba(154,114,48,.2)', borderBottom: '1px dotted rgba(154,114,48,.2)',
-        margin: '20px 22px 0',
-      }}>
-        {[
-          { val: totalVisits, label: t.profVisits },
-          { val: upcomingCount, label: t.listTabUpcoming },
-        ].map((stat, i) => (
-          <div key={stat.label} style={{
-            textAlign: 'center',
-            borderLeft: i > 0 ? '1px dotted rgba(154,114,48,.2)' : 'none',
-          }}>
-            <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 600, color: GOLD }}>
-              {stat.val}
-            </div>
-            <div style={{ fontSize: 9, color: MUTED, letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 2 }}>
-              {stat.label}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Menu ── */}
-      <div style={{ padding: '24px 16px 0' }}>
-        <div style={{
-          background: 'rgba(250,248,243,0.65)',
-          backdropFilter: 'blur(20px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-          border: '1px solid rgba(154,114,48,.18)',
-          borderRadius: 22, overflow: 'hidden',
-        }}>
-          {[
-            {
-              icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>,
-              label: t.profHistory,
-              badge: String(totalVisits),
-              action: () => router.push('/mini-app/bookings'),
-            },
-            {
-              icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8"><path d="M6 9a6 6 0 1112 0c0 4 2 6 2 6H4s2-2 2-6zM10 20a2 2 0 004 0"/></svg>,
-              label: t.profNotif,
-              action: () => {},
-            },
-            {
-              icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20"/></svg>,
-              label: t.profLang,
-              badge: lang.toUpperCase(),
-              action: () => { setPendingLang(lang); setLangModalOpen(true); },
-            },
-            {
-              icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8"><path d="M21 12a9 9 0 11-9-9M21 3l-9 9"/><path d="M21 3h-6m6 0v6"/></svg>,
-              label: t.profContact,
-              action: () => { window.open('https://t.me/hunger_beauty', '_blank'); },
-            },
-          ].map((item, i, arr) => (
-            <button
-              key={item.label}
-              onClick={item.action}
-              style={{
-                width: '100%', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14,
-                background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
-                borderBottom: i < arr.length - 1 ? '0.5px solid rgba(60,60,67,0.12)' : 'none',
-                fontFamily: BODY,
-              }}
-            >
-              {item.icon}
-              <span style={{ flex: 1, fontSize: 15, color: NEAR_BLACK }}>{item.label}</span>
-              {item.badge && (
-                <span style={{ fontSize: 13, color: MUTED, marginRight: 6 }}>{item.badge}</span>
-              )}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(60,60,67,.3)" strokeWidth="2">
-                <path d="M9 6l6 6-6 6"/>
-              </svg>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Sign Out ── */}
-      <div style={{ padding: '20px 22px 0', textAlign: 'center' }}>
-        <button
-          onClick={handleSignOut}
-          style={{ fontSize: 11, color: MUTED, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', fontFamily: BODY }}
+      {/* ── Avatar + Name ─────────────────────────────── */}
+      <div className="flex flex-col items-center gap-3 px-5 pt-8 pb-5">
+        <div
+          className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-semibold select-none"
+          style={{
+            background: 'linear-gradient(135deg, #9A7230, #C9A84C)',
+            boxShadow: '0 12px 36px rgba(154,114,48,.30)',
+            fontFamily: '"Cormorant Garamond", serif',
+            fontStyle: 'italic',
+          }}
         >
-          {t.profSignOut}
-        </button>
+          {displayName[0]?.toUpperCase() ?? '?'}
+        </div>
+        <div className="text-center">
+          <div
+            className="text-2xl font-semibold text-[#1C1408]"
+            style={{ fontFamily: '"Playfair Display", serif', letterSpacing: '-0.01em' }}
+          >
+            {displayName}
+          </div>
+          {tgUser?.username && (
+            <div className="text-sm text-[#7A6E58] mt-0.5">@{tgUser.username}</div>
+          )}
+        </div>
       </div>
 
-      <div style={{ height: 100 }} />
+      <div className="px-4 space-y-3">
 
-      {/* ── Language Picker Modal ── */}
-      {langModalOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            onClick={() => setLangModalOpen(false)}
-            style={{
-              position: 'fixed', inset: 0, background: 'rgba(28,20,9,.45)',
-              backdropFilter: 'blur(4px)', zIndex: 200,
-            }}
-          />
-          {/* Sheet */}
-          <div style={{
-            position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-            width: '100%', maxWidth: 480,
-            background: IVORY, borderRadius: '24px 24px 0 0',
-            padding: '28px 24px calc(28px + env(safe-area-inset-bottom, 16px))',
-            zIndex: 201, boxShadow: '0 -16px 60px rgba(28,20,9,.15)',
-          }}>
-            {/* Handle */}
-            <div style={{ width: 36, height: 4, borderRadius: 4, background: 'rgba(28,20,9,.15)', margin: '0 auto 20px' }} />
-            <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 600, color: NEAR_BLACK, marginBottom: 20, letterSpacing: '-0.01em' }}>
-              {t.langPickerTitle}
+        {/* ── Личные данные ─────────────────────────────── */}
+        <SectionLabel>Личные данные</SectionLabel>
+
+        <SettingRow
+          label="Имя"
+          value={profile?.first_name || '—'}
+          onEdit={() => { setNameVal(profile?.first_name ?? ''); setEditingName(true); }}
+        />
+        <SettingRow
+          label="Телефон"
+          value={profile?.phone || 'Не указан'}
+          onEdit={() => { setPhoneVal(profile?.phone ?? ''); setEditingPhone(true); }}
+        />
+
+        {/* ── Приложение ────────────────────────────────── */}
+        <SectionLabel className="pt-2">Приложение</SectionLabel>
+
+        {/* Тема */}
+        <div className="flex items-center justify-between bg-white border border-[#E4DDD0] rounded-sm px-4 py-3">
+          <div>
+            <div className="text-sm font-medium text-[#1C1408]">Тема</div>
+            <div className="text-xs text-[#7A6E58] mt-0.5">
+              {theme === 'light' ? 'Светлая' : 'Тёмная'}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-              {LANG_OPTIONS.map(opt => {
-                const selected = pendingLang === opt.code;
-                return (
-                  <button
-                    key={opt.code}
-                    onClick={() => setPendingLang(opt.code)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      padding: '14px 18px', borderRadius: 16,
-                      border: `1.5px solid ${selected ? GOLD : 'rgba(28,20,9,.10)'}`,
-                      background: selected ? 'rgba(154,114,48,.06)' : '#fff',
-                      cursor: 'pointer', fontFamily: BODY, textAlign: 'left',
-                      transition: 'all .15s ease',
-                    }}
-                  >
-                    <span style={{ fontSize: 24 }}>{opt.flag}</span>
-                    <span style={{ flex: 1, fontSize: 16, fontWeight: 500, color: NEAR_BLACK }}>{opt.label}</span>
-                    {selected && (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2.5">
-                        <polyline points="20,6 9,17 4,12"/>
-                      </svg>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            <button
-              onClick={handleLangConfirm}
-              style={{
-                width: '100%', background: NEAR_BLACK, border: 'none', color: IVORY,
-                padding: '15px 22px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-                letterSpacing: '0.10em', textTransform: 'uppercase', fontFamily: BODY,
-                cursor: 'pointer', boxShadow: '0 8px 24px rgba(28,20,9,.18)',
-              }}
-            >
-              {t.langPickerConfirm}
-            </button>
           </div>
-        </>
+          <button
+            onClick={handleThemeToggle}
+            aria-label="toggle theme"
+            className={`relative w-11 h-6 rounded-full transition-colors ${
+              theme === 'dark' ? 'bg-[#9A7230]' : 'bg-[#E4DDD0]'
+            }`}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+              theme === 'dark' ? 'translate-x-[22px]' : 'translate-x-0.5'
+            }`} />
+          </button>
+        </div>
+
+        {/* Язык */}
+        <div className="bg-white border border-[#E4DDD0] rounded-sm px-4 py-3">
+          <div className="text-[9px] font-bold tracking-[0.20em] uppercase text-[#9A7230] mb-3">
+            Язык
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {LANGS.map(l => (
+              <button
+                key={l.code}
+                onClick={() => handleLangChange(l.code)}
+                disabled={isPending}
+                className={`px-3 py-1.5 rounded-sm text-xs font-semibold border transition-colors ${
+                  lang === l.code
+                    ? 'bg-[#1C1408] text-[#FAF8F3] border-[#1C1408]'
+                    : 'bg-transparent text-[#4A3F2E] border-[#E4DDD0] hover:border-[#9A7230]'
+                }`}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Статистика ────────────────────────────────── */}
+        <SectionLabel className="pt-2">Статистика</SectionLabel>
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard label="Записей" value={String(profile?.total_bookings ?? 0)} />
+          <StatCard
+            label="Telegram"
+            value={tgUser?.username ? `@${tgUser.username}` : '—'}
+          />
+        </div>
+
+      </div>
+
+      {/* ── Модалки редактирования ────────────────────── */}
+      {editingName && (
+        <EditModal
+          title="Изменить имя"
+          value={nameVal}
+          onChange={setNameVal}
+          onSave={handleSaveName}
+          onClose={() => setEditingName(false)}
+          placeholder="Ваше имя"
+          type="text"
+        />
       )}
+      {editingPhone && (
+        <EditModal
+          title="Изменить телефон"
+          value={phoneVal}
+          onChange={setPhoneVal}
+          onSave={handleSavePhone}
+          onClose={() => setEditingPhone(false)}
+          placeholder="+7 999 000 00 00"
+          type="tel"
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── helpers ──────────────────────────────────────────────── */
+
+function SectionLabel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`text-[9px] font-bold tracking-[0.22em] uppercase text-[#9A7230] px-1 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function SettingRow({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }) {
+  return (
+    <div className="flex items-center justify-between bg-white border border-[#E4DDD0] rounded-sm px-4 py-3">
+      <div>
+        <div className="text-xs text-[#7A6E58]">{label}</div>
+        <div className="text-sm font-medium text-[#1C1408] mt-0.5">{value}</div>
+      </div>
+      <button
+        onClick={onEdit}
+        className="text-[#9A7230] p-1 hover:opacity-70 transition-opacity"
+        aria-label={`edit ${label}`}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-white border border-[#E4DDD0] rounded-sm px-4 py-3">
+      <div className="text-xs text-[#7A6E58]">{label}</div>
+      <div
+        className="text-base font-semibold text-[#1C1408] mt-1"
+        style={{ fontFamily: '"Playfair Display", serif' }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function EditModal({
+  title, value, onChange, onSave, onClose, placeholder, type,
+}: {
+  title: string; value: string; onChange: (v: string) => void;
+  onSave: () => void; onClose: () => void; placeholder: string; type: string;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-[#FAF8F3] rounded-t-2xl p-6 pb-10 z-10">
+        <div className="w-10 h-1 rounded-full bg-[#E4DDD0] mx-auto mb-5" />
+        <div className="text-[9px] font-bold tracking-[0.20em] uppercase text-[#9A7230] mb-4">
+          {title}
+        </div>
+        <input
+          type={type}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoFocus
+          className="w-full border border-[#E4DDD0] rounded-sm bg-white
+                     px-4 py-3 text-sm text-[#1C1408] mb-4
+                     focus:outline-none focus:border-[#9A7230]"
+        />
+        <div className="flex gap-3">
+          <button
+            onClick={onSave}
+            className="flex-1 bg-[#1C1408] text-[#FAF8F3] rounded-full
+                       py-3 text-xs font-bold tracking-[0.14em] uppercase"
+          >
+            Сохранить
+          </button>
+          <button
+            onClick={onClose}
+            className="px-5 border border-[#E4DDD0] rounded-full
+                       text-xs font-semibold text-[#7A6E58]"
+          >
+            Отмена
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="p-5 space-y-3 animate-pulse">
+      <div className="w-20 h-20 rounded-full bg-[#E4DDD0] mx-auto" />
+      <div className="h-4 bg-[#E4DDD0] rounded w-32 mx-auto" />
+      <div className="h-12 bg-[#E4DDD0] rounded-sm mt-6" />
+      <div className="h-12 bg-[#E4DDD0] rounded-sm" />
+      <div className="h-20 bg-[#E4DDD0] rounded-sm" />
     </div>
   );
 }

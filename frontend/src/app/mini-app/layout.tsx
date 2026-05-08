@@ -9,65 +9,61 @@ import './styles/miniapp.css';
 
 // ── Inline SVG Icons ─────────────────────────────────────────────────────────
 
-function HomeIcon({ size = 22 }: { size?: number }) {
+function HomeIcon({ active }: { active: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 11l9-8 9 8M5 10v10h14V10"/>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
     </svg>
   );
 }
 
-function CalendarIcon({ size = 22 }: { size?: number }) {
+function GridIcon({ active }: { active: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="5" width="18" height="16" rx="2"/>
-      <path d="M3 9h18M8 3v4M16 3v4"/>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+      <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
     </svg>
   );
 }
 
-function ScissorsIcon({ size = 20 }: { size?: number }) {
+function CalendarIcon({ active }: { active: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
-      <path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
     </svg>
   );
 }
 
-function GridIcon({ size = 22 }: { size?: number }) {
+function UserIcon({ active }: { active: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/>
-      <rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/>
-    </svg>
-  );
-}
-
-function UserIcon({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="8" r="4"/>
-      <path d="M4 21c0-4 4-7 8-7s8 3 8 7"/>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
     </svg>
   );
 }
 
 // ── Tab Config ───────────────────────────────────────────────────────────────
 
-interface TabItem {
-  icon: ({ size }: { size?: number }) => JSX.Element;
-  labelKey: 'tabHome' | 'tabCatalog' | 'tabBookings' | 'tabProfile';
+interface NavTab {
   href: string;
-  isFab?: boolean;
+  labelKey: 'tabHome' | 'tabCatalog' | 'tabBookings' | 'tabProfile';
+  icon: (active: boolean) => JSX.Element;
 }
 
-const TABS: TabItem[] = [
-  { icon: HomeIcon, labelKey: 'tabHome', href: '/mini-app' },
-  { icon: GridIcon, labelKey: 'tabCatalog', href: '/mini-app/catalog' },
-  { icon: ScissorsIcon, labelKey: 'tabHome', href: '/mini-app/book', isFab: true },
-  { icon: CalendarIcon, labelKey: 'tabBookings', href: '/mini-app/bookings' },
-  { icon: UserIcon, labelKey: 'tabProfile', href: '/mini-app/profile' },
+const NAV_TABS: NavTab[] = [
+  { href: '/mini-app',          labelKey: 'tabHome',     icon: (a) => <HomeIcon active={a} /> },
+  { href: '/mini-app/catalog',  labelKey: 'tabCatalog',  icon: (a) => <GridIcon active={a} /> },
+  { href: '/mini-app/bookings', labelKey: 'tabBookings', icon: (a) => <CalendarIcon active={a} /> },
+  { href: '/mini-app/profile',  labelKey: 'tabProfile',  icon: (a) => <UserIcon active={a} /> },
 ];
 
 // Routes that should NOT show the tab bar
@@ -75,10 +71,31 @@ const NO_TAB_ROUTES = ['/mini-app/onboarding'];
 
 // ── Tab Bar Component ────────────────────────────────────────────────────────
 
+function TabBarItem({ tab, active }: { tab: NavTab; active: boolean }) {
+  const router = useRouter();
+  const { t } = useT();
+  return (
+    <button
+      onClick={() => router.push(tab.href)}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+        padding: '5px 10px', borderRadius: 18, minWidth: 48,
+        transition: 'background .15s ease, color .15s ease',
+        color: active ? '#9A7230' : 'rgba(28,20,9,.38)',
+        background: active ? 'rgba(154,114,48,.10)' : 'none',
+        border: 'none', fontSize: 10, fontWeight: 600, letterSpacing: '0.02em',
+        cursor: 'pointer', fontFamily: '"Inter", system-ui, sans-serif',
+      }}
+    >
+      {tab.icon(active)}
+      <span>{t[tab.labelKey]}</span>
+    </button>
+  );
+}
+
 function TabBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { t } = useT();
 
   if (NO_TAB_ROUTES.some(r => pathname?.startsWith(r))) return null;
 
@@ -88,73 +105,62 @@ function TabBar() {
   }
 
   return (
-    <nav style={{
-      position: 'fixed',
-      bottom: 'env(safe-area-inset-bottom, 16px)',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: 'calc(100% - 32px)',
-      maxWidth: 420,
-      height: 60,
-      borderRadius: 28,
-      background: 'rgba(250, 248, 243, 0.72)',
-      backdropFilter: 'blur(24px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-      border: '1px solid rgba(154,114,48,.14)',
-      boxShadow: '0 8px 32px rgba(28,20,9,.10)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-around',
-      padding: '0 8px',
-      zIndex: 100,
-    }}>
-      {TABS.map((tab) => {
-        const active = !tab.isFab && isActive(tab.href);
-        const Icon = tab.icon;
+    <nav
+      style={{
+        position: 'fixed',
+        bottom: 20,
+        left: 16,
+        right: 16,
+        zIndex: 100,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingLeft: 16,
+          paddingRight: 16,
+          height: 60,
+          borderRadius: 28,
+          background: 'rgba(250,248,243,0.85)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          border: '1px solid rgba(154,114,48,.14)',
+          boxShadow: '0 8px 32px rgba(28,20,9,.10)',
+        }}
+      >
+        {/* Начало */}
+        <TabBarItem tab={NAV_TABS[0]!} active={isActive(NAV_TABS[0]!.href)} />
 
-        if (tab.isFab) {
-          return (
-            <div
-              key={tab.href}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <button
-                onClick={() => router.push(tab.href)}
-                style={{
-                  width: 50, height: 50, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #9A7230, #C9A84C)',
-                  border: 'none', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', color: '#fff', cursor: 'pointer',
-                  transform: 'translateY(-8px)',
-                  boxShadow: '0 8px 24px rgba(154,114,48,.40), 0 2px 8px rgba(28,20,9,.15)',
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={24} />
-              </button>
-            </div>
-          );
-        }
+        {/* Каталог */}
+        <TabBarItem tab={NAV_TABS[1]!} active={isActive(NAV_TABS[1]!.href)} />
 
-        return (
-          <button
-            key={tab.href}
-            onClick={() => router.push(tab.href)}
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              padding: '6px 14px', borderRadius: 18,
-              transition: 'background .15s ease, color .15s ease',
-              color: active ? '#9A7230' : 'rgba(28,20,9,.4)',
-              background: active ? 'rgba(154,114,48,.12)' : 'none',
-              border: 'none', fontSize: 10, fontWeight: 600, letterSpacing: '0.02em',
-              cursor: 'pointer', fontFamily: '"Inter", system-ui, sans-serif', flex: 1,
-            }}
-          >
-            <Icon size={22} />
-            <span>{t[tab.labelKey]}</span>
-          </button>
-        );
-      })}
+        {/* FAB — запись */}
+        <button
+          onClick={() => router.push('/mini-app/book')}
+          style={{
+            width: 48, height: 48, borderRadius: '50%', border: 'none',
+            background: 'linear-gradient(135deg, #9A7230, #C9A84C)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', cursor: 'pointer', flexShrink: 0,
+            transform: 'translateY(-8px)',
+            boxShadow: '0 4px 16px rgba(154,114,48,.45)',
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="white" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+
+        {/* Записи */}
+        <TabBarItem tab={NAV_TABS[2]!} active={isActive(NAV_TABS[2]!.href)} />
+
+        {/* Профиль */}
+        <TabBarItem tab={NAV_TABS[3]!} active={isActive(NAV_TABS[3]!.href)} />
+      </div>
     </nav>
   );
 }

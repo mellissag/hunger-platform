@@ -18,6 +18,51 @@ export function useServiceCategories() {
   });
 }
 
+export function useCreateServiceCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { name_i18n: Record<string, string>; icon?: string; sort_order?: number }) =>
+      apiJson<ServiceCategoryOut>("/service-categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: SERVICE_KEYS.categories() });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useUpdateServiceCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; name_i18n?: Record<string, string>; icon?: string; sort_order?: number }) =>
+      apiJson<ServiceCategoryOut>(`/service-categories/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: SERVICE_KEYS.categories() });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useDeleteServiceCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiJson<void>(`/service-categories/${id}`, { method: "DELETE" }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: SERVICE_KEYS.categories() });
+      await qc.invalidateQueries({ queryKey: ["services"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
 export function useServices(categoryId?: string, search?: string) {
   return useQuery({
     queryKey: SERVICE_KEYS.list(categoryId, search),

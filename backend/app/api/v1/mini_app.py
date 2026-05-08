@@ -944,6 +944,119 @@ async def ai_chat(
         )
 
 
+# ─── Client profile ──────────────────────────────────────────────────────────
+
+
+class MiniAppClientProfileOut(_BM):
+    id: str
+    first_name: str
+    last_name: str | None = None
+    phone: str | None = None
+    lang: str
+    tg_username: str | None = None
+    total_bookings: int
+
+
+class ClientProfileUpdate(_BM):
+    first_name: str | None = None
+    phone: str | None = None
+    lang: str | None = None  # ru | en | uk | bg
+
+
+@router.get("/client/profile", response_model=MiniAppClientProfileOut)
+async def get_client_profile(
+    current_user: MiniAppUser,
+    db: AsyncSession = Depends(get_db),
+) -> MiniAppClientProfileOut:
+    """Authenticated: return enriched client profile."""
+    if not current_user.tg_user_id:
+        from fastapi import HTTPException as _HE
+        raise _HE(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
+    client = (
+        await db.execute(select(Client).where(Client.tg_user_id == current_user.tg_user_id))
+    ).scalar_one_or_none()
+    if client is None:
+        from fastapi import HTTPException as _HE
+        raise _HE(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+    return MiniAppClientProfileOut(
+        id=str(client.id),
+        first_name=client.first_name or "",
+        last_name=client.last_name,
+        phone=client.phone,
+        lang=client.lang or "ru",
+        tg_username=client.tg_username,
+        total_bookings=client.total_bookings,
+    )
+
+
+@router.patch("/client/profile", response_model=MiniAppClientProfileOut)
+async def update_client_profile(
+    payload: ClientProfileUpdate,
+    current_user: MiniAppUser,
+    db: AsyncSession = Depends(get_db),
+) -> MiniAppClientProfileOut:
+    """Authenticated: update client's own profile fields."""
+    if not current_user.tg_user_id:
+        from fastapi import HTTPException as _HE
+        raise _HE(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
+    client = (
+        await db.execute(select(Client).where(Client.tg_user_id == current_user.tg_user_id))
+    ).scalar_one_or_none()
+    if client is None:
+        from fastapi import HTTPException as _HE
+        raise _HE(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+
+    if payload.first_name is not None:
+        stripped = payload.first_name.strip()
+        if stripped:
+            client.first_name = stripped
+    if payload.phone is not None:
+        client.phone = payload.phone.strip() or None
+    if payload.lang is not None and payload.lang in _SUPPORTED_LANGS:
+        client.lang = payload.lang
+
+    await db.commit()
+    await db.refresh(client)
+    return MiniAppClientProfileOut(
+        id=str(client.id),
+        first_name=client.first_name or "",
+        last_name=client.last_name,
+        phone=client.phone,
+        lang=client.lang or "ru",
+        tg_username=client.tg_username,
+        total_bookings=client.total_bookings,
+    )
+
+
+# ─── Service categories (public) ─────────────────────────────────────────────
+
+
+@router.get("/service-categories")
+async def get_service_categories_public(
+    lang: str = "ru",
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    """Public: list active service categories for Mini App."""
+    from app.models.catalog import ServiceCategory
+
+    resolved = lang if lang in _SUPPORTED_LANGS else "ru"
+    rows = (
+        await db.execute(
+            select(ServiceCategory).order_by(ServiceCategory.sort_order)
+        )
+    ).scalars().all()
+    return [
+        {
+            "id": str(c.id),
+            "name": c.name_i18n.get(resolved) or c.name_i18n.get("ru") or "",
+            "name_i18n": c.name_i18n,
+            "icon": c.icon,
+            "sort_order": c.sort_order,
+        }
+        for c in rows
+    ]
+
+
 # ─── Cancel booking ────────────────────────────────────────────────────────────
 
 
