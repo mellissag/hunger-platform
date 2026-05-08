@@ -37,9 +37,8 @@ export default function ProfilePage() {
     try {
       localStorage.setItem(THEME_KEY, next);
     } catch { /* ignore */ }
-    // Update live on the miniapp root element
-    const root = document.querySelector('.miniapp-root');
-    if (root) root.setAttribute('data-theme', next);
+    // Notify layout so it updates its React theme state (and inline CSS vars)
+    window.dispatchEvent(new Event('miniapp-theme-changed'));
   };
 
   const handleSaveName = () => {
@@ -246,41 +245,59 @@ function EditModal({
   onSave: () => void; onClose: () => void; placeholder: string; type: string;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-[#FAF8F3] rounded-t-2xl p-6 pb-10 z-10">
-        <div className="w-10 h-1 rounded-full bg-[#E4DDD0] mx-auto mb-5" />
-        <div className="text-[9px] font-bold tracking-[0.20em] uppercase text-[#9A7230] mb-4">
-          {title}
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black/40 z-50" onClick={onClose} />
+
+      {/* Bottom sheet — no overflow-hidden so buttons are never clipped */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-50 bg-[#FAF8F3] rounded-t-3xl flex flex-col"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
+      >
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
+          <div className="w-10 h-1 rounded-full bg-[#E4DDD0]" />
         </div>
-        <input
-          type={type}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          autoFocus
-          className="w-full border border-[#E4DDD0] rounded-sm bg-white
-                     px-4 py-3 text-sm text-[#1C1408] mb-4
-                     focus:outline-none focus:border-[#9A7230]"
-        />
-        <div className="flex gap-3">
-          <button
-            onClick={onSave}
-            className="flex-1 bg-[#1C1408] text-[#FAF8F3] rounded-full
-                       py-3 text-xs font-bold tracking-[0.14em] uppercase"
-          >
-            Сохранить
-          </button>
+
+        {/* Title */}
+        <p className="px-4 pb-3 text-[9px] font-bold tracking-[0.20em] uppercase text-[#9A7230]">
+          {title}
+        </p>
+
+        {/* Input */}
+        <div className="px-4 pb-4">
+          <input
+            autoFocus
+            type={type}
+            inputMode={type === 'tel' ? 'tel' : 'text'}
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full border border-[#E4DDD0] rounded-sm bg-white
+                       px-4 py-3 text-sm text-[#1C1408]
+                       focus:outline-none focus:border-[#9A7230]"
+          />
+        </div>
+
+        {/* Buttons — flex-shrink-0 so they're never cut off by keyboard */}
+        <div className="flex gap-3 px-4 pb-4 flex-shrink-0">
           <button
             onClick={onClose}
-            className="px-5 border border-[#E4DDD0] rounded-full
-                       text-xs font-semibold text-[#7A6E58]"
+            className="flex-1 py-3 rounded-full border border-[#E4DDD0]
+                       text-xs font-semibold text-[#7A6E58] hover:bg-[#F0EBE0] transition-colors"
           >
             Отмена
           </button>
+          <button
+            onClick={onSave}
+            className="flex-1 py-3 rounded-full bg-[#1C1408] text-[#FAF8F3]
+                       text-xs font-bold tracking-[0.14em] uppercase hover:opacity-90 transition-opacity"
+          >
+            Сохранить
+          </button>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

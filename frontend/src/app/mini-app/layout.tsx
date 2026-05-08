@@ -6,6 +6,7 @@ import Script from 'next/script';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider, useT } from './i18n/context';
 import ChatDrawer from './components/ChatDrawer';
+import { useSalonInfo } from './hooks/useMiniAppData';
 import './styles/miniapp.css';
 
 // ── Inline SVG Icons ─────────────────────────────────────────────────────────
@@ -215,16 +216,24 @@ function MiniAppInner({ children }: { children: ReactNode }) {
       const saved = localStorage.getItem('hunger_theme');
       if (saved === 'dark') setTheme('dark');
     } catch { /**/ }
+
+    // Listen for theme changes triggered from other pages (e.g. Profile toggle)
+    const onThemeChange = () => {
+      try {
+        const t = localStorage.getItem('hunger_theme');
+        setTheme(t === 'dark' ? 'dark' : 'light');
+      } catch { /**/ }
+    };
+    window.addEventListener('miniapp-theme-changed', onThemeChange);
+    return () => window.removeEventListener('miniapp-theme-changed', onThemeChange);
   }, []);
 
   const themeStyles = theme === 'dark' ? DARK_STYLES : LIGHT_STYLES;
 
-  const lang =
-    typeof window !== 'undefined'
-      ? (localStorage.getItem('i18n_lang') ??
-         window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code ??
-         'ru')
-      : 'ru';
+  const { lang } = useT();
+
+  const { data: salonInfo } = useSalonInfo(lang);
+  const salonName = salonInfo?.name ?? 'Салон';
 
   const showChat = !NO_CHAT_ROUTES.some((r) => pathname?.startsWith(r));
 
@@ -278,7 +287,7 @@ function MiniAppInner({ children }: { children: ReactNode }) {
         isOpen={chatOpen}
         onClose={() => setChatOpen(false)}
         lang={lang}
-        salonName="Hunger Beauty"
+        salonName={salonName}
       />
     </div>
   );
