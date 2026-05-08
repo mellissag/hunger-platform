@@ -1057,6 +1057,42 @@ async def get_service_categories_public(
     ]
 
 
+# ─── Contact master ──────────────────────────────────────────────────────────
+
+
+class MiniAppContactIn(_BM):
+    text: str
+
+
+@router.post("/contact")
+async def contact_master(
+    payload: MiniAppContactIn,
+    current_user: MiniAppUser,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Authenticated: client sends a free-text message that appears in Admin Panel chat."""
+    if not current_user.tg_user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
+
+    stripped = payload.text.strip()
+    if not stripped:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty message")
+
+    from app.models.chat_message import ChatMessage, MessageDirection, MessageType
+
+    client = await _get_or_create_client(current_user, db)
+    msg = ChatMessage(
+        client_id=client.id,
+        direction=MessageDirection.inbound,
+        message_type=MessageType.text,
+        text=stripped,
+        is_read=False,
+    )
+    db.add(msg)
+    await db.commit()
+    return {"ok": True}
+
+
 # ─── Cancel booking ────────────────────────────────────────────────────────────
 
 

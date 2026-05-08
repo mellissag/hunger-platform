@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider, useT } from './i18n/context';
+import ChatDrawer from './components/ChatDrawer';
 import './styles/miniapp.css';
 
 // ── Inline SVG Icons ─────────────────────────────────────────────────────────
@@ -178,8 +179,13 @@ const DARK_STYLES = {
 
 // ── Layout ───────────────────────────────────────────────────────────────────
 
+// Routes that should hide the chat button
+const NO_CHAT_ROUTES = ['/mini-app/onboarding'];
+
 function MiniAppInner({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [chatOpen, setChatOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -214,6 +220,15 @@ function MiniAppInner({ children }: { children: ReactNode }) {
 
   const themeStyles = theme === 'dark' ? DARK_STYLES : LIGHT_STYLES;
 
+  const lang =
+    typeof window !== 'undefined'
+      ? (localStorage.getItem('i18n_lang') ??
+         window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code ??
+         'ru')
+      : 'ru';
+
+  const showChat = !NO_CHAT_ROUTES.some((r) => pathname?.startsWith(r));
+
   return (
     <div
       className="miniapp-root"
@@ -226,7 +241,46 @@ function MiniAppInner({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+
+      {/* ── Floating chat button ─────────────────────────────────────── */}
+      {showChat && (
+        <button
+          onClick={() => setChatOpen(true)}
+          aria-label="Открыть чат"
+          style={{
+            position: 'fixed',
+            right: 16,
+            bottom: 90,
+            zIndex: 30,
+            width: 48,
+            height: 48,
+            borderRadius: '50%',
+            border: 'none',
+            background: 'linear-gradient(135deg, #C9A84C, #9A7230)',
+            boxShadow: '0 4px 20px rgba(154,114,48,.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#fff',
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+        </button>
+      )}
+
       <TabBar />
+
+      {/* ── Chat drawer ─────────────────────────────────────────────── */}
+      <ChatDrawer
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+        lang={lang}
+        salonName="Hunger Beauty"
+      />
     </div>
   );
 }
