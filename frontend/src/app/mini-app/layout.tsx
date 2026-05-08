@@ -196,12 +196,12 @@ function MiniAppInner({ children }: { children: ReactNode }) {
     };
 
     applyInsets();
-    tg.onEvent('safeAreaChanged',        applyInsets);
-    tg.onEvent('contentSafeAreaChanged', applyInsets);
+    (tg as any).onEvent?.('safeAreaChanged',        applyInsets);
+    (tg as any).onEvent?.('contentSafeAreaChanged', applyInsets);
 
     return () => {
-      tg.offEvent('safeAreaChanged',        applyInsets);
-      tg.offEvent('contentSafeAreaChanged', applyInsets);
+      (tg as any).offEvent?.('safeAreaChanged',        applyInsets);
+      (tg as any).offEvent?.('contentSafeAreaChanged', applyInsets);
     };
   }, []);
 
