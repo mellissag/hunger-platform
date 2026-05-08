@@ -157,7 +157,7 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
         onClick={onClose}
       />
 
-      {/* Sheet */}
+      {/* Sheet — sits at bottom:0 but content is padded above the TabBar (80px) */}
       <div
         className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
         style={{
@@ -165,6 +165,7 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
           background: '#FAF8F3',
           borderRadius: '24px 24px 0 0',
           boxShadow: '0 -16px 60px rgba(28,20,9,.15)',
+          paddingBottom: 'calc(var(--tab-bar-h, 80px) + env(safe-area-inset-bottom, 0px))',
         }}
       >
         {/* Handle */}

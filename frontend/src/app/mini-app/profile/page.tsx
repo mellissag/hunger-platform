@@ -277,7 +277,10 @@ function EditModal({
   const [bottomOffset, setBottomOffset] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Lift the sheet above the virtual keyboard using VisualViewport API
+  // TabBar geometry: bottom:20px + height:60px = 80px total
+  const TAB_BAR_H = 80;
+
+  // Lift the sheet above both the TabBar and the virtual keyboard
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
@@ -285,7 +288,8 @@ function EditModal({
     const update = () => {
       // keyboard height = window height − visible viewport height (when keyboard is open)
       const kbHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      setBottomOffset(kbHeight);
+      // Always sit at least above the TabBar even when keyboard is closed
+      setBottomOffset(Math.max(TAB_BAR_H, kbHeight));
     };
 
     vv.addEventListener('resize', update);
@@ -335,11 +339,8 @@ function EditModal({
           />
         </div>
 
-        {/* Buttons — always visible because sheet is lifted above keyboard */}
-        <div
-          className="flex gap-3 px-4 flex-shrink-0"
-          style={{ paddingBottom: bottomOffset > 0 ? 12 : 'max(env(safe-area-inset-bottom, 12px), 12px)' }}
-        >
+        {/* Buttons — always visible because sheet is lifted above TabBar + keyboard */}
+        <div className="flex gap-3 px-4 pb-4 flex-shrink-0">
           <button
             onClick={onClose}
             className="flex-1 py-3 rounded-full border border-[#E4DDD0]

@@ -6,6 +6,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
+  /* ─── Tab bar geometry (bottom: 20px + height: 60px = 80px) ── */
+  --tab-bar-h: 80px;
+
   /* ─── DARK VARIANT (Mini App default) ──────────────────── */
   --d-bg:      #080808;
   --d-bg-elev: #141414;
