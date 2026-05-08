@@ -161,8 +161,7 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
       <div
         className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
         style={{
-          maxHeight: '88vh',
-          minHeight: '55vh',
+          height: '82vh',
           background: '#FAF8F3',
           borderRadius: '24px 24px 0 0',
           boxShadow: '0 -16px 60px rgba(28,20,9,.15)',

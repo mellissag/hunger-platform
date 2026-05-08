@@ -195,10 +195,9 @@ function MiniAppInner({ children }: { children: ReactNode }) {
     tg.expand();
 
     const applyInsets = () => {
-      const sys     = (tg as any).safeAreaInset?.top        ?? 0;
-      const content = (tg as any).contentSafeAreaInset?.top ?? 0;
-      const total   = Math.max(sys + content, 90);
-      document.documentElement.style.setProperty('--tg-content-top', `${total}px`);
+      // contentSafeAreaInset.top = floating Telegram "×" button — must NOT pad content
+      // Pages manage their own top spacing; only bottom inset is needed for the tab bar
+      document.documentElement.style.setProperty('--tg-content-top', '0px');
     };
 
     applyInsets();
