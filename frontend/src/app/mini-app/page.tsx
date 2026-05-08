@@ -46,7 +46,9 @@ export default function HomePage() {
   const upcoming = bookings.filter(b => ['confirmed', 'pending'].includes(b.status));
   const nextBooking = upcoming.find(b => b.starts_at != null) ?? null;
 
-  const clientName = profile?.first_name || user?.first_name || t.greetingGuest;
+  // Prefer the name the user set during registration over their Telegram display name
+  const storedName = typeof window !== 'undefined' ? localStorage.getItem('hunger_profile_name') : null;
+  const clientName = profile?.first_name || storedName || t.greetingGuest;
 
   const today = new Date();
   const issueNum = String(today.getMonth() + 1).padStart(2, '0');

@@ -600,6 +600,65 @@ async def get_me(
     )
 
 
+class MiniAppGuestRegisterIn(_BM):
+    first_name: str
+    phone: str = ""
+    lang: str = "ru"
+
+
+@router.post("/register-guest", response_model=MiniAppMeOut)
+async def register_guest(
+    payload: MiniAppGuestRegisterIn,
+    db: AsyncSession = Depends(get_db),
+) -> MiniAppMeOut:
+    """Public: register a browser user without Telegram initData.
+
+    Creates (or updates by phone) a Client with source=manual so the admin
+    panel can see them. If the user later opens the mini-app via Telegram the
+    accounts will be separate unless they share the same phone number, in which
+    case the bot will update the existing record.
+    """
+    from app.models.enums import ClientSource
+
+    phone = payload.phone.strip()
+    name = payload.first_name.strip()
+    resolved_lang = _resolve_lang(payload.lang)
+
+    # Try to find an existing (browser) client by phone to avoid duplicates
+    client = None
+    if phone:
+        client = (
+            await db.execute(
+                select(Client).where(Client.phone == phone, Client.tg_user_id.is_(None))
+            )
+        ).scalar_one_or_none()
+
+    if client is None:
+        client = Client(
+            tg_user_id=None,
+            first_name=name or None,
+            phone=phone or None,
+            lang=resolved_lang,
+            source=ClientSource.manual,
+        )
+        db.add(client)
+    else:
+        if name:
+            client.first_name = name
+        if phone:
+            client.phone = phone
+        client.lang = resolved_lang
+
+    await db.commit()
+    await db.refresh(client)
+    return MiniAppMeOut(
+        first_name=client.first_name or "",
+        phone=client.phone or "",
+        lang=client.lang or "ru",
+        onboarded=True,
+    )
+
+
 @router.post("/register", response_model=MiniAppMeOut)
 async def register_client(
     payload: MiniAppRegisterIn,

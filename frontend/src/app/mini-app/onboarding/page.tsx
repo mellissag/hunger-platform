@@ -153,14 +153,24 @@ export default function OnboardingPage() {
 
   async function finishOnboarding() {
     setSaving(true);
+    const trimmedName = name.trim();
+    const trimmedPhone = phone.trim();
     try {
       const initData = (window as Window & { Telegram?: { WebApp?: { initData?: string } } })
         .Telegram?.WebApp?.initData ?? '';
       if (initData) {
+        // Telegram mini-app: authenticated registration
         await fetch(`${API}/api/v1/mini-app/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
-          body: JSON.stringify({ first_name: name.trim(), phone: phone.trim(), lang, theme }),
+          body: JSON.stringify({ first_name: trimmedName, phone: trimmedPhone, lang, theme }),
+        });
+      } else {
+        // Browser fallback: guest registration (no Telegram auth)
+        await fetch(`${API}/api/v1/mini-app/register-guest`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ first_name: trimmedName, phone: trimmedPhone, lang }),
         });
       }
     } catch { /* offline — still proceed */ } finally {
@@ -170,6 +180,8 @@ export default function OnboardingPage() {
       localStorage.setItem('hunger_onboarded', 'true');
       localStorage.setItem('hunger_lang', lang);
       localStorage.setItem('hunger_theme', theme);
+      // Store the name so home page and profile can display it without API call
+      if (trimmedName) localStorage.setItem('hunger_profile_name', trimmedName);
     } catch { /**/ }
     setScreen(4);
   }

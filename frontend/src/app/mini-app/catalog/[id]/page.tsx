@@ -58,7 +58,7 @@ export default function ServiceDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
-  const { t } = useT();
+  const { t, lang } = useT();
   const { data: services = [] } = useServices();
   const svc = services.find((s) => s.id === id);
   const { data: masters = [] } = useMastersByService(id);
@@ -81,17 +81,17 @@ export default function ServiceDetailPage() {
     );
   }
 
-  const name = pickI18n(svc.name_i18n ?? { ru: svc.name });
+  const name = pickI18n(svc.name_i18n ?? { ru: svc.name }, lang);
   const desc =
     svc.description_i18n
-      ? pickI18n(svc.description_i18n as Record<string, string>)
+      ? pickI18n(svc.description_i18n as Record<string, string>, lang)
       : svc.description
         ? typeof svc.description === 'string'
           ? svc.description
-          : pickI18n(svc.description as Record<string, string>)
+          : pickI18n(svc.description as Record<string, string>, lang)
         : '';
   const categoryName =
-    svc.category_name_i18n ? pickI18n(svc.category_name_i18n as Record<string, string>) : (svc.category ?? '');
+    svc.category_name_i18n ? pickI18n(svc.category_name_i18n as Record<string, string>, lang) : (svc.category ?? '');
 
   const hasPhoto = Boolean(svc.photo_url);
   // photo_url is stored as an absolute URL (e.g. https://…/media/services/…)
@@ -197,7 +197,7 @@ export default function ServiceDetailPage() {
           borderRadius: '24px 24px 0 0',
           marginTop: -16,
           position: 'relative',
-          paddingBottom: 140,
+          paddingBottom: 100,
         }}
       >
         {/* Duration + Price row */}
@@ -271,9 +271,58 @@ export default function ServiceDetailPage() {
           </div>
         </div>
 
+        {/* CTA — записаться (inline, above description) */}
+        <div style={{ padding: '20px 20px 0' }}>
+          {/* top rule */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+            <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(154,114,48,.25))' }} />
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: GOLD, opacity: 0.5 }} />
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: GOLD, opacity: 0.8 }} />
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: GOLD, opacity: 0.5 }} />
+            <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(154,114,48,.25), transparent)' }} />
+          </div>
+
+          <button
+            onClick={() => router.push(`/mini-app/book?service_id=${svc.id}`)}
+            style={{
+              width: '100%',
+              background: NEAR_BLACK,
+              color: IVORY,
+              border: 'none',
+              borderRadius: 999,
+              padding: '16px 22px',
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              fontFamily: BODY,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              boxShadow: '0 8px 28px rgba(28,20,9,.18)',
+            }}
+          >
+            {t.detailBook}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+
+          {/* bottom rule */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 18 }}>
+            <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(154,114,48,.25))' }} />
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: GOLD, opacity: 0.5 }} />
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: GOLD, opacity: 0.8 }} />
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: GOLD, opacity: 0.5 }} />
+            <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(154,114,48,.25), transparent)' }} />
+          </div>
+        </div>
+
         {/* Description */}
         {desc && (
-          <div style={{ padding: '18px 20px 0' }}>
+          <div style={{ padding: '4px 20px 0' }}>
             <p
               style={{
                 fontSize: 14,
@@ -408,50 +457,6 @@ export default function ServiceDetailPage() {
         )}
       </div>
 
-      {/* ── CTA button — fixed above tab bar ──────────────────────────── */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 'calc(72px + env(safe-area-inset-bottom, 8px))',
-          left: 16,
-          right: 16,
-          zIndex: 50,
-        }}
-      >
-        <button
-          onClick={() => router.push(`/mini-app/book?service_id=${svc.id}`)}
-          style={{
-            width: '100%',
-            background: NEAR_BLACK,
-            color: IVORY,
-            border: 'none',
-            borderRadius: 999,
-            padding: '17px 22px',
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            fontFamily: BODY,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            boxShadow: '0 8px 32px rgba(28,20,9,.22)',
-          }}
-        >
-          {t.detailBook}
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M5 12h14M12 5l7 7-7 7"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-      </div>
     </div>
   );
 }
