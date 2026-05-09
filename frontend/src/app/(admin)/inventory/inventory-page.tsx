@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import { tc } from "@/lib/theme-inline";
@@ -244,11 +245,11 @@ const s = {
   } as React.CSSProperties,
 };
 
-function getStockStatus(current: number, min: number) {
-  if (current <= 0) return { label: "Нет в наличии", variant: "danger" as const, pct: 0 };
-  if (min > 0 && current < min) return { label: "Мало", variant: "danger" as const, pct: Math.min((current / (min * 2)) * 100, 45) };
-  if (min > 0 && current < min * 1.5) return { label: "Умеренно", variant: "warning" as const, pct: Math.min((current / (min * 2)) * 100, 70) };
-  return { label: "Достаточно", variant: "success" as const, pct: Math.min((current / Math.max(min * 2, 1)) * 100, 100) };
+function getStockStatus(t: (key: string) => string, current: number, min: number) {
+  if (current <= 0) return { label: t("statusStockDanger"), variant: "danger" as const, pct: 0 };
+  if (min > 0 && current < min) return { label: t("statusStockLow"), variant: "danger" as const, pct: Math.min((current / (min * 2)) * 100, 45) };
+  if (min > 0 && current < min * 1.5) return { label: t("statusStockModerate"), variant: "warning" as const, pct: Math.min((current / (min * 2)) * 100, 70) };
+  return { label: t("statusStockOk"), variant: "success" as const, pct: Math.min((current / Math.max(min * 2, 1)) * 100, 100) };
 }
 
 const FILL_COLORS = { danger: "#c0392b", warning: "#b7770d", success: "#1a7a4a" };
@@ -256,6 +257,8 @@ const FILL_COLORS = { danger: "#c0392b", warning: "#b7770d", success: "#1a7a4a" 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function InventoryPage() {
+  const t = useTranslations("pages.inventory");
+  const locale = useLocale();
   const qc = useQueryClient();
   const [tab, setTab] = useState<"stock" | "invoices">("stock");
   const [search, setSearch] = useState("");
@@ -299,15 +302,15 @@ export function InventoryPage() {
       {/* Header */}
       <div style={s.header}>
         <div>
-          <h1 style={s.title}>Склад</h1>
-          <p style={s.subtitle}>Управление товарами и накладными</p>
+          <h1 style={s.title}>{t("title")}</h1>
+          <p style={s.subtitle}>{t("subtitle")}</p>
         </div>
         <div style={{ display: "flex", gap: "10px" }}>
           <button style={s.btnOutline} onClick={() => setShowProductModal(true)}>
-            + Добавить товар
+            {t("addButton")}
           </button>
           <button style={s.btnPrimary} onClick={() => setShowInvoiceDrawer(true)}>
-            + Новая накладная
+            {t("addInvoice")}
           </button>
         </div>
       </div>
@@ -315,15 +318,15 @@ export function InventoryPage() {
       {/* Stats */}
       <div style={s.statsRow}>
         {[
-          { label: "Всего позиций", value: stats?.total_products ?? "—", sub: "товаров в базе", icon: "📦" },
+          { label: t("statsPositions"), value: stats?.total_products ?? "—", sub: t("statsPositionsSub"), icon: "📦" },
           {
-            label: "Заканчивается",
+            label: t("statsLow"),
             value: stats?.low_stock_count ?? "—",
-            sub: "ниже минимума",
+            sub: t("statsLowSub"),
             icon: "⚠️",
             danger: (stats?.low_stock_count ?? 0) > 0,
           },
-          { label: "Стоимость склада", value: `€ ${((stats?.total_stock_value ?? 0) / 1).toFixed(0)}`, sub: "по закупочным ценам", icon: "💰" },
+          { label: t("statsValue"), value: `€ ${((stats?.total_stock_value ?? 0) / 1).toFixed(0)}`, sub: t("statsValueSub"), icon: "💰" },
         ].map(({ label, value, sub, icon, danger }) => (
           <div
             key={label}
@@ -347,10 +350,10 @@ export function InventoryPage() {
       {/* Tabs */}
       <div style={s.tabBar}>
         <button style={s.tab(tab === "stock")} onClick={() => setTab("stock")}>
-          Остатки
+          {t("tabStock")}
         </button>
         <button style={s.tab(tab === "invoices")} onClick={() => setTab("invoices")}>
-          Накладные
+          {t("tabInvoices")}
         </button>
       </div>
 
@@ -364,19 +367,19 @@ export function InventoryPage() {
               </svg>
               <input
                 style={{ border: "none", outline: "none", fontSize: "13px", background: "transparent", color: tc.foreground, width: "100%" }}
-                placeholder="Поиск по товару..."
+                placeholder={t("searchPlaceholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <select style={s.filterSelect} value={catFilter} onChange={(e) => setCatFilter(e.target.value)}>
-              <option value="">Все категории</option>
+              <option value="">{t("allCategories")}</option>
               {categories.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             <select style={s.filterSelect} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="">Все статусы</option>
-              <option value="ok">Достаточно</option>
-              <option value="low">Мало</option>
+              <option value="">{t("allStatuses")}</option>
+              <option value="ok">{t("statusOk")}</option>
+              <option value="low">{t("statusLow")}</option>
             </select>
           </div>
 
@@ -384,7 +387,7 @@ export function InventoryPage() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  {["Наименование", "Категория", "Ед.", "Статус", "Остаток", "Цена"].map((h) => (
+                  {[t("colName"), t("colCategory"), t("colUnit"), t("colStatus"), t("colStock"), t("colPrice")].map((h) => (
                     <th key={h} style={s.th}>{h}</th>
                   ))}
                 </tr>
@@ -394,11 +397,11 @@ export function InventoryPage() {
                   <tr>
                     <td colSpan={6} style={{ textAlign: "center", padding: "60px", color: tc.mutedFg }}>
                       <div style={{ fontSize: "40px", marginBottom: "12px" }}>📦</div>
-                      <p>Товаров нет. Добавьте первый товар.</p>
+                      <p>{t("noItems")} {t("noItemsHint")}</p>
                     </td>
                   </tr>
                 ) : filtered.map((p) => {
-                  const { label, variant, pct } = getStockStatus(Number(p.current_stock), Number(p.min_stock));
+                  const { label, variant, pct } = getStockStatus(t, Number(p.current_stock), Number(p.min_stock));
                   return (
                     <tr key={p.id} style={{ transition: "background 0.1s" }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = tc.background)}
@@ -407,7 +410,7 @@ export function InventoryPage() {
                       <td style={s.td}>
                         <div style={{ fontWeight: 500 }}>{p.name}</div>
                         {p.brand && <div style={{ fontSize: "11px", color: tc.mutedFg }}>{p.brand}</div>}
-                        {p.min_stock > 0 && <div style={{ fontSize: "11px", color: tc.mutedFg }}>мин. {p.min_stock} {p.unit}</div>}
+                        {p.min_stock > 0 && <div style={{ fontSize: "11px", color: tc.mutedFg }}>{t("minAbbrev")} {p.min_stock} {p.unit}</div>}
                       </td>
                       <td style={s.td}>
                         {p.category && <span style={s.badge("neutral")}>{p.category}</span>}
@@ -444,7 +447,7 @@ export function InventoryPage() {
           {invoices.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px", color: tc.mutedFg }}>
               <div style={{ fontSize: "40px", marginBottom: "12px" }}>📋</div>
-              <p>Накладных пока нет. Создайте первую.</p>
+              <p>{t("invoicesEmpty")}</p>
             </div>
           ) : invoices.map((inv) => (
             <div key={inv.id}>
@@ -462,12 +465,12 @@ export function InventoryPage() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 500, fontSize: "14px" }}>
-                    {inv.invoice_number || `Накладная #${inv.id}`}
+                    {inv.invoice_number || t("invoiceDefault", { id: inv.id })}
                     {inv.supplier && ` — ${inv.supplier}`}
                   </div>
                   <div style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "2px" }}>
-                    {new Date(inv.arrived_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
-                    {" · "}{inv.items.length} позиций
+                    {new Date(inv.arrived_at).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })}
+                    {" · "}{t("invoicePositions", { count: inv.items.length })}
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
@@ -485,7 +488,7 @@ export function InventoryPage() {
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                     <thead>
                       <tr>
-                        {["Товар", "Кол-во", "Цена", "Сумма"].map((h) => (
+                        {[t("invoiceColProduct"), t("invoiceColQty"), t("invoiceColPrice"), t("invoiceColTotal")].map((h) => (
                           <th key={h} style={{ textAlign: "left", padding: "6px 12px", fontSize: "11px", color: tc.mutedFg, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{h}</th>
                         ))}
                       </tr>
@@ -504,7 +507,7 @@ export function InventoryPage() {
                       ))}
                     </tbody>
                   </table>
-                  {inv.notes && <p style={{ margin: "10px 12px 4px", fontSize: "12px", color: tc.mutedFg }}>Заметки: {inv.notes}</p>}
+                  {inv.notes && <p style={{ margin: "10px 12px 4px", fontSize: "12px", color: tc.mutedFg }}>{t("notesPrefix")} {inv.notes}</p>}
                 </div>
               )}
             </div>
@@ -559,6 +562,7 @@ function NewInvoiceDrawer({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useTranslations("pages.inventory");
   const [form, setForm] = useState({
     invoice_number: "",
     supplier: "",
@@ -589,7 +593,7 @@ function NewInvoiceDrawer({
     setError("");
     const validItems = items.filter((i) => i.product_id && parseFloat(i.quantity) > 0);
     if (!validItems.length) {
-      setError("Добавьте хотя бы одну позицию с выбранным товаром");
+      setError(t("errNoLines"));
       return;
     }
     setSaving(true);
@@ -611,7 +615,7 @@ function NewInvoiceDrawer({
       });
       onSaved();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Ошибка сохранения");
+      setError(e instanceof Error ? e.message : t("errSaveFailed"));
     } finally {
       setSaving(false);
     }
@@ -631,8 +635,8 @@ function NewInvoiceDrawer({
         {/* Header */}
         <div style={{ padding: "20px 24px 18px", borderBottom: `1px solid ${tc.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
           <div>
-            <div style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 500 }}>Новая накладная</div>
-            <div style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "2px" }}>Приход товара на склад</div>
+            <div style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 500 }}>{t("drawerTitle")}</div>
+            <div style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "2px" }}>{t("drawerSubtitle")}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", color: tc.mutedFg, fontSize: "20px", lineHeight: 1 }}>×</button>
         </div>
@@ -642,34 +646,34 @@ function NewInvoiceDrawer({
           {/* Date + Invoice# */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
             <div>
-              <label style={s.label}>Дата прихода *</label>
+              <label style={s.label}>{t("arrivalDate")}</label>
               <input type="date" style={s.input} value={form.arrived_at} onChange={(e) => setForm((f) => ({ ...f, arrived_at: e.target.value }))} />
             </div>
             <div>
-              <label style={s.label}>Номер накладной</label>
-              <input style={s.input} placeholder="ТН-001" value={form.invoice_number} onChange={(e) => setForm((f) => ({ ...f, invoice_number: e.target.value }))} />
+              <label style={s.label}>{t("invoiceNumber")}</label>
+              <input style={s.input} placeholder={t("invoiceNumberPh")} value={form.invoice_number} onChange={(e) => setForm((f) => ({ ...f, invoice_number: e.target.value }))} />
             </div>
           </div>
           <div style={{ marginBottom: "14px" }}>
-            <label style={s.label}>Поставщик</label>
-            <input style={s.input} placeholder="Название компании" value={form.supplier} onChange={(e) => setForm((f) => ({ ...f, supplier: e.target.value }))} />
+            <label style={s.label}>{t("supplierField")}</label>
+            <input style={s.input} placeholder={t("supplierPh")} value={form.supplier} onChange={(e) => setForm((f) => ({ ...f, supplier: e.target.value }))} />
           </div>
           <div style={{ marginBottom: "18px" }}>
-            <label style={s.label}>Заметки</label>
-            <textarea style={{ ...s.input, minHeight: "60px", resize: "vertical" }} placeholder="Дополнительная информация..." value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
+            <label style={s.label}>{t("notesField")}</label>
+            <textarea style={{ ...s.input, minHeight: "60px", resize: "vertical" }} placeholder={t("notesPh")} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
           </div>
 
           <hr style={{ border: "none", borderTop: `1px solid ${tc.border}`, margin: "4px 0 16px" }} />
 
           {/* Line items */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <span style={{ fontSize: "13px", fontWeight: 500 }}>Позиции товара</span>
-            <button onClick={addItem} style={{ ...s.btnOutline, padding: "5px 10px", fontSize: "12px" }}>+ Добавить позицию</button>
+            <span style={{ fontSize: "13px", fontWeight: 500 }}>{t("lineItems")}</span>
+            <button onClick={addItem} style={{ ...s.btnOutline, padding: "5px 10px", fontSize: "12px" }}>{t("addLine")}</button>
           </div>
 
           {/* Column headers */}
           <div style={{ display: "grid", gridTemplateColumns: "2fr 80px 90px 32px", gap: "8px", padding: "0 0 6px", marginBottom: "2px" }}>
-            {["Товар", "Кол-во", "Цена (€)", ""].map((h) => (
+            {[t("lineProduct"), t("lineQty"), t("linePrice"), ""].map((h) => (
               <span key={h} style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{h}</span>
             ))}
           </div>
@@ -689,7 +693,7 @@ function NewInvoiceDrawer({
                       if (prod?.cost_price) updateItem(item.id, "price_per_unit", String(prod.cost_price));
                     }}
                   >
-                    <option value="">— Товар —</option>
+                    <option value="">{t("lineSelectProduct")}</option>
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}{p.brand ? ` (${p.brand})` : ""} — {p.current_stock} {p.unit}
@@ -701,7 +705,7 @@ function NewInvoiceDrawer({
                   <button onClick={() => removeItem(item.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#c0392b", fontSize: "16px", padding: "4px", borderRadius: "4px" }}>×</button>
                   {itemTotal > 0 && (
                     <div style={{ gridColumn: "1/-1", fontSize: "11px", color: tc.mutedFg, textAlign: "right" }}>
-                      Итого: <strong style={{ color: tc.primary }}>€ {itemTotal.toFixed(2)}</strong>
+                      {t("lineSubtotal")}{" "}<strong style={{ color: tc.primary }}>€ {itemTotal.toFixed(2)}</strong>
                     </div>
                   )}
                 </div>
@@ -711,7 +715,7 @@ function NewInvoiceDrawer({
 
           {/* Total */}
           <div style={{ background: "rgba(154,114,48,0.07)", border: "1px solid rgba(154,114,48,0.2)", borderRadius: "8px", padding: "12px 16px", marginTop: "14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "13px", color: tc.mutedFg, fontWeight: 500 }}>Итого к оплате</span>
+            <span style={{ fontSize: "13px", color: tc.mutedFg, fontWeight: 500 }}>{t("grandTotal")}</span>
             <span style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 600, color: tc.primary }}>€ {total.toFixed(2)}</span>
           </div>
 
@@ -720,9 +724,9 @@ function NewInvoiceDrawer({
 
         {/* Footer */}
         <div style={{ padding: "16px 24px", borderTop: `1px solid ${tc.border}`, display: "flex", gap: "10px", background: tc.background, flexShrink: 0 }}>
-          <button onClick={onClose} style={{ ...s.btnOutline, flex: 1 }}>Отмена</button>
+          <button onClick={onClose} style={{ ...s.btnOutline, flex: 1 }}>{t("cancel")}</button>
           <button onClick={handleSave} disabled={saving} style={{ ...s.btnPrimary, flex: 2, justifyContent: "center", opacity: saving ? 0.7 : 1 }}>
-            {saving ? "Сохранение..." : "✓ Сохранить накладную"}
+            {saving ? t("saving") : t("saveInvoice")}
           </button>
         </div>
       </div>
@@ -741,6 +745,7 @@ function AddProductModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useTranslations("pages.inventory");
   const [form, setForm] = useState({
     name: "",
     brand: "",
@@ -757,7 +762,7 @@ function AddProductModal({
 
   const handleSave = async () => {
     setError("");
-    if (!form.name.trim()) { setError("Укажите название товара"); return; }
+    if (!form.name.trim()) { setError(t("errProductName")); return; }
     setSaving(true);
     const category = showCustomCat ? form.customCategory : form.category;
     try {
@@ -776,7 +781,7 @@ function AddProductModal({
       });
       onSaved();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Ошибка сохранения");
+      setError(e instanceof Error ? e.message : t("errSaveFailed"));
     } finally {
       setSaving(false);
     }
@@ -789,55 +794,55 @@ function AddProductModal({
     <div style={MODAL_OVERLAY} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div style={MODAL}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h2 style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 500, margin: 0 }}>Добавить товар</h2>
+          <h2 style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 500, margin: 0 }}>{t("addProductTitle")}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: tc.mutedFg, fontSize: "20px" }}>×</button>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <div>
-            <label style={s.label}>Название *</label>
-            <input style={s.input} placeholder="Wella Koleston 7/0" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            <label style={s.label}>{t("productName")}</label>
+            <input style={s.input} placeholder={t("productNamePh")} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div>
-              <label style={s.label}>Бренд</label>
-              <input style={s.input} placeholder="Wella" value={form.brand} onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))} />
+              <label style={s.label}>{t("brand")}</label>
+              <input style={s.input} placeholder={t("brandPh")} value={form.brand} onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))} />
             </div>
             <div>
-              <label style={s.label}>Артикул (SKU)</label>
-              <input style={s.input} placeholder="WK-70" value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} />
+              <label style={s.label}>{t("sku")}</label>
+              <input style={s.input} placeholder={t("skuPh")} value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} />
             </div>
           </div>
           <div>
-            <label style={s.label}>Категория</label>
+            <label style={s.label}>{t("categoryField")}</label>
             {!showCustomCat ? (
               <div style={{ display: "flex", gap: "8px" }}>
                 <select style={{ ...s.input, flex: 1 }} value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
-                  <option value="">— Выберите —</option>
+                  <option value="">{t("selectCategory")}</option>
                   {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
-                <button onClick={() => setShowCustomCat(true)} style={{ ...s.btnOutline, padding: "8px 12px", fontSize: "12px", flexShrink: 0 }}>+ Своя</button>
+                <button onClick={() => setShowCustomCat(true)} style={{ ...s.btnOutline, padding: "8px 12px", fontSize: "12px", flexShrink: 0 }}>{t("customCategory")}</button>
               </div>
             ) : (
               <div style={{ display: "flex", gap: "8px" }}>
-                <input style={{ ...s.input, flex: 1 }} placeholder="Введите название категории" value={form.customCategory} onChange={(e) => setForm((f) => ({ ...f, customCategory: e.target.value }))} />
-                <button onClick={() => setShowCustomCat(false)} style={{ ...s.btnOutline, padding: "8px 12px", fontSize: "12px", flexShrink: 0 }}>Из списка</button>
+                <input style={{ ...s.input, flex: 1 }} placeholder={t("customCategoryPh")} value={form.customCategory} onChange={(e) => setForm((f) => ({ ...f, customCategory: e.target.value }))} />
+                <button onClick={() => setShowCustomCat(false)} style={{ ...s.btnOutline, padding: "8px 12px", fontSize: "12px", flexShrink: 0 }}>{t("fromList")}</button>
               </div>
             )}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
             <div>
-              <label style={s.label}>Единица</label>
+              <label style={s.label}>{t("unitField")}</label>
               <select style={s.input} value={form.unit} onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))}>
                 {["шт", "мл", "г", "уп", "л"].map((u) => <option key={u}>{u}</option>)}
               </select>
             </div>
             <div>
-              <label style={s.label}>Мин. остаток</label>
+              <label style={s.label}>{t("minStockField")}</label>
               <input type="number" min="0" style={s.input} placeholder="0" value={form.min_stock} onChange={(e) => setForm((f) => ({ ...f, min_stock: e.target.value }))} />
             </div>
             <div>
-              <label style={s.label}>Цена (€)</label>
+              <label style={s.label}>{t("costPrice")}</label>
               <input type="number" min="0" step="0.01" style={s.input} placeholder="0.00" value={form.cost_price} onChange={(e) => setForm((f) => ({ ...f, cost_price: e.target.value }))} />
             </div>
           </div>
@@ -845,9 +850,9 @@ function AddProductModal({
           {error && <p style={{ color: "#c0392b", fontSize: "13px", margin: 0 }}>{error}</p>}
 
           <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
-            <button onClick={onClose} style={{ ...s.btnOutline, flex: 1 }}>Отмена</button>
+            <button onClick={onClose} style={{ ...s.btnOutline, flex: 1 }}>{t("cancel")}</button>
             <button onClick={handleSave} disabled={saving} style={{ ...s.btnPrimary, flex: 2, justifyContent: "center", opacity: saving ? 0.7 : 1 }}>
-              {saving ? "Сохранение..." : "Добавить товар"}
+              {saving ? t("saving") : t("addProductBtn")}
             </button>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiJson, HttpError } from "@/lib/api";
 import { tc } from "@/lib/theme-inline";
@@ -62,7 +63,7 @@ const DEFAULT_SHADE_SUGGESTIONS = [
   "Premium Lightener",
 ] as const;
 
-function mergeSortedUniqueStrings(...groups: readonly string[][]): string[] {
+function mergeSortedUniqueStrings(locale: string, ...groups: readonly string[][]): string[] {
   const set = new Set<string>();
   for (const g of groups) {
     for (const s of g) {
@@ -70,7 +71,7 @@ function mergeSortedUniqueStrings(...groups: readonly string[][]): string[] {
       if (t) set.add(t);
     }
   }
-  return [...set].sort((a, b) => a.localeCompare(b, "ru"));
+  return [...set].sort((a, b) => a.localeCompare(b, locale));
 }
 
 export interface ColorFormula {
@@ -117,8 +118,6 @@ const lbl: React.CSSProperties = {
   marginBottom: "5px", textTransform: "uppercase", letterSpacing: "0.06em",
 };
 
-const TAG_OPTIONS_CREATE = ["VIP", "Постоянный", "Новый", "No-show"] as const;
-
 function formatClientLine(c: ClientOut): string {
   const name = [c.first_name, c.last_name].filter(Boolean).join(" ").trim();
   if (name && c.phone) return `${name} · ${c.phone}`;
@@ -137,6 +136,8 @@ function phoneValid(phone: string): boolean {
 // ── Formulas Page ─────────────────────────────────────────────────────────────
 
 export function FormulasPage() {
+  const t = useTranslations("pages.formulas");
+  const locale = useLocale();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [masterFilter, setMasterFilter] = useState("");
@@ -152,9 +153,9 @@ export function FormulasPage() {
   const masterOptions = useMemo(
     () =>
       [...(mastersPage?.items ?? []).filter((m) => m.is_active)].sort((a, b) =>
-        a.display_name.localeCompare(b.display_name, "ru"),
+        a.display_name.localeCompare(b.display_name, locale),
       ),
-    [mastersPage?.items],
+    [mastersPage?.items, locale],
   );
 
   const { data: formulas = [], isLoading } = useQuery<ColorFormula[]>({
@@ -197,6 +198,7 @@ export function FormulasPage() {
   }).length;
   const withPhotos = formulas.filter((f) => (f.photo_urls?.length ?? 0) > 0).length;
   const uniqueClients = new Set(formulas.map((f) => f.client_id)).size;
+  const photoPct = formulas.length ? Math.round((withPhotos / formulas.length) * 100) : 0;
 
   return (
     <div style={{ padding: "24px 28px", maxWidth: "1280px" }}>
@@ -204,24 +206,29 @@ export function FormulasPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
         <div>
           <h1 style={{ fontFamily: "Playfair Display, serif", fontSize: "28px", fontWeight: 700, margin: 0 }}>
-            Формулы красок
+            {t("title")}
           </h1>
           <p style={{ color: tc.mutedFg, fontSize: "13px", margin: "3px 0 0" }}>
-            База формул — все клиенты
+            {t("subtitle")}
           </p>
         </div>
         <button style={btnPrimary} onClick={() => { setEditFormula(null); setShowDrawer(true); }}>
-          + Новая формула
+          {t("addButton")}
         </button>
       </div>
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "24px" }}>
         {[
-          { label: "Всего формул", value: formulas.length, sub: "за всё время", icon: "🧪" },
-          { label: "Этот месяц", value: thisMonth, sub: "новых формул", icon: "📅" },
-          { label: "Клиентов с формулой", value: uniqueClients, sub: "уникальных", icon: "👥" },
-          { label: "С фото результата", value: `${formulas.length ? Math.round((withPhotos / formulas.length) * 100) : 0}%`, sub: `${withPhotos} из ${formulas.length}`, icon: "📸" },
+          { label: t("statsTotal"), value: formulas.length, sub: t("statsTotalSub"), icon: "🧪" },
+          { label: t("statsMonth"), value: thisMonth, sub: t("statsMonthSub"), icon: "📅" },
+          { label: t("statsClients"), value: uniqueClients, sub: t("statsClientsSub"), icon: "👥" },
+          {
+            label: t("statsPhotos"),
+            value: t("statsPhotosPct", { pct: photoPct }),
+            sub: t("statsPhotosSub", { withPhotos, total: formulas.length }),
+            icon: "📸",
+          },
         ].map(({ label, value, sub, icon }) => (
           <div key={label} style={{ background: tc.card, border: `1px solid ${tc.border}`, borderRadius: "12px", padding: "18px 20px", position: "relative", overflow: "hidden" }}>
             <div style={{ fontSize: "11px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, marginBottom: "8px" }}>{label}</div>
@@ -240,13 +247,13 @@ export function FormulasPage() {
           </svg>
           <input
             style={{ border: "none", outline: "none", fontSize: "13px", background: "transparent", color: tc.foreground, width: "100%" }}
-            placeholder="Клиент, бренд или оттенок..."
+            placeholder={t("search")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <select style={filterSelect} value={masterFilter} onChange={(e) => setMasterFilter(e.target.value)}>
-          <option value="">Все мастера</option>
+          <option value="">{t("allMasters")}</option>
           {masterOptions.map((m) => (
             <option key={m.id} value={m.id}>
               {m.display_name}
@@ -255,21 +262,24 @@ export function FormulasPage() {
         </select>
         {(search || masterFilter) && (
           <button style={{ ...btnOutline, padding: "8px 12px", fontSize: "12px" }} onClick={() => { setSearch(""); setMasterFilter(""); }}>
-            Сбросить
+            {t("reset")}
           </button>
         )}
         <span style={{ marginLeft: "auto", fontSize: "12px", color: tc.mutedFg }}>
-          Показано: {filtered.length}
+          {t("shown", { count: filtered.length })}
         </span>
       </div>
 
       {/* Card grid */}
       {isLoading ? (
-        <div style={{ textAlign: "center", padding: "60px", color: tc.mutedFg }}>Загрузка...</div>
+        <div style={{ textAlign: "center", padding: "60px", color: tc.mutedFg }}>{t("loading")}</div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px", color: tc.mutedFg }}>
           <div style={{ fontSize: "48px", marginBottom: "12px", opacity: 0.5 }}>🧪</div>
-          <p>Формул не найдено. {!formulas.length && "Добавьте первую формулу."}</p>
+          <p>
+            {t("noFormulas")}
+            {!formulas.length ? ` ${t("noFormulasHint")}` : ""}
+          </p>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "16px" }}>
@@ -280,7 +290,7 @@ export function FormulasPage() {
               onView={() => setViewFormula(f)}
               onEdit={() => { setEditFormula(f); setShowDrawer(true); }}
               onDelete={() => {
-                if (window.confirm("Удалить формулу?")) deleteMutation.mutate(f.id);
+                if (window.confirm(t("deleteConfirm"))) deleteMutation.mutate(f.id);
               }}
             />
           ))}
@@ -318,6 +328,8 @@ export function FormulasPage() {
 // ── FormulaViewDrawer ─────────────────────────────────────────────────────────
 
 export function FormulaViewDrawer({ formula: f, onClose, onEdit }: { formula: ColorFormula; onClose: () => void; onEdit: () => void; }) {
+  const t = useTranslations("pages.formulas");
+  const locale = useLocale();
   const DRAWER: React.CSSProperties = { position: "fixed", top: 0, right: 0, bottom: 0, width: "560px", background: tc.card, borderLeft: `1px solid ${tc.border}`, boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column" };
 
   return (
@@ -326,9 +338,9 @@ export function FormulaViewDrawer({ formula: f, onClose, onEdit }: { formula: Co
       <div style={DRAWER}>
         <div style={{ padding: "20px 24px 18px", borderBottom: `1px solid ${tc.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
           <div>
-            <div style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 500 }}>{f.client_name || "Клиент"}</div>
+            <div style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 500 }}>{f.client_name || t("viewClient")}</div>
             <div style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "2px" }}>
-              {new Date(f.applied_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
+              {new Date(f.applied_at).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })}
               {f.master_name && ` · ${f.master_name}`}
             </div>
           </div>
@@ -337,13 +349,13 @@ export function FormulaViewDrawer({ formula: f, onClose, onEdit }: { formula: Co
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
           {/* Meta */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", background: tc.background, borderRadius: "8px", padding: "12px 14px", marginBottom: "20px" }}>
-            {f.service_name && <div><div style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: "3px" }}>Услуга</div><div style={{ fontSize: "13px", fontWeight: 500 }}>{f.service_name}</div></div>}
-            {f.master_name && <div><div style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: "3px" }}>Мастер</div><div style={{ fontSize: "13px", fontWeight: 500 }}>{f.master_name}</div></div>}
-            {f.exposure_minutes && <div><div style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: "3px" }}>Выдержка</div><div style={{ fontSize: "13px", fontWeight: 500 }}>{f.exposure_minutes} мин</div></div>}
+            {f.service_name && <div><div style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: "3px" }}>{t("service")}</div><div style={{ fontSize: "13px", fontWeight: 500 }}>{f.service_name}</div></div>}
+            {f.master_name && <div><div style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: "3px" }}>{t("master")}</div><div style={{ fontSize: "13px", fontWeight: 500 }}>{f.master_name}</div></div>}
+            {f.exposure_minutes && <div><div style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: "3px" }}>{t("exposure")}</div><div style={{ fontSize: "13px", fontWeight: 500 }}>{t("exposureMin", { n: f.exposure_minutes })}</div></div>}
           </div>
           {/* Components */}
           <div style={{ fontSize: "11px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: "10px" }}>
-            Состав формулы ({f.components.length})
+            {t("formulaComponents", { count: f.components.length })}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
             {f.components.map((c, i) => (
@@ -352,7 +364,7 @@ export function FormulaViewDrawer({ formula: f, onClose, onEdit }: { formula: Co
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 500, fontSize: "13px" }}>{c.brand}</div>
                   {typeof c.product === "string" && c.product.trim() ? (
-                    <div style={{ fontSize: "12px", color: tc.mutedFg }}>Товар: {c.product.trim()}</div>
+                    <div style={{ fontSize: "12px", color: tc.mutedFg }}>{t("productFromStock", { name: c.product.trim() })}</div>
                   ) : null}
                   {c.shade ? <div style={{ fontSize: "12px", color: tc.mutedFg }}>{c.shade}</div> : null}
                 </div>
@@ -363,14 +375,14 @@ export function FormulaViewDrawer({ formula: f, onClose, onEdit }: { formula: Co
           {/* Notes */}
           {f.result_notes && (
             <div style={{ marginBottom: "20px" }}>
-              <div style={{ fontSize: "11px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: "8px" }}>Заметки мастера</div>
+              <div style={{ fontSize: "11px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: "8px" }}>{t("masterNotes")}</div>
               <div style={{ background: tc.background, borderRadius: "8px", padding: "12px 14px", borderLeft: "3px solid rgba(154,114,48,0.4)", fontSize: "13px", color: tc.foreground, lineHeight: 1.6 }}>{f.result_notes}</div>
             </div>
           )}
           {/* Photos */}
           {(f.photo_urls?.length ?? 0) > 0 && (
             <div>
-              <div style={{ fontSize: "11px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: "8px" }}>Фото результата</div>
+              <div style={{ fontSize: "11px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: "8px" }}>{t("resultPhotos")}</div>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 {(f.photo_urls ?? []).map((url, i) => (
                   <Image
@@ -387,8 +399,8 @@ export function FormulaViewDrawer({ formula: f, onClose, onEdit }: { formula: Co
           )}
         </div>
         <div style={{ padding: "16px 24px", borderTop: `1px solid ${tc.border}`, display: "flex", gap: "10px", background: tc.background, flexShrink: 0 }}>
-          <button onClick={onClose} style={btnOutline}>Закрыть</button>
-          <button onClick={onEdit} style={btnPrimary}>Редактировать</button>
+          <button onClick={onClose} style={btnOutline}>{t("close")}</button>
+          <button onClick={onEdit} style={btnPrimary}>{t("edit")}</button>
         </div>
       </div>
     </>
@@ -419,6 +431,9 @@ export function FormulaDrawer({
   onClose: () => void;
   onSaved: (result: FormulaSavedPayload) => void;
 }) {
+  const t = useTranslations("pages.formulas");
+  const locale = useLocale();
+  const tagOptionsCreate = useMemo(() => [t("tagVip"), t("tagRegular"), t("tagNew"), t("tagNoshow")], [t]);
   const [form, setForm] = useState({
     client_id: formula?.client_id || clientId || "",
     service_name: formula?.service_name || "",
@@ -503,9 +518,9 @@ export function FormulaDrawer({
   const masterRows = useMemo(
     () =>
       [...(mastersPage?.items ?? []).filter((m) => m.is_active)].sort((a, b) =>
-        a.display_name.localeCompare(b.display_name, "ru"),
+        a.display_name.localeCompare(b.display_name, locale),
       ),
-    [mastersPage?.items],
+    [mastersPage?.items, locale],
   );
 
   const [masterId, setMasterId] = useState(() => formula?.master_id ?? "");
@@ -552,15 +567,17 @@ export function FormulaDrawer({
   const brandDatalistOptions = useMemo(
     () =>
       mergeSortedUniqueStrings(
+        locale,
         [...DEFAULT_BRAND_SUGGESTIONS],
         inventoryProducts.map((p) => (typeof p.brand === "string" ? p.brand : "")).filter(Boolean),
       ),
-    [inventoryProducts],
+    [inventoryProducts, locale],
   );
 
   const shadeDatalistOptions = useMemo(
     () =>
       mergeSortedUniqueStrings(
+        locale,
         [...DEFAULT_SHADE_SUGGESTIONS],
         inventoryProducts.flatMap((p) => {
           const name = p.name?.trim() ?? "";
@@ -568,19 +585,20 @@ export function FormulaDrawer({
           return sku && sku !== name ? [name, sku] : [name];
         }).filter(Boolean),
       ),
-    [inventoryProducts],
+    [inventoryProducts, locale],
   );
 
   const productDatalistOptions = useMemo(
     () =>
       mergeSortedUniqueStrings(
+        locale,
         inventoryProducts.flatMap((p) => {
           const name = p.name?.trim() ?? "";
           const sku = typeof p.sku === "string" ? p.sku.trim() : "";
           return sku && sku !== name ? [name, sku] : [name];
         }).filter(Boolean),
       ),
-    [inventoryProducts],
+    [inventoryProducts, locale],
   );
 
   useEffect(() => {
@@ -623,11 +641,11 @@ export function FormulaDrawer({
   const submitNewClient = async () => {
     setNewClientError("");
     if (!newClientForm.first_name.trim()) {
-      setNewClientError("Укажите имя");
+      setNewClientError(t("errNameRequired"));
       return;
     }
     if (!phoneValid(newClientForm.phone)) {
-      setNewClientError("Телефон: укажите не меньше 5 цифр (можно с +, скобками и пробелами)");
+      setNewClientError(t("errPhoneInvalid"));
       return;
     }
     try {
@@ -658,7 +676,7 @@ export function FormulaDrawer({
         setNewClientError(
           e.message.includes("Клиент с таким") || e.message.includes("уже есть")
             ? e.message
-            : "Такой клиент уже есть (телефон, Telegram и т.п.). Найдите его в поиске выше или измените данные.",
+            : t("errClientDuplicate"),
         );
         return;
       }
@@ -666,7 +684,7 @@ export function FormulaDrawer({
         setNewClientError(e.message);
         return;
       }
-      setNewClientError(e instanceof Error ? e.message : "Не удалось сохранить");
+      setNewClientError(e instanceof Error ? e.message : t("errSave"));
     }
   };
 
@@ -708,7 +726,7 @@ export function FormulaDrawer({
     const fid = formula?.id;
     if (!fid) {
       pendingPhotoFilesRef.current.push(file);
-      setPhotoHint("Фото добавлены в очередь и загрузятся автоматически после нажатия «Сохранить формулу».");
+      setPhotoHint(t("photoQueueHint"));
       setError("");
       return;
     }
@@ -717,7 +735,7 @@ export function FormulaDrawer({
       const result = await uploadPhotoToFormula(fid, file);
       setPhotos((prev) => [...prev, result.url]);
     } catch {
-      setError("Ошибка загрузки фото");
+      setError(t("errPhotoUpload"));
     } finally {
       setUploadingPhoto(false);
     }
@@ -725,8 +743,8 @@ export function FormulaDrawer({
 
   const handleSave = async () => {
     setError("");
-    if (!form.client_id) { setError("Выберите клиента из списка или создайте нового"); return; }
-    if (!form.applied_at) { setError("Укажите дату процедуры"); return; }
+    if (!form.client_id) { setError(t("errSelectClient")); return; }
+    if (!form.applied_at) { setError(t("errProcedureDate")); return; }
     const trim = (s: string) => s.trim();
     const resolvedBrand = (row: ComponentRow): string => {
       if (trim(row.brand)) return trim(row.brand);
@@ -743,7 +761,7 @@ export function FormulaDrawer({
       return "";
     };
     const validComps = components.filter((c) => trim(c.amount) && resolvedBrand(c));
-    if (!validComps.length) { setError("Добавьте хотя бы один компонент (бренд или товар/оттенок со склада и количество)"); return; }
+    if (!validComps.length) { setError(t("errComponents")); return; }
     setSaving(true);
     setPhotoHint("");
     try {
@@ -783,14 +801,14 @@ export function FormulaDrawer({
           setPhotos(mergedUrls);
           saved = { ...saved, photo_urls: mergedUrls };
         } catch {
-          setError("Формула сохранена, но не удалось загрузить одно из фото. Попробуйте добавить файл ещё раз.");
+          setError(t("errSaveWithPhoto"));
         } finally {
           setUploadingPhoto(false);
         }
       }
       onSaved({ saved, isCreate: !formula });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Ошибка сохранения");
+      setError(e instanceof Error ? e.message : t("errSave"));
     } finally {
       setSaving(false);
     }
@@ -805,8 +823,8 @@ export function FormulaDrawer({
         {/* Header */}
         <div style={{ padding: "20px 24px 18px", borderBottom: `1px solid ${tc.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
           <div>
-            <div style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 500 }}>{formula ? "Редактировать формулу" : "Новая формула"}</div>
-            <div style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "2px" }}>Запишите состав краски и результат</div>
+            <div style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 500 }}>{formula ? t("drawerEditTitle") : t("drawerNewTitle")}</div>
+            <div style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "2px" }}>{t("drawerSubtitle")}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: tc.mutedFg, fontSize: "20px" }}>×</button>
         </div>
@@ -815,7 +833,7 @@ export function FormulaDrawer({
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
           {/* Client */}
           <div style={{ marginBottom: "18px" }}>
-            <label style={lbl}>Клиент *</label>
+            <label style={lbl}>{t("clientLabel")}</label>
             {clientLocked ? (
               <div
                 style={{
@@ -831,7 +849,7 @@ export function FormulaDrawer({
                 }}
               >
                 {lockedClientLoading && !lockedClient ? (
-                  <span style={{ color: tc.mutedFg }}>Загрузка…</span>
+                  <span style={{ color: tc.mutedFg }}>{t("clientLoading")}</span>
                 ) : (
                   <span style={{ flex: 1, fontWeight: 500 }}>{clientSummary || "—"}</span>
                 )}
@@ -856,7 +874,7 @@ export function FormulaDrawer({
                         <line x1="21" y1="21" x2="16.65" y2="16.65" />
                       </svg>
                       <input
-                        placeholder="Поиск по имени или телефону…"
+                        placeholder={t("clientSearch")}
                         value={clientSearch}
                         onChange={(e) => {
                           setClientSearch(e.target.value);
@@ -890,9 +908,9 @@ export function FormulaDrawer({
                         }}
                       >
                         {clientsLoading && !clientRows.length ? (
-                          <div style={{ padding: "12px", fontSize: "12px", color: tc.mutedFg }}>Загрузка…</div>
+                          <div style={{ padding: "12px", fontSize: "12px", color: tc.mutedFg }}>{t("clientLoading")}</div>
                         ) : !clientRows.length ? (
-                          <div style={{ padding: "12px", fontSize: "12px", color: tc.mutedFg }}>Никого не найдено</div>
+                          <div style={{ padding: "12px", fontSize: "12px", color: tc.mutedFg }}>{t("clientNotFound")}</div>
                         ) : (
                           clientRows.map((c, i) => (
                             <button
@@ -927,7 +945,7 @@ export function FormulaDrawer({
                     }}
                     style={{ ...btnOutline, flexShrink: 0, whiteSpace: "nowrap" }}
                   >
-                    + Новый клиент
+                    {t("newClientBtn")}
                   </button>
                 </div>
                 {form.client_id ? (
@@ -943,10 +961,10 @@ export function FormulaDrawer({
                     }}
                   >
                     <span>
-                      Выбрано: <strong style={{ color: tc.foreground }}>{clientSummary}</strong>
+                      {t("selected")} <strong style={{ color: tc.foreground }}>{clientSummary}</strong>
                     </span>
                     <button type="button" onClick={clearClient} style={{ ...btnOutline, padding: "4px 10px", fontSize: "11px" }}>
-                      Сменить
+                      {t("changeClient")}
                     </button>
                   </div>
                 ) : null}
@@ -957,23 +975,23 @@ export function FormulaDrawer({
           {/* Section 1: meta */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
             <div>
-              <label style={lbl}>Дата процедуры *</label>
+              <label style={lbl}>{t("procedureDate")}</label>
               <input type="date" style={inp} value={form.applied_at} onChange={(e) => setForm((f) => ({ ...f, applied_at: e.target.value }))} />
             </div>
             <div>
-              <label style={lbl}>Время выдержки (мин)</label>
+              <label style={lbl}>{t("exposureMinutes")}</label>
               <input type="number" min="0" max="240" style={inp} placeholder="35" value={form.exposure_minutes} onChange={(e) => setForm((f) => ({ ...f, exposure_minutes: e.target.value }))} />
             </div>
           </div>
           <div style={{ marginBottom: "14px" }}>
-            <label style={lbl}>Услуга</label>
-            <input style={inp} placeholder="Окрашивание корней" value={form.service_name} onChange={(e) => setForm((f) => ({ ...f, service_name: e.target.value }))} />
+            <label style={lbl}>{t("serviceField")}</label>
+            <input style={inp} placeholder={t("servicePlaceholder")} value={form.service_name} onChange={(e) => setForm((f) => ({ ...f, service_name: e.target.value }))} />
           </div>
 
           <div style={{ marginBottom: "14px" }}>
-            <label style={lbl}>Мастер (кто делал процедуру)</label>
+            <label style={lbl}>{t("masterField")}</label>
             <select style={inp} value={masterId} onChange={(e) => setMasterId(e.target.value)}>
-              <option value="">— Не указан —</option>
+              <option value="">{t("masterNotSet")}</option>
               {masterRows.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.display_name}
@@ -981,7 +999,7 @@ export function FormulaDrawer({
               ))}
             </select>
             <p style={{ fontSize: "11px", color: tc.mutedFg, marginTop: "6px", lineHeight: 1.45 }}>
-              Укажите мастера, который работал с клиентом; имя отображается в карточке и в фильтре «Все мастера».
+              {t("masterHint")}
             </p>
           </div>
 
@@ -989,8 +1007,8 @@ export function FormulaDrawer({
 
           {/* Section 2: components */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <span style={{ fontSize: "13px", fontWeight: 500 }}>Состав формулы</span>
-            <button onClick={addComp} style={{ ...btnOutline, padding: "5px 10px", fontSize: "12px" }}>+ Добавить компонент</button>
+            <span style={{ fontSize: "13px", fontWeight: 500 }}>{t("componentsSection")}</span>
+            <button onClick={addComp} style={{ ...btnOutline, padding: "5px 10px", fontSize: "12px" }}>{t("addComponent")}</button>
           </div>
           <div
             style={{
@@ -1000,7 +1018,7 @@ export function FormulaDrawer({
               padding: "0 0 6px",
             }}
           >
-            {["Бренд", "Товар", "Оттенок / %", "Кол-во", "Ед.", ""].map((h) => (
+            {[t("colBrand"), t("colProduct"), t("colShade"), t("colQty"), t("colUnit"), ""].map((h) => (
               <span key={h || "x"} style={{ fontSize: "10px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{h}</span>
             ))}
           </div>
@@ -1020,8 +1038,8 @@ export function FormulaDrawer({
                 }}
               >
                 <input style={{ ...inp, padding: "7px 10px", fontSize: "12px", minWidth: 0 }} placeholder="Matrix" list="brands-list" value={c.brand} onChange={(e) => updateComp(c.id, "brand", e.target.value)} />
-                <input style={{ ...inp, padding: "7px 10px", fontSize: "12px", minWidth: 0 }} placeholder="Со склада или вручную" list="formula-products-list" value={c.product} onChange={(e) => updateComp(c.id, "product", e.target.value)} />
-                <input style={{ ...inp, padding: "7px 10px", fontSize: "12px", minWidth: 0 }} placeholder="7/0, 6%…" list="shades-list" value={c.shade} onChange={(e) => updateComp(c.id, "shade", e.target.value)} />
+                <input style={{ ...inp, padding: "7px 10px", fontSize: "12px", minWidth: 0 }} placeholder={t("productPlaceholder")} list="formula-products-list" value={c.product} onChange={(e) => updateComp(c.id, "product", e.target.value)} />
+                <input style={{ ...inp, padding: "7px 10px", fontSize: "12px", minWidth: 0 }} placeholder={t("shadePlaceholder")} list="shades-list" value={c.shade} onChange={(e) => updateComp(c.id, "shade", e.target.value)} />
                 <input type="number" min="0" style={{ ...inp, padding: "7px 8px", fontSize: "12px", textAlign: "center" }} placeholder="60" value={c.amount} onChange={(e) => updateComp(c.id, "amount", e.target.value)} />
                 <select style={{ ...inp, padding: "7px 6px", fontSize: "12px", minWidth: 0 }} value={c.unit} onChange={(e) => updateComp(c.id, "unit", e.target.value)}>
                   <option>г</option><option>мл</option><option>шт</option>
@@ -1035,8 +1053,8 @@ export function FormulaDrawer({
 
           {/* Section 3: notes */}
           <div style={{ marginBottom: "18px" }}>
-            <label style={lbl}>Заметки мастера</label>
-            <textarea style={{ ...inp, minHeight: "70px", resize: "vertical" }} placeholder="Результат, особенности техники, рекомендации клиенту..." value={form.result_notes} onChange={(e) => setForm((f) => ({ ...f, result_notes: e.target.value }))} />
+            <label style={lbl}>{t("notesLabel")}</label>
+            <textarea style={{ ...inp, minHeight: "70px", resize: "vertical" }} placeholder={t("notesPlaceholder")} value={form.result_notes} onChange={(e) => setForm((f) => ({ ...f, result_notes: e.target.value }))} />
           </div>
 
           <hr style={{ border: "none", borderTop: `1px solid ${tc.border}`, margin: "4px 0 16px" }} />
@@ -1044,14 +1062,14 @@ export function FormulaDrawer({
           {/* Section 4: photos */}
           <div style={{ marginBottom: "6px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-              <span style={{ fontSize: "13px", fontWeight: 500 }}>Фото результата</span>
-              <span style={{ fontSize: "11px", color: tc.mutedFg }}>Необязательно</span>
+              <span style={{ fontSize: "13px", fontWeight: 500 }}>{t("photosSection")}</span>
+              <span style={{ fontSize: "11px", color: tc.mutedFg }}>{t("photosOptional")}</span>
             </div>
             {photos.length === 0 ? (
               <label style={{ background: "rgba(154,114,48,0.06)", border: "1px dashed rgba(154,114,48,0.4)", borderRadius: "10px", padding: "20px", textAlign: "center", cursor: "pointer", display: "block" }}>
                 <div style={{ fontSize: "28px", marginBottom: "6px" }}>📸</div>
-                <div style={{ fontSize: "12px", color: tc.primary, fontWeight: 500 }}>Загрузить фото</div>
-                <div style={{ fontSize: "11px", color: tc.mutedFg, marginTop: "2px" }}>JPG, PNG — до 10 МБ</div>
+                <div style={{ fontSize: "12px", color: tc.primary, fontWeight: 500 }}>{t("uploadPhoto")}</div>
+                <div style={{ fontSize: "11px", color: tc.mutedFg, marginTop: "2px" }}>{t("photoFormats")}</div>
                 <input type="file" accept="image/*" multiple style={{ display: "none" }}
                   onChange={(e) => {
                     Array.from(e.target.files || []).forEach((file) => handlePhotoUpload(file));
@@ -1078,7 +1096,7 @@ export function FormulaDrawer({
                 </label>
               </div>
             )}
-            {uploadingPhoto && <p style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "8px" }}>Загрузка фото...</p>}
+            {uploadingPhoto && <p style={{ fontSize: "12px", color: tc.mutedFg, marginTop: "8px" }}>{t("uploadingPhotos")}</p>}
             {photoHint ? (
               <p style={{ fontSize: "12px", color: tc.primary, marginTop: "8px", lineHeight: 1.45 }}>{photoHint}</p>
             ) : null}
@@ -1089,9 +1107,9 @@ export function FormulaDrawer({
 
         {/* Footer */}
         <div style={{ padding: "16px 24px", borderTop: `1px solid ${tc.border}`, display: "flex", gap: "10px", background: tc.background, flexShrink: 0 }}>
-          <button onClick={onClose} style={{ ...btnOutline, flex: 1 }}>Отмена</button>
+          <button onClick={onClose} style={{ ...btnOutline, flex: 1 }}>{t("cancel")}</button>
           <button onClick={handleSave} disabled={saving} style={{ ...btnPrimary, flex: 2, justifyContent: "center", opacity: saving ? 0.7 : 1 }}>
-            {saving ? "Сохранение..." : formula ? "Сохранить изменения" : "✓ Сохранить формулу"}
+            {saving ? t("saving") : formula ? t("saveChanges") : t("save")}
           </button>
         </div>
       </div>
@@ -1126,7 +1144,7 @@ export function FormulaDrawer({
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
               <h2 id="formula-new-client-title" style={{ fontFamily: "Playfair Display, serif", fontSize: "20px", fontWeight: 500, margin: 0, color: tc.foreground }}>
-                Новый клиент
+                {t("newClientTitle")}
               </h2>
               <button
                 type="button"
@@ -1138,7 +1156,7 @@ export function FormulaDrawer({
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               <div>
-                <label style={lbl}>Имя *</label>
+                <label style={lbl}>{t("firstName")}</label>
                 <input
                   style={inp}
                   value={newClientForm.first_name}
@@ -1146,7 +1164,7 @@ export function FormulaDrawer({
                 />
               </div>
               <div>
-                <label style={lbl}>Фамилия</label>
+                <label style={lbl}>{t("lastName")}</label>
                 <input
                   style={inp}
                   value={newClientForm.last_name}
@@ -1154,29 +1172,28 @@ export function FormulaDrawer({
                 />
               </div>
               <div>
-                <label style={lbl}>Телефон</label>
+                <label style={lbl}>{t("phone")}</label>
                 <input
                   style={inp}
-                  placeholder="+359…"
+                  placeholder={t("phonePlaceholder")}
                   value={newClientForm.phone}
                   onChange={(e) => setNewClientForm((f) => ({ ...f, phone: e.target.value }))}
                 />
                 <p style={{ fontSize: "11px", color: tc.mutedFg, margin: "6px 0 0", lineHeight: 1.45 }}>
-                  Любой привычный формат номера (с +, без +, со скобками). Если клиент уже есть — выберите его в
-                  поиске «Клиент».
+                  {t("phoneHint")}
                 </p>
               </div>
               <div>
-                <label style={lbl}>Telegram</label>
+                <label style={lbl}>{t("telegram")}</label>
                 <input
                   style={inp}
-                  placeholder="@username"
+                  placeholder={t("tgPlaceholder")}
                   value={newClientForm.tg_username}
                   onChange={(e) => setNewClientForm((f) => ({ ...f, tg_username: e.target.value }))}
                 />
               </div>
               <div>
-                <label style={lbl}>День рождения</label>
+                <label style={lbl}>{t("birthday")}</label>
                 <input
                   type="date"
                   style={inp}
@@ -1185,7 +1202,7 @@ export function FormulaDrawer({
                 />
               </div>
               <div>
-                <label style={lbl}>Теги</label>
+                <label style={lbl}>{t("tags")}</label>
                 <select
                   multiple
                   value={newClientForm.tags}
@@ -1202,19 +1219,19 @@ export function FormulaDrawer({
                     cursor: "pointer",
                   }}
                 >
-                  {TAG_OPTIONS_CREATE.map((opt) => (
+                  {tagOptionsCreate.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}
                     </option>
                   ))}
                 </select>
-                <p style={{ fontSize: "11px", color: tc.mutedFg, margin: "6px 0 0" }}>Удерживайте Ctrl / Cmd для нескольких тегов</p>
+                <p style={{ fontSize: "11px", color: tc.mutedFg, margin: "6px 0 0" }}>{t("tagsHint")}</p>
               </div>
             </div>
             {newClientError ? <p style={{ color: "#c0392b", fontSize: "12px", marginTop: "12px" }}>{newClientError}</p> : null}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
               <button type="button" onClick={() => setShowNewClientModal(false)} style={btnOutline}>
-                Отмена
+                {t("cancel")}
               </button>
               <button
                 type="button"
@@ -1222,7 +1239,7 @@ export function FormulaDrawer({
                 disabled={createClientMut.isPending}
                 style={{ ...btnPrimary, opacity: createClientMut.isPending ? 0.65 : 1 }}
               >
-                {createClientMut.isPending ? "Сохранение…" : "Сохранить"}
+                {createClientMut.isPending ? t("saving") : t("saveSimple")}
               </button>
             </div>
           </div>

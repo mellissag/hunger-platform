@@ -3,6 +3,7 @@
 import type React from "react";
 import Image from "next/image";
 import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import type { ColorFormula } from "@/app/(admin)/formulas/formulas-page";
 import { tc } from "@/lib/theme-inline";
 
@@ -22,6 +23,8 @@ export function FormulaCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const t = useTranslations("pages.formulas");
+  const locale = useLocale();
   const [hovered, setHovered] = useState(false);
   const chips = f.components.slice(0, 3);
   const moreCount = f.components.length - chips.length;
@@ -82,7 +85,7 @@ export function FormulaCard({
               textOverflow: "ellipsis",
             }}
           >
-            {f.client_name || `Клиент ${f.client_id.slice(0, 8)}`}
+            {f.client_name || t("cardClient", { id: f.client_id.slice(0, 8) })}
           </div>
           <div
             style={{
@@ -104,7 +107,7 @@ export function FormulaCard({
               }}
             >
               📅{" "}
-              {new Date(f.applied_at).toLocaleDateString("ru-RU", {
+              {new Date(f.applied_at).toLocaleDateString(locale, {
                 day: "numeric",
                 month: "short",
                 year: "numeric",
@@ -120,7 +123,7 @@ export function FormulaCard({
                   fontSize: "10px",
                 }}
               >
-                ⏱ {f.exposure_minutes} мин
+                ⏱ {t("minutesShort", { n: f.exposure_minutes })}
               </span>
             ) : null}
           </div>
@@ -138,7 +141,7 @@ export function FormulaCard({
             marginBottom: "8px",
           }}
         >
-          Компоненты формулы
+          {t("cardComponents")}
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
           {chips.map((c, i) => {
