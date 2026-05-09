@@ -5,6 +5,7 @@ import { useClientProfile, useUpdateClientProfile } from '../hooks/useMiniAppDat
 import { useTelegram } from '../hooks/useTelegram';
 import { useT } from '../i18n/context';
 import type { Lang } from '../i18n/translations';
+import { useTheme } from '../providers/ThemeProvider';
 
 const PHONE_PLACEHOLDERS: Record<Lang, string> = {
   ru: 'Введите номер телефона',
@@ -26,7 +27,6 @@ const PROFILE_LABELS: Record<Lang, {
   bg: { personalData: 'Лични данни', name: 'Име', phone: 'Телефон', notSet: 'Не е посочен', app: 'Приложение', theme: 'Тема', themeLight: 'Светла', themeDark: 'Тъмна', lang: 'Език', stats: 'Статистика', bookingsCount: 'Записи', editName: 'Промени името', editPhone: 'Промени телефона', namePlaceholder: 'Вашето Имя', save: 'Запази', cancel: 'Откажи' },
 };
 
-const THEME_KEY = 'hunger_theme';
 
 const LANGS: Array<{ code: Lang; label: string }> = [
   { code: 'ru', label: 'Русский' },
@@ -47,20 +47,7 @@ export default function ProfilePage() {
   const [nameVal, setNameVal] = useState('');
   const [phoneVal, setPhoneVal] = useState('');
 
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window === 'undefined') return 'light';
-    return (localStorage.getItem(THEME_KEY) as 'light' | 'dark') ?? 'light';
-  });
-
-  const handleThemeToggle = () => {
-    const next = theme === 'light' ? 'dark' : 'light';
-    setTheme(next);
-    try {
-      localStorage.setItem(THEME_KEY, next);
-    } catch { /* ignore */ }
-    // Notify layout so it updates its React theme state (and inline CSS vars)
-    window.dispatchEvent(new Event('miniapp-theme-changed'));
-  };
+  const { theme, toggleTheme } = useTheme();
 
   const handleSaveName = () => {
     if (!nameVal.trim()) return;
@@ -87,15 +74,15 @@ export default function ProfilePage() {
   if (isLoading) return <ProfileSkeleton />;
 
   return (
-    <div className="min-h-dvh pb-28" style={{ background: 'var(--l-bg, #FAF8F3)' }}>
+    <div className="min-h-dvh pb-28" style={{ background: 'var(--bg-base)' }}>
 
       {/* ── Avatar + Name ─────────────────────────────── */}
       <div className="flex flex-col items-center gap-3 px-5 pt-8 pb-5">
         <div
           className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-semibold select-none"
           style={{
-            background: 'linear-gradient(135deg, #9A7230, #C9A84C)',
-            boxShadow: '0 12px 36px rgba(154,114,48,.30)',
+            background: 'linear-gradient(135deg, var(--gold-deep), var(--gold))',
+            boxShadow: 'var(--shadow-lg)',
             fontFamily: '"Cormorant Garamond", serif',
             fontStyle: 'italic',
           }}
@@ -104,13 +91,13 @@ export default function ProfilePage() {
         </div>
         <div className="text-center">
           <div
-            className="text-2xl font-semibold text-[#1C1408]"
-            style={{ fontFamily: '"Playfair Display", serif', letterSpacing: '-0.01em' }}
+              className="text-2xl font-semibold"
+              style={{ color: 'var(--text-primary)', fontFamily: '"Playfair Display", serif', letterSpacing: '-0.01em' }}
           >
             {displayName}
           </div>
           {tgUser?.username && (
-            <div className="text-sm text-[#7A6E58] mt-0.5">@{tgUser.username}</div>
+              <div className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>@{tgUser.username}</div>
           )}
         </div>
       </div>
@@ -135,23 +122,26 @@ export default function ProfilePage() {
         <SectionLabel className="pt-2">{pl.app}</SectionLabel>
 
         {/* Theme */}
-        <div className="flex items-center justify-between bg-white border border-[#E4DDD0] rounded-sm px-4 py-3">
+        <div
+          className="flex items-center justify-between rounded-sm px-4 py-3"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+        >
           <div>
-            <div className="text-sm font-medium text-[#1C1408]">{pl.theme}</div>
-            <div className="text-xs text-[#7A6E58] mt-0.5">
+            <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{pl.theme}</div>
+            <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
               {theme === 'light' ? pl.themeLight : pl.themeDark}
             </div>
           </div>
           <button
-            onClick={handleThemeToggle}
+            onClick={toggleTheme}
             aria-label="toggle theme"
             className={`relative w-11 h-6 rounded-full transition-colors ${
-              theme === 'dark' ? 'bg-[#9A7230]' : 'bg-[#E4DDD0]'
+              theme === 'dark' ? 'bg-[var(--gold)]' : 'bg-[var(--border-strong)]'
             }`}
           >
-            <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+            <div className={`absolute top-0.5 w-5 h-5 rounded-full shadow transition-transform ${
               theme === 'dark' ? 'translate-x-[22px]' : 'translate-x-0.5'
-            }`} />
+            }`} style={{ background: theme === 'dark' ? 'var(--text-inverse)' : '#FFFFFF' }} />
           </button>
         </div>
 

@@ -1,0 +1,149 @@
+/* ═══════════════════════════════════════════════════════
+   Hunger Beauty Mini App — Theme tokens (light + dark)
+   ═══════════════════════════════════════════════════════ */
+
+:root,
+[data-theme="light"] {
+  --bg-base: #FAF8F3;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #F5F2EB;
+  --bg-overlay: rgba(250, 248, 243, 0.92);
+
+  --text-primary: #1C1408;
+  --text-secondary: #4A3F2E;
+  --text-muted: #7A6E58;
+  --text-inverse: #FAF8F3;
+
+  --gold: #C9A84C;
+  --gold-deep: #9A7230;
+  --gold-subtle: rgba(201, 168, 76, 0.12);
+  --gold-border: rgba(201, 168, 76, 0.25);
+
+  --border: rgba(28, 20, 8, 0.10);
+  --border-strong: rgba(28, 20, 8, 0.20);
+
+  --tabbar-bg: rgba(250, 248, 243, 0.92);
+  --tabbar-border: rgba(28, 20, 8, 0.08);
+  --tabbar-icon: #7A6E58;
+  --tabbar-active: #1C1408;
+
+  --input-bg: #FFFFFF;
+  --input-border: rgba(28, 20, 8, 0.15);
+  --input-focus: #C9A84C;
+
+  --btn-primary-bg: #1C1408;
+  --btn-primary-text: #FAF8F3;
+  --btn-secondary-bg: rgba(28, 20, 8, 0.06);
+  --btn-secondary-text: #1C1408;
+
+  --skeleton-from: #EDE9DE;
+  --skeleton-to: #D9D3C2;
+
+  --chip-bg: rgba(28, 20, 8, 0.06);
+  --chip-active-bg: #1C1408;
+  --chip-text: #4A3F2E;
+  --chip-active-text: #FAF8F3;
+
+  --fab-bg: #1C1408;
+  --fab-icon: #FAF8F3;
+
+  --shadow-sm: 0 1px 4px rgba(28, 20, 8, 0.08);
+  --shadow-md: 0 4px 16px rgba(28, 20, 8, 0.10);
+  --shadow-lg: 0 12px 40px rgba(28, 20, 8, 0.14);
+
+  /* Legacy vars used across current Mini App */
+  --l-bg: var(--bg-base);
+  --l-bg-elev: var(--bg-elevated);
+  --l-fg: var(--text-primary);
+  --l-fg-2: var(--text-secondary);
+  --l-muted: var(--text-muted);
+  --l-gold: var(--gold-deep);
+  --l-gold-hi: var(--gold);
+  --l-border: var(--border);
+}
+
+[data-theme="dark"] {
+  --bg-base: #0F0D09;
+  --bg-surface: #1C1408;
+  --bg-elevated: #261B0C;
+  --bg-overlay: rgba(15, 13, 9, 0.94);
+
+  --text-primary: #FAF8F3;
+  --text-secondary: #C8B89A;
+  --text-muted: #7A6E58;
+  --text-inverse: #1C1408;
+
+  --gold: #C9A84C;
+  --gold-deep: #D4A845;
+  --gold-subtle: rgba(201, 168, 76, 0.15);
+  --gold-border: rgba(201, 168, 76, 0.22);
+
+  --border: rgba(250, 248, 243, 0.08);
+  --border-strong: rgba(250, 248, 243, 0.15);
+
+  --tabbar-bg: rgba(15, 13, 9, 0.95);
+  --tabbar-border: rgba(250, 248, 243, 0.06);
+  --tabbar-icon: #7A6E58;
+  --tabbar-active: #FAF8F3;
+
+  --input-bg: #1C1408;
+  --input-border: rgba(250, 248, 243, 0.12);
+  --input-focus: #C9A84C;
+
+  --btn-primary-bg: #C9A84C;
+  --btn-primary-text: #0F0D09;
+  --btn-secondary-bg: rgba(250, 248, 243, 0.08);
+  --btn-secondary-text: #FAF8F3;
+
+  --skeleton-from: #1C1408;
+  --skeleton-to: #261B0C;
+
+  --chip-bg: rgba(250, 248, 243, 0.08);
+  --chip-active-bg: #FAF8F3;
+  --chip-text: #C8B89A;
+  --chip-active-text: #1C1408;
+
+  --fab-bg: #C9A84C;
+  --fab-icon: #0F0D09;
+
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.40);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.50);
+
+  /* Legacy vars used across current Mini App */
+  --l-bg: var(--bg-base);
+  --l-bg-elev: var(--bg-elevated);
+  --l-fg: var(--text-primary);
+  --l-fg-2: var(--text-secondary);
+  --l-muted: var(--text-muted);
+  --l-gold: var(--gold);
+  --l-gold-hi: var(--gold-deep);
+  --l-border: var(--border);
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-from) 25%,
+    var(--skeleton-to) 50%,
+    var(--skeleton-from) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+

@@ -687,6 +687,8 @@ async def register_client(
         client.phone = payload.phone.strip()
     resolved = _resolve_lang(payload.lang)
     client.lang = resolved
+    if payload.theme in ("light", "dark"):
+        client.theme = payload.theme
     await db.commit()
     await db.refresh(client)
     return MiniAppMeOut(
@@ -1052,6 +1054,7 @@ class MiniAppClientProfileOut(_BM):
     last_name: str | None = None
     phone: str | None = None
     lang: str
+    theme: str = "light"
     tg_username: str | None = None
     total_bookings: int
 
@@ -1060,6 +1063,7 @@ class ClientProfileUpdate(_BM):
     first_name: str | None = None
     phone: str | None = None
     lang: str | None = None  # ru | en | uk | bg
+    theme: str | None = None  # light | dark
 
 
 @router.get("/client/profile", response_model=MiniAppClientProfileOut)
@@ -1083,6 +1087,7 @@ async def get_client_profile(
         last_name=client.last_name,
         phone=client.phone,
         lang=client.lang or "ru",
+        theme=(client.theme or "light"),
         tg_username=client.tg_username,
         total_bookings=client.total_bookings,
     )
@@ -1113,6 +1118,8 @@ async def update_client_profile(
         client.phone = payload.phone.strip() or None
     if payload.lang is not None and payload.lang in _SUPPORTED_LANGS:
         client.lang = payload.lang
+    if payload.theme is not None and payload.theme in ("light", "dark"):
+        client.theme = payload.theme
 
     await db.commit()
     await db.refresh(client)
@@ -1122,6 +1129,7 @@ async def update_client_profile(
         last_name=client.last_name,
         phone=client.phone,
         lang=client.lang or "ru",
+        theme=(client.theme or "light"),
         tg_username=client.tg_username,
         total_bookings=client.total_bookings,
     )

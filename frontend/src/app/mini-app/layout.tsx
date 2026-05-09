@@ -9,6 +9,8 @@ import ChatDrawer from './components/ChatDrawer';
 import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
 import { useSalonInfo } from './hooks/useMiniAppData';
 import './styles/miniapp.css';
+import './styles/theme.css';
+import { ThemeProvider, useTheme } from './providers/ThemeProvider';
 
 const MINI_API = process.env.NEXT_PUBLIC_API_URL ?? '';
 
@@ -86,8 +88,8 @@ function TabBarItem({ tab, active }: { tab: NavTab; active: boolean }) {
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
         padding: '5px 10px', borderRadius: 18, minWidth: 48,
         transition: 'background .15s ease, color .15s ease',
-        color: active ? '#9A7230' : 'rgba(28,20,9,.38)',
-        background: active ? 'rgba(154,114,48,.10)' : 'none',
+        color: active ? 'var(--tabbar-active)' : 'var(--tabbar-icon)',
+        background: active ? 'var(--gold-subtle)' : 'none',
         border: 'none', fontSize: 10, fontWeight: 600, letterSpacing: '0.02em',
         cursor: 'pointer', fontFamily: '"Inter", system-ui, sans-serif',
       }}
@@ -128,11 +130,11 @@ function TabBar() {
           paddingRight: 16,
           height: 60,
           borderRadius: 28,
-          background: 'rgba(250,248,243,0.85)',
+          background: 'var(--tabbar-bg)',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          border: '1px solid rgba(154,114,48,.14)',
-          boxShadow: '0 8px 32px rgba(28,20,9,.10)',
+          border: '1px solid var(--tabbar-border)',
+          boxShadow: 'var(--shadow-md)',
         }}
       >
         {/* Начало */}
@@ -146,11 +148,11 @@ function TabBar() {
           onClick={() => router.push('/mini-app/book')}
           style={{
             width: 48, height: 48, borderRadius: '50%', border: 'none',
-            background: 'linear-gradient(135deg, #9A7230, #C9A84C)',
+            background: 'linear-gradient(135deg, var(--gold-deep), var(--gold))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', cursor: 'pointer', flexShrink: 0,
+            color: 'var(--text-inverse)', cursor: 'pointer', flexShrink: 0,
             transform: 'translateY(-8px)',
-            boxShadow: '0 4px 16px rgba(154,114,48,.45)',
+            boxShadow: 'var(--shadow-md)',
           }}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
@@ -170,24 +172,13 @@ function TabBar() {
   );
 }
 
-// ── Theme-aware root wrapper ──────────────────────────────────────────────────
-
-const LIGHT_STYLES = {
-  background: '#FAF8F3',
-  color: '#1C1408',
-};
-const DARK_STYLES = {
-  background: '#1C1408',
-  color: '#FAF8F3',
-};
-
 // ── Layout ───────────────────────────────────────────────────────────────────
 
 // Routes that should hide the chat button
 const NO_CHAT_ROUTES = ['/mini-app/onboarding'];
 
 function MiniAppInner({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const { theme } = useTheme();
   const [chatOpen, setChatOpen] = useState(false);
   const pathname = usePathname();
 
@@ -216,22 +207,13 @@ function MiniAppInner({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('hunger_theme');
-      if (saved === 'dark') setTheme('dark');
-    } catch { /**/ }
-
-    // Listen for theme changes triggered from other pages (e.g. Profile toggle)
-    const onThemeChange = () => {
-      try {
-        const t = localStorage.getItem('hunger_theme');
-        setTheme(t === 'dark' ? 'dark' : 'light');
-      } catch { /**/ }
-    };
-    window.addEventListener('miniapp-theme-changed', onThemeChange);
-    return () => window.removeEventListener('miniapp-theme-changed', onThemeChange);
-  }, []);
-
-  const themeStyles = theme === 'dark' ? DARK_STYLES : LIGHT_STYLES;
+      const tg = (window as any)?.Telegram?.WebApp;
+      tg?.setHeaderColor?.(theme === 'dark' ? '#0F0D09' : '#FAF8F3');
+      tg?.setBackgroundColor?.(theme === 'dark' ? '#0F0D09' : '#FAF8F3');
+    } catch {
+      // ignore
+    }
+  }, [theme]);
 
   const { lang } = useT();
 
@@ -255,12 +237,10 @@ function MiniAppInner({ children }: { children: ReactNode }) {
   return (
     <div
       className="miniapp-root"
-      data-theme={theme}
       style={{
         fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
         minHeight: '100dvh',
         WebkitFontSmoothing: 'antialiased',
-        ...themeStyles,
       }}
     >
       {children}
@@ -279,17 +259,17 @@ function MiniAppInner({ children }: { children: ReactNode }) {
             height: 48,
             borderRadius: '50%',
             border: 'none',
-            background: 'linear-gradient(135deg, #C9A84C, #9A7230)',
-            boxShadow: '0 4px 20px rgba(154,114,48,.45)',
+            background: 'var(--fab-bg)',
+            boxShadow: 'var(--shadow-lg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: '#fff',
+            color: 'var(--fab-icon)',
           }}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-               stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
           </svg>
         </button>
@@ -326,10 +306,25 @@ export default function MiniAppLayout({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <Script
+          id="miniapp-theme-preload"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+(function(){
+  try {
+    var t = localStorage.getItem('miniapp_theme');
+    if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+  } catch(e) {}
+})();`,
+          }}
+        />
+        <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
-        <MiniAppInner>{children}</MiniAppInner>
+        <ThemeProvider>
+          <MiniAppInner>{children}</MiniAppInner>
+        </ThemeProvider>
       </LanguageProvider>
     </QueryClientProvider>
   );

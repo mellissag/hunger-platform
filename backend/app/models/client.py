@@ -15,6 +15,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     Numeric,
+  String,
     Text,
     Uuid,
     func,
@@ -44,6 +45,12 @@ class Client(UUIDPrimaryKeyMixin, Base):
     city: Mapped[str | None] = mapped_column(Text, nullable=True)
     birthday: Mapped[date | None] = mapped_column(Date, nullable=True)
     lang: Mapped[str] = mapped_column(Text, nullable=False, default="en")
+    theme: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+        default="light",
+        server_default="light",
+    )
     joined_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

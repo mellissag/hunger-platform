@@ -119,7 +119,14 @@ export default function OnboardingPage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [lang, setLangState] = useState<Lang>('ru');
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, setTheme] = useState<Theme>(() => {
+    try {
+      const saved = localStorage.getItem('miniapp_theme');
+      return saved === 'dark' || saved === 'light' ? saved : 'light';
+    } catch {
+      return 'light';
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [salonBrand, setSalonBrand] = useState<{ name: string; city: string; address: string } | null>(null);
@@ -214,7 +221,7 @@ export default function OnboardingPage() {
     try {
       localStorage.setItem('hunger_onboarded', 'true');
       localStorage.setItem('hunger_lang', lang);
-      localStorage.setItem('hunger_theme', theme);
+      localStorage.setItem('miniapp_theme', theme);
       // Store the name so home page and profile can display it without API call
       if (trimmedName) localStorage.setItem('hunger_profile_name', trimmedName);
     } catch { /**/ }
@@ -507,7 +514,7 @@ export default function OnboardingPage() {
     function selectTheme(code: Theme) {
       setTheme(code);
       // Persist immediately so layout picks it up on next mount
-      try { localStorage.setItem('hunger_theme', code); } catch { /**/ }
+      try { localStorage.setItem('miniapp_theme', code); } catch { /**/ }
     }
 
     return (

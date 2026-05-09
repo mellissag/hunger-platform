@@ -54,6 +54,7 @@ export interface ClientProfileFull {
   last_name?: string | null;
   phone?: string | null;
   lang: string;
+  theme?: 'light' | 'dark';
   tg_username?: string | null;
   total_bookings: number;
 }
@@ -296,7 +297,7 @@ export function useUpdateClientProfile() {
   return useMutation<
     ClientProfileFull,
     Error,
-    Partial<Pick<ClientProfileFull, 'first_name' | 'phone' | 'lang'>>
+    Partial<Pick<ClientProfileFull, 'first_name' | 'phone' | 'lang' | 'theme'>>
   >({
     mutationFn: (data) =>
       apiFetch('/api/v1/mini-app/client/profile', {
