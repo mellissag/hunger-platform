@@ -5,6 +5,7 @@ import confetti from "canvas-confetti";
 import { Mic, MicOff, Trash2, Upload } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -679,8 +680,14 @@ export function BroadcastWizard({
                   {mediaUrl && (
                     <div className="relative w-fit">
                       {(mediaType === "photo" || mediaType === "animation") && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={mediaUrl} alt="preview" className="max-h-48 rounded-lg object-contain" />
+                        <Image
+                          src={mediaUrl}
+                          alt="preview"
+                          width={400}
+                          height={300}
+                          className="max-h-48 rounded-lg object-contain"
+                          unoptimized={mediaUrl.startsWith("blob:") || mediaUrl.startsWith("data:")}
+                        />
                       )}
                       {mediaType === "video" && (
                         <video src={mediaUrl} controls className="max-h-48 w-full rounded-lg" />

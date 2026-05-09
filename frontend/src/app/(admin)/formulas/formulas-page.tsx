@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiJson, HttpError } from "@/lib/api";
@@ -372,7 +373,14 @@ export function FormulaViewDrawer({ formula: f, onClose, onEdit }: { formula: Co
               <div style={{ fontSize: "11px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: "8px" }}>Фото результата</div>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 {(f.photo_urls ?? []).map((url, i) => (
-                  <img key={i} src={url} alt="" style={{ width: "80px", height: "80px", borderRadius: "10px", objectFit: "cover", border: `1px solid ${tc.border}` }} />
+                  <Image
+                    key={i}
+                    src={url}
+                    alt=""
+                    width={80}
+                    height={80}
+                    style={{ width: "80px", height: "80px", borderRadius: "10px", objectFit: "cover", border: `1px solid ${tc.border}` }}
+                  />
                 ))}
               </div>
             </div>
@@ -1055,7 +1063,7 @@ export function FormulaDrawer({
                 {photos.map((url, i) => (
                   <div key={i} style={{ position: "relative" }}>
                     <div style={{ width: "72px", height: "72px", borderRadius: "8px", background: tc.background, border: `1px solid ${tc.border}`, overflow: "hidden" }}>
-                      <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <Image src={url} alt="" width={400} height={300} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     </div>
                     <button onClick={() => setPhotos((prev) => prev.filter((_, j) => j !== i))} style={{ position: "absolute", top: "-6px", right: "-6px", width: "18px", height: "18px", background: "#c0392b", color: "#fff", border: "none", borderRadius: "50%", cursor: "pointer", fontSize: "11px", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
                   </div>

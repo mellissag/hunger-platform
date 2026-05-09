@@ -178,7 +178,7 @@ export function BookingCreateDrawer({
         editDetail.client.phone ||
         "",
     );
-  }, [editDetail, editBookingId, form]);
+  }, [editDetail, editBookingId, form, salonTz]);
 
   useEffect(() => {
     if (!open) {

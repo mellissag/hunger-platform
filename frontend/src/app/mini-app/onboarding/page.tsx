@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '../i18n/context';
 
@@ -145,10 +145,13 @@ export default function OnboardingPage() {
     };
   }, [lang]);
 
-  function setLang(l: Lang) {
-    setLangState(l);
-    setContextLang(l);
-  }
+  const setLang = useCallback(
+    (l: Lang) => {
+      setLangState(l);
+      setContextLang(l);
+    },
+    [setContextLang],
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -181,7 +184,7 @@ export default function OnboardingPage() {
         }
       })
       .catch(() => { /* no network — show onboarding */ });
-  }, [router]);
+  }, [router, setLang]);
 
   async function finishOnboarding() {
     setSaving(true);

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useServices, useServiceCategories, pickI18n } from '../hooks/useMiniAppData';
@@ -194,8 +195,14 @@ export default function CatalogPage() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {svc.photo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={svc.photo_url} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <Image
+                      src={svc.photo_url}
+                      alt={name}
+                      width={400}
+                      height={300}
+                      className="h-full w-full object-cover"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                   ) : (
                     <span style={{ fontFamily: SERIF, fontSize: 44, fontStyle: 'italic', color: GOLD, opacity: 0.35, userSelect: 'none' }}>H</span>
                   )}

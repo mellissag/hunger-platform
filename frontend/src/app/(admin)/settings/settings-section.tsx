@@ -87,6 +87,15 @@ export function SettingsSection({ section }: { section: string }) {
   const busy = patch.isPending;
   const mediaBase = getPublicApiBaseUrl();
 
+  const [whForm, setWhForm] = useState<WhFormState>(() => normalizeWorkingHoursDefault(undefined));
+
+  useEffect(() => {
+    if (!data) return;
+    setWhForm(
+      normalizeWorkingHoursDefault(data.settings.working_hours_default as Record<string, unknown>),
+    );
+  }, [data, data?.settings.working_hours_default, data?.settings.updated_at]);
+
   if (q.isLoading || !data) {
     return <p className="text-sm text-muted-foreground">{t("loading")}</p>;
   }
@@ -94,11 +103,6 @@ export function SettingsSection({ section }: { section: string }) {
   const salon = data.salon;
   const settings = data.settings;
   const salonContacts = (salon.contacts ?? {}) as Record<string, string>;
-  const [whForm, setWhForm] = useState<WhFormState>(() => normalizeWorkingHoursDefault(undefined));
-
-  useEffect(() => {
-    setWhForm(normalizeWorkingHoursDefault(settings.working_hours_default as Record<string, unknown>));
-  }, [settings.working_hours_default, settings.updated_at]);
 
   const reminderTemplates =
     remTemplates ??

@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+import Image from "next/image";
 import { useState } from "react";
 import type { ColorFormula } from "@/app/(admin)/formulas/formulas-page";
 import { tc } from "@/lib/theme-inline";
@@ -207,9 +208,11 @@ export function FormulaCard({
                 flexShrink: 0,
               }}
             >
-              <img
+              <Image
                 src={url}
                 alt=""
+                width={52}
+                height={52}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { useServices, useMastersByService, pickI18n } from '../../hooks/useMiniAppData';
 import { useT } from '../../i18n/context';
@@ -386,15 +387,18 @@ export default function ServiceDetailPage() {
                     }}
                   >
                     {master.photo_url ? (
-                      <img
+                      <Image
                         src={master.photo_url}
+                        alt={mName}
+                        width={400}
+                        height={300}
+                        className="h-full w-full rounded-full object-cover"
                         style={{
                           width: '100%',
                           height: '100%',
                           borderRadius: '50%',
                           objectFit: 'cover',
                         }}
-                        alt={mName}
                       />
                     ) : (
                       <span

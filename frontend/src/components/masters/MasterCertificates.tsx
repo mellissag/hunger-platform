@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Award, Plus, Trash2, Upload } from "lucide-react";
@@ -95,7 +96,16 @@ export function MasterCertificates({ masterId }: { masterId: string }) {
               <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && void uploadPhoto(cert.id, e.target.files[0])} />
               <div className="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-t-md bg-muted">
                 {cert.photo_url ? (
-                  <img src={cert.photo_url} alt={cert.title || "certificate"} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                  <Image
+                    src={cert.photo_url}
+                    alt={cert.title || "certificate"}
+                    width={400}
+                    height={300}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
                 ) : (
                   <div className="text-center text-xs text-muted-foreground">
                     <Upload className="mx-auto mb-1 h-5 w-5" />

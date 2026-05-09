@@ -727,9 +727,11 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                     </div>
                     {r.text ? <p className="mt-1">{r.text}</p> : null}
                     {r.photo_url ? (
-                      <img
-                        src={r.photo_url}
+                      <Image
+                        src={mediaSrc(r.photo_url)}
                         alt="review"
+                        width={400}
+                        height={300}
                         className="mt-2 max-h-56 w-full rounded border object-cover"
                         onError={(e) => {
                           e.currentTarget.style.display = "none";
@@ -767,7 +769,16 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                 setReviewPhotoPreview(URL.createObjectURL(f));
               }}
             />
-            {reviewPhotoPreview ? <img src={reviewPhotoPreview} alt="preview" className="h-24 w-36 rounded object-cover" /> : null}
+            {reviewPhotoPreview ? (
+              <Image
+                src={reviewPhotoPreview}
+                alt="preview"
+                width={400}
+                height={300}
+                className="h-24 w-36 rounded object-cover"
+                unoptimized
+              />
+            ) : null}
           </div>
           <DialogFooter>
             <Button
