@@ -14,6 +14,7 @@ export interface AiChatMsg {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  imageDataUrl?: string; // for display in chat
 }
 
 export function useAiChat() {
@@ -22,11 +23,23 @@ export function useAiChat() {
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, imageDataUrl?: string) => {
+      // Extract base64 from data URL (e.g. "data:image/jpeg;base64,/9j/...")
+      let imageBase64: string | undefined;
+      let imageMimeType = 'image/jpeg';
+      if (imageDataUrl) {
+        const match = imageDataUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (match && match[1] && match[2]) {
+          imageMimeType = match[1];
+          imageBase64 = match[2];
+        }
+      }
+
       const userMsg: AiChatMsg = {
         id: crypto.randomUUID(),
         role: 'user',
         content: text,
+        imageDataUrl,
       };
       setMessages((prev) => [...prev, userMsg]);
       setLoading(true);
@@ -39,8 +52,10 @@ export function useAiChat() {
             ...authHeaders(),
           },
           body: JSON.stringify({
-            message: text,
+            message: text || (imageDataUrl ? 'Проанализируй это фото' : ''),
             conversation_id: conversationId ?? undefined,
+            image_base64: imageBase64 ?? null,
+            image_mime_type: imageMimeType,
           }),
         });
 

@@ -959,6 +959,8 @@ async def delete_daily_pick(
 class MiniAppAiRequest(_BM):
     message: str
     conversation_id: str | None = None
+    image_base64: str | None = None
+    image_mime_type: str | None = "image/jpeg"
 
 
 class MiniAppAiResponse(_BM):
@@ -995,6 +997,8 @@ async def ai_chat(
         reply_text, _chunks, _msg_id = await svc.ask(
             client_id=client.id,
             question=payload.message,
+            image_base64=payload.image_base64,
+            image_mime_type=payload.image_mime_type or "image/jpeg",
         )
         return MiniAppAiResponse(reply=reply_text, conversation_id=None)
     except Exception as _exc:  # noqa: BLE001

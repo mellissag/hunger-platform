@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import uuid
 from collections.abc import Awaitable, Callable
 
@@ -135,6 +136,8 @@ class AIService:
         client_id: uuid.UUID,
         question: str,
         *,
+        image_base64: str | None = None,
+        image_mime_type: str = "image/jpeg",
         on_stream_chunk: Callable[[str], Awaitable[None]] | None = None,
     ) -> tuple[str, list[uuid.UUID], uuid.UUID]:
         """RAG + Gemini, стриминг через on_stream_chunk. Возвращает ответ, id чанков KB и id ответа assistant."""
@@ -210,9 +213,24 @@ class AIService:
 
         async def _run_stream() -> None:
             def _sync_stream() -> str:
+                # Build content parts — text always present, image optional
+                parts: list[genai_types.Part] = []
+                if image_base64:
+                    try:
+                        img_bytes = base64.b64decode(image_base64)
+                        parts.append(
+                            genai_types.Part.from_bytes(
+                                data=img_bytes,
+                                mime_type=image_mime_type,
+                            )
+                        )
+                    except Exception:  # noqa: BLE001
+                        pass  # skip malformed image, answer text-only
+                parts.append(genai_types.Part.from_text(text=user_prompt))
+
                 response = ai_client.models.generate_content(
                     model=model_name,
-                    contents=user_prompt,
+                    contents=parts,
                     config=genai_types.GenerateContentConfig(
                         system_instruction=system,
                         temperature=float(salon_settings.ai_temperature or 0.7),

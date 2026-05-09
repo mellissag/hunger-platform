@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { getChatT } from '@/lib/chatI18n';
 import { useAiChat, useContactMaster } from '../hooks/useMiniAppChat';
@@ -31,6 +32,26 @@ function IconSend() {
          stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="22" y1="2" x2="11" y2="13" />
       <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  );
+}
+
+function IconCamera() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+  );
+}
+
+function IconX() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   );
 }
@@ -77,7 +98,11 @@ interface Props {
 
 // ── Chat bubble ───────────────────────────────────────────────────────────────
 
-function ChatBubble({ role, content }: { role: string; content: string }) {
+function ChatBubble({ role, content, imageDataUrl }: {
+  role: string;
+  content: string;
+  imageDataUrl?: string;
+}) {
   const isUser = role === 'user';
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -89,7 +114,17 @@ function ChatBubble({ role, content }: { role: string; content: string }) {
         }`}
         style={isUser ? { background: 'linear-gradient(135deg,#C9A84C,#9A7230)' } : { background: '#fff' }}
       >
-        {content}
+        {imageDataUrl && (
+          <div className="mb-2 rounded-xl overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageDataUrl}
+              alt="uploaded"
+              className="w-full max-h-48 object-cover rounded-xl"
+            />
+          </div>
+        )}
+        {content && <span>{content}</span>}
       </div>
     </div>
   );
@@ -101,8 +136,10 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
   const t = getChatT(lang);
   const [mode, setMode] = useState<Mode>('choose');
   const [input, setInput] = useState('');
+  const [pendingImage, setPendingImage] = useState<string | null>(null); // data URL
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { messages, loading, send: sendAi, reset: resetAi } = useAiChat();
   const { send: sendContact, sending, sent, resetState: resetContact } = useContactMaster();
@@ -113,6 +150,7 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
       const timer = setTimeout(() => {
         setMode('choose');
         setInput('');
+        setPendingImage(null);
         resetAi();
         resetContact();
       }, 300);
@@ -132,11 +170,31 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
     }
   }, [mode]);
 
+  // Handle image file selection
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Max 4 MB (Gemini base64 limit is generous, but keep it reasonable)
+    if (file.size > 4 * 1024 * 1024) {
+      alert('Фото слишком большое. Максимум 4 МБ.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setPendingImage(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    // Reset so same file can be re-selected
+    e.target.value = '';
+  }
+
   const handleSendAi = () => {
     const text = input.trim();
-    if (!text || loading) return;
+    if ((!text && !pendingImage) || loading) return;
+    const img = pendingImage ?? undefined;
+    setPendingImage(null);
     setInput('');
-    sendAi(text);
+    sendAi(text, img);
   };
 
   const handleSendMaster = () => {
@@ -157,7 +215,7 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
         onClick={onClose}
       />
 
-      {/* Sheet — sits at bottom:0 but content is padded above the TabBar (80px) */}
+      {/* Sheet */}
       <div
         className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
         style={{
@@ -177,7 +235,7 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
         <div className="flex items-center justify-between px-4 py-2 flex-shrink-0">
           {mode !== 'choose' ? (
             <button
-              onClick={() => { setMode('choose'); setInput(''); }}
+              onClick={() => { setMode('choose'); setInput(''); setPendingImage(null); }}
               className="p-1.5 rounded-lg text-[#7A6E58] hover:text-[#1C1408] transition-colors"
             >
               <IconBack />
@@ -240,11 +298,16 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
         {/* ── AI CHAT ─────────────────────────────────────────────────── */}
         {mode === 'ai' && (
           <>
+            {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2 min-h-0">
-              {/* Welcome bubble */}
               <ChatBubble role="assistant" content={t.aiWelcome} />
               {messages.map((m) => (
-                <ChatBubble key={m.id} role={m.role} content={m.content} />
+                <ChatBubble
+                  key={m.id}
+                  role={m.role}
+                  content={m.content}
+                  imageDataUrl={m.imageDataUrl}
+                />
               ))}
               {loading && (
                 <div className="flex justify-start">
@@ -258,22 +321,70 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
               )}
               <div ref={bottomRef} />
             </div>
+
+            {/* Image preview strip */}
+            {pendingImage && (
+              <div
+                className="flex-shrink-0 px-3 pt-2 pb-1 flex items-center gap-2"
+                style={{ borderTop: '1px solid #E4DDD0', background: '#FAF8F3' }}
+              >
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={pendingImage}
+                    alt="preview"
+                    className="h-16 w-16 object-cover rounded-xl border border-[#E4DDD0]"
+                  />
+                  <button
+                    onClick={() => setPendingImage(null)}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#1C1408] text-white
+                               flex items-center justify-center shadow-md"
+                  >
+                    <IconX />
+                  </button>
+                </div>
+                <p className="text-xs text-[#7A6E58]">Фото готово к отправке</p>
+              </div>
+            )}
+
+            {/* Input bar */}
             <div
-              className="flex gap-2 px-3 py-3 flex-shrink-0"
-              style={{ borderTop: '1px solid #E4DDD0', background: '#fff' }}
+              className="flex gap-2 px-3 py-3 flex-shrink-0 items-end"
+              style={{ borderTop: pendingImage ? 'none' : '1px solid #E4DDD0', background: '#fff' }}
             >
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+
+              {/* Camera button */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2.5 rounded-xl border border-[#E4DDD0] text-[#7A6E58]
+                           hover:border-[#C9A84C] hover:text-[#C9A84C] transition-colors flex-shrink-0"
+                style={{ background: '#FAF8F3' }}
+                aria-label="Прикрепить фото"
+              >
+                <IconCamera />
+              </button>
+
               <input
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendAi()}
-                placeholder={t.placeholder}
+                placeholder={pendingImage ? 'Добавьте комментарий...' : t.placeholder}
                 className="flex-1 rounded-xl border border-[#E4DDD0] px-3 py-2 text-sm
                            focus:outline-none focus:border-[#C9A84C] bg-[#FAF8F3] text-[#1C1408]"
               />
               <button
                 onClick={handleSendAi}
-                disabled={!input.trim() || loading}
+                disabled={(!input.trim() && !pendingImage) || loading}
                 className="p-2.5 rounded-xl text-white disabled:opacity-40 transition-colors flex-shrink-0"
                 style={{ background: 'linear-gradient(135deg,#C9A84C,#9A7230)' }}
               >
