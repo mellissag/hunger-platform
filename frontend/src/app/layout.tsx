@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
-import { Inter } from "next/font/google";
 
 import { Providers } from "@/app/providers";
 import "./globals.css";
 import { COOKIE_LOCALE, COOKIE_UI_THEME } from "@/lib/cookies";
 import { normalizeLegacyThemeId, type UiThemeId } from "@/theme/presets";
 
-const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
+/** No next/font/google here — CI/Docker build must not hit fonts.gstatic.com (timeouts on VPS). */
 
 export const metadata: Metadata = {
   title: "Hunger Beauty",
@@ -31,7 +30,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const initialUiTheme: UiThemeId = normalizeLegacyThemeId(themeRaw);
 
   return (
-    <html lang={locale} className={inter.variable} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className="min-h-screen font-sans antialiased">
         <Providers locale={locale} messages={messages} initialUiTheme={initialUiTheme}>
           {children}
