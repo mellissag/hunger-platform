@@ -175,7 +175,9 @@ export interface SalonInfo {
   name: string;
   description: string;
   address: string;
+  city: string;
   phone: string;
+  working_hours: Record<string, unknown>;
 }
 
 const SALON_NAME_KEY = 'ma_salon_name';
@@ -198,7 +200,9 @@ export function useSalonInfo(lang = 'ru') {
       name: readCachedSalonName(),
       description: '',
       address: '',
+      city: '',
       phone: '',
+      working_hours: {},
     }),
     staleTime: 10 * 60_000,
   });

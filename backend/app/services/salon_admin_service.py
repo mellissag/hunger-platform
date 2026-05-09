@@ -84,7 +84,12 @@ async def patch_salon_bundle(
     settings_patch: dict[str, Any] | None,
 ) -> SalonBundleOut:
     if salon_patch:
-        for k, v in salon_patch.items():
+        raw_sp = dict(salon_patch)
+        if "contacts" in raw_sp and isinstance(raw_sp["contacts"], dict):
+            merged_c = _deep_merge_dict(dict(salon.contacts or {}), raw_sp["contacts"])
+            salon.contacts = merged_c
+            del raw_sp["contacts"]
+        for k, v in raw_sp.items():
             setattr(salon, k, v)
     if settings_patch:
         raw = dict(settings_patch)

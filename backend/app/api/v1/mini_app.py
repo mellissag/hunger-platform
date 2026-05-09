@@ -8,7 +8,7 @@ import urllib.parse
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel as _BM
+from pydantic import BaseModel as _BM, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -692,7 +692,9 @@ class MiniAppSalonInfo(_BM):
     name: str = ""
     description: str = ""
     address: str = ""
+    city: str = ""
     phone: str = ""
+    working_hours: dict[str, Any] = Field(default_factory=dict)
 
 
 @router.get("/salon", response_model=MiniAppSalonInfo)
@@ -701,9 +703,14 @@ async def get_salon_info(
     db: AsyncSession = Depends(get_db),
 ) -> MiniAppSalonInfo:
     """Public: return basic salon info. lang param selects description language."""
+    from app.models.salon import Settings as SettingsModel
+
     salon = (await db.execute(select(Salon).limit(1))).scalar_one_or_none()
     if salon is None:
         return MiniAppSalonInfo()
+    settings_row = (
+        await db.execute(select(SettingsModel).where(SettingsModel.salon_id == salon.id).limit(1))
+    ).scalar_one_or_none()
     contacts: dict[str, Any] = salon.contacts or {}
     desc_dict: dict[str, Any] = salon.description if isinstance(salon.description, dict) else {}
     resolved_lang = lang if lang in _SUPPORTED_LANGS else "en"
@@ -714,11 +721,16 @@ async def get_salon_info(
         or next(iter(desc_dict.values()), "")
         or ""
     )
+    wh: dict[str, Any] = {}
+    if settings_row and isinstance(settings_row.working_hours_default, dict):
+        wh = dict(settings_row.working_hours_default)
     return MiniAppSalonInfo(
         name=salon.name or "",
         description=desc,
-        address=contacts.get("address", ""),
-        phone=contacts.get("phone", ""),
+        address=str(contacts.get("address", "") or ""),
+        city=str(contacts.get("city", "") or ""),
+        phone=str(contacts.get("phone", "") or ""),
+        working_hours=wh,
     )
 
 

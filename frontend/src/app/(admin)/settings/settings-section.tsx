@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, GripVertical, Trash2, Undo2 } from "lucide-react";
 
@@ -21,6 +21,43 @@ import type { SalonBundle } from "@/types/admin-api";
 function applyPrimaryPreview(primaryHex: string) {
   const hsl = hexToPrimaryHsl(primaryHex);
   if (hsl) document.documentElement.style.setProperty("--primary", hsl);
+}
+
+const WH_DAY_KEYS = ["1", "2", "3", "4", "5", "6", "7"] as const;
+type WhDayKey = (typeof WH_DAY_KEYS)[number];
+type WhDayState = { enabled: boolean; start: string; end: string };
+type WhFormState = Record<WhDayKey, WhDayState>;
+
+function normalizeWorkingHoursDefault(raw: Record<string, unknown> | undefined): WhFormState {
+  const base: WhFormState = {
+    "1": { enabled: true, start: "09:00", end: "18:00" },
+    "2": { enabled: true, start: "09:00", end: "18:00" },
+    "3": { enabled: true, start: "09:00", end: "18:00" },
+    "4": { enabled: true, start: "09:00", end: "18:00" },
+    "5": { enabled: true, start: "09:00", end: "18:00" },
+    "6": { enabled: true, start: "10:00", end: "15:00" },
+    "7": { enabled: false, start: "00:00", end: "00:00" },
+  };
+  if (!raw || typeof raw !== "object") return base;
+  const out = { ...base };
+  for (const k of WH_DAY_KEYS) {
+    const v = raw[k];
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      const o = v as Record<string, unknown>;
+      out[k] = {
+        enabled: Boolean(o.enabled),
+        start: String(o.start ?? out[k].start),
+        end: String(o.end ?? out[k].end),
+      };
+    }
+  }
+  return out;
+}
+
+function whFormToApiPayload(form: WhFormState): Record<string, WhDayState> {
+  const o: Record<string, WhDayState> = {};
+  for (const k of WH_DAY_KEYS) o[k] = { ...form[k] };
+  return o;
 }
 
 export function SettingsSection({ section }: { section: string }) {
@@ -56,6 +93,13 @@ export function SettingsSection({ section }: { section: string }) {
 
   const salon = data.salon;
   const settings = data.settings;
+  const salonContacts = (salon.contacts ?? {}) as Record<string, string>;
+  const [whForm, setWhForm] = useState<WhFormState>(() => normalizeWorkingHoursDefault(undefined));
+
+  useEffect(() => {
+    setWhForm(normalizeWorkingHoursDefault(settings.working_hours_default as Record<string, unknown>));
+  }, [settings.working_hours_default, settings.updated_at]);
+
   const reminderTemplates =
     remTemplates ??
     (typeof settings.reminder_message_templates === "object" && settings.reminder_message_templates
@@ -133,6 +177,7 @@ export function SettingsSection({ section }: { section: string }) {
             </form>
 
             <form
+              key={`brand-form-${settings.updated_at}`}
               className="mt-8 space-y-4"
               onSubmit={(e) => {
                 e.preventDefault();
@@ -147,6 +192,15 @@ export function SettingsSection({ section }: { section: string }) {
                       uk: String(fd.get("desc_uk") ?? ""),
                       bg: String(fd.get("desc_bg") ?? ""),
                     },
+                    contacts: {
+                      ...(typeof salon.contacts === "object" && salon.contacts ? salon.contacts : {}),
+                      city: String(fd.get("city") ?? "").trim(),
+                      address: String(fd.get("address") ?? "").trim(),
+                      phone: String(fd.get("salon_phone") ?? "").trim(),
+                    },
+                  },
+                  settings: {
+                    working_hours_default: whFormToApiPayload(whForm),
                   },
                 });
               }}
@@ -154,6 +208,97 @@ export function SettingsSection({ section }: { section: string }) {
               <div>
                 <Label htmlFor="name">{t("salonName")}</Label>
                 <Input id="name" name="name" defaultValue={salon.name} className="mt-1 max-w-md" />
+              </div>
+              <div className="grid max-w-2xl gap-4 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="city">{t("city")}</Label>
+                  <Input
+                    id="city"
+                    name="city"
+                    defaultValue={salonContacts.city ?? ""}
+                    className="mt-1"
+                    placeholder={t("city")}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="address">{t("address")}</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    defaultValue={salonContacts.address ?? ""}
+                    className="mt-1"
+                    placeholder={t("address")}
+                  />
+                </div>
+              </div>
+              <div className="max-w-md">
+                <Label htmlFor="salon_phone">{t("salonPhone")}</Label>
+                <Input
+                  id="salon_phone"
+                  name="salon_phone"
+                  defaultValue={salonContacts.phone ?? ""}
+                  className="mt-1"
+                  placeholder="+359 ..."
+                />
+              </div>
+              <div className="space-y-3 max-w-2xl">
+                <div>
+                  <Label>{t("workingHoursTitle")}</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">{t("workingHoursHint")}</p>
+                </div>
+                {WH_DAY_KEYS.map((iso, idx) => {
+                  const labelKey = (
+                    ["dayMon", "dayTue", "dayWed", "dayThu", "dayFri", "daySat", "daySun"] as const
+                  )[idx]!;
+                  const row = whForm[iso];
+                  return (
+                    <div
+                      key={iso}
+                      className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2"
+                    >
+                      <label className="flex min-w-[140px] flex-1 items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border border-input"
+                          checked={row.enabled}
+                          onChange={(e) => {
+                            const on = e.target.checked;
+                            setWhForm((prev) => ({
+                              ...prev,
+                              [iso]: { ...prev[iso], enabled: on },
+                            }));
+                          }}
+                        />
+                        <span className="font-medium">{t(labelKey)}</span>
+                      </label>
+                      <Input
+                        type="time"
+                        className="w-[110px]"
+                        value={row.start}
+                        disabled={!row.enabled}
+                        onChange={(e) =>
+                          setWhForm((prev) => ({
+                            ...prev,
+                            [iso]: { ...prev[iso], start: e.target.value },
+                          }))
+                        }
+                      />
+                      <span className="text-muted-foreground">—</span>
+                      <Input
+                        type="time"
+                        className="w-[110px]"
+                        value={row.end}
+                        disabled={!row.enabled}
+                        onChange={(e) =>
+                          setWhForm((prev) => ({
+                            ...prev,
+                            [iso]: { ...prev[iso], end: e.target.value },
+                          }))
+                        }
+                      />
+                    </div>
+                  );
+                })}
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 {(["en", "ru", "uk", "bg"] as const).map((l) => (

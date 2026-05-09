@@ -101,7 +101,7 @@ export function AdminAppShell({
   const { isDark, toggleTheme } = useTheme();
   const canReadSalon = user.role === "owner" || user.role === "admin";
   const { data: salonBundle } = useQuery({
-    queryKey: ["salon-bundle", "admin-nav-order"],
+    queryKey: ["salon-bundle"],
     queryFn: () => apiJson<SalonBundle>("/salon"),
     enabled: canReadSalon,
     staleTime: 60_000,
@@ -135,6 +135,8 @@ export function AdminAppShell({
   }
 
   const displayName = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email;
+  const brandTitle = salonBundle?.salon?.name?.trim() || tc("brand");
+  const brandInitial = brandTitle.slice(0, 1).toUpperCase() || "A";
 
   // Live unread chat count for sidebar badge
   const canReadChats = can(user, "read", "chats");
@@ -148,10 +150,10 @@ export function AdminAppShell({
       <aside className="hidden w-60 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
         <div className="flex h-14 items-center border-b border-sidebar-border px-4 font-semibold">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/50 text-sm font-bold text-primary-foreground">
-            {tc("brand").slice(0, 1).toUpperCase()}
+            {brandInitial}
           </div>
-          <div className="ml-2 flex flex-col">
-            <span className="text-sm font-semibold leading-none">{tc("brand")}</span>
+          <div className="ml-2 min-w-0 flex flex-col">
+            <span className="truncate text-sm font-semibold leading-none">{brandTitle}</span>
             <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider">
               {t("panelAdmin")}
             </span>
@@ -205,7 +207,7 @@ export function AdminAppShell({
             </DrawerTrigger>
             <DrawerContent>
               <DrawerHeader>
-                <DrawerTitle>{tc("brand")}</DrawerTitle>
+                <DrawerTitle>{brandTitle}</DrawerTitle>
               </DrawerHeader>
               <div className="grid gap-1 px-4 pb-6">
                 {items.map((item) => {

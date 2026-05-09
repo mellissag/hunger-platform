@@ -12,6 +12,18 @@ const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 
+/** Split salon name for two-line hero (first word / rest), with static fallbacks when empty. */
+function splitBrandTitle(
+  full: string,
+  fallbackFirst: string,
+  fallbackItalic: string,
+): { first: string; second: string } {
+  const parts = full.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { first: fallbackFirst, second: fallbackItalic };
+  if (parts.length === 1) return { first: parts[0]!, second: '' };
+  return { first: parts[0]!, second: parts.slice(1).join(' ') };
+}
+
 type Lang = 'bg' | 'en' | 'uk' | 'ru';
 type Theme = 'light' | 'dark';
 // -1 = welcome splash, 1 = language, 2 = registration, 3 = theme, 4 = celebration
@@ -110,8 +122,28 @@ export default function OnboardingPage() {
   const [theme, setTheme] = useState<Theme>('light');
   const [saving, setSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [salonBrand, setSalonBrand] = useState<{ name: string; city: string; address: string } | null>(null);
 
   const t = T[lang];
+
+  useEffect(() => {
+    if (!API) return;
+    let cancelled = false;
+    fetch(`${API}/api/v1/mini-app/salon?lang=${lang}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { name?: string; city?: string; address?: string } | null) => {
+        if (cancelled || !d) return;
+        setSalonBrand({
+          name: (d.name ?? '').trim(),
+          city: (d.city ?? '').trim(),
+          address: (d.address ?? '').trim(),
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [lang]);
 
   function setLang(l: Lang) {
     setLangState(l);
@@ -193,6 +225,13 @@ export default function OnboardingPage() {
 
   if (!mounted) return null;
 
+  const welcomeParts = splitBrandTitle(salonBrand?.name ?? '', t.welcomeHeadline, t.welcomeHeadlineItalic);
+  const tagLine =
+    salonBrand && (salonBrand.city || salonBrand.address)
+      ? [salonBrand.city, salonBrand.address].filter(Boolean).join(' · ')
+      : t.salonTag;
+  const celebSalonParts = salonBrand?.name ? splitBrandTitle(salonBrand.name, '', '') : null;
+
   const pageBg: React.CSSProperties = {
     position: 'fixed', inset: 0,
     paddingTop: 'var(--tg-content-top, 90px)',
@@ -223,7 +262,7 @@ export default function OnboardingPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 24px', boxShadow: '0 12px 40px rgba(154,114,48,.3)',
           }}>
-            <span style={{ fontFamily: SERIF, fontSize: 52, fontWeight: 500, color: '#fff', fontStyle: 'italic', lineHeight: 1 }}>H</span>
+            <span style={{ fontFamily: SERIF, fontSize: 52, fontWeight: 500, color: '#fff', fontStyle: 'italic', lineHeight: 1 }}>{(salonBrand?.name || 'H').slice(0, 1).toUpperCase()}</span>
           </div>
           <div style={{ textAlign: 'center', color: GOLD, opacity: .5, letterSpacing: '0.6em', fontSize: 12, padding: '4px 0', fontFamily: SERIF }}>
             ⸻ ✦ ⸻
@@ -231,8 +270,14 @@ export default function OnboardingPage() {
         </div>
 
         <div style={{ fontFamily: SERIF, fontSize: 44, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.0, letterSpacing: '-0.02em' }}>
-          {t.welcomeHeadline}<br />
-          <span style={{ fontStyle: 'italic', color: GOLD }}>{t.welcomeHeadlineItalic}</span>.
+          {welcomeParts.first}
+          {welcomeParts.second ? (
+            <>
+              <br />
+              <span style={{ fontStyle: 'italic', color: GOLD }}>{welcomeParts.second}</span>
+            </>
+          ) : null}
+          .
         </div>
 
         <div style={{ marginTop: 16, color: '#7A6E58', fontSize: 14, lineHeight: 1.6, maxWidth: 280 }}>
@@ -242,7 +287,7 @@ export default function OnboardingPage() {
         <div style={{ width: 56, height: 1, background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`, margin: '28px auto' }} />
 
         <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase', marginBottom: 24 }}>
-          {t.salonTag}
+          {tagLine}
         </div>
 
         <button
@@ -560,7 +605,7 @@ export default function OnboardingPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 24px', boxShadow: '0 12px 40px rgba(154,114,48,.3)',
         }}>
-          <span style={{ fontFamily: SERIF, fontSize: 48, fontWeight: 500, color: '#fff', fontStyle: 'italic', lineHeight: 1 }}>H</span>
+          <span style={{ fontFamily: SERIF, fontSize: 48, fontWeight: 500, color: '#fff', fontStyle: 'italic', lineHeight: 1 }}>{(salonBrand?.name || 'H').slice(0, 1).toUpperCase()}</span>
         </div>
         <div style={{ textAlign: 'center', color: GOLD, opacity: .6, letterSpacing: '0.6em', fontSize: 12, padding: '8px 0', fontFamily: SERIF }}>
           ⸻ ✦ ⸻
@@ -568,7 +613,22 @@ export default function OnboardingPage() {
       </div>
 
       <div style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.0, letterSpacing: '-0.02em' }}>
-        {t.celebTitle} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.celebTitleItalic}</span>.
+        {celebSalonParts ? (
+          <>
+            {celebSalonParts.first}
+            {celebSalonParts.second ? (
+              <>
+                {' '}
+                <span style={{ fontStyle: 'italic', color: GOLD }}>{celebSalonParts.second}</span>
+              </>
+            ) : null}
+            .
+          </>
+        ) : (
+          <>
+            {t.celebTitle} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.celebTitleItalic}</span>.
+          </>
+        )}
       </div>
       {name && (
         <div style={{ marginTop: 8, fontSize: 14, color: GOLD, fontFamily: SERIF, fontStyle: 'italic' }}>
@@ -582,7 +642,7 @@ export default function OnboardingPage() {
       <div style={{ width: 64, height: 1, background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`, margin: '24px auto' }} />
 
       <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase', marginBottom: 20 }}>
-        {t.salonTag}
+        {tagLine}
       </div>
 
       <button
