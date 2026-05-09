@@ -14,7 +14,7 @@ from app.deps import get_db, get_redis, require_roles
 from app.models.enums import UserRole
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
-from app.schemas.service import ServiceCreate, ServiceOut, ServiceUpdate
+from app.schemas.service import ServiceCreate, ServiceOut, ServiceStatsOut, ServiceUpdate
 from app.services import catalog_service
 
 router = APIRouter(prefix="/services", tags=["services"])
@@ -39,11 +39,36 @@ async def list_services(
     rows, total = await catalog_service.list_services(
         db, q=q, page=page, page_size=page_size, category_id=category_id
     )
+    ids = [x.id for x in rows]
+    masters_map, bookings_map = await catalog_service.get_service_aggregates(db, ids)
+    items = [
+        ServiceOut.model_validate(row).model_copy(
+            update={
+                "masters_count": masters_map.get(row.id, 0),
+                "bookings_30d": bookings_map.get(row.id, 0),
+            }
+        )
+        for row in rows
+    ]
     return PaginatedResponse(
-        items=[ServiceOut.model_validate(x) for x in rows],
+        items=items,
         total=total,
         page=page,
         page_size=page_size,
+    )
+
+
+@router.get("/stats", response_model=ServiceStatsOut)
+async def get_services_stats(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_roles(*READ))],
+) -> ServiceStatsOut:
+    total, active, bookings_month, avg_revenue = await catalog_service.get_service_stats(db)
+    return ServiceStatsOut(
+        total=total,
+        active=active,
+        bookings_month=bookings_month,
+        avg_revenue=round(avg_revenue, 2),
     )
 
 

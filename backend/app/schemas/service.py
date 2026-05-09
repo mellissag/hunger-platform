@@ -107,3 +107,14 @@ class ServiceOut(BaseModel):
     sort_order: int
     created_at: datetime
     updated_at: datetime
+    masters_count: int | None = None
+    bookings_30d: int | None = None
+
+
+class ServiceStatsOut(BaseModel):
+    """Сводка для блока KPI на странице услуг."""
+
+    total: int
+    active: int
+    bookings_month: int
+    avg_revenue: float

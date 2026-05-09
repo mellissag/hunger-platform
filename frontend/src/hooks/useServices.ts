@@ -75,6 +75,14 @@ export function useServices(categoryId?: string, search?: string) {
   });
 }
 
+export function useService(serviceId: string | null) {
+  return useQuery({
+    queryKey: ["services", "detail", serviceId],
+    queryFn: () => apiJson<ServiceOut>(`/services/${serviceId}`),
+    enabled: Boolean(serviceId),
+  });
+}
+
 export function useServiceMasters(serviceId: string | null) {
   return useQuery({
     queryKey: ["services", serviceId, "masters"],
@@ -110,6 +118,7 @@ export function useCreateService() {
       }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["services"] });
+      await qc.invalidateQueries({ queryKey: ["services", "stats"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -126,6 +135,7 @@ export function useUpdateService() {
       }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["services"] });
+      await qc.invalidateQueries({ queryKey: ["services", "stats"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -137,6 +147,7 @@ export function useDeleteService() {
     mutationFn: (id: string) => apiJson<void>(`/services/${id}`, { method: "DELETE" }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["services"] });
+      await qc.invalidateQueries({ queryKey: ["services", "stats"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -175,6 +186,7 @@ export function useToggleService() {
     },
     onSettled: async () => {
       await qc.invalidateQueries({ queryKey: ["services"] });
+      await qc.invalidateQueries({ queryKey: ["services", "stats"] });
     },
   });
 }

@@ -1,6 +1,10 @@
 "use client";
 
-import { Pencil, Trash2 } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+
 import { cn } from "@/lib/utils";
 import type { ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
 import { ServiceToggle } from "./ServiceToggle";
@@ -9,100 +13,115 @@ interface ServiceCardProps {
   service: ServiceOut;
   categories: ServiceCategoryOut[];
   locale?: string;
-  onEdit: (id: string) => void;
   onDelete: (service: ServiceOut) => void;
-  activeInBot?: string;
-  hiddenInBot?: string;
+}
+
+function metricDisplay(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "—";
+  return String(value);
 }
 
 export function ServiceCard({
   service,
   categories,
   locale = "ru",
-  onEdit,
   onDelete,
-  activeInBot = "Активна в боте",
-  hiddenInBot = "Скрыта в боте",
 }: ServiceCardProps) {
-  const name = service.name_i18n[locale] ?? service.name_i18n.en ?? service.name_i18n.ru ?? "—";
+  const t = useTranslations("pages.services");
+  const name =
+    service.name_i18n[locale] ?? service.name_i18n.en ?? service.name_i18n.ru ?? "—";
 
   const category = categories.find((c) => c.id === service.category_id);
   const catName = category
     ? (category.name_i18n[locale] ?? category.name_i18n.en ?? category.name_i18n.ru ?? "")
     : "";
 
-  const price = Number.parseFloat(service.price);
-  const priceLabel = Number.isNaN(price) ? "—" : `${Math.round(price)} €`;
+  const rawPrice = Number.parseFloat(service.price);
+  const priceLabel =
+    Number.isNaN(rawPrice) ? "—" : `€${rawPrice.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
+  const mastersLabel = metricDisplay(service.masters_count);
+  const bookingsLabel = metricDisplay(service.bookings_30d ?? service.bookings_count);
+
+  const photoSrc = service.photo_url?.trim() ?? "";
 
   return (
     <div
       data-testid="service-card"
       className={cn(
-        "rounded border border-border bg-card p-5 shadow-[0_1px_4px_rgba(28,20,9,.06)] transition-all duration-200",
-        "hover:border-primary/30 hover:shadow-[0_4px_16px_rgba(28,20,9,.08)]",
-        !service.is_active && "opacity-65",
+        "rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-shadow hover:shadow-md",
+        !service.is_active && "opacity-80",
       )}
     >
-      {/* Header: name + buttons */}
-      <div className="mb-2.5 flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-playfair truncate text-base font-medium leading-snug">{name}</p>
-          {catName && (
-            <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-primary">
-              {catName}
-            </p>
-          )}
-        </div>
-        <div className="flex shrink-0 gap-1">
-          <button
-            type="button"
-            title="Редактировать"
-            onClick={() => onEdit(service.id)}
-            className="flex h-7 w-7 items-center justify-center rounded border border-border bg-muted text-muted-foreground transition-all duration-150 hover:border-primary/30 hover:text-primary"
+      <div className="mb-4 flex items-start gap-3">
+        {photoSrc ? (
+          <Image
+            src={photoSrc}
+            alt={name}
+            width={48}
+            height={48}
+            unoptimized
+            className="h-12 w-12 shrink-0 rounded-xl object-cover"
+          />
+        ) : (
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#C9A84C] to-[#9A7230] text-lg font-semibold text-white"
+            aria-hidden
           >
-            <Pencil className="h-3 w-3" />
-          </button>
+            {name.charAt(0) !== "—" ? name.charAt(0).toUpperCase() : "?"}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-semibold text-gray-900">{name}</h3>
+          <p className="mt-0.5 text-xs text-gray-400">
+            {catName || t("categoryNone")}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
-            title="Удалить"
+            title={t("serviceCardDeleteAria")}
+            aria-label={t("serviceCardDeleteAria")}
             onClick={() => onDelete(service)}
-            className="flex h-7 w-7 items-center justify-center rounded border border-border bg-muted text-muted-foreground transition-all duration-150 hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-3.5 w-3.5" />
           </button>
+          <ServiceToggle serviceId={service.id} isActive={service.is_active} />
         </div>
       </div>
 
-      {/* Price */}
-      <p className="font-playfair text-2xl font-medium text-primary">{priceLabel}</p>
-
-      {/* Meta */}
-      <div className="mt-2.5 flex flex-wrap gap-3.5 border-t border-dashed border-border pt-2.5">
-        <span className="text-[11px] text-muted-foreground">
-          Длит.:{" "}
-          <strong className="font-semibold text-foreground">{service.duration_minutes} мин</strong>
-        </span>
-        {service.masters_count !== undefined && (
-          <span className="text-[11px] text-muted-foreground">
-            Мастеров:{" "}
-            <strong className="font-semibold text-foreground">{service.masters_count}</strong>
-          </span>
-        )}
-        {service.bookings_count !== undefined && (
-          <span className="text-[11px] text-muted-foreground">
-            Броней:{" "}
-            <strong className="font-semibold text-foreground">{service.bookings_count}</strong>
-          </span>
-        )}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-xl bg-gray-50 p-3">
+          <p className="mb-1 text-xs text-gray-400">{t("serviceCardPrice")}</p>
+          <p className="text-sm font-semibold text-gray-900">{priceLabel}</p>
+        </div>
+        <div className="rounded-xl bg-gray-50 p-3">
+          <p className="mb-1 text-xs text-gray-400">{t("serviceCardDuration")}</p>
+          <p className="text-sm font-semibold text-gray-900">
+            {service.duration_minutes != null ? `${service.duration_minutes} ${t("serviceCardMinSuffix")}` : "—"}
+          </p>
+        </div>
+        <div className="rounded-xl bg-gray-50 p-3">
+          <p className="mb-1 text-xs text-gray-400">{t("serviceCardMasters")}</p>
+          <p className="text-sm font-semibold text-gray-900">{mastersLabel}</p>
+        </div>
+        <div className="rounded-xl bg-gray-50 p-3">
+          <p className="mb-1 text-xs text-gray-400">{t("serviceCardBookings30d")}</p>
+          <p className="text-sm font-semibold text-gray-900">{bookingsLabel}</p>
+        </div>
       </div>
 
-      {/* Toggle */}
-      <div className="mt-3 flex items-center gap-2">
-        <ServiceToggle serviceId={service.id} isActive={service.is_active} />
-        <span className="text-[11px] uppercase tracking-[0.05em] text-muted-foreground">
-          {service.is_active ? activeInBot : hiddenInBot}
-        </span>
-      </div>
+      <Link
+        href={`/services/${service.id}`}
+        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2 text-xs text-gray-600 transition-colors hover:border-[#C9A84C] hover:text-[#C9A84C]"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+        {t("serviceCardEdit")}
+      </Link>
     </div>
   );
 }
@@ -110,24 +129,24 @@ export function ServiceCard({
 /** Skeleton for a service card */
 export function ServiceCardSkeleton() {
   return (
-    <div className="animate-pulse rounded border border-border bg-card p-5">
-      <div className="mb-2.5 flex items-start justify-between">
-        <div className="flex-1 space-y-2">
-          <div className="h-4 w-3/4 rounded bg-muted" />
-          <div className="h-2.5 w-1/3 rounded bg-muted" />
+    <div className="animate-pulse rounded-2xl border border-gray-100 bg-white p-5">
+      <div className="mb-4 flex gap-3">
+        <div className="h-12 w-12 shrink-0 rounded-xl bg-gray-100" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="h-4 w-[70%] max-w-full rounded bg-gray-100" />
+          <div className="h-3 w-[40%] rounded bg-gray-100" />
         </div>
-        <div className="flex gap-1">
-          <div className="h-7 w-7 rounded bg-muted" />
-          <div className="h-7 w-7 rounded bg-muted" />
-        </div>
+        <div className="h-8 w-16 shrink-0 rounded-lg bg-gray-100" />
       </div>
-      <div className="mt-1 h-7 w-20 rounded bg-muted" />
-      <div className="mt-3 h-px bg-border" />
-      <div className="mt-2.5 flex gap-3">
-        <div className="h-3 w-20 rounded bg-muted" />
-        <div className="h-3 w-16 rounded bg-muted" />
+      <div className="grid grid-cols-2 gap-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-xl bg-gray-50 p-3">
+            <div className="mb-2 h-3 w-12 rounded bg-gray-100" />
+            <div className="h-4 w-16 rounded bg-gray-100" />
+          </div>
+        ))}
       </div>
-      <div className="mt-3 h-4.5 w-28 rounded bg-muted" />
+      <div className="mt-3 h-9 w-full rounded-xl bg-gray-100" />
     </div>
   );
 }

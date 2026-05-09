@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from loguru import logger
@@ -137,6 +137,73 @@ async def list_services(
     )
     rows = (await db.execute(stmt)).scalars().all()
     return list(rows), total
+
+
+async def get_service_aggregates(
+    db: AsyncSession, service_ids: list[UUID]
+) -> tuple[dict[UUID, int], dict[UUID, int]]:
+    """Счётчики мастеров и броней за 30 дней по списку услуг."""
+    if not service_ids:
+        return {}, {}
+
+    from app.models.booking import Booking
+    from app.models.catalog import MasterService
+    from app.models.enums import BookingStatus
+
+    m_stmt = (
+        select(MasterService.service_id, func.count().label("cnt"))
+        .where(MasterService.service_id.in_(service_ids))
+        .group_by(MasterService.service_id)
+    )
+    m_rows = (await db.execute(m_stmt)).all()
+    masters_map: dict[UUID, int] = {row[0]: int(row[1]) for row in m_rows}
+
+    now = datetime.now(tz=UTC)
+    thirty_ago = now - timedelta(days=30)
+    cancelled = (BookingStatus.cancelled_by_client, BookingStatus.cancelled_by_salon)
+    time_ref = func.coalesce(Booking.starts_at, Booking.created_at)
+    b_stmt = (
+        select(Booking.service_id, func.count().label("cnt"))
+        .where(
+            Booking.service_id.in_(service_ids),
+            time_ref >= thirty_ago,
+            Booking.status.notin_(cancelled),
+        )
+        .group_by(Booking.service_id)
+    )
+    b_rows = (await db.execute(b_stmt)).all()
+    book_map: dict[UUID, int] = {row[0]: int(row[1]) for row in b_rows}
+    return masters_map, book_map
+
+
+async def get_service_stats(db: AsyncSession) -> tuple[int, int, int, float]:
+    """total, active, bookings in current calendar month, average catalog price (€)."""
+    from app.models.booking import Booking
+    from app.models.enums import BookingStatus
+
+    total = int((await db.execute(select(func.count(Service.id)))).scalar_one())
+    active = int(
+        (await db.execute(select(func.count(Service.id)).where(Service.is_active.is_(True)))).scalar_one()
+    )
+
+    now = datetime.now(tz=UTC)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    cancelled = (BookingStatus.cancelled_by_client, BookingStatus.cancelled_by_salon)
+    time_ref = func.coalesce(Booking.starts_at, Booking.created_at)
+    bookings_month = int(
+        (
+            await db.execute(
+                select(func.count(Booking.id)).where(
+                    time_ref >= month_start,
+                    Booking.status.notin_(cancelled),
+                )
+            )
+        ).scalar_one()
+    )
+
+    avg_row = (await db.execute(select(func.coalesce(func.avg(Service.price), 0)))).scalar_one()
+    avg_revenue = float(avg_row) if avg_row is not None else 0.0
+    return total, active, bookings_month, avg_revenue
 
 
 async def get_service_masters(db: AsyncSession, service_id: UUID) -> list[UUID]:

@@ -45,10 +45,12 @@ function KpiSkeleton() {
 }
 
 export function ServicesKPI() {
-  const { data, isLoading } = useServiceStats();
+  const { data, isPending, isFetching, isError } = useServiceStats();
   const t = useTranslations("pages.services");
 
-  if (isLoading || !data) {
+  const loading = (isPending || isFetching) && !data;
+
+  if (loading) {
     return (
       <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -58,24 +60,36 @@ export function ServicesKPI() {
     );
   }
 
-  const activePercent = data.total > 0 ? Math.round((data.active / data.total) * 100) : 0;
+  const safe = data ?? {
+    total: 0,
+    active: 0,
+    bookings_month: 0,
+    avg_revenue: 0,
+  };
+
+  const activePercent = safe.total > 0 ? Math.round((safe.active / safe.total) * 100) : 0;
 
   return (
-    <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
-      <KpiItem label={t("kpiTotal")} value={String(data.total)} trend={t("kpiInCatalog")} />
-      <KpiItem
-        label={t("kpiActive")}
-        value={String(data.active)}
-        trend={`↗ ${activePercent}%`}
-        trendUp={activePercent >= 50}
-      />
-      <KpiItem
-        label={t("kpiBookings")}
-        value={String(data.bookings_month)}
-        trend={`↗ ${t("chartSubtitle")}`}
-        trendUp={data.bookings_month > 0}
-      />
-      <KpiItem label={t("kpiRevenue")} value={`€ ${data.avg_revenue}`} trend={t("kpiInCatalog")} />
-    </div>
+    <>
+      {isError ? (
+        <p className="mb-2 text-center text-xs text-muted-foreground">{t("kpiLoadError")}</p>
+      ) : null}
+      <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
+        <KpiItem label={t("kpiTotal")} value={String(safe.total)} trend={t("kpiInCatalog")} />
+        <KpiItem
+          label={t("kpiActive")}
+          value={String(safe.active)}
+          trend={`↗ ${activePercent}%`}
+          trendUp={activePercent >= 50}
+        />
+        <KpiItem
+          label={t("kpiBookings")}
+          value={String(safe.bookings_month)}
+          trend={`↗ ${t("chartSubtitle")}`}
+          trendUp={safe.bookings_month > 0}
+        />
+        <KpiItem label={t("kpiRevenue")} value={`€ ${safe.avg_revenue}`} trend={t("kpiInCatalog")} />
+      </div>
+    </>
   );
 }

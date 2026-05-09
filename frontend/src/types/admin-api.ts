@@ -226,7 +226,10 @@ export type ServiceOut = {
   is_active: boolean;
   sort_order: number;
   photo_url: string | null;
+  created_at?: string;
+  updated_at?: string;
   bookings_count?: number;
+  bookings_30d?: number;
   masters_count?: number;
 };
 

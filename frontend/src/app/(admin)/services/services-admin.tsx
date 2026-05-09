@@ -48,7 +48,6 @@ export function ServicesAdmin() {
   const search = useDebounce(searchRaw, 300);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editServiceId, setEditServiceId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ServiceOut | null>(null);
 
   // ── Category dialog state ─────────────────────────────────────────────────
@@ -103,25 +102,16 @@ export function ServicesAdmin() {
 
   const categories = useMemo(() => catData?.items ?? [], [catData?.items]);
   const services = useMemo(() => svcData?.items ?? [], [svcData?.items]);
-
-  const editService = useMemo(
-    () => services.find((s) => s.id === editServiceId) ?? null,
-    [services, editServiceId],
-  );
+  const catalogTotal = svcData?.total ?? 0;
+  const hasListFilters = Boolean(activeCategoryId || search.trim());
+  const isGlobalCatalogEmpty = !isLoading && catalogTotal === 0 && !hasListFilters;
 
   const openCreate = useCallback(() => {
-    setEditServiceId(null);
-    setDrawerOpen(true);
-  }, []);
-
-  const openEdit = useCallback((id: string) => {
-    setEditServiceId(id);
     setDrawerOpen(true);
   }, []);
 
   const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
-    setEditServiceId(null);
   }, []);
 
   const now = new Date();
@@ -266,6 +256,8 @@ export function ServicesAdmin() {
                 <ServiceCardSkeleton key={i} />
               ))}
             </div>
+          ) : isGlobalCatalogEmpty ? (
+            <GlobalServicesEmpty onAdd={openCreate} addLabel={t("addBtn")} />
           ) : services.length === 0 ? (
             <EmptyState onAdd={openCreate} emptyTitle={t("emptyTitle")} emptyBtn={t("emptyBtn")} />
           ) : (
@@ -276,10 +268,7 @@ export function ServicesAdmin() {
                   service={svc}
                   categories={categories}
                   locale={locale}
-                  onEdit={openEdit}
                   onDelete={setDeleteTarget}
-                  activeInBot={t("activeInBot")}
-                  hiddenInBot={t("hiddenInBot")}
                 />
               ))}
               <AddServiceCard onClick={openCreate} label={t("addCard")} />
@@ -307,12 +296,7 @@ export function ServicesAdmin() {
       </div>
 
       {/* ── ServiceDrawer ── */}
-      <ServiceDrawer
-        open={drawerOpen}
-        serviceId={editServiceId}
-        service={editService}
-        onClose={closeDrawer}
-      />
+      <ServiceDrawer open={drawerOpen} serviceId={null} service={null} onClose={closeDrawer} />
 
       {/* ── Delete Modal ── */}
       <ServiceDeleteModal service={deleteTarget} onClose={() => setDeleteTarget(null)} />
@@ -401,6 +385,30 @@ export function ServicesAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function GlobalServicesEmpty({ onAdd, addLabel }: { onAdd: () => void; addLabel: string }) {
+  const t = useTranslations("pages.services");
+  return (
+    <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5" aria-hidden>
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <path d="M8 21h8M12 17v4" />
+        </svg>
+      </div>
+      <p className="font-medium text-gray-900">{t("emptyGlobalTitle")}</p>
+      <p className="mt-1 text-sm text-gray-400">{t("emptyGlobalHint")}</p>
+      <button
+        type="button"
+        onClick={onAdd}
+        className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-medium uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        {addLabel}
+      </button>
     </div>
   );
 }
