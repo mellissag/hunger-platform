@@ -271,7 +271,12 @@ class AIService:
 
         if provider == "groq":
             groq_key = _get_groq_key(salon_settings)
-            groq_model = raw_model if raw_model else _DEFAULT_GROQ_MODEL
+            # ai_model may contain a Gemini name — ignore it for Groq
+            groq_model = (
+                raw_model
+                if raw_model and "gemini" not in raw_model.lower() and "models/" not in raw_model
+                else _DEFAULT_GROQ_MODEL
+            )
             text = await _call_groq(
                 api_key=groq_key,
                 system=system,
@@ -376,7 +381,11 @@ class AIService:
 
         if provider == "groq":
             groq_key = _get_groq_key(salon_settings)
-            groq_model = raw_model if raw_model else _DEFAULT_GROQ_MODEL
+            groq_model = (
+                raw_model
+                if raw_model and "gemini" not in raw_model.lower() and "models/" not in raw_model
+                else _DEFAULT_GROQ_MODEL
+            )
             answer = await _call_groq(
                 api_key=groq_key,
                 system=system,
