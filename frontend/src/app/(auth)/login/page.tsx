@@ -3,15 +3,16 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Lock, Mail } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useForm, type UseFormReturn } from "react-hook-form";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getPublicApiBaseUrl } from "@/lib/env";
 
 const schema = z.object({
   email: z.string().email(),
@@ -23,9 +24,30 @@ type FormValues = z.infer<typeof schema>;
 export default function LoginPage() {
   const t = useTranslations("login");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [salonName, setSalonName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const base = getPublicApiBaseUrl();
+    if (!base) return;
+    let cancelled = false;
+    fetch(`${base}/api/v1/mini-app/salon?lang=${encodeURIComponent(locale)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { name?: string } | null) => {
+        if (cancelled || !d?.name?.trim()) return;
+        setSalonName(d.name.trim());
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
+
+  const brandLabel = salonName ?? tc("brand");
+  const brandInitial = (salonName?.trim() || tc("brandShort")).slice(0, 1).toUpperCase() || "H";
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -65,10 +87,10 @@ export default function LoginPage() {
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#9A7230] to-[#B8892E] text-lg font-bold text-[#FAF8F3]">
-                H
+                {brandInitial}
               </div>
               <div>
-                <p className="font-semibold text-[#1C1409]">{tc("brand")}</p>
+                <p className="font-semibold text-[#1C1409]">{brandLabel}</p>
                 <p className="text-xs text-[#7A6E58]">{tc("salonTagline")}</p>
               </div>
             </div>
