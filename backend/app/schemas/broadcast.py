@@ -6,6 +6,8 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
 from app.models.enums import BroadcastStatus
@@ -15,11 +17,16 @@ class InlineKeyboardButtonIn(BaseModel):
     text: str = Field(min_length=1, max_length=64)
     url: str | None = None
     callback_data: str | None = Field(default=None, max_length=64)
+    # "url" = open URL in browser; "mini_app" = open Telegram Mini App
+    type: Literal["url", "mini_app"] = "url"
 
     @model_validator(mode="after")
     def url_or_callback(self) -> InlineKeyboardButtonIn:
-        if bool(self.url) == bool(self.callback_data):
-            raise ValueError("Exactly one of url or callback_data must be set")
+        if self.type in ("url", "mini_app"):
+            if not self.url:
+                raise ValueError("url is required for url/mini_app button type")
+        elif not self.callback_data:
+            raise ValueError("callback_data is required for callback button type")
         return self
 
 

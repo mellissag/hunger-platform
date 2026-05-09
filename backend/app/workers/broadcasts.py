@@ -8,7 +8,7 @@ from uuid import UUID
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramRetryAfter
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,7 +52,15 @@ def _reply_markup(data: dict[str, Any] | None) -> InlineKeyboardMarkup | None:
     for row in rows_raw:
         btns: list[InlineKeyboardButton] = []
         for b in row:
-            if b.get("url"):
+            btn_type = b.get("type", "url")
+            if btn_type == "mini_app" and b.get("url"):
+                btns.append(
+                    InlineKeyboardButton(
+                        text=str(b["text"]),
+                        web_app=WebAppInfo(url=str(b["url"])),
+                    )
+                )
+            elif b.get("url"):
                 btns.append(InlineKeyboardButton(text=str(b["text"]), url=str(b["url"])))
             elif b.get("callback_data"):
                 btns.append(

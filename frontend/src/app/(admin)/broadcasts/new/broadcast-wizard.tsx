@@ -144,7 +144,7 @@ export function BroadcastWizard({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordChunksRef = useRef<Blob[]>([]);
-  const [buttonRows, setButtonRows] = useState<{ text: string; url: string }[][]>([]);
+  const [buttonRows, setButtonRows] = useState<{ text: string; url: string; type: "url" | "mini_app" }[][]>([]);
 
   const [sendNow, setSendNow] = useState(true);
   const [scheduleLocal, setScheduleLocal] = useState("");
@@ -164,9 +164,13 @@ export function BroadcastWizard({
     setMsg(i18n);
     setMediaUrl(sourceBc.media_url ?? "");
     setMediaType((sourceBc.media_type as "photo" | "animation" | "video" | "video_note" | "voice" | "") ?? "photo");
-    const keyboard = sourceBc.inline_keyboard as { rows?: { text: string; url?: string }[][] } | null;
+    const keyboard = sourceBc.inline_keyboard as { rows?: { text: string; url?: string; type?: string }[][] } | null;
     const rows = keyboard?.rows?.map((row) =>
-      row.filter((b) => b.url).map((b) => ({ text: b.text, url: b.url! })),
+      row.filter((b) => b.url).map((b) => ({
+        text: b.text,
+        url: b.url!,
+        type: (b.type === "mini_app" ? "mini_app" : "url") as "url" | "mini_app",
+      })),
     ) ?? [];
     setButtonRows(rows);
     const seg = sourceBc.segment as Record<string, unknown>;
@@ -234,11 +238,11 @@ export function BroadcastWizard({
       .map((row) =>
         row
           .filter((b) => b.text.trim() && b.url.trim())
-          .map((b) => ({ text: b.text.trim(), url: b.url.trim() })),
+          .map((b) => ({ text: b.text.trim(), url: b.url.trim(), type: b.type })),
       )
       .filter((r) => r.length > 0);
     if (!rows.length) return null;
-    return { rows: rows.map((r) => r.map((b) => ({ text: b.text, url: b.url }))) };
+    return { rows: rows.map((r) => r.map((b) => ({ text: b.text, url: b.url, type: b.type }))) };
   }, [buttonRows]);
 
   const saveOrCreate = useMutation({
@@ -756,39 +760,89 @@ export function BroadcastWizard({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setButtonRows((rows) => [...rows, [{ text: "", url: "" }]])}
+                  onClick={() => setButtonRows((rows) => [...rows, [{ text: "", url: "", type: "url" }]])}
                 >
                   {t("addRow")}
                 </Button>
               </div>
               {buttonRows.map((row, ri) => (
-                <div key={ri} className="flex flex-wrap items-end gap-2 rounded-md border p-2">
+                <div key={ri} className="rounded-md border p-3 space-y-2">
                   {row.map((cell, ci) => (
-                    <div key={ci} className="flex flex-1 flex-col gap-1">
-                      <Label className="text-xs">{t("btnText")}</Label>
-                      <Input
-                        value={cell.text}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setButtonRows((rows) =>
-                            rows.map((r, i) =>
-                              i === ri ? r.map((c, j) => (j === ci ? { ...c, text: v } : c)) : r,
-                            ),
-                          );
-                        }}
-                      />
-                      <Label className="text-xs">{t("btnUrl")}</Label>
-                      <Input
-                        value={cell.url}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setButtonRows((rows) =>
-                            rows.map((r, i) =>
-                              i === ri ? r.map((c, j) => (j === ci ? { ...c, url: v } : c)) : r,
-                            ),
-                          );
-                        }}
-                      />
+                    <div key={ci} className="flex flex-1 flex-col gap-2">
+                      {/* Button type toggle */}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setButtonRows((rows) =>
+                              rows.map((r, i) =>
+                                i === ri ? r.map((c, j) => (j === ci ? { ...c, type: "url" } : c)) : r,
+                              ),
+                            )
+                          }
+                          className={cn(
+                            "flex-1 rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                            cell.type === "url"
+                              ? "border-primary bg-primary/10 text-primary font-medium"
+                              : "border-border text-muted-foreground hover:border-primary/50",
+                          )}
+                        >
+                          <p className="font-medium">🔗 Ссылка на сайт</p>
+                          <p className="opacity-60">Откроется браузер</p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setButtonRows((rows) =>
+                              rows.map((r, i) =>
+                                i === ri ? r.map((c, j) => (j === ci ? { ...c, type: "mini_app" } : c)) : r,
+                              ),
+                            )
+                          }
+                          className={cn(
+                            "flex-1 rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                            cell.type === "mini_app"
+                              ? "border-primary bg-primary/10 text-primary font-medium"
+                              : "border-border text-muted-foreground hover:border-primary/50",
+                          )}
+                        >
+                          <p className="font-medium">📱 Mini App</p>
+                          <p className="opacity-60">Откроется в Telegram</p>
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-1 flex-col gap-1 min-w-[140px]">
+                          <Label className="text-xs">{t("btnText")}</Label>
+                          <Input
+                            value={cell.text}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setButtonRows((rows) =>
+                                rows.map((r, i) =>
+                                  i === ri ? r.map((c, j) => (j === ci ? { ...c, text: v } : c)) : r,
+                                ),
+                              );
+                            }}
+                          />
+                        </div>
+                        <div className="flex flex-1 flex-col gap-1 min-w-[180px]">
+                          <Label className="text-xs">
+                            {cell.type === "mini_app" ? "Mini App URL" : t("btnUrl")}
+                          </Label>
+                          <Input
+                            placeholder={cell.type === "mini_app" ? "https://test-adm.tech/mini-app" : "https://example.com"}
+                            value={cell.url}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setButtonRows((rows) =>
+                                rows.map((r, i) =>
+                                  i === ri ? r.map((c, j) => (j === ci ? { ...c, url: v } : c)) : r,
+                                ),
+                              );
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   ))}
                   <Button
