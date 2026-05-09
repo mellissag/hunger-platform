@@ -34,7 +34,7 @@ NO_BOOKING_VIA_AI_INSTRUCTION = (
 )
 
 _EMBED_MODEL = "gemini-embedding-001"
-_DEFAULT_GEN_MODEL = "gemini-2.0-flash"
+_DEFAULT_GEN_MODEL = "gemini-2.5-flash"
 
 
 def _get_api_key(salon_settings: Settings | None = None) -> str:
