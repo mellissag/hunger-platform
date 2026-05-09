@@ -93,10 +93,14 @@ const LOCALES = [
 export function AdminAppShell({
   user,
   locale,
+  initialSalonBundle,
+  initialPublicBranding,
   children,
 }: {
   user: SessionUser;
   locale: string;
+  initialSalonBundle?: SalonBundle;
+  initialPublicBranding?: PublicSalonBranding;
   children: React.ReactNode;
 }) {
   const t = useTranslations("layout");
@@ -110,6 +114,7 @@ export function AdminAppShell({
     queryKey: ["salon-bundle"],
     queryFn: () => apiJson<SalonBundle>("/salon"),
     enabled: canReadSalon,
+    initialData: initialSalonBundle,
     staleTime: 60_000,
   });
 
@@ -119,6 +124,7 @@ export function AdminAppShell({
       apiJson<PublicSalonBranding>(
         `/mini-app/salon?lang=${encodeURIComponent(locale)}`,
       ),
+    initialData: initialPublicBranding ?? undefined,
     staleTime: 60_000,
   });
 

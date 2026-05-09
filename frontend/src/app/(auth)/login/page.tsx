@@ -13,8 +13,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SalonFaviconEffect } from "@/components/branding/SalonFaviconEffect";
-import { getPublicApiBaseUrl } from "@/lib/env";
-import { salonMediaSrcForApiOrigin } from "@/lib/salon-branding";
+import { apiJson } from "@/lib/api";
+import { salonMediaSrcForAdmin } from "@/lib/salon-branding";
+
+const BRAND_CACHE_KEY = "hb_login_brand_v1";
 
 const schema = z.object({
   email: z.string().email(),
@@ -30,31 +32,64 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [salonName, setSalonName] = useState<string | null>(null);
-  const [salonLogoSrc, setSalonLogoSrc] = useState<string | null>(null);
-  const [salonFavicon, setSalonFavicon] = useState<string | null>(null);
+  const [salonName, setSalonName] = useState<string | null>(() => {
+    try {
+      const raw = sessionStorage.getItem(BRAND_CACHE_KEY);
+      if (!raw) return null;
+      const j = JSON.parse(raw) as { name?: string };
+      return typeof j.name === "string" && j.name.trim() ? j.name.trim() : null;
+    } catch {
+      return null;
+    }
+  });
+  const [salonLogoSrc, setSalonLogoSrc] = useState<string | null>(() => {
+    try {
+      const raw = sessionStorage.getItem(BRAND_CACHE_KEY);
+      if (!raw) return null;
+      const j = JSON.parse(raw) as { logo_url?: string };
+      const src = salonMediaSrcForAdmin(j.logo_url ?? null);
+      return src ?? null;
+    } catch {
+      return null;
+    }
+  });
+  const [salonFavicon, setSalonFavicon] = useState<string | null>(() => {
+    try {
+      const raw = sessionStorage.getItem(BRAND_CACHE_KEY);
+      if (!raw) return null;
+      const j = JSON.parse(raw) as { favicon_url?: string };
+      const fav = salonMediaSrcForAdmin(j.favicon_url ?? null);
+      return fav ?? null;
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
-    const base = getPublicApiBaseUrl();
-    if (!base) return;
     let cancelled = false;
-    fetch(`${base}/api/v1/mini-app/salon?lang=${encodeURIComponent(locale)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { name?: string; logo_url?: string; favicon_url?: string } | null) => {
+    apiJson<{ name?: string; logo_url?: string; favicon_url?: string }>(
+      `/mini-app/salon?lang=${encodeURIComponent(locale)}`,
+    )
+      .then((d) => {
         if (cancelled || !d) return;
-        if (d.name?.trim()) setSalonName(d.name.trim());
-        const logoAbs = salonMediaSrcForApiOrigin(d.logo_url ?? null, base);
-        if (logoAbs) setSalonLogoSrc(logoAbs);
-        const fav = (d.favicon_url ?? "").trim();
-        if (fav) {
-          setSalonFavicon(
-            fav.startsWith("http") ? fav : `${base.replace(/\/$/, "")}${fav.startsWith("/") ? fav : `/${fav}`}`,
+        const name = typeof d.name === "string" ? d.name.trim() : "";
+        const logo = salonMediaSrcForAdmin(d.logo_url ?? null) ?? null;
+        const fav = salonMediaSrcForAdmin(d.favicon_url ?? null) ?? null;
+        if (name) setSalonName(name);
+        setSalonLogoSrc(logo);
+        setSalonFavicon(fav);
+        try {
+          sessionStorage.setItem(
+            BRAND_CACHE_KEY,
+            JSON.stringify({ name, logo_url: d.logo_url ?? "", favicon_url: d.favicon_url ?? "" }),
           );
-        } else {
-          setSalonFavicon(null);
+        } catch {
+          // ignore
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        // ignore
+      });
     return () => {
       cancelled = true;
     };
