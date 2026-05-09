@@ -8,7 +8,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { apiJson, HttpError } from "@/lib/api";
-import { getPublicApiBaseUrl } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import {
   chatKeys,
@@ -30,13 +29,16 @@ function isClientIdParam(s: string | null): s is string {
   );
 }
 
-/** Absolute URL for chat media (avoids next/image remotePatterns; works with any API host). */
-function chatMediaUrl(apiBase: string, path: string | null | undefined): string {
+/**
+ * URL for chat media in the admin UI. Uses same-origin `/api/media/...` proxy so images
+ * load in the browser even when NEXT_PUBLIC_API_URL points at an internal Docker hostname.
+ */
+function chatMediaUrl(path: string | null | undefined): string {
   if (!path) return "";
   const p = path.trim();
   if (p.startsWith("http://") || p.startsWith("https://")) return p;
-  const base = apiBase.replace(/\/$/, "");
-  return p.startsWith("/") ? `${base}${p}` : `${base}/${p}`;
+  const withoutMediaPrefix = p.startsWith("/media/") ? p.slice("/media/".length) : p.replace(/^\//, "");
+  return `/api/media/${withoutMediaPrefix}`;
 }
 
 // ── Sound notification ────────────────────────────────────────────────────────
@@ -74,9 +76,8 @@ function fmtTime(iso: string, locale: string) {
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   const locale = useLocale();
   const t = useTranslations("pages.chats");
-  const API = getPublicApiBaseUrl();
   const isOut = msg.direction === "outbound";
-  const mediaSrc = chatMediaUrl(API, msg.media_path);
+  const mediaSrc = chatMediaUrl(msg.media_path);
 
   return (
     <div
@@ -99,17 +100,17 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
       ) : null}
       {msg.message_type === "video" && msg.media_path && (
         <video
-          src={chatMediaUrl(API, msg.media_path)}
+          src={chatMediaUrl(msg.media_path)}
           controls
           className="max-h-48 w-full rounded-xl"
         />
       )}
       {msg.message_type === "voice" && msg.media_path && (
-        <audio src={chatMediaUrl(API, msg.media_path)} controls className="w-full" />
+        <audio src={chatMediaUrl(msg.media_path)} controls className="w-full" />
       )}
       {msg.message_type === "document" && msg.media_path && (
         <a
-          href={chatMediaUrl(API, msg.media_path)}
+          href={chatMediaUrl(msg.media_path)}
           target="_blank"
           rel="noreferrer"
           className="text-sm underline"
