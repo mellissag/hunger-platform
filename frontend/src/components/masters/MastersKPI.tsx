@@ -9,9 +9,12 @@ import type { MasterOut, MastersTodayStats } from "@/types/admin-api";
 export function MastersKPI({ masters }: { masters: MasterOut[] }) {
   const t = useTranslations("pages.masters");
   const activeMasters = masters.filter((m) => m.is_active).length;
+  const ratedMasters = masters.filter((m) => m.rating_count > 0 && m.rating_avg);
   const avgRating =
-    masters.reduce((sum, m) => sum + (m.rating_avg ? Number.parseFloat(m.rating_avg) : 0), 0) /
-    (masters.length || 1);
+    ratedMasters.length === 0
+      ? 0
+      : ratedMasters.reduce((sum, m) => sum + Number.parseFloat(m.rating_avg!), 0) /
+        ratedMasters.length;
 
   const { data: todayStats } = useQuery({
     queryKey: ["masters-today-stats"],
