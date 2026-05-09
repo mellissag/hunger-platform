@@ -19,8 +19,11 @@ export function PromptView() {
   const t = useTranslations("pages.ai");
   const qc = useQueryClient();
   const [tab, setTab] = useState<(typeof LANGS)[number]>("en");
-  const [apiKeyInput, setApiKeyInput] = useState<string>("");
-  const [showKey, setShowKey] = useState(false);
+  const [geminiKeyInput, setGeminiKeyInput] = useState<string>("");
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [groqKeyInput, setGroqKeyInput] = useState<string>("");
+  const [showGroqKey, setShowGroqKey] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<string>("");
 
   const q = useQuery({
     queryKey: ["salon-bundle"],
@@ -41,98 +44,138 @@ export function PromptView() {
   const settings = q.data.settings;
   const prompts = settings.ai_system_prompt ?? {};
   const integrations = (settings.integrations ?? {}) as Record<string, string>;
-  const savedApiKey = integrations.ai_api_key ?? "";
+  const savedGeminiKey = integrations.ai_api_key ?? "";
+  const savedGroqKey = integrations.groq_api_key ?? "";
   const savedProvider = integrations.ai_provider ?? "gemini";
+  const activeProvider = selectedProvider || savedProvider;
 
-  function handleSaveApiKey() {
-    const key = apiKeyInput.trim();
+  function maskKey(key: string, show: boolean): string {
+    if (!key) return "";
+    if (show) return key;
+    return `${key.slice(0, 6)}${"•".repeat(Math.min(20, key.length - 6))}${key.slice(-4)}`;
+  }
+
+  function handleSaveKeys() {
     patch.mutate({
       settings: {
         integrations: {
           ...integrations,
-          ai_api_key: key,
-          ai_provider: (document.getElementById("ai-provider") as HTMLSelectElement).value,
+          ai_provider: activeProvider,
+          ...(geminiKeyInput.trim() ? { ai_api_key: geminiKeyInput.trim() } : {}),
+          ...(groqKeyInput.trim() ? { groq_api_key: groqKeyInput.trim() } : {}),
         },
       },
     });
-    setApiKeyInput("");
-    setShowKey(false);
+    setGeminiKeyInput("");
+    setGroqKeyInput("");
   }
 
   return (
     <div className="space-y-6">
-      {/* ── AI API Key ── */}
+      {/* ── AI Provider & Keys ── */}
       <Card>
         <CardHeader>
-          <CardTitle>AI API Key</CardTitle>
+          <CardTitle>AI Provider & API Keys</CardTitle>
           <CardDescription>
-            Enter your Gemini or OpenAI API key. It is stored securely in the database and used by the AI consultant.
+            Choose an AI provider and enter API keys. Keys are stored securely in the database.
+            Gemini key is also used for knowledge base embeddings (RAG).
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
+          {/* Provider selector */}
           <div className="space-y-1">
-            <Label>Provider</Label>
+            <Label>Active Provider</Label>
             <select
-              id="ai-provider"
-              defaultValue={savedProvider}
+              value={activeProvider}
+              onChange={(e) => setSelectedProvider(e.target.value)}
               className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
-              <option value="gemini">Google Gemini</option>
+              <option value="gemini">Google Gemini (gemini-2.5-flash-lite)</option>
+              <option value="groq">Groq (Llama 3.3 — free tier)</option>
               <option value="openai">OpenAI (ChatGPT)</option>
             </select>
           </div>
-          <div className="space-y-1">
-            <Label>API Key</Label>
-            {savedApiKey && !apiKeyInput && (
+
+          {/* Gemini key */}
+          <div className="space-y-1 rounded-lg border p-3">
+            <Label className="text-sm font-semibold">Gemini API Key</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Required for knowledge base embeddings. Also used for generation when Gemini is active provider.
+            </p>
+            {savedGeminiKey && !geminiKeyInput && (
               <p className="text-xs text-muted-foreground">
-                Current key: <span className="font-mono">{showKey ? savedApiKey : `${savedApiKey.slice(0, 6)}${"•".repeat(Math.min(20, savedApiKey.length - 6))}${savedApiKey.slice(-4)}`}</span>
-                {" "}
-                <button type="button" className="underline text-primary text-xs" onClick={() => setShowKey((v) => !v)}>
-                  {showKey ? "hide" : "show"}
+                Current: <span className="font-mono">{maskKey(savedGeminiKey, showGeminiKey)}</span>{" "}
+                <button type="button" className="underline text-primary text-xs" onClick={() => setShowGeminiKey((v) => !v)}>
+                  {showGeminiKey ? "hide" : "show"}
                 </button>
               </p>
             )}
             <Input
               type="password"
-              placeholder={savedApiKey ? "Enter new key to replace…" : "Paste your API key here…"}
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
+              placeholder={savedGeminiKey ? "Enter new key to replace…" : "AIza..."}
+              value={geminiKeyInput}
+              onChange={(e) => setGeminiKeyInput(e.target.value)}
               className="font-mono text-sm"
             />
+            {savedGeminiKey ? (
+              <p className="text-xs text-green-700">✓ Configured</p>
+            ) : (
+              <p className="text-xs text-yellow-700">⚠ Not set</p>
+            )}
           </div>
+
+          {/* Groq key */}
+          <div className="space-y-1 rounded-lg border p-3">
+            <Label className="text-sm font-semibold">Groq API Key</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Required when Groq is selected as active provider. Get a free key at{" "}
+              <a href="https://console.groq.com" target="_blank" rel="noreferrer" className="underline">console.groq.com</a>.
+            </p>
+            {savedGroqKey && !groqKeyInput && (
+              <p className="text-xs text-muted-foreground">
+                Current: <span className="font-mono">{maskKey(savedGroqKey, showGroqKey)}</span>{" "}
+                <button type="button" className="underline text-primary text-xs" onClick={() => setShowGroqKey((v) => !v)}>
+                  {showGroqKey ? "hide" : "show"}
+                </button>
+              </p>
+            )}
+            <Input
+              type="password"
+              placeholder={savedGroqKey ? "Enter new key to replace…" : "gsk_..."}
+              value={groqKeyInput}
+              onChange={(e) => setGroqKeyInput(e.target.value)}
+              className="font-mono text-sm"
+            />
+            {savedGroqKey ? (
+              <p className="text-xs text-green-700">✓ Configured</p>
+            ) : (
+              <p className="text-xs text-yellow-700">⚠ Not set</p>
+            )}
+          </div>
+
           <div className="flex gap-2">
             <Button
               type="button"
-              onClick={handleSaveApiKey}
+              onClick={handleSaveKeys}
               disabled={patch.isPending}
             >
-              Save API Key
+              Save Provider & Keys
             </Button>
-            {savedApiKey && (
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={patch.isPending}
-                onClick={() => {
-                  patch.mutate({
-                    settings: {
-                      integrations: { ...integrations, ai_api_key: "", ai_provider: savedProvider },
-                    },
-                  });
-                }}
-              >
-                Remove Key
-              </Button>
-            )}
           </div>
-          {!savedApiKey && !apiKeyInput && (
+
+          {!savedGeminiKey && (
             <p className="rounded-md bg-yellow-50 px-3 py-2 text-xs text-yellow-800 border border-yellow-200">
-              ⚠️ No API key configured. The AI consultant will not work until you add a key.
+              ⚠️ Gemini key is required for knowledge base search. AI consultant will not work without it.
             </p>
           )}
-          {savedApiKey && (
+          {activeProvider === "groq" && !savedGroqKey && (
+            <p className="rounded-md bg-yellow-50 px-3 py-2 text-xs text-yellow-800 border border-yellow-200">
+              ⚠️ Groq is selected as provider but no Groq API key is configured.
+            </p>
+          )}
+          {savedGeminiKey && (activeProvider !== "groq" || savedGroqKey) && (
             <p className="rounded-md bg-green-50 px-3 py-2 text-xs text-green-800 border border-green-200">
-              ✓ API key is configured. The AI consultant is active.
+              ✓ AI consultant is active using {activeProvider === "groq" ? "Groq (Llama 3.3)" : activeProvider === "openai" ? "OpenAI" : "Google Gemini"}.
             </p>
           )}
         </CardContent>

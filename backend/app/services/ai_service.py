@@ -1,4 +1,4 @@
-"""AI-консультант: RAG + Gemini, стриминг, логирование диалогов."""
+"""AI-консультант: RAG + Gemini/Groq, стриминг, логирование диалогов."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import base64
 import uuid
 from collections.abc import Awaitable, Callable
 
+import httpx
 from google import genai
 from google.genai import types as genai_types
 from redis.asyncio import Redis
@@ -36,26 +37,84 @@ NO_BOOKING_VIA_AI_INSTRUCTION = (
 
 _EMBED_MODEL = "gemini-embedding-001"
 _DEFAULT_GEN_MODEL = "gemini-2.5-flash-lite"
+_DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+_GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
-def _get_api_key(salon_settings: Settings | None = None) -> str:
-    """Return API key: DB settings first, then env var fallback."""
-    if salon_settings is not None:
-        integrations = salon_settings.integrations or {}
-        raw = integrations.get("ai_api_key", "")
-        if isinstance(raw, str) and raw.strip():
-            return raw.strip()
+def _get_integrations(salon_settings: Settings | None) -> dict:
+    if salon_settings is None:
+        return {}
+    return salon_settings.integrations or {}
+
+
+def _get_provider(salon_settings: Settings | None) -> str:
+    return str(_get_integrations(salon_settings).get("ai_provider", "gemini") or "gemini")
+
+
+def _get_gemini_key(salon_settings: Settings | None = None) -> str:
+    """Return Gemini API key (used for embeddings and generation when provider=gemini)."""
+    raw = _get_integrations(salon_settings).get("ai_api_key", "")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
     env_key = get_settings().gemini_api_key
     if env_key:
         return env_key
     raise AIUnavailableError(
-        "AI assistant is not configured. "
-        "Add your Gemini API key in Admin → AI → Settings."
+        "Gemini API key is not configured. "
+        "Add it in Admin → AI → Settings."
     )
+
+
+def _get_groq_key(salon_settings: Settings | None = None) -> str:
+    """Return Groq API key."""
+    raw = _get_integrations(salon_settings).get("groq_api_key", "")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    raise AIUnavailableError(
+        "Groq API key is not configured. "
+        "Add your Groq key in Admin → AI → Settings."
+    )
+
+
+def _get_api_key(salon_settings: Settings | None = None) -> str:
+    """Return key for generation — provider-aware."""
+    provider = _get_provider(salon_settings)
+    if provider == "groq":
+        return _get_groq_key(salon_settings)
+    return _get_gemini_key(salon_settings)
 
 
 def _make_client(api_key: str) -> genai.Client:
     return genai.Client(api_key=api_key)
+
+
+async def _call_groq(
+    *,
+    api_key: str,
+    system: str,
+    user_prompt: str,
+    model: str = _DEFAULT_GROQ_MODEL,
+    temperature: float = 0.7,
+) -> str:
+    """Call Groq's OpenAI-compatible API via httpx."""
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": temperature,
+        "max_tokens": 1024,
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        resp = await client.post(_GROQ_API_URL, headers=headers, json=payload)
+        resp.raise_for_status()
+        data = resp.json()
+        return data["choices"][0]["message"]["content"] or ""
 
 
 def _pick_system_prompt(settings_row: Settings, lang: str) -> str:
@@ -155,8 +214,9 @@ class AIService:
         if not salon_settings.ai_enabled:
             raise AIUnavailableError("AI assistant is disabled in salon settings.")
 
-        api_key = _get_api_key(salon_settings)
-        ai_client = _make_client(api_key)
+        provider = _get_provider(salon_settings)
+        gemini_key = _get_gemini_key(salon_settings)
+        gemini_client = _make_client(gemini_key)
 
         client = await self.db.get(Client, client_id)
         if client is None:
@@ -168,7 +228,7 @@ class AIService:
 
         await check_ai_rate_limit(self.db, self.redis, client_id)
 
-        embedding = await _embed_question(q, ai_client)
+        embedding = await _embed_question(q, gemini_client)
         chunks = await _retrieve_chunks(self.db, embedding)
         cited_ids = [c.id for c in chunks]
 
@@ -204,46 +264,60 @@ class AIService:
         self.db.add(user_msg)
         await self.db.flush()
 
-        # Determine model name from DB settings or default
-        raw_model = (salon_settings.ai_model or _DEFAULT_GEN_MODEL).strip()
-        # Remove "models/" prefix if present — new SDK uses bare names
-        model_name = raw_model.removeprefix("models/")
+        raw_model = (salon_settings.ai_model or "").strip()
+        temperature = float(salon_settings.ai_temperature or 0.7)
 
         full_answer_parts: list[str] = []
 
-        async def _run_stream() -> None:
-            def _sync_stream() -> str:
-                # Build content parts — text always present, image optional
-                parts: list[genai_types.Part] = []
-                if image_base64:
-                    try:
-                        img_bytes = base64.b64decode(image_base64)
-                        parts.append(
-                            genai_types.Part.from_bytes(
-                                data=img_bytes,
-                                mime_type=image_mime_type,
-                            )
-                        )
-                    except Exception:  # noqa: BLE001
-                        pass  # skip malformed image, answer text-only
-                parts.append(genai_types.Part.from_text(text=user_prompt))
-
-                response = ai_client.models.generate_content(
-                    model=model_name,
-                    contents=parts,
-                    config=genai_types.GenerateContentConfig(
-                        system_instruction=system,
-                        temperature=float(salon_settings.ai_temperature or 0.7),
-                    ),
-                )
-                return response.text or ""
-
-            text = await asyncio.to_thread(_sync_stream)
+        if provider == "groq":
+            groq_key = _get_groq_key(salon_settings)
+            groq_model = raw_model if raw_model else _DEFAULT_GROQ_MODEL
+            text = await _call_groq(
+                api_key=groq_key,
+                system=system,
+                user_prompt=user_prompt,
+                model=groq_model,
+                temperature=temperature,
+            )
             full_answer_parts.append(text)
             if on_stream_chunk and text:
                 await on_stream_chunk(text)
+        else:
+            # Gemini (default)
+            model_name = (raw_model or _DEFAULT_GEN_MODEL).removeprefix("models/")
 
-        await _run_stream()
+            async def _run_stream() -> None:
+                def _sync_stream() -> str:
+                    parts: list[genai_types.Part] = []
+                    if image_base64:
+                        try:
+                            img_bytes = base64.b64decode(image_base64)
+                            parts.append(
+                                genai_types.Part.from_bytes(
+                                    data=img_bytes,
+                                    mime_type=image_mime_type,
+                                )
+                            )
+                        except Exception:  # noqa: BLE001
+                            pass
+                    parts.append(genai_types.Part.from_text(text=user_prompt))
+
+                    response = gemini_client.models.generate_content(
+                        model=model_name,
+                        contents=parts,
+                        config=genai_types.GenerateContentConfig(
+                            system_instruction=system,
+                            temperature=temperature,
+                        ),
+                    )
+                    return response.text or ""
+
+                text = await asyncio.to_thread(_sync_stream)
+                full_answer_parts.append(text)
+                if on_stream_chunk and text:
+                    await on_stream_chunk(text)
+
+            await _run_stream()
 
         answer = "".join(full_answer_parts).strip() or "…"
 
@@ -280,11 +354,12 @@ class AIService:
         if not salon_settings.ai_enabled:
             raise AIUnavailableError("AI assistant is disabled.")
 
-        api_key = _get_api_key(salon_settings)
-        ai_client = _make_client(api_key)
+        provider = _get_provider(salon_settings)
+        gemini_key = _get_gemini_key(salon_settings)
+        gemini_client = _make_client(gemini_key)
 
         q = question.strip()
-        embedding = await _embed_question(q, ai_client)
+        embedding = await _embed_question(q, gemini_client)
         chunks = await _retrieve_chunks(self.db, embedding)
         cited_ids = [c.id for c in chunks]
         kb_text = "\n\n".join(f"[chunk {c.id}]\n{c.content}" for c in chunks) or "(empty)"
@@ -295,21 +370,36 @@ class AIService:
         if not salon_settings.ai_allow_booking:
             system += NO_BOOKING_VIA_AI_INSTRUCTION
 
-        raw_model = (salon_settings.ai_model or _DEFAULT_GEN_MODEL).strip()
-        model_name = raw_model.removeprefix("models/")
+        raw_model = (salon_settings.ai_model or "").strip()
+        temperature = float(salon_settings.ai_temperature or 0.7)
+        user_prompt = f"Client question:\n{q}"
 
-        def _sync() -> str:
-            response = ai_client.models.generate_content(
-                model=model_name,
-                contents=f"Client question:\n{q}",
-                config=genai_types.GenerateContentConfig(
-                    system_instruction=system,
-                    temperature=float(salon_settings.ai_temperature or 0.7),
-                ),
+        if provider == "groq":
+            groq_key = _get_groq_key(salon_settings)
+            groq_model = raw_model if raw_model else _DEFAULT_GROQ_MODEL
+            answer = await _call_groq(
+                api_key=groq_key,
+                system=system,
+                user_prompt=user_prompt,
+                model=groq_model,
+                temperature=temperature,
             )
-            return response.text or "…"
+        else:
+            model_name = (raw_model or _DEFAULT_GEN_MODEL).removeprefix("models/")
 
-        answer = await asyncio.to_thread(_sync)
+            def _sync() -> str:
+                response = gemini_client.models.generate_content(
+                    model=model_name,
+                    contents=user_prompt,
+                    config=genai_types.GenerateContentConfig(
+                        system_instruction=system,
+                        temperature=temperature,
+                    ),
+                )
+                return response.text or "…"
+
+            answer = await asyncio.to_thread(_sync)
+
         return answer.strip() or "…", cited_ids
 
 
