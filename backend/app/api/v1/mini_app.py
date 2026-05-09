@@ -110,6 +110,18 @@ MiniAppUser = Annotated[InitDataPayload, Depends(get_mini_app_user)]
 _SUPPORTED_LANGS = ("en", "ru", "uk", "bg")
 
 
+def _resolved_salon_display_name(salon: Salon, lang: str) -> str:
+    """Имя салона для языка: contacts.name_i18n[lang] → fallback по цепочке → salon.name."""
+    contacts: dict[str, Any] = salon.contacts if isinstance(salon.contacts, dict) else {}
+    ni = contacts.get("name_i18n")
+    if isinstance(ni, dict):
+        for key in (lang, "ru", "en", "uk", "bg"):
+            val = ni.get(key)
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+    return (salon.name or "").strip()
+
+
 def _resolve_lang(code: str | None) -> str:
     if not code:
         return "en"
@@ -695,6 +707,8 @@ class MiniAppSalonInfo(_BM):
     city: str = ""
     phone: str = ""
     working_hours: dict[str, Any] = Field(default_factory=dict)
+    logo_url: str = ""
+    favicon_url: str = ""
 
 
 @router.get("/salon", response_model=MiniAppSalonInfo)
@@ -724,13 +738,16 @@ async def get_salon_info(
     wh: dict[str, Any] = {}
     if settings_row and isinstance(settings_row.working_hours_default, dict):
         wh = dict(settings_row.working_hours_default)
+    display_name = _resolved_salon_display_name(salon, resolved_lang)
     return MiniAppSalonInfo(
-        name=salon.name or "",
+        name=display_name or (salon.name or ""),
         description=desc,
         address=str(contacts.get("address", "") or ""),
         city=str(contacts.get("city", "") or ""),
         phone=str(contacts.get("phone", "") or ""),
         working_hours=wh,
+        logo_url=(salon.logo_url or "").strip(),
+        favicon_url=(salon.favicon_url or "").strip(),
     )
 
 

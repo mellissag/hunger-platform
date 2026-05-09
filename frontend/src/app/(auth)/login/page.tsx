@@ -12,7 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SalonFaviconEffect } from "@/components/branding/SalonFaviconEffect";
 import { getPublicApiBaseUrl } from "@/lib/env";
+import { salonMediaSrcForApiOrigin } from "@/lib/salon-branding";
 
 const schema = z.object({
   email: z.string().email(),
@@ -29,6 +31,8 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [salonName, setSalonName] = useState<string | null>(null);
+  const [salonLogoSrc, setSalonLogoSrc] = useState<string | null>(null);
+  const [salonFavicon, setSalonFavicon] = useState<string | null>(null);
 
   useEffect(() => {
     const base = getPublicApiBaseUrl();
@@ -36,9 +40,19 @@ export default function LoginPage() {
     let cancelled = false;
     fetch(`${base}/api/v1/mini-app/salon?lang=${encodeURIComponent(locale)}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: { name?: string } | null) => {
-        if (cancelled || !d?.name?.trim()) return;
-        setSalonName(d.name.trim());
+      .then((d: { name?: string; logo_url?: string; favicon_url?: string } | null) => {
+        if (cancelled || !d) return;
+        if (d.name?.trim()) setSalonName(d.name.trim());
+        const logoAbs = salonMediaSrcForApiOrigin(d.logo_url ?? null, base);
+        if (logoAbs) setSalonLogoSrc(logoAbs);
+        const fav = (d.favicon_url ?? "").trim();
+        if (fav) {
+          setSalonFavicon(
+            fav.startsWith("http") ? fav : `${base.replace(/\/$/, "")}${fav.startsWith("/") ? fav : `/${fav}`}`,
+          );
+        } else {
+          setSalonFavicon(null);
+        }
       })
       .catch(() => {});
     return () => {
@@ -82,13 +96,23 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#FAF8F3] to-[#F0E8DC] p-6">
+      <SalonFaviconEffect href={salonFavicon} />
       <div className="relative z-10 w-full max-w-md">
         <Card className="border-[#E4DDD0] shadow-xl">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#9A7230] to-[#B8892E] text-lg font-bold text-[#FAF8F3]">
-                {brandInitial}
-              </div>
+              {salonLogoSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={salonLogoSrc}
+                  alt=""
+                  className="h-10 w-10 shrink-0 rounded-xl border border-[#E4DDD0] object-cover"
+                />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#9A7230] to-[#B8892E] text-lg font-bold text-[#FAF8F3]">
+                  {brandInitial}
+                </div>
+              )}
               <div>
                 <p className="font-semibold text-[#1C1409]">{brandLabel}</p>
                 <p className="text-xs text-[#7A6E58]">{tc("salonTagline")}</p>

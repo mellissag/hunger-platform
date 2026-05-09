@@ -6,8 +6,11 @@ import Script from 'next/script';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider, useT } from './i18n/context';
 import ChatDrawer from './components/ChatDrawer';
+import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
 import { useSalonInfo } from './hooks/useMiniAppData';
 import './styles/miniapp.css';
+
+const MINI_API = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 // ── Inline SVG Icons ─────────────────────────────────────────────────────────
 
@@ -234,6 +237,18 @@ function MiniAppInner({ children }: { children: ReactNode }) {
 
   const { data: salonInfo } = useSalonInfo(lang);
   const salonName = salonInfo?.name ?? 'Салон';
+
+  useEffect(() => {
+    const fav = salonMediaSrcForApiOrigin(salonInfo?.favicon_url ?? null, MINI_API);
+    if (!fav) return;
+    let link = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = fav;
+  }, [salonInfo?.favicon_url]);
 
   const showChat = !NO_CHAT_ROUTES.some((r) => pathname?.startsWith(r));
 

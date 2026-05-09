@@ -178,6 +178,8 @@ export interface SalonInfo {
   city: string;
   phone: string;
   working_hours: Record<string, unknown>;
+  logo_url?: string;
+  favicon_url?: string;
 }
 
 const SALON_NAME_KEY = 'ma_salon_name';
@@ -203,6 +205,8 @@ export function useSalonInfo(lang = 'ru') {
       city: '',
       phone: '',
       working_hours: {},
+      logo_url: '',
+      favicon_url: '',
     }),
     staleTime: 10 * 60_000,
   });

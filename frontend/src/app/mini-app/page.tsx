@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTelegram } from './hooks/useTelegram';
 import { useMyBookings, useMeProfile, useSalonInfo, useDailyPick, pickI18n } from './hooks/useMiniAppData';
 import { isoToTimeInZone } from '@/lib/date-local';
+import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
 import { useT } from './i18n/context';
 
 const GOLD = '#9A7230';
@@ -16,6 +17,7 @@ const MUTED = '#7A6E58';
 const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 const TZ = 'Europe/Sofia';
+const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 function formatLocalDate(iso: string, daysShort: string[], monthsGen: string[]): string {
   try {
@@ -66,8 +68,18 @@ export default function HomePage() {
 
       {/* ── Top Bar ── */}
       <div style={{ padding: '16px 22px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 600, letterSpacing: '-0.01em', fontStyle: 'italic', color: GOLD }}>
-          {salonInfo?.name || 'Hunger Atelier'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          {salonMediaSrcForApiOrigin(salonInfo?.logo_url ?? null, API_ORIGIN) ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={salonMediaSrcForApiOrigin(salonInfo?.logo_url ?? null, API_ORIGIN)!}
+              alt=""
+              style={{ height: 36, width: 36, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
+            />
+          ) : null}
+          <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 600, letterSpacing: '-0.01em', fontStyle: 'italic', color: GOLD, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {salonInfo?.name || 'Salon'}
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(250,248,243,0.65)', backdropFilter: 'blur(20px)', border: '1px solid rgba(154,114,48,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTED }}>

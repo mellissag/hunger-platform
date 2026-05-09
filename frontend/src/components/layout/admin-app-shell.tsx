@@ -51,8 +51,14 @@ import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { COOKIE_LOCALE } from "@/lib/cookies";
 import { can } from "@/lib/permissions";
+import { SalonFaviconEffect } from "@/components/branding/SalonFaviconEffect";
 import { cn } from "@/lib/utils";
 import { apiJson } from "@/lib/api";
+import {
+  resolveSalonDisplayName,
+  salonMediaSrcForAdmin,
+  type PublicSalonBranding,
+} from "@/lib/salon-branding";
 import type { SessionUser } from "@/types/user";
 import type { SalonBundle } from "@/types/admin-api";
 import type { Resource } from "@/lib/permissions";
@@ -107,6 +113,15 @@ export function AdminAppShell({
     staleTime: 60_000,
   });
 
+  const { data: publicBranding } = useQuery({
+    queryKey: ["public-salon-branding", locale],
+    queryFn: () =>
+      apiJson<PublicSalonBranding>(
+        `/mini-app/salon?lang=${encodeURIComponent(locale)}`,
+      ),
+    staleTime: 60_000,
+  });
+
   const itemsBase = NAV.filter((item) => can(user, "read", item.resource));
   const navOrder = Array.isArray(salonBundle?.settings?.integrations?.admin_nav_order)
     ? (salonBundle?.settings?.integrations?.admin_nav_order as string[])
@@ -135,8 +150,17 @@ export function AdminAppShell({
   }
 
   const displayName = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email;
-  const brandTitle = salonBundle?.salon?.name?.trim() || tc("brand");
+  const titleFromBundle =
+    salonBundle?.salon &&
+    resolveSalonDisplayName(salonBundle.salon, locale);
+  const brandTitle =
+    titleFromBundle ||
+    publicBranding?.name?.trim() ||
+    tc("brand");
   const brandInitial = brandTitle.slice(0, 1).toUpperCase() || "A";
+  const logoHref =
+    salonMediaSrcForAdmin(salonBundle?.salon?.logo_url || publicBranding?.logo_url) ?? undefined;
+  const favHref = salonBundle?.salon?.favicon_url || publicBranding?.favicon_url || undefined;
 
   // Live unread chat count for sidebar badge
   const canReadChats = can(user, "read", "chats");
@@ -147,11 +171,21 @@ export function AdminAppShell({
 
   return (
     <div className="flex min-h-screen min-w-0 bg-background text-foreground">
+      <SalonFaviconEffect href={favHref} />
       <aside className="hidden w-60 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
         <div className="flex h-14 items-center border-b border-sidebar-border px-4 font-semibold">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/50 text-sm font-bold text-primary-foreground">
-            {brandInitial}
-          </div>
+          {logoHref ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoHref}
+              alt=""
+              className="h-8 w-8 shrink-0 rounded-lg object-cover"
+            />
+          ) : (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/50 text-sm font-bold text-primary-foreground">
+              {brandInitial}
+            </div>
+          )}
           <div className="ml-2 min-w-0 flex flex-col">
             <span className="truncate text-sm font-semibold leading-none">{brandTitle}</span>
             <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider">

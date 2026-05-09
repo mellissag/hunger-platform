@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, GripVertical, Trash2, Undo2 } from "lucide-react";
@@ -13,8 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { apiFetch, apiJson } from "@/lib/api";
 import { hexToPrimaryHsl } from "@/lib/color";
-import { getPublicApiBaseUrl } from "@/lib/env";
 import { cn } from "@/lib/utils";
+import { resolveSalonDisplayName, salonMediaSrcForAdmin } from "@/lib/salon-branding";
 import { useAutoTriggers, useCreateTrigger, useUpdateTrigger } from "@/hooks/useBroadcasts";
 import type { SalonBundle } from "@/types/admin-api";
 
@@ -62,8 +62,13 @@ function whFormToApiPayload(form: WhFormState): Record<string, WhDayState> {
 
 export function SettingsSection({ section }: { section: string }) {
   const t = useTranslations("pages.settings");
+  const uiLocale = useLocale() as "en" | "ru" | "uk" | "bg";
   const qc = useQueryClient();
-  const [langTab, setLangTab] = useState<"en" | "ru" | "uk" | "bg">("en");
+  const [langTab, setLangTab] = useState<"en" | "ru" | "uk" | "bg">(uiLocale);
+
+  useEffect(() => {
+    setLangTab(uiLocale);
+  }, [uiLocale]);
   const [remTemplates, setRemTemplates] = useState<Record<string, string> | null>(null);
 
   const q = useQuery({
@@ -77,6 +82,7 @@ export function SettingsSection({ section }: { section: string }) {
     },
     onSuccess: (data) => {
       qc.setQueryData(["salon-bundle"], data);
+      void qc.invalidateQueries({ queryKey: ["public-salon-branding"] });
       setRemTemplates(null);
       toast.success(t("saved"));
     },
@@ -85,7 +91,6 @@ export function SettingsSection({ section }: { section: string }) {
 
   const data = q.data;
   const busy = patch.isPending;
-  const mediaBase = getPublicApiBaseUrl();
 
   const [whForm, setWhForm] = useState<WhFormState>(() => normalizeWorkingHoursDefault(undefined));
 
@@ -96,13 +101,24 @@ export function SettingsSection({ section }: { section: string }) {
     );
   }, [data, data?.settings.working_hours_default, data?.settings.updated_at]);
 
+  useEffect(() => {
+    if (!data || section !== "brand") return;
+    const n = resolveSalonDisplayName(data.salon, uiLocale);
+    if (n) document.title = `${n} — ${t("sections.brand")}`;
+  }, [data, section, uiLocale, t]);
+
   if (q.isLoading || !data) {
     return <p className="text-sm text-muted-foreground">{t("loading")}</p>;
   }
 
   const salon = data.salon;
   const settings = data.settings;
-  const salonContacts = (salon.contacts ?? {}) as Record<string, string>;
+  const salonContacts = (salon.contacts ?? {}) as Record<string, unknown>;
+  const nameI18nRaw = salonContacts.name_i18n;
+  const nameI18n =
+    nameI18nRaw && typeof nameI18nRaw === "object" && !Array.isArray(nameI18nRaw)
+      ? (nameI18nRaw as Record<string, string>)
+      : {};
 
   const reminderTemplates =
     remTemplates ??
@@ -186,9 +202,14 @@ export function SettingsSection({ section }: { section: string }) {
               onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
+                const nmEn = String(fd.get("name_en") ?? "").trim();
+                const nmRu = String(fd.get("name_ru") ?? "").trim();
+                const nmUk = String(fd.get("name_uk") ?? "").trim();
+                const nmBg = String(fd.get("name_bg") ?? "").trim();
+                const primaryName = nmRu || nmEn || nmUk || nmBg || salon.name;
                 patch.mutate({
                   salon: {
-                    name: String(fd.get("name") ?? "").trim() || salon.name,
+                    name: primaryName,
                     description: {
                       ...salon.description,
                       en: String(fd.get("desc_en") ?? ""),
@@ -198,6 +219,12 @@ export function SettingsSection({ section }: { section: string }) {
                     },
                     contacts: {
                       ...(typeof salon.contacts === "object" && salon.contacts ? salon.contacts : {}),
+                      name_i18n: {
+                        en: nmEn,
+                        ru: nmRu,
+                        uk: nmUk,
+                        bg: nmBg,
+                      },
                       city: String(fd.get("city") ?? "").trim(),
                       address: String(fd.get("address") ?? "").trim(),
                       phone: String(fd.get("salon_phone") ?? "").trim(),
@@ -209,9 +236,23 @@ export function SettingsSection({ section }: { section: string }) {
                 });
               }}
             >
-              <div>
-                <Label htmlFor="name">{t("salonName")}</Label>
-                <Input id="name" name="name" defaultValue={salon.name} className="mt-1 max-w-md" />
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {t("brandSalonNamesHint")}
+                </Label>
+                <div className="grid max-w-2xl gap-3 md:grid-cols-2">
+                  {(["en", "ru", "uk", "bg"] as const).map((l) => (
+                    <div key={l}>
+                      <Label htmlFor={`name_${l}`}>{t("brandSalonNameLang", { lang: l.toUpperCase() })}</Label>
+                      <Input
+                        id={`name_${l}`}
+                        name={`name_${l}`}
+                        defaultValue={nameI18n[l] ?? salon.name}
+                        className="mt-1"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="grid max-w-2xl gap-4 md:grid-cols-2">
                 <div>
@@ -219,7 +260,7 @@ export function SettingsSection({ section }: { section: string }) {
                   <Input
                     id="city"
                     name="city"
-                    defaultValue={salonContacts.city ?? ""}
+                    defaultValue={String(salonContacts.city ?? "")}
                     className="mt-1"
                     placeholder={t("city")}
                   />
@@ -229,7 +270,7 @@ export function SettingsSection({ section }: { section: string }) {
                   <Input
                     id="address"
                     name="address"
-                    defaultValue={salonContacts.address ?? ""}
+                    defaultValue={String(salonContacts.address ?? "")}
                     className="mt-1"
                     placeholder={t("address")}
                   />
@@ -240,7 +281,7 @@ export function SettingsSection({ section }: { section: string }) {
                 <Input
                   id="salon_phone"
                   name="salon_phone"
-                  defaultValue={salonContacts.phone ?? ""}
+                  defaultValue={String(salonContacts.phone ?? "")}
                   className="mt-1"
                   placeholder={t("salonPhonePlaceholder")}
                 />
@@ -304,11 +345,20 @@ export function SettingsSection({ section }: { section: string }) {
                   );
                 })}
               </div>
+              <div className="max-w-2xl space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {t("brandDescriptionPreview", { lang: uiLocale.toUpperCase() })}
+                </Label>
+                <p className="text-sm text-foreground">
+                  {(salon.description?.[uiLocale] ?? "").trim() || "—"}
+                </p>
+              </div>
               <div className="grid gap-3 md:grid-cols-2">
                 {(["en", "ru", "uk", "bg"] as const).map((l) => (
                   <div key={l}>
-                    <Label>description {l.toUpperCase()}</Label>
+                    <Label htmlFor={`desc_${l}`}>{t("brandDescriptionLang", { lang: l.toUpperCase() })}</Label>
                     <Textarea
+                      id={`desc_${l}`}
                       name={`desc_${l}`}
                       defaultValue={salon.description?.[l] ?? ""}
                       className="mt-1"
@@ -319,17 +369,13 @@ export function SettingsSection({ section }: { section: string }) {
               </div>
               <div className="flex flex-wrap gap-6">
                 <div>
-                  <Label>Logo</Label>
-                  {salon.logo_url && (
+                  <Label>{t("brandLogo")}</Label>
+                  {salonMediaSrcForAdmin(salon.logo_url) && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={
-                        salon.logo_url.startsWith("http")
-                          ? salon.logo_url
-                          : `${mediaBase}${salon.logo_url}`
-                      }
+                      src={salonMediaSrcForAdmin(salon.logo_url)!}
                       alt=""
-                      className="mt-1 h-14 max-w-[200px] rounded border object-cover"
+                      className="mt-1 h-14 max-w-[200px] rounded border object-contain bg-muted/50"
                     />
                   )}
                   <Input
@@ -340,15 +386,11 @@ export function SettingsSection({ section }: { section: string }) {
                   />
                 </div>
                 <div>
-                  <Label>Cover</Label>
-                  {salon.cover_url && (
+                  <Label>{t("brandCover")}</Label>
+                  {salonMediaSrcForAdmin(salon.cover_url) && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={
-                        salon.cover_url.startsWith("http")
-                          ? salon.cover_url
-                          : `${mediaBase}${salon.cover_url}`
-                      }
+                      src={salonMediaSrcForAdmin(salon.cover_url)!}
                       alt=""
                       className="mt-1 h-14 max-w-[200px] rounded border object-cover"
                     />
@@ -361,17 +403,13 @@ export function SettingsSection({ section }: { section: string }) {
                   />
                 </div>
                 <div>
-                  <Label>Favicon</Label>
-                  {salon.favicon_url && (
+                  <Label>{t("brandFavicon")}</Label>
+                  {salonMediaSrcForAdmin(salon.favicon_url) && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={
-                        salon.favicon_url.startsWith("http")
-                          ? salon.favicon_url
-                          : `${mediaBase}${salon.favicon_url}`
-                      }
+                      src={salonMediaSrcForAdmin(salon.favicon_url)!}
                       alt=""
-                      className="mt-1 h-8 w-8 rounded border object-cover"
+                      className="mt-1 h-8 w-8 rounded border object-contain bg-muted/50"
                     />
                   )}
                   <Input

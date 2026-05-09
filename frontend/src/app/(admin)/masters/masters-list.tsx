@@ -1,8 +1,9 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useQuery } from "@tanstack/react-query";
 
 import { CreateMasterDrawer } from "@/components/masters/CreateMasterDrawer";
 import { MasterCard } from "@/components/masters/MasterCard";
@@ -10,12 +11,27 @@ import { MastersKPI } from "@/components/masters/MastersKPI";
 import { AdminEmptyState } from "@/components/admin/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiJson } from "@/lib/api";
+import type { PublicSalonBranding } from "@/lib/salon-branding";
 import { useMastersList } from "@/hooks/useMasters";
 
 export function MastersList() {
   const t = useTranslations("pages.masters");
+  const locale = useLocale();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { data, isLoading } = useMastersList();
+
+  const { data: salonBranding } = useQuery({
+    queryKey: ["public-salon-branding", locale],
+    queryFn: () =>
+      apiJson<PublicSalonBranding>(`/mini-app/salon?lang=${encodeURIComponent(locale)}`),
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    const name = salonBranding?.name?.trim();
+    document.title = name ? `${name} — ${t("pageTitle")}` : `${t("pageTitle")} — Hunger Beauty`;
+  }, [salonBranding?.name, t]);
   const masters = data?.items ?? [];
 
   if (isLoading && !data) {
