@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageSquare, Paperclip, Search, Send } from "lucide-react";
@@ -29,6 +28,15 @@ function isClientIdParam(s: string | null): s is string {
   return Boolean(
     s && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s),
   );
+}
+
+/** Absolute URL for chat media (avoids next/image remotePatterns; works with any API host). */
+function chatMediaUrl(apiBase: string, path: string | null | undefined): string {
+  if (!path) return "";
+  const p = path.trim();
+  if (p.startsWith("http://") || p.startsWith("https://")) return p;
+  const base = apiBase.replace(/\/$/, "");
+  return p.startsWith("/") ? `${base}${p}` : `${base}/${p}`;
 }
 
 // ── Sound notification ────────────────────────────────────────────────────────
@@ -68,6 +76,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   const t = useTranslations("pages.chats");
   const API = getPublicApiBaseUrl();
   const isOut = msg.direction === "outbound";
+  const mediaSrc = chatMediaUrl(API, msg.media_path);
 
   return (
     <div
@@ -78,31 +87,29 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
           : "mr-auto border border-border bg-card text-foreground",
       )}
     >
-      {msg.message_type === "photo" && msg.media_path && (
-        <a href={`${API}${msg.media_path}`} target="_blank" rel="noreferrer" className="block">
-          <Image
-            src={`${API}${msg.media_path}`}
-            alt="photo"
-            width={260}
-            height={200}
-            className="max-h-48 w-full rounded-xl object-cover"
-            unoptimized
+      {msg.message_type === "photo" && mediaSrc ? (
+        <a href={mediaSrc} target="_blank" rel="noreferrer" className="block">
+          {/* eslint-disable-next-line @next/next/no-img-element -- dynamic API media URL */}
+          <img
+            src={mediaSrc}
+            alt=""
+            className="max-h-48 w-full max-w-[260px] rounded-xl object-cover"
           />
         </a>
-      )}
+      ) : null}
       {msg.message_type === "video" && msg.media_path && (
         <video
-          src={`${API}${msg.media_path}`}
+          src={chatMediaUrl(API, msg.media_path)}
           controls
           className="max-h-48 w-full rounded-xl"
         />
       )}
       {msg.message_type === "voice" && msg.media_path && (
-        <audio src={`${API}${msg.media_path}`} controls className="w-full" />
+        <audio src={chatMediaUrl(API, msg.media_path)} controls className="w-full" />
       )}
       {msg.message_type === "document" && msg.media_path && (
         <a
-          href={`${API}${msg.media_path}`}
+          href={chatMediaUrl(API, msg.media_path)}
           target="_blank"
           rel="noreferrer"
           className="text-sm underline"

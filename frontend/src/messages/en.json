@@ -987,22 +987,6 @@
       "deleteDesc": "Broadcast \"{title}\" and all send data will be permanently deleted.",
       "deleteSuccess": "Broadcast deleted",
       "deleteSendingError": "Cannot delete a broadcast while sending"
-    },
-    "chats": {
-      "title": "Client chats",
-      "subtitle": "All conversations via Telegram bot",
-      "searchPlaceholder": "Search...",
-      "noResults": "Nothing found",
-      "devBadge": "🔒 Feature in development",
-      "devNote": "Data above is a UI preview",
-      "comingSoonTitle": "Live chat in development",
-      "comingSoonDesc": "Soon you will be able to message clients directly via Telegram bot from this window.",
-      "writeClientBtn": "Message a client",
-      "writeClientHint": "For now, find a client in the database and message them manually",
-      "feature1": "Direct messages via bot",
-      "feature2": "Conversation history",
-      "feature3": "Quick reply templates",
-      "feature4": "Labels and filters"
     }
   }
 }
