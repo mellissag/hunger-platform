@@ -35,14 +35,15 @@ NO_BOOKING_VIA_AI_INSTRUCTION = (
 _EMBED_MODEL = "models/text-embedding-004"
 
 
-def _ensure_gemini() -> None:
-    settings = get_settings()
-    if not settings.gemini_api_key:
+def _ensure_gemini(api_key: str | None = None) -> None:
+    """Configure Gemini with `api_key` (from DB settings) or fall back to env var."""
+    key = api_key or get_settings().gemini_api_key
+    if not key:
         raise AIUnavailableError(
-            "AI assistant is not configured (missing GEMINI_API_KEY). "
-            "Add the key in server environment to enable this feature."
+            "AI assistant is not configured. "
+            "Add your Gemini API key in Admin → AI → Settings."
         )
-    genai.configure(api_key=settings.gemini_api_key)
+    genai.configure(api_key=key)
 
 
 def _pick_system_prompt(settings_row: Settings, lang: str) -> str:
@@ -54,8 +55,8 @@ def _pick_system_prompt(settings_row: Settings, lang: str) -> str:
     return _DEFAULT_SYSTEM
 
 
-async def _embed_question(text: str) -> list[float]:
-    _ensure_gemini()
+async def _embed_question(text: str, api_key: str | None = None) -> list[float]:
+    _ensure_gemini(api_key)
 
     def _sync() -> list[float]:
         out = genai.embed_content(
@@ -132,8 +133,6 @@ class AIService:
         if not q:
             raise ValueError("empty question")
 
-        _ensure_gemini()
-
         salon_row = await self.db.execute(select(Salon, Settings).join(Settings, Settings.salon_id == Salon.id).limit(1))
         first = salon_row.first()
         if not first:
@@ -141,6 +140,15 @@ class AIService:
         salon, salon_settings = first
         if not salon_settings.ai_enabled:
             raise AIUnavailableError("AI assistant is disabled in salon settings.")
+
+        # Use API key stored in DB integrations first, fall back to env var
+        db_api_key: str | None = None
+        integrations = salon_settings.integrations or {}
+        raw_key = integrations.get("ai_api_key", "")
+        if isinstance(raw_key, str) and raw_key.strip():
+            db_api_key = raw_key.strip()
+
+        _ensure_gemini(db_api_key)
 
         client = await self.db.get(Client, client_id)
         if client is None:
@@ -152,7 +160,7 @@ class AIService:
 
         await check_ai_rate_limit(self.db, self.redis, client_id)
 
-        embedding = await _embed_question(q)
+        embedding = await _embed_question(q, db_api_key)
         chunks = await _retrieve_chunks(self.db, embedding)
         cited_ids = [c.id for c in chunks]
 
@@ -239,8 +247,6 @@ class AIService:
         lang: str = "en",
     ) -> tuple[str, list[uuid.UUID]]:
         """Тест из админки без client — без rate limit и без записи в ai_message (optional)."""
-        _ensure_gemini()
-
         salon_row = await self.db.execute(select(Salon, Settings).join(Settings, Settings.salon_id == Salon.id).limit(1))
         first = salon_row.first()
         if not first:
@@ -249,8 +255,15 @@ class AIService:
         if not salon_settings.ai_enabled:
             raise AIUnavailableError("AI assistant is disabled.")
 
+        db_api_key: str | None = None
+        integrations = salon_settings.integrations or {}
+        raw_key = integrations.get("ai_api_key", "")
+        if isinstance(raw_key, str) and raw_key.strip():
+            db_api_key = raw_key.strip()
+        _ensure_gemini(db_api_key)
+
         q = question.strip()
-        embedding = await _embed_question(q)
+        embedding = await _embed_question(q, db_api_key)
         chunks = await _retrieve_chunks(self.db, embedding)
         cited_ids = [c.id for c in chunks]
         kb_text = "\n\n".join(f"[chunk {c.id}]\n{c.content}" for c in chunks) or "(empty)"

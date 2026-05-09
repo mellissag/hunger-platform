@@ -182,6 +182,28 @@ export default function ChatsPage() {
   const sendText = useSendText();
   const sendMedia = useSendMedia();
 
+  // ── Browser notification permission ─────────────────────────────────────────
+  useEffect(() => {
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
+  }, []);
+
+  function showBrowserNotification(title: string, body: string) {
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    if (document.hasFocus()) return; // Only notify when tab is not focused
+    try {
+      const n = new Notification(title, {
+        body,
+        icon: "/favicon.ico",
+        tag: "chat-message",
+      });
+      setTimeout(() => n.close(), 6000);
+    } catch {
+      // Notification API not supported
+    }
+  }
+
   // ── WebSocket event handler ──────────────────────────────────────────────────
   const handleWsEvent = useCallback(
     (event: WsEvent) => {
@@ -224,9 +246,17 @@ export default function ChatsPage() {
           );
         });
 
-        // Play sound only for inbound messages in background dialogs
+        // Sound + browser notification for inbound messages from other clients
         if (msg.direction === "inbound" && msg.client_id !== activeId) {
           playNotify();
+          const clientInfo = chatList.find((c) => c.client_id === msg.client_id);
+          const senderName = [clientInfo?.first_name, clientInfo?.last_name]
+            .filter(Boolean)
+            .join(" ") || "Клиент";
+          showBrowserNotification(
+            `Новое сообщение от ${senderName}`,
+            msg.text ?? `[${msg.message_type}]`,
+          );
         }
       }
 
@@ -240,7 +270,7 @@ export default function ChatsPage() {
         );
       }
     },
-    [activeId, qc],
+    [activeId, qc, chatList],
   );
 
   useChatWebSocket(handleWsEvent);

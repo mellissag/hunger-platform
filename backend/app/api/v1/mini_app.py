@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import get_settings
-from app.deps import get_db
+from app.deps import get_db, get_redis
 from app.models.catalog import MasterService, Service
 from app.models.client import Client
 from app.models.enums import ClientSource
@@ -1128,6 +1128,7 @@ async def contact_master(
     payload: MiniAppContactIn,
     current_user: MiniAppUser,
     db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
 ) -> dict:
     """Authenticated: client sends a free-text message that appears in Admin Panel chat."""
     if not current_user.tg_user_id:
@@ -1137,6 +1138,7 @@ async def contact_master(
     if not stripped:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty message")
 
+    import json as _json
     from app.models.chat_message import ChatMessage, MessageDirection, MessageType
 
     client = await _get_or_create_client(current_user, db)
@@ -1149,6 +1151,24 @@ async def contact_master(
     )
     db.add(msg)
     await db.commit()
+    await db.refresh(msg)
+
+    # Publish real-time event so admin WebSocket picks it up
+    if redis is not None:
+        payload_ws = {
+            "_event": "new_message",
+            "id": str(msg.id),
+            "client_id": str(client.id),
+            "direction": "inbound",
+            "message_type": "text",
+            "text": stripped,
+            "media_path": None,
+            "tg_message_id": None,
+            "is_read": False,
+            "created_at": msg.created_at.isoformat(),
+        }
+        await redis.publish("chat:new_message", _json.dumps(payload_ws))
+
     return {"ok": True}
 
 
