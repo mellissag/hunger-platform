@@ -759,6 +759,7 @@
       "city": "City",
       "address": "Street address",
       "salonPhone": "Salon phone",
+      "salonPhonePlaceholder": "Enter phone number",
       "workingHoursTitle": "Salon working hours",
       "workingHoursHint": "Displayed in the Telegram Mini App. Days are Mon–Sun (ISO 1–7).",
       "dayMon": "Mon",

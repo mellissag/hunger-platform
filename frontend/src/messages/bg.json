@@ -759,6 +759,7 @@
       "city": "Град",
       "address": "Адрес",
       "salonPhone": "Телефон на салона",
+      "salonPhonePlaceholder": "Въведете телефон",
       "workingHoursTitle": "Работно време на салона",
       "workingHoursHint": "Показва се в Telegram Mini App. Дни: пн–нд (ISO 1–7).",
       "dayMon": "Пн",

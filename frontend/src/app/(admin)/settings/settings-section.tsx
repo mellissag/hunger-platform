@@ -242,7 +242,7 @@ export function SettingsSection({ section }: { section: string }) {
                   name="salon_phone"
                   defaultValue={salonContacts.phone ?? ""}
                   className="mt-1"
-                  placeholder="+359 ..."
+                  placeholder={t("salonPhonePlaceholder")}
                 />
               </div>
               <div className="space-y-3 max-w-2xl">
