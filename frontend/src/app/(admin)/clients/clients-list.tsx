@@ -52,7 +52,6 @@ import { formatVisitAgo } from "@/lib/date-local";
 import { apiJson } from "@/lib/api";
 import type { ClientOut, MasterOut, Paginated } from "@/types/admin-api";
 import { cn } from "@/lib/utils";
-import { SendMessageModal } from "@/components/clients/send-message-modal";
 import { TagMultiSelect } from "@/components/clients/tag-multi-select";
 
 const TAG_OPTIONS = ["VIP", "Постоянный", "Новый", "No-show"] as const;
@@ -147,8 +146,6 @@ export function ClientsList() {
   const [blOpen, setBlOpen] = useState(false);
   const [blClient, setBlClient] = useState<ClientOut | null>(null);
   const [blReason, setBlReason] = useState("");
-  const [msgClient, setMsgClient] = useState<ClientOut | null>(null);
-
   const createMut = useCreateClient();
   const blMut = useAddBlacklist();
 
@@ -300,7 +297,7 @@ export function ClientsList() {
                 aria-label="message-bot"
                 disabled={!canBotMsg}
                 title={t("sendViaBot")}
-                onClick={() => setMsgClient(c)}
+                onClick={() => router.push(`/chats?client=${c.id}`)}
               >
                 <MessageSquare className="h-4 w-4" />
               </Button>
@@ -626,7 +623,6 @@ export function ClientsList() {
         </DialogContent>
       </Dialog>
 
-      <SendMessageModal client={msgClient} open={Boolean(msgClient)} onClose={() => setMsgClient(null)} />
     </div>
   );
 }

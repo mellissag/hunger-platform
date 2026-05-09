@@ -1,10 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageSquare, Paperclip, Search, Send } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
+import { apiJson } from "@/lib/api";
 import { getPublicApiBaseUrl } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import {
@@ -19,6 +22,13 @@ import {
   useSendText,
   WsEvent,
 } from "@/hooks/useChatData";
+import type { ClientOut } from "@/types/admin-api";
+
+function isClientIdParam(s: string | null): s is string {
+  return Boolean(
+    s && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s),
+  );
+}
 
 // ── Sound notification ────────────────────────────────────────────────────────
 
@@ -169,18 +179,121 @@ function ChatListRow({
 
 export default function ChatsPage() {
   const qc = useQueryClient();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const clientFromUrl = isClientIdParam(searchParams.get("client"))
+    ? searchParams.get("client")!
+    : null;
+
   const [activeId, setActiveId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [input, setInput] = useState("");
+  /** Chats with no messages yet — not returned by GET /admin/chats; pinned after opening from `/clients`. */
+  const [pinnedExtras, setPinnedExtras] = useState<ChatListItem[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { data: chatList = [] } = useChatList();
+  const { data: chatList = [], isPending: chatListPending } = useChatList();
+
+  const hasChatRow = useCallback(
+    (id: string) => chatList.some((c) => c.client_id === id),
+    [chatList],
+  );
+
+  const needBootstrap =
+    Boolean(clientFromUrl) &&
+    !chatListPending &&
+    clientFromUrl !== null &&
+    !hasChatRow(clientFromUrl);
+
+  const {
+    data: clientBootstrap,
+    isError: clientBootstrapError,
+    isFetched: clientBootstrapFetched,
+  } = useQuery({
+    queryKey: ["clients", clientFromUrl, "open-chat"],
+    queryFn: () => apiJson<ClientOut>(`/clients/${clientFromUrl}`),
+    enabled: needBootstrap && clientFromUrl !== null,
+  });
+
+  const mergedChatList = useMemo(() => {
+    const ids = new Set(chatList.map((c) => c.client_id));
+    const extras = pinnedExtras.filter((p) => !ids.has(p.client_id));
+    return [...extras, ...chatList];
+  }, [pinnedExtras, chatList]);
+
+  useEffect(() => {
+    setPinnedExtras((prev) =>
+      prev.filter((p) => !chatList.some((c) => c.client_id === p.client_id)),
+    );
+  }, [chatList]);
   const { data: messages = [], isLoading: msgsLoading } = useChatMessages(activeId);
   const markRead = useMarkRead();
   const sendText = useSendText();
   const sendMedia = useSendMedia();
+
+  useEffect(() => {
+    const raw = searchParams.get("client");
+    if (raw && !isClientIdParam(raw)) {
+      toast.error("Некорректная ссылка");
+      router.replace("/chats", { scroll: false });
+    }
+  }, [searchParams, router]);
+
+  useEffect(() => {
+    if (!clientFromUrl || chatListPending) return;
+    if (!hasChatRow(clientFromUrl)) return;
+    setActiveId(clientFromUrl);
+    markRead.mutate(clientFromUrl);
+    router.replace("/chats", { scroll: false });
+  }, [clientFromUrl, chatListPending, hasChatRow, router, markRead]);
+
+  useEffect(() => {
+    if (!clientFromUrl || chatListPending) return;
+    if (hasChatRow(clientFromUrl)) return;
+    if (clientBootstrapError) return;
+    if (!clientBootstrapFetched) return;
+    if (!clientBootstrap || clientBootstrap.id !== clientFromUrl) return;
+    if (!clientBootstrap.tg_user_id) {
+      toast.error("У клиента не привязан Telegram");
+      router.replace("/chats", { scroll: false });
+      return;
+    }
+    if (clientBootstrap.bot_blocked) {
+      toast.error("Клиент заблокировал бота");
+      router.replace("/chats", { scroll: false });
+      return;
+    }
+    const row: ChatListItem = {
+      client_id: clientBootstrap.id,
+      tg_user_id: clientBootstrap.tg_user_id,
+      first_name: clientBootstrap.first_name,
+      last_name: clientBootstrap.last_name,
+      last_message: null,
+      last_message_at: null,
+      unread_count: 0,
+    };
+    setPinnedExtras((prev) =>
+      prev.some((p) => p.client_id === row.client_id) ? prev : [row, ...prev],
+    );
+    setActiveId(clientFromUrl);
+    router.replace("/chats", { scroll: false });
+  }, [
+    clientFromUrl,
+    chatListPending,
+    hasChatRow,
+    clientBootstrap,
+    clientBootstrapFetched,
+    clientBootstrapError,
+    router,
+  ]);
+
+  useEffect(() => {
+    if (!needBootstrap || !clientBootstrapFetched || !clientBootstrapError || !clientFromUrl) return;
+    toast.error("Клиент не найден");
+    router.replace("/chats", { scroll: false });
+  }, [needBootstrap, clientBootstrapFetched, clientBootstrapError, clientFromUrl, router]);
 
   // ── Browser notification permission ─────────────────────────────────────────
   useEffect(() => {
@@ -249,7 +362,7 @@ export default function ChatsPage() {
         // Sound + browser notification for inbound messages from other clients
         if (msg.direction === "inbound" && msg.client_id !== activeId) {
           playNotify();
-          const clientInfo = chatList.find((c) => c.client_id === msg.client_id);
+          const clientInfo = mergedChatList.find((c) => c.client_id === msg.client_id);
           const senderName = [clientInfo?.first_name, clientInfo?.last_name]
             .filter(Boolean)
             .join(" ") || "Клиент";
@@ -270,7 +383,7 @@ export default function ChatsPage() {
         );
       }
     },
-    [activeId, qc, chatList],
+    [activeId, qc, chatList, mergedChatList],
   );
 
   useChatWebSocket(handleWsEvent);
@@ -296,6 +409,7 @@ export default function ChatsPage() {
       {
         onSuccess: () => {
           void qc.invalidateQueries({ queryKey: chatKeys.messages(activeId) });
+          void qc.invalidateQueries({ queryKey: chatKeys.list });
         },
       },
     );
@@ -316,13 +430,13 @@ export default function ChatsPage() {
     );
   }
 
-  const filteredChats = chatList.filter((c) => {
+  const filteredChats = mergedChatList.filter((c) => {
     const name = `${c.first_name ?? ""} ${c.last_name ?? ""}`.toLowerCase();
     return name.includes(search.toLowerCase());
   });
 
-  const activeClient = chatList.find((c) => c.client_id === activeId);
-  const totalUnread = chatList.reduce((s, c) => s + c.unread_count, 0);
+  const activeClient = mergedChatList.find((c) => c.client_id === activeId);
+  const totalUnread = mergedChatList.reduce((s, c) => s + c.unread_count, 0);
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden rounded-xl border border-border bg-background shadow-sm">
@@ -365,7 +479,7 @@ export default function ChatsPage() {
           ))}
           {filteredChats.length === 0 && (
             <p className="p-6 text-center text-sm text-muted-foreground">
-              {chatList.length === 0 ? "Нет диалогов" : "Ничего не найдено"}
+              {mergedChatList.length === 0 ? "Нет диалогов" : "Ничего не найдено"}
             </p>
           )}
         </div>

@@ -282,7 +282,17 @@ export function ClientDetail({ clientId }: { clientId: string }) {
             <CalendarPlus className="h-4 w-4" />
             {t("book")}
           </Button>
-          <Button type="button" variant="secondary" onClick={() => setSendOpen(true)}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              if (c.tg_user_id && !c.bot_blocked) {
+                router.push(`/chats?client=${c.id}`);
+              } else {
+                setSendOpen(true);
+              }
+            }}
+          >
             <MessageSquare className="h-4 w-4" />
             {t("writeViaBot")}
           </Button>
