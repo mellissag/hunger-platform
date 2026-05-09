@@ -38,6 +38,14 @@ const nextConfig = {
       },
     ];
   },
+  /** Прокси /media → API при запросе к Next (dev или если CDN/Caddy ещё не отдаёт /media на api). */
+  async rewrites() {
+    if (!apiUrl) return [];
+    const base = apiUrl.replace(/\/$/, "");
+    return {
+      beforeFiles: [{ source: "/media/:path*", destination: `${base}/media/:path*` }],
+    };
+  },
 };
 
 export default nextConfig;

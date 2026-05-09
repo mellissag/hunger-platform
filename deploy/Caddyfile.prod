@@ -43,6 +43,15 @@
 		reverse_proxy api:8000
 	}
 
+	# Статика FastAPI: фото/файлы чата (как в deploy/Caddyfile и Caddyfile.prod.behind-proxy).
+	# Без этого /media/* попадает в Next.js и даёт 404.
+	handle /media* {
+		reverse_proxy api:8000 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+		}
+	}
+
 	handle /readyz {
 		reverse_proxy api:8000
 	}

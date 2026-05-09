@@ -30,15 +30,23 @@ function isClientIdParam(s: string | null): s is string {
 }
 
 /**
- * URL for chat media in the admin UI. Uses same-origin `/api/media/...` proxy so images
- * load in the browser even when NEXT_PUBLIC_API_URL points at an internal Docker hostname.
+ * Same-origin `/media/...` — в проде Caddy проксирует на FastAPI; в dev `next.config` rewrites на API.
+ * Accepts API shapes: `/media/chat/x`, `chat/x`, full http URL.
  */
 function chatMediaUrl(path: string | null | undefined): string {
   if (!path) return "";
   const p = path.trim();
   if (p.startsWith("http://") || p.startsWith("https://")) return p;
-  const withoutMediaPrefix = p.startsWith("/media/") ? p.slice("/media/".length) : p.replace(/^\//, "");
-  return `/api/media/${withoutMediaPrefix}`;
+  let rest = p;
+  if (rest.startsWith("/media/")) rest = rest.slice("/media/".length);
+  else if (rest.startsWith("media/")) rest = rest.slice("media/".length);
+  rest = rest.replace(/^\/+/, "");
+  return `/media/${rest}`;
+}
+
+function isLikelyRasterImagePath(p: string | null | undefined): boolean {
+  if (!p) return false;
+  return /\.(jpe?g|png|gif|webp|bmp|heic)$/i.test(p);
 }
 
 // ── Sound notification ────────────────────────────────────────────────────────
@@ -78,6 +86,11 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   const t = useTranslations("pages.chats");
   const isOut = msg.direction === "outbound";
   const mediaSrc = chatMediaUrl(msg.media_path);
+  const showImagePreview =
+    Boolean(mediaSrc) &&
+    (msg.message_type === "photo" ||
+      msg.message_type === "sticker" ||
+      (msg.message_type === "document" && isLikelyRasterImagePath(msg.media_path)));
 
   return (
     <div
@@ -88,13 +101,13 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
           : "mr-auto border border-border bg-card text-foreground",
       )}
     >
-      {msg.message_type === "photo" && mediaSrc ? (
-        <a href={mediaSrc} target="_blank" rel="noreferrer" className="block">
-          {/* eslint-disable-next-line @next/next/no-img-element -- dynamic API media URL */}
+      {showImagePreview ? (
+        <a href={mediaSrc} target="_blank" rel="noreferrer" className="block min-h-[80px] min-w-[80px]">
+          {/* eslint-disable-next-line @next/next/no-img-element -- same-origin /media (Caddy or next rewrite) */}
           <img
             src={mediaSrc}
             alt=""
-            className="max-h-48 w-full max-w-[260px] rounded-xl object-cover"
+            className="max-h-48 w-full max-w-[260px] min-h-[80px] rounded-xl object-cover"
           />
         </a>
       ) : null}
@@ -108,7 +121,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
       {msg.message_type === "voice" && msg.media_path && (
         <audio src={chatMediaUrl(msg.media_path)} controls className="w-full" />
       )}
-      {msg.message_type === "document" && msg.media_path && (
+      {msg.message_type === "document" && msg.media_path && !isLikelyRasterImagePath(msg.media_path) && (
         <a
           href={chatMediaUrl(msg.media_path)}
           target="_blank"
