@@ -9,7 +9,7 @@ from uuid import UUID
 from loguru import logger
 from redis.asyncio import Redis
 from sqlalchemy import String, cast as sa_cast, delete, exists, func, or_, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, MissingGreenlet
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -91,15 +91,33 @@ def service_to_out(
     masters_count: int | None = None,
     bookings_30d: int | None = None,
 ) -> ServiceOut:
-    cats_sorted = sorted((s.categories or []), key=lambda c: (c.sort_order, str(c.id)))
+    # Не вызывать ServiceOut.model_validate(s): pydantic читает все поля ORM, включая
+    # relationship categories → lazy-load в async-сессии → MissingGreenlet → 500.
+    try:
+        cat_rows = list(s.categories or [])
+    except MissingGreenlet:
+        logger.warning("service_categories_lazy_load_blocked service_id={}", s.id)
+        cat_rows = []
+    cats_sorted = sorted(cat_rows, key=lambda c: (c.sort_order, str(c.id)))
     brief = [ServiceCategoryBriefOut.model_validate(c) for c in cats_sorted]
-    base = ServiceOut.model_validate(s)
-    return base.model_copy(
-        update={
-            "categories": brief,
-            "masters_count": masters_count if masters_count is not None else base.masters_count,
-            "bookings_30d": bookings_30d if bookings_30d is not None else base.bookings_30d,
-        }
+
+    return ServiceOut(
+        id=s.id,
+        category_id=s.category_id,
+        categories=brief,
+        name_i18n=dict(s.name_i18n or {}),
+        description_i18n=dict(s.description_i18n or {}),
+        duration_minutes=s.duration_minutes,
+        duration_type=s.duration_type,
+        duration_max_minutes=s.duration_max_minutes,
+        price=s.price,
+        photo_url=s.photo_url,
+        is_active=s.is_active,
+        sort_order=s.sort_order,
+        created_at=s.created_at,
+        updated_at=s.updated_at,
+        masters_count=masters_count,
+        bookings_30d=bookings_30d,
     )
 
 

@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { apiJson } from "@/lib/api";
+import { apiJson, HttpError } from "@/lib/api";
 import type { Paginated, ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
 
 export const SERVICE_KEYS = {
@@ -131,7 +131,8 @@ export function useCreateService() {
       await qc.invalidateQueries({ queryKey: ["services"] });
       await qc.invalidateQueries({ queryKey: ["services", "stats"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: unknown) =>
+      toast.error(e instanceof HttpError ? e.message : e instanceof Error ? e.message : "Error"),
   });
 }
 
@@ -148,7 +149,8 @@ export function useUpdateService() {
       await qc.invalidateQueries({ queryKey: ["services"] });
       await qc.invalidateQueries({ queryKey: ["services", "stats"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: unknown) =>
+      toast.error(e instanceof HttpError ? e.message : e instanceof Error ? e.message : "Error"),
   });
 }
 
