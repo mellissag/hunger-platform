@@ -8,12 +8,12 @@ import { isoToTimeInZone } from '@/lib/date-local';
 import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
 import { useT } from './i18n/context';
 
-const GOLD = '#9A7230';
-const GOLD_HI = '#C9A84C';
-const NEAR_BLACK = '#1C1408';
-const IVORY = '#FAF8F3';
-const SOFT = '#4A3F2E';
-const MUTED = '#7A6E58';
+const GOLD = 'var(--gold-deep)';
+const GOLD_HI = 'var(--gold)';
+const NEAR_BLACK = 'var(--text-primary)';
+const IVORY = 'var(--bg-base)';
+const SOFT = 'var(--text-secondary)';
+const MUTED = 'var(--text-muted)';
 const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 const TZ = 'Europe/Sofia';
@@ -59,10 +59,7 @@ export default function HomePage() {
   return (
     <div style={{
       minHeight: '100dvh',
-      background: `
-        radial-gradient(ellipse at 100% 0%, rgba(201,168,76,.10), transparent 50%),
-        radial-gradient(ellipse at 0% 100%, rgba(237,229,213,.5), transparent 50%),
-        ${IVORY}`,
+      background: IVORY,
       fontFamily: BODY, color: NEAR_BLACK, overflowX: 'hidden',
     }}>
 
@@ -82,7 +79,7 @@ export default function HomePage() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(250,248,243,0.65)', backdropFilter: 'blur(20px)', border: '1px solid rgba(154,114,48,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTED }}>
+          <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--bg-overlay)', backdropFilter: 'blur(20px)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTED }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M6 9a6 6 0 1112 0c0 4 2 6 2 6H4s2-2 2-6zM10 20a2 2 0 004 0"/>
             </svg>
@@ -113,11 +110,11 @@ export default function HomePage() {
           <button
             onClick={() => router.push('/mini-app/book')}
             style={{
-              background: NEAR_BLACK, border: 'none', color: IVORY,
+              background: 'var(--btn-primary-bg)', border: 'none', color: 'var(--btn-primary-text)',
               padding: '13px 20px', borderRadius: 999, fontSize: 11, fontWeight: 600,
               letterSpacing: '0.10em', textTransform: 'uppercase', fontFamily: BODY,
               display: 'flex', alignItems: 'center', gap: 8,
-              boxShadow: '0 8px 24px rgba(28,20,9,.18)', cursor: 'pointer',
+              boxShadow: 'var(--shadow-md)', cursor: 'pointer',
             }}
           >
             {t.homeBtnSlot}
@@ -126,7 +123,7 @@ export default function HomePage() {
           <button
             onClick={() => router.push('/mini-app/catalog')}
             style={{
-              background: 'transparent', border: '1px solid rgba(28,20,9,.2)', color: NEAR_BLACK,
+              background: 'transparent', border: '1px solid var(--border-strong)', color: NEAR_BLACK,
               padding: '13px 18px', borderRadius: 999, fontSize: 11, fontWeight: 600,
               letterSpacing: '0.10em', textTransform: 'uppercase', fontFamily: BODY, cursor: 'pointer',
             }}
@@ -145,12 +142,12 @@ export default function HomePage() {
       <div style={{
         margin: '8px 16px 0',
         padding: '18px 20px',
-        background: 'linear-gradient(135deg, rgba(255,255,255,.50), rgba(237,229,213,.65))',
+        background: 'var(--bg-overlay)',
         borderRadius: 24,
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(154,114,48,.20)',
-        boxShadow: '0 6px 24px rgba(154,114,48,.15)',
+        border: '1px solid var(--gold-border)',
+        boxShadow: 'var(--shadow-md)',
       }}>
         {nextBooking ? (
           <>
@@ -174,7 +171,7 @@ export default function HomePage() {
               )}
             </div>
             <div style={{ marginTop: 14 }}>
-              <div style={{ height: 3, borderRadius: 3, background: 'rgba(154,114,48,.15)', overflow: 'hidden' }}>
+              <div style={{ height: 3, borderRadius: 3, background: 'var(--gold-subtle)', overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: '35%', background: `linear-gradient(90deg, ${GOLD}, ${GOLD_HI})` }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: MUTED, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -197,7 +194,7 @@ export default function HomePage() {
       {dailyPick && (
         <div style={{ padding: '0 16px', marginTop: 8 }}>
           <div style={{
-            background: NEAR_BLACK, borderRadius: 24, padding: '22px', color: '#F0EBE0',
+            background: 'var(--bg-surface)', borderRadius: 24, padding: '22px', color: 'var(--text-primary)',
             position: 'relative', overflow: 'hidden',
           }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${GOLD_HI}, transparent)` }} />

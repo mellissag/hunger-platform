@@ -6,12 +6,12 @@ import { useMyBookings, useCancelBooking, type Booking } from '../hooks/useMiniA
 import { isoToTimeInZone, isoToDateInZone } from '@/lib/date-local';
 import { useT } from '../i18n/context';
 
-const GOLD = '#9A7230';
-const GOLD_HI = '#C9A84C';
-const NEAR_BLACK = '#1C1408';
-const IVORY = '#FAF8F3';
-const MUTED = '#7A6E58';
-const SOFT = '#4A3F2E';
+const GOLD = 'var(--gold-deep)';
+const GOLD_HI = 'var(--gold)';
+const NEAR_BLACK = 'var(--text-primary)';
+const IVORY = 'var(--bg-base)';
+const MUTED = 'var(--text-muted)';
+const SOFT = 'var(--text-secondary)';
 const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 const TZ = 'Europe/Sofia';
@@ -20,10 +20,10 @@ type StatusKind = 'ok' | 'gold' | 'muted' | 'err';
 
 function statusColors(kind: StatusKind) {
   return ({
-    ok:   { fg: '#3A7D44', bg: 'rgba(58,125,68,.08)', bd: 'rgba(58,125,68,.3)' },
-    gold: { fg: GOLD, bg: 'rgba(154,114,48,.08)', bd: 'rgba(154,114,48,.3)' },
+    ok:   { fg: 'var(--d-ok, #3A7D44)', bg: 'rgba(58,125,68,.08)', bd: 'rgba(58,125,68,.3)' },
+    gold: { fg: GOLD, bg: 'var(--gold-subtle)', bd: 'var(--gold-border)' },
     muted:{ fg: MUTED, bg: 'rgba(122,110,88,.08)', bd: 'rgba(122,110,88,.25)' },
-    err:  { fg: '#B54040', bg: 'rgba(181,64,64,.06)', bd: 'rgba(181,64,64,.2)' },
+    err:  { fg: 'var(--d-err, #B54040)', bg: 'rgba(181,64,64,.06)', bd: 'rgba(181,64,64,.2)' },
   } as const)[kind];
 }
 
@@ -94,10 +94,7 @@ export default function BookingsPage() {
   return (
     <div style={{
       minHeight: '100dvh',
-      background: `
-        radial-gradient(ellipse at 100% 0%, rgba(201,168,76,.10), transparent 50%),
-        radial-gradient(ellipse at 0% 100%, rgba(237,229,213,.5), transparent 50%),
-        ${IVORY}`,
+      background: IVORY,
       fontFamily: BODY, color: NEAR_BLACK, overflowX: 'hidden',
     }}>
 
@@ -115,9 +112,9 @@ export default function BookingsPage() {
       {nextBooking && (
         <div style={{ margin: '0 16px 16px' }}>
           <div style={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,.45), rgba(237,229,213,.6))',
+            background: 'var(--bg-overlay)',
             borderRadius: 24, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(154,114,48,.20)', boxShadow: '0 6px 28px rgba(154,114,48,.16)',
+            border: '1px solid var(--gold-border)', boxShadow: 'var(--shadow-md)',
             padding: '18px 20px',
           }}>
             {/* Live row */}
@@ -148,7 +145,7 @@ export default function BookingsPage() {
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 24, padding: '0 22px', borderBottom: '1px solid rgba(228,221,208,1)', marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 24, padding: '0 22px', borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
         {(['upcoming', 'history'] as const).map(tab => {
           const isActive = activeTab === tab;
           const count = tab === 'upcoming' ? upcoming.length : history.length;
@@ -214,10 +211,10 @@ export default function BookingsPage() {
               <div
                 key={b.id}
                 style={{
-                  background: '#fff', borderRadius: 20,
-                  border: '1px solid rgba(228,221,208,1)',
+                  background: 'var(--bg-surface)', borderRadius: 20,
+                  border: '1px solid var(--border)',
                   padding: '16px 18px',
-                  boxShadow: '0 2px 10px rgba(28,20,9,.04)',
+                  boxShadow: 'var(--shadow-sm)',
                 }}
               >
                 {/* Date row */}

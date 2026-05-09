@@ -15,12 +15,12 @@ import {
 import { zonedToUtcIso, isoToTimeInZone, isoToDateInZone } from '@/lib/date-local';
 import { useT } from '../i18n/context';
 
-const GOLD = '#9A7230';
-const GOLD_HI = '#C9A84C';
-const NEAR_BLACK = '#1C1408';
-const IVORY = '#FAF8F3';
-const MUTED = '#7A6E58';
-const SOFT = '#4A3F2E';
+const GOLD = 'var(--gold-deep)';
+const GOLD_HI = 'var(--gold)';
+const NEAR_BLACK = 'var(--text-primary)';
+const IVORY = 'var(--bg-base)';
+const MUTED = 'var(--text-muted)';
+const SOFT = 'var(--text-secondary)';
 const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 const TZ = 'Europe/Sofia';
@@ -61,10 +61,7 @@ type Step = 0 | 1 | 2 | 3 | 4 | 5;
 
 const pageBg: React.CSSProperties = {
   minHeight: '100dvh',
-  background: `
-    radial-gradient(ellipse at 100% 0%, rgba(201,168,76,.10), transparent 50%),
-    radial-gradient(ellipse at 0% 100%, rgba(237,229,213,.5), transparent 50%),
-    ${IVORY}`,
+  background: IVORY,
   fontFamily: BODY, color: NEAR_BLACK, overflowX: 'hidden',
 };
 
@@ -186,9 +183,9 @@ function BookContent() {
           {CAT_KEYS.map(catKey => (
             <button key={catKey} onClick={() => setActiveCatKey(catKey)} style={{
               flexShrink: 0, padding: '7px 16px', borderRadius: 999,
-              border: `1px solid ${activeCatKey === catKey ? 'transparent' : 'rgba(28,20,9,.15)'}`,
-              background: activeCatKey === catKey ? NEAR_BLACK : 'transparent',
-              color: activeCatKey === catKey ? IVORY : SOFT,
+              border: `1px solid ${activeCatKey === catKey ? 'transparent' : 'var(--border-strong)'}`,
+              background: activeCatKey === catKey ? 'var(--chip-active-bg)' : 'transparent',
+              color: activeCatKey === catKey ? 'var(--chip-active-text)' : 'var(--chip-text)',
               fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: BODY, cursor: 'pointer',
             }}>{t[catKey]}</button>
           ))}
@@ -202,9 +199,9 @@ function BookContent() {
               onClick={() => { setSelectedService(svc); setStep(1); }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                background: '#fff', border: '1px solid rgba(228,221,208,1)',
+                background: 'var(--bg-surface)', border: '1px solid var(--border)',
                 borderRadius: 16, padding: '16px 18px', cursor: 'pointer', textAlign: 'left',
-                boxShadow: '0 2px 8px rgba(28,20,9,.04)',
+                boxShadow: 'var(--shadow-sm)',
               }}
             >
               <div style={{ flex: 1 }}>
@@ -244,7 +241,7 @@ function BookContent() {
                 : '1px solid rgba(28,20,9,.12)',
               background: consultationMode
                 ? 'rgba(154,114,48,.07)'
-                : 'rgba(255,255,255,.6)',
+                : 'var(--bg-overlay)',
               display: 'flex', alignItems: 'center', gap: 14,
               cursor: 'pointer',
               transition: 'all .15s ease',
@@ -253,7 +250,7 @@ function BookContent() {
             {/* Checkbox circle */}
             <div style={{
               width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-              border: consultationMode ? 'none' : '1.5px solid rgba(28,20,9,.25)',
+              border: consultationMode ? 'none' : '1.5px solid var(--border-strong)',
               background: consultationMode ? `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})` : 'transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>

@@ -6,12 +6,12 @@ import { useRouter } from 'next/navigation';
 import { useServices, useServiceCategories, pickI18n } from '../hooks/useMiniAppData';
 import { useT } from '../i18n/context';
 
-const GOLD = '#9A7230';
-const GOLD_HI = '#C9A84C';
-const NEAR_BLACK = '#1C1408';
-const IVORY = '#FAF8F3';
-const MUTED = '#7A6E58';
-const SOFT = '#4A3F2E';
+const GOLD = 'var(--gold-deep)';
+const GOLD_HI = 'var(--gold)';
+const NEAR_BLACK = 'var(--text-primary)';
+const IVORY = 'var(--bg-base)';
+const MUTED = 'var(--text-muted)';
+const SOFT = 'var(--text-secondary)';
 const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 
@@ -68,10 +68,7 @@ export default function CatalogPage() {
   return (
     <div style={{
       minHeight: '100dvh',
-      background: `
-        radial-gradient(ellipse at 100% 0%, rgba(201,168,76,.10), transparent 50%),
-        radial-gradient(ellipse at 0% 100%, rgba(237,229,213,.5), transparent 50%),
-        ${IVORY}`,
+      background: IVORY,
       fontFamily: BODY, color: NEAR_BLACK, overflowX: 'hidden',
     }}>
 
@@ -90,10 +87,10 @@ export default function CatalogPage() {
       <div style={{ padding: '0 16px 14px' }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          background: 'rgba(250,248,243,0.65)',
+          background: 'var(--bg-overlay)',
           backdropFilter: 'blur(20px) saturate(160%)',
           WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-          border: '1px solid rgba(154,114,48,.18)',
+          border: '1px solid var(--border)',
           borderRadius: 14, padding: '12px 16px',
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.8">
@@ -124,9 +121,9 @@ export default function CatalogPage() {
             onClick={() => setActiveCatId(null)}
             style={{
               flexShrink: 0, padding: '7px 16px', borderRadius: 4,
-              border: `1px solid ${!activeCatId ? 'transparent' : 'rgba(28,20,9,.15)'}`,
-              background: !activeCatId ? NEAR_BLACK : 'transparent',
-              color: !activeCatId ? IVORY : SOFT,
+              border: `1px solid ${!activeCatId ? 'transparent' : 'var(--border-strong)'}`,
+              background: !activeCatId ? 'var(--chip-active-bg)' : 'transparent',
+              color: !activeCatId ? 'var(--chip-active-text)' : 'var(--chip-text)',
               fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
               textTransform: 'uppercase', fontFamily: BODY, cursor: 'pointer',
             }}
@@ -142,9 +139,9 @@ export default function CatalogPage() {
                 style={{
                   flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5,
                   padding: '7px 16px', borderRadius: 4,
-                  border: `1px solid ${active ? 'transparent' : 'rgba(28,20,9,.15)'}`,
-                  background: active ? NEAR_BLACK : 'transparent',
-                  color: active ? IVORY : SOFT,
+                  border: `1px solid ${active ? 'transparent' : 'var(--border-strong)'}`,
+                  background: active ? 'var(--chip-active-bg)' : 'transparent',
+                  color: active ? 'var(--chip-active-text)' : 'var(--chip-text)',
                   fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
                   textTransform: 'uppercase', fontFamily: BODY, cursor: 'pointer',
                 }}
@@ -184,10 +181,10 @@ export default function CatalogPage() {
                 key={svc.id}
                 onClick={() => router.push(`/mini-app/catalog/${svc.id}`)}
                 style={{
-                  background: '#fff', border: '1px solid rgba(228,221,208,1)',
+                  background: 'var(--bg-surface)', border: '1px solid var(--border)',
                   borderRadius: 20, overflow: 'hidden', cursor: 'pointer',
                   textAlign: 'left', padding: 0,
-                  boxShadow: '0 2px 12px rgba(28,20,9,.06)',
+                  boxShadow: 'var(--shadow-sm)',
                 }}
               >
                 <div style={{
@@ -209,7 +206,7 @@ export default function CatalogPage() {
                   {isFeatured && (
                     <div style={{
                       position: 'absolute', top: 10, left: 10,
-                      background: '#fff', borderRadius: 6, padding: '3px 8px',
+                      background: 'var(--bg-surface)', borderRadius: 6, padding: '3px 8px',
                       fontSize: 9, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase',
                       color: GOLD,
                     }}>
