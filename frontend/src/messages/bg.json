@@ -315,6 +315,27 @@
       "sendViaBot": "Съобщение през бота",
       "activityLegend": "Активност в бота (точка)"
     },
+    "chats": {
+      "title": "Чатове",
+      "searchPlaceholder": "Търсене на клиенти…",
+      "inputPlaceholder": "Напишете съобщение… (Enter — изпращане, Shift+Enter — нов ред)",
+      "attachFile": "Прикачване на файл",
+      "send": "Изпрати (Enter)",
+      "loadingMessages": "Зареждане…",
+      "selectConversation": "Изберете разговор вляво",
+      "noConversations": "Няма разговори",
+      "noSearchResults": "Няма резултат",
+      "telegramId": "Telegram ID",
+      "docAttachment": "Прикачен файл",
+      "messagePreviewFallback": "[{type}]",
+      "unknownContact": "Клиент",
+      "newMessageTitle": "Ново съобщение от {name}",
+      "mediaSendError": "Файлът не можа да бъде изпратен",
+      "toastInvalidLink": "Невалидна връзка",
+      "toastNoTelegram": "Клиентът няма свързан Telegram",
+      "toastBotBlocked": "Клиентът е блокирал бота",
+      "toastClientNotFound": "Клиентът не е намерен"
+    },
     "clientDetail": {
       "notFound": "Клиентът не е намерен",
       "unnamed": "Без име",

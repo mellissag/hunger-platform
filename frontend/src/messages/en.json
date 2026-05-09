@@ -315,6 +315,27 @@
       "sendViaBot": "Message via bot",
       "activityLegend": "Bot activity (dot)"
     },
+    "chats": {
+      "title": "Chats",
+      "searchPlaceholder": "Search clients…",
+      "inputPlaceholder": "Write a message… (Enter — send, Shift+Enter — new line)",
+      "attachFile": "Attach file",
+      "send": "Send (Enter)",
+      "loadingMessages": "Loading…",
+      "selectConversation": "Select a conversation on the left",
+      "noConversations": "No conversations",
+      "noSearchResults": "Nothing found",
+      "telegramId": "Telegram ID",
+      "docAttachment": "Attachment",
+      "messagePreviewFallback": "[{type}]",
+      "unknownContact": "Client",
+      "newMessageTitle": "New message from {name}",
+      "mediaSendError": "Could not send the file",
+      "toastInvalidLink": "Invalid link",
+      "toastNoTelegram": "Client has no Telegram linked",
+      "toastBotBlocked": "The client has blocked the bot",
+      "toastClientNotFound": "Client not found"
+    },
     "clientDetail": {
       "notFound": "Client not found",
       "unnamed": "Unnamed",

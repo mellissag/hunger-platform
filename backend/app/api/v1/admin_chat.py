@@ -10,6 +10,8 @@ from typing import Annotated
 from uuid import UUID
 
 import aiofiles
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from aiogram.types import FSInputFile
 from fastapi import (
     APIRouter,
     Depends,
@@ -276,29 +278,62 @@ async def send_media(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Client has no Telegram account")
 
     _ensure_media_dir()
-    content_type = file.content_type or ""
+    content_type = (file.content_type or "").lower()
     safe_name = (file.filename or "file").replace("/", "_")
     dest = _CHAT_MEDIA_DIR / f"{client_id}_{safe_name}"
+
+    def _ext_image(name: str) -> bool:
+        return Path(name).suffix.lower() in {
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".gif",
+            ".webp",
+            ".heic",
+            ".bmp",
+        }
 
     async with aiofiles.open(str(dest), "wb") as f:
         await f.write(await file.read())
 
-    if content_type.startswith("image/"):
-        msg_type = MessageType.photo
-        with open(str(dest), "rb") as fh:
-            tg_msg = await bot.send_photo(chat_id=client.tg_user_id, photo=fh, caption=caption)
-    elif content_type.startswith("video/"):
-        msg_type = MessageType.video
-        with open(str(dest), "rb") as fh:
-            tg_msg = await bot.send_video(chat_id=client.tg_user_id, video=fh, caption=caption)
-    elif content_type.startswith("audio/") or safe_name.endswith(".ogg"):
-        msg_type = MessageType.voice
-        with open(str(dest), "rb") as fh:
-            tg_msg = await bot.send_voice(chat_id=client.tg_user_id, voice=fh)
-    else:
-        msg_type = MessageType.document
-        with open(str(dest), "rb") as fh:
-            tg_msg = await bot.send_document(chat_id=client.tg_user_id, document=fh, caption=caption)
+    path_str = str(dest)
+    chat_id = int(client.tg_user_id)
+
+    try:
+        if content_type.startswith("image/") or _ext_image(safe_name):
+            msg_type = MessageType.photo
+            tg_msg = await bot.send_photo(
+                chat_id=chat_id,
+                photo=FSInputFile(path_str),
+                caption=caption,
+            )
+        elif content_type.startswith("video/"):
+            msg_type = MessageType.video
+            tg_msg = await bot.send_video(
+                chat_id=chat_id,
+                video=FSInputFile(path_str),
+                caption=caption,
+            )
+        elif content_type.startswith("audio/") or safe_name.endswith(".ogg"):
+            msg_type = MessageType.voice
+            tg_msg = await bot.send_voice(chat_id=chat_id, voice=FSInputFile(path_str))
+        else:
+            msg_type = MessageType.document
+            tg_msg = await bot.send_document(
+                chat_id=chat_id,
+                document=FSInputFile(path_str),
+                caption=caption,
+            )
+    except TelegramForbiddenError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Клиент заблокировал бота — отправка невозможна",
+        ) from None
+    except TelegramBadRequest as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Ошибка Telegram: {e}",
+        ) from e
 
     tg_message_id = getattr(tg_msg, "message_id", None)
     media_path = str(dest)

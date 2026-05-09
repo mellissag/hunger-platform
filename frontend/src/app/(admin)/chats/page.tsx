@@ -5,9 +5,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageSquare, Paperclip, Search, Send } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
-import { apiJson } from "@/lib/api";
+import { apiJson, HttpError } from "@/lib/api";
 import { getPublicApiBaseUrl } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import {
@@ -51,18 +52,20 @@ function playNotify() {
 
 // ── Time formatter ────────────────────────────────────────────────────────────
 
-function fmtTime(iso: string) {
+function fmtTime(iso: string, locale: string) {
   const d = new Date(iso);
   const now = new Date();
   if (d.toDateString() === now.toDateString()) {
-    return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   }
-  return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+  return d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit" });
 }
 
 // ── Message bubble ────────────────────────────────────────────────────────────
 
 function MessageBubble({ msg }: { msg: ChatMessage }) {
+  const locale = useLocale();
+  const t = useTranslations("pages.chats");
   const API = getPublicApiBaseUrl();
   const isOut = msg.direction === "outbound";
 
@@ -104,7 +107,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
           rel="noreferrer"
           className="text-sm underline"
         >
-          📎 Документ
+          📎 {t("docAttachment")}
         </a>
       )}
       {msg.text && (
@@ -116,7 +119,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
           isOut ? "text-primary-foreground/60" : "text-muted-foreground",
         )}
       >
-        {fmtTime(msg.created_at)}
+        {fmtTime(msg.created_at, locale)}
       </span>
     </div>
   );
@@ -133,6 +136,7 @@ function ChatListRow({
   active: boolean;
   onClick: () => void;
 }) {
+  const locale = useLocale();
   const initials = `${(chat.first_name ?? "?").charAt(0)}${(chat.last_name ?? "").charAt(0)}`.toUpperCase();
 
   return (
@@ -156,7 +160,7 @@ function ChatListRow({
           </span>
           {chat.last_message_at && (
             <span className="ml-1 shrink-0 text-[10px] text-muted-foreground">
-              {fmtTime(chat.last_message_at)}
+              {fmtTime(chat.last_message_at, locale)}
             </span>
           )}
         </div>
@@ -184,6 +188,8 @@ export default function ChatsPage() {
   const clientFromUrl = isClientIdParam(searchParams.get("client"))
     ? searchParams.get("client")!
     : null;
+
+  const t = useTranslations("pages.chats");
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -236,10 +242,10 @@ export default function ChatsPage() {
   useEffect(() => {
     const raw = searchParams.get("client");
     if (raw && !isClientIdParam(raw)) {
-      toast.error("Некорректная ссылка");
+      toast.error(t("toastInvalidLink"));
       router.replace("/chats", { scroll: false });
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, t]);
 
   useEffect(() => {
     if (!clientFromUrl || chatListPending) return;
@@ -256,12 +262,12 @@ export default function ChatsPage() {
     if (!clientBootstrapFetched) return;
     if (!clientBootstrap || clientBootstrap.id !== clientFromUrl) return;
     if (!clientBootstrap.tg_user_id) {
-      toast.error("У клиента не привязан Telegram");
+      toast.error(t("toastNoTelegram"));
       router.replace("/chats", { scroll: false });
       return;
     }
     if (clientBootstrap.bot_blocked) {
-      toast.error("Клиент заблокировал бота");
+      toast.error(t("toastBotBlocked"));
       router.replace("/chats", { scroll: false });
       return;
     }
@@ -287,13 +293,14 @@ export default function ChatsPage() {
     clientBootstrapFetched,
     clientBootstrapError,
     router,
+    t,
   ]);
 
   useEffect(() => {
     if (!needBootstrap || !clientBootstrapFetched || !clientBootstrapError || !clientFromUrl) return;
-    toast.error("Клиент не найден");
+    toast.error(t("toastClientNotFound"));
     router.replace("/chats", { scroll: false });
-  }, [needBootstrap, clientBootstrapFetched, clientBootstrapError, clientFromUrl, router]);
+  }, [needBootstrap, clientBootstrapFetched, clientBootstrapError, clientFromUrl, router, t]);
 
   // ── Browser notification permission ─────────────────────────────────────────
   useEffect(() => {
@@ -332,7 +339,10 @@ export default function ChatsPage() {
         // Update chat list
         qc.setQueryData<ChatListItem[]>(chatKeys.list, (old = []) => {
           const preview =
-            msg.text ?? (msg.message_type !== "text" ? `[${msg.message_type}]` : "");
+            msg.text ??
+            (msg.message_type !== "text"
+              ? t("messagePreviewFallback", { type: msg.message_type })
+              : "");
           const exists = old.find((c) => c.client_id === msg.client_id);
           let updated: ChatListItem[];
           if (exists) {
@@ -365,10 +375,13 @@ export default function ChatsPage() {
           const clientInfo = mergedChatList.find((c) => c.client_id === msg.client_id);
           const senderName = [clientInfo?.first_name, clientInfo?.last_name]
             .filter(Boolean)
-            .join(" ") || "Клиент";
+            .join(" ") || t("unknownContact");
           showBrowserNotification(
-            `Новое сообщение от ${senderName}`,
-            msg.text ?? `[${msg.message_type}]`,
+            t("newMessageTitle", { name: senderName }),
+            msg.text ??
+              (msg.message_type !== "text"
+                ? t("messagePreviewFallback", { type: msg.message_type })
+                : ""),
           );
         }
       }
@@ -383,7 +396,7 @@ export default function ChatsPage() {
         );
       }
     },
-    [activeId, qc, chatList, mergedChatList],
+    [activeId, qc, chatList, mergedChatList, t],
   );
 
   useChatWebSocket(handleWsEvent);
@@ -424,7 +437,12 @@ export default function ChatsPage() {
       {
         onSuccess: () => {
           void qc.invalidateQueries({ queryKey: chatKeys.messages(activeId) });
+          void qc.invalidateQueries({ queryKey: chatKeys.list });
           if (fileInputRef.current) fileInputRef.current.value = "";
+        },
+        onError: (err) => {
+          const msg = err instanceof HttpError ? err.message : t("mediaSendError");
+          toast.error(msg);
         },
       },
     );
@@ -445,7 +463,7 @@ export default function ChatsPage() {
       <aside className="flex w-72 shrink-0 flex-col border-r border-border bg-card">
         {/* Header */}
         <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-          <h1 className="font-playfair text-base font-semibold">Чаты</h1>
+          <h1 className="font-playfair text-base font-semibold">{t("title")}</h1>
           {totalUnread > 0 && (
             <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
               {totalUnread > 99 ? "99+" : totalUnread}
@@ -461,7 +479,7 @@ export default function ChatsPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск клиентов..."
+              placeholder={t("searchPlaceholder")}
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
           </div>
@@ -479,7 +497,7 @@ export default function ChatsPage() {
           ))}
           {filteredChats.length === 0 && (
             <p className="p-6 text-center text-sm text-muted-foreground">
-              {mergedChatList.length === 0 ? "Нет диалогов" : "Ничего не найдено"}
+              {mergedChatList.length === 0 ? t("noConversations") : t("noSearchResults")}
             </p>
           )}
         </div>
@@ -498,7 +516,7 @@ export default function ChatsPage() {
                 {activeClient?.first_name} {activeClient?.last_name ?? ""}
               </p>
               <p className="text-xs text-muted-foreground">
-                Telegram ID: {activeClient?.tg_user_id ?? "—"}
+                {t("telegramId")}: {activeClient?.tg_user_id ?? "—"}
               </p>
             </div>
           </div>
@@ -506,7 +524,7 @@ export default function ChatsPage() {
           {/* Messages */}
           <div className="flex flex-1 flex-col gap-2 overflow-y-auto bg-muted/20 px-4 py-3">
             {msgsLoading && (
-              <p className="text-center text-xs text-muted-foreground">Загрузка…</p>
+              <p className="text-center text-xs text-muted-foreground">{t("loadingMessages")}</p>
             )}
             {messages.map((msg) => (
               <MessageBubble key={msg.id} msg={msg} />
@@ -520,7 +538,7 @@ export default function ChatsPage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="flex-shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title="Прикрепить файл"
+              title={t("attachFile")}
             >
               <Paperclip className="h-4 w-4" />
             </button>
@@ -546,7 +564,7 @@ export default function ChatsPage() {
                   handleSend();
                 }
               }}
-              placeholder="Напишите сообщение… (Enter — отправить, Shift+Enter — новая строка)"
+              placeholder={t("inputPlaceholder")}
               rows={1}
               className="max-h-28 min-h-[38px] flex-1 resize-none overflow-auto rounded-xl border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
@@ -556,7 +574,7 @@ export default function ChatsPage() {
               onClick={handleSend}
               disabled={!input.trim() || sendText.isPending}
               className="flex-shrink-0 rounded-xl bg-primary p-2 text-primary-foreground transition-colors hover:bg-primary/80 disabled:opacity-40"
-              title="Отправить (Enter)"
+              title={t("send")}
             >
               <Send className="h-4 w-4" />
             </button>
@@ -565,7 +583,7 @@ export default function ChatsPage() {
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 text-muted-foreground">
           <MessageSquare className="h-14 w-14 text-muted-foreground/20" strokeWidth={1.2} />
-          <p className="text-sm">Выберите диалог слева</p>
+          <p className="text-sm">{t("selectConversation")}</p>
         </div>
       )}
     </div>

@@ -315,6 +315,27 @@
       "sendViaBot": "Написати через бота",
       "activityLegend": "Активність у боті (крапка)"
     },
+    "chats": {
+      "title": "Чати",
+      "searchPlaceholder": "Пошук клієнтів…",
+      "inputPlaceholder": "Введіть повідомлення… (Enter — надіслати, Shift+Enter — новий рядок)",
+      "attachFile": "Додати файл",
+      "send": "Надіслати (Enter)",
+      "loadingMessages": "Завантаження…",
+      "selectConversation": "Оберіть діалог зліва",
+      "noConversations": "Немає діалогів",
+      "noSearchResults": "Нічого не знайдено",
+      "telegramId": "Telegram ID",
+      "docAttachment": "Вкладення",
+      "messagePreviewFallback": "[{type}]",
+      "unknownContact": "Клієнт",
+      "newMessageTitle": "Нове повідомлення від {name}",
+      "mediaSendError": "Не вдалося надіслати файл",
+      "toastInvalidLink": "Некоректне посилання",
+      "toastNoTelegram": "У клієнта немає прив’язки Telegram",
+      "toastBotBlocked": "Клієнт заблокував бота",
+      "toastClientNotFound": "Клієнта не знайдено"
+    },
     "clientDetail": {
       "notFound": "Клієнта не знайдено",
       "unnamed": "Без імені",
