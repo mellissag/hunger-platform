@@ -989,6 +989,7 @@ async def ai_chat(
 
     try:
         from app.services.ai_service import AIService
+        from google.genai.errors import ClientError as _GenAIClientError
 
         svc = AIService(db=db, redis=None)
         reply_text, _chunks, _msg_id = await svc.ask(
@@ -996,7 +997,13 @@ async def ai_chat(
             question=payload.message,
         )
         return MiniAppAiResponse(reply=reply_text, conversation_id=None)
-    except Exception:  # noqa: BLE001
+    except Exception as _exc:  # noqa: BLE001
+        _msg = str(_exc)
+        if "RESOURCE_EXHAUSTED" in _msg or "429" in _msg:
+            return MiniAppAiResponse(
+                reply="AI-консультант временно перегружен. Попробуйте через несколько минут.",
+                conversation_id=None,
+            )
         return MiniAppAiResponse(
             reply="Извините, AI-консультант временно недоступен. Попробуйте позже.",
             conversation_id=None,

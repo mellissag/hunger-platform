@@ -25,6 +25,8 @@ from app.schemas.ai_api import (
     TestChatResponse,
 )
 from app.schemas.common import PaginatedResponse
+from google.genai.errors import ClientError as GenAIClientError
+
 from app.services.ai_service import AIService, gemini_configured
 
 router = APIRouter(prefix="/ai", tags=["ai"])
@@ -45,13 +47,24 @@ async def post_test_chat(
     _user: Annotated[User, Depends(require_roles(*_AI_STAFF))],
     redis: Annotated[Redis | None, Depends(get_redis_optional)],
 ) -> TestChatResponse:
-    if not gemini_configured():
-        raise AIUnavailableError(
-            "AI is not configured. Set GEMINI_API_KEY in the server environment."
-        )
+    from fastapi import HTTPException
+
     svc = AIService(db, redis)
-    answer, cited = await svc.test_ask_admin(body.question, body.lang)
-    return TestChatResponse(answer=answer, cited_chunk_ids=cited)
+    try:
+        answer, cited = await svc.test_ask_admin(body.question, body.lang)
+        return TestChatResponse(answer=answer, cited_chunk_ids=cited)
+    except GenAIClientError as e:
+        status = getattr(e, "status_code", None) or 500
+        msg = str(e)
+        if "RESOURCE_EXHAUSTED" in msg or "429" in msg:
+            raise HTTPException(
+                status_code=429,
+                detail="Превышен лимит запросов к Gemini API. Подождите немного и попробуйте снова. "
+                       "Для производственного использования включите платный тариф на ai.google.dev",
+            ) from e
+        raise HTTPException(status_code=int(status), detail=msg) from e
+    except AIUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
 
 @router.get("/conversations", response_model=PaginatedResponse[AIConversationOut])
