@@ -214,9 +214,16 @@ export type ReviewsPage = {
   breakdown: Record<string, number>;
 };
 
+export type ServiceCategoryBrief = {
+  id: string;
+  name_i18n: Record<string, string>;
+  icon: string | null;
+};
+
 export type ServiceOut = {
   id: string;
   category_id: string | null;
+  categories?: ServiceCategoryBrief[];
   name_i18n: Record<string, string>;
   description_i18n: Record<string, string>;
   duration_minutes: number;
@@ -250,6 +257,8 @@ export type ServiceCategoryOut = {
   name_i18n: Record<string, string>;
   icon: string | null;
   sort_order: number;
+  created_at?: string;
+  service_ids?: string[];
 };
 
 export type BookingOut = {

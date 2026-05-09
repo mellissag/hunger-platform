@@ -37,14 +37,25 @@ export function useCreateServiceCategory() {
 export function useUpdateServiceCategory() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; name_i18n?: Record<string, string>; icon?: string; sort_order?: number }) =>
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string;
+      name_i18n?: Record<string, string>;
+      icon?: string;
+      sort_order?: number;
+      service_ids?: string[];
+    }) =>
       apiJson<ServiceCategoryOut>(`/service-categories/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       }),
-    onSuccess: async () => {
+    onSuccess: async (_data, vars) => {
       await qc.invalidateQueries({ queryKey: SERVICE_KEYS.categories() });
+      await qc.invalidateQueries({ queryKey: ["services"] });
+      await qc.invalidateQueries({ queryKey: ["service-categories", "detail", vars.id] });
     },
     onError: (e: Error) => toast.error(e.message),
   });

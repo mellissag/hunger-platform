@@ -4,7 +4,7 @@ import "@testing-library/jest-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { ServiceCard } from "../ServiceCard";
-import type { ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
+import type { ServiceOut } from "@/types/admin-api";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => {
@@ -25,6 +25,13 @@ vi.mock("next-intl", () => ({
 const mockService: ServiceOut = {
   id: "svc-1",
   category_id: "cat-1",
+  categories: [
+    {
+      id: "cat-1",
+      name_i18n: { ru: "Волосы", en: "Hair" },
+      icon: null,
+    },
+  ],
   name_i18n: { ru: "Стрижка", en: "Haircut" },
   description_i18n: { ru: "", en: "" },
   duration_minutes: 60,
@@ -36,13 +43,6 @@ const mockService: ServiceOut = {
   photo_url: null,
   bookings_30d: 42,
   masters_count: 3,
-};
-
-const mockCategory: ServiceCategoryOut = {
-  id: "cat-1",
-  name_i18n: { ru: "Волосы", en: "Hair" },
-  icon: null,
-  sort_order: 0,
 };
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -60,10 +60,7 @@ describe("ServiceCard", () => {
   });
 
   it("renders service name, price, and category", () => {
-    render(
-      <ServiceCard service={mockService} categories={[mockCategory]} locale="ru" onDelete={onDelete} />,
-      { wrapper },
-    );
+    render(<ServiceCard service={mockService} locale="ru" onDelete={onDelete} />, { wrapper });
 
     expect(screen.getByText("Стрижка")).toBeInTheDocument();
     expect(screen.getByText("€35")).toBeInTheDocument();
@@ -71,10 +68,7 @@ describe("ServiceCard", () => {
   });
 
   it("shows duration, bookings count, masters count", () => {
-    render(
-      <ServiceCard service={mockService} categories={[mockCategory]} locale="ru" onDelete={onDelete} />,
-      { wrapper },
-    );
+    render(<ServiceCard service={mockService} locale="ru" onDelete={onDelete} />, { wrapper });
 
     expect(screen.getByText(/60 мин/)).toBeInTheDocument();
     expect(screen.getByText("42")).toBeInTheDocument();
@@ -82,30 +76,21 @@ describe("ServiceCard", () => {
   });
 
   it("links to service edit page", () => {
-    render(
-      <ServiceCard service={mockService} categories={[mockCategory]} locale="ru" onDelete={onDelete} />,
-      { wrapper },
-    );
+    render(<ServiceCard service={mockService} locale="ru" onDelete={onDelete} />, { wrapper });
 
     const link = screen.getByRole("link", { name: /Редактировать/i });
     expect(link).toHaveAttribute("href", "/services/svc-1");
   });
 
   it("calls onDelete when delete button clicked", () => {
-    render(
-      <ServiceCard service={mockService} categories={[mockCategory]} locale="ru" onDelete={onDelete} />,
-      { wrapper },
-    );
+    render(<ServiceCard service={mockService} locale="ru" onDelete={onDelete} />, { wrapper });
 
     fireEvent.click(screen.getByTitle("Удалить услугу"));
     expect(onDelete).toHaveBeenCalledWith(mockService);
   });
 
   it("renders toggle in active state", () => {
-    render(
-      <ServiceCard service={mockService} categories={[mockCategory]} locale="ru" onDelete={onDelete} />,
-      { wrapper },
-    );
+    render(<ServiceCard service={mockService} locale="ru" onDelete={onDelete} />, { wrapper });
 
     const toggle = screen.getByRole("switch");
     expect(toggle).toHaveAttribute("aria-checked", "true");
@@ -114,7 +99,7 @@ describe("ServiceCard", () => {
   it("renders toggle in inactive state with opacity", () => {
     const inactive = { ...mockService, is_active: false };
     const { container } = render(
-      <ServiceCard service={inactive} categories={[mockCategory]} locale="ru" onDelete={onDelete} />,
+      <ServiceCard service={inactive} locale="ru" onDelete={onDelete} />,
       { wrapper },
     );
 

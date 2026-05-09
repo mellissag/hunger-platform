@@ -30,6 +30,7 @@ class ServiceCategoryUpdate(BaseModel):
     name_i18n: dict[str, str] | None = None
     icon: str | None = None
     sort_order: int | None = None
+    service_ids: list[UUID] | None = None
 
     @field_validator("name_i18n")
     @classmethod
@@ -47,12 +48,24 @@ class ServiceCategoryOut(BaseModel):
     icon: str | None
     sort_order: int
     created_at: datetime
+    service_ids: list[UUID] | None = None
+
+
+class ServiceCategoryBriefOut(BaseModel):
+    """Категория в составе услуги (список бейджей)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name_i18n: dict[str, str]
+    icon: str | None = None
 
 
 class ServiceCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     category_id: UUID | None = None
+    category_ids: list[UUID] | None = None
     name_i18n: dict[str, str]
     description_i18n: dict[str, str] = Field(default_factory=dict)
     duration_minutes: int = Field(ge=1, le=24 * 60)
@@ -73,6 +86,7 @@ class ServiceUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     category_id: UUID | None = None
+    category_ids: list[UUID] | None = None
     name_i18n: dict[str, str] | None = None
     description_i18n: dict[str, str] | None = None
     duration_minutes: int | None = Field(default=None, ge=1, le=24 * 60)
@@ -96,6 +110,7 @@ class ServiceOut(BaseModel):
 
     id: UUID
     category_id: UUID | None
+    categories: list[ServiceCategoryBriefOut] = Field(default_factory=list)
     name_i18n: dict[str, str]
     description_i18n: dict[str, str]
     duration_minutes: int

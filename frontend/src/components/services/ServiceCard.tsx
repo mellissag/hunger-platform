@@ -6,12 +6,11 @@ import { Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
-import type { ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
+import type { ServiceOut } from "@/types/admin-api";
 import { ServiceToggle } from "./ServiceToggle";
 
 interface ServiceCardProps {
   service: ServiceOut;
-  categories: ServiceCategoryOut[];
   locale?: string;
   onDelete: (service: ServiceOut) => void;
 }
@@ -23,7 +22,6 @@ function metricDisplay(value: number | null | undefined): string {
 
 export function ServiceCard({
   service,
-  categories,
   locale = "ru",
   onDelete,
 }: ServiceCardProps) {
@@ -31,10 +29,8 @@ export function ServiceCard({
   const name =
     service.name_i18n[locale] ?? service.name_i18n.en ?? service.name_i18n.ru ?? "—";
 
-  const category = categories.find((c) => c.id === service.category_id);
-  const catName = category
-    ? (category.name_i18n[locale] ?? category.name_i18n.en ?? category.name_i18n.ru ?? "")
-    : "";
+  const categoryBadges =
+    service.categories && service.categories.length > 0 ? service.categories : null;
 
   const rawPrice = Number.parseFloat(service.price);
   const priceLabel =
@@ -73,9 +69,25 @@ export function ServiceCard({
         )}
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-semibold text-gray-900">{name}</h3>
-          <p className="mt-0.5 text-xs text-gray-400">
-            {catName || t("categoryNone")}
-          </p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {categoryBadges ? (
+              categoryBadges.map((cat) => {
+                const catLabel =
+                  cat.name_i18n[locale] ?? cat.name_i18n.en ?? cat.name_i18n.ru ?? "";
+                return (
+                  <span
+                    key={cat.id}
+                    className="rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] text-primary"
+                  >
+                    {cat.icon ? `${cat.icon} ` : ""}
+                    {catLabel}
+                  </span>
+                );
+              })
+            ) : (
+              <span className="text-xs text-gray-400">{t("categoryNone")}</span>
+            )}
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <button

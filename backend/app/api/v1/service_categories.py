@@ -46,7 +46,8 @@ async def get_category(
     user: Annotated[User, Depends(require_roles(*READ))],
 ) -> ServiceCategoryOut:
     c = await catalog_service.get_category(db, category_id)
-    return ServiceCategoryOut.model_validate(c)
+    sids = await catalog_service.list_category_service_ids(db, category_id)
+    return ServiceCategoryOut.model_validate(c).model_copy(update={"service_ids": sids})
 
 
 @router.post("", response_model=ServiceCategoryOut)

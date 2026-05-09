@@ -19,7 +19,7 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
 )
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from zoneinfo import ZoneInfo
 
@@ -228,9 +228,19 @@ async def cb_category(
     cid = UUID(query.data.split(":")[-1])
     await state.update_data(category_id=str(cid))
     await state.set_state(BookingStates.pick_master_for_service)
+    from app.models.catalog import ServiceCategoryLink
+
     q = (
         select(Service)
-        .where(Service.category_id == cid, Service.is_active.is_(True))
+        .where(
+            Service.is_active.is_(True),
+            or_(
+                Service.category_id == cid,
+                Service.id.in_(
+                    select(ServiceCategoryLink.service_id).where(ServiceCategoryLink.category_id == cid)
+                ),
+            ),
+        )
         .order_by(Service.sort_order.asc())
     )
     svcs = (await db.execute(q)).scalars().all()

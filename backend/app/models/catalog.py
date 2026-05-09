@@ -29,7 +29,29 @@ class ServiceCategory(UUIDPrimaryKeyMixin, Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    services: Mapped[list["Service"]] = relationship("Service", back_populates="category")
+    services: Mapped[list["Service"]] = relationship(
+        "Service",
+        secondary="service_category_link",
+        back_populates="categories",
+        lazy="selectin",
+    )
+
+
+class ServiceCategoryLink(Base):
+    """Связь многие-ко-многим услуга ↔ категория."""
+
+    __tablename__ = "service_category_link"
+
+    service_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("service.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    category_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("service_category.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
 
 
 class Service(UUIDPrimaryKeyMixin, Base):
@@ -60,7 +82,14 @@ class Service(UUIDPrimaryKeyMixin, Base):
     )
 
     category: Mapped[ServiceCategory | None] = relationship(
-        "ServiceCategory", back_populates="services"
+        "ServiceCategory",
+        foreign_keys=[category_id],
+    )
+    categories: Mapped[list["ServiceCategory"]] = relationship(
+        "ServiceCategory",
+        secondary="service_category_link",
+        back_populates="services",
+        lazy="selectin",
     )
     master_services: Mapped[list["MasterService"]] = relationship(
         "MasterService",

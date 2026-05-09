@@ -27,7 +27,6 @@ const LANGS = ["ru", "en", "uk", "bg"] as const;
 type Lang = (typeof LANGS)[number];
 
 const serviceSchema = z.object({
-  category_id: z.string().uuid().optional().nullable(),
   price: z.coerce.number().min(0),
   duration_minutes: z.coerce.number().int().min(1),
   duration_type: z.enum(["fixed", "range"]),
@@ -59,6 +58,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
   const [activeLang, setActiveLang] = useState<Lang>(locale === "en" ? "en" : "ru");
   const [translating, setTranslating] = useState(false);
   const [selectedMasters, setSelectedMasters] = useState<string[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -107,8 +107,11 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
 
   useEffect(() => {
     if (open && service) {
+      const catIds =
+        service.categories?.map((c) => c.id) ??
+        (service.category_id ? [service.category_id] : []);
+      setSelectedCategoryIds(catIds);
       reset({
-        category_id: service.category_id ?? undefined,
         price: Number(service.price),
         duration_minutes: service.duration_minutes,
         duration_type: (service.duration_type as "fixed" | "range") ?? "fixed",
@@ -126,8 +129,8 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
       });
       setPhotoUrl(service.photo_url ?? null);
     } else if (open && !service) {
+      setSelectedCategoryIds([]);
       reset({
-        category_id: undefined,
         price: 0,
         duration_minutes: 60,
         duration_type: "fixed",
@@ -200,9 +203,15 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
     }
   }
 
+  function toggleCategory(catId: string) {
+    setSelectedCategoryIds((prev) =>
+      prev.includes(catId) ? prev.filter((id) => id !== catId) : [...prev, catId],
+    );
+  }
+
   function onSubmit(values: ServiceForm) {
     const body = {
-      category_id: values.category_id || null,
+      category_ids: selectedCategoryIds,
       price: values.price,
       duration_minutes: values.duration_minutes,
       duration_type: values.duration_type,
@@ -406,22 +415,55 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
             />
           </div>
 
-          {/* Category */}
-          <div className="space-y-1.5">
+          {/* Categories (multi) */}
+          <div className="space-y-2">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              {t("drawerCategory")}
+              {t("drawerCategories")}
             </Label>
-            <select
-              {...register("category_id")}
-              className="w-full rounded border border-border bg-muted px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-            >
-              <option value="">{t("drawerNoCategory")}</option>
-              {(catData?.items ?? []).map((c: ServiceCategoryOut) => (
-                <option key={c.id} value={c.id}>
-                  {c.name_i18n.ru ?? c.name_i18n.en ?? c.id}
-                </option>
-              ))}
-            </select>
+            <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
+              {(catData?.items ?? []).map((c: ServiceCategoryOut) => {
+                const checked = selectedCategoryIds.includes(c.id);
+                const label =
+                  c.name_i18n[locale] ?? c.name_i18n.ru ?? c.name_i18n.en ?? c.id;
+                return (
+                  <label
+                    key={c.id}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors",
+                      checked
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-muted-foreground/30",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors",
+                        checked ? "border-primary bg-primary" : "border-border bg-card",
+                      )}
+                    >
+                      {checked && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden>
+                          <polyline points="20 6 9 17 4 12" stroke="white" strokeWidth="3.5" />
+                        </svg>
+                      )}
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={checked}
+                      onChange={() => toggleCategory(c.id)}
+                    />
+                    <span className="text-sm text-foreground">
+                      {c.icon ? <span className="mr-1">{c.icon}</span> : null}
+                      {label}
+                    </span>
+                  </label>
+                );
+              })}
+              {(catData?.items ?? []).length === 0 && (
+                <p className="py-2 text-xs text-muted-foreground">{t("drawerCategoriesEmpty")}</p>
+              )}
+            </div>
           </div>
 
           {/* Price */}

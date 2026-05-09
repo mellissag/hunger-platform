@@ -42,11 +42,10 @@ async def list_services(
     ids = [x.id for x in rows]
     masters_map, bookings_map = await catalog_service.get_service_aggregates(db, ids)
     items = [
-        ServiceOut.model_validate(row).model_copy(
-            update={
-                "masters_count": masters_map.get(row.id, 0),
-                "bookings_30d": bookings_map.get(row.id, 0),
-            }
+        catalog_service.service_to_out(
+            row,
+            masters_count=masters_map.get(row.id, 0),
+            bookings_30d=bookings_map.get(row.id, 0),
         )
         for row in rows
     ]
@@ -79,7 +78,12 @@ async def get_service(
     user: Annotated[User, Depends(require_roles(*READ))],
 ) -> ServiceOut:
     s = await catalog_service.get_service(db, service_id)
-    return ServiceOut.model_validate(s)
+    mids, bids = await catalog_service.get_service_aggregates(db, [service_id])
+    return catalog_service.service_to_out(
+        s,
+        masters_count=mids.get(service_id, 0),
+        bookings_30d=bids.get(service_id, 0),
+    )
 
 
 @router.post("", response_model=ServiceOut)
@@ -90,7 +94,8 @@ async def create_service(
     redis: Annotated[Redis | None, Depends(get_redis)],
 ) -> ServiceOut:
     s = await catalog_service.create_service(db, redis, body)
-    return ServiceOut.model_validate(s)
+    mids, bids = await catalog_service.get_service_aggregates(db, [s.id])
+    return catalog_service.service_to_out(s, masters_count=mids.get(s.id, 0), bookings_30d=bids.get(s.id, 0))
 
 
 @router.patch("/{service_id}", response_model=ServiceOut)
@@ -102,7 +107,12 @@ async def update_service(
     redis: Annotated[Redis | None, Depends(get_redis)],
 ) -> ServiceOut:
     s = await catalog_service.update_service(db, redis, service_id, body)
-    return ServiceOut.model_validate(s)
+    mids, bids = await catalog_service.get_service_aggregates(db, [service_id])
+    return catalog_service.service_to_out(
+        s,
+        masters_count=mids.get(service_id, 0),
+        bookings_30d=bids.get(service_id, 0),
+    )
 
 
 @router.delete("/{service_id}", status_code=204)

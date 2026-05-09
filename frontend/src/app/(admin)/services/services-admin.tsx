@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, Plus, Tag } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -19,9 +19,12 @@ import {
 } from "@/hooks/useServices";
 import { useHealth } from "@/hooks/useServiceStats";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useQuery } from "@tanstack/react-query";
+import { apiJson } from "@/lib/api";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import type { ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
+import { cn } from "@/lib/utils";
+import type { Paginated, ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
 
 function SyncBadge({ syncActive, syncInactive }: { syncActive: string; syncInactive: string }) {
   const { data: health } = useHealth();
@@ -55,6 +58,7 @@ export function ServicesAdmin() {
   const [editingCat, setEditingCat] = useState<ServiceCategoryOut | null>(null);
   const emptyCatForm = () => ({ name_i18n: { ru: '', en: '', uk: '', bg: '' }, icon: '', sort_order: 0 });
   const [catForm, setCatForm] = useState(emptyCatForm());
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
   const createCategory = useCreateServiceCategory();
   const updateCategory = useUpdateServiceCategory();
@@ -64,6 +68,7 @@ export function ServicesAdmin() {
   const openCreateCat = () => {
     setEditingCat(null);
     setCatForm(emptyCatForm());
+    setSelectedServiceIds([]);
     setCatDialogOpen(true);
   };
   const openEditCat = (cat: ServiceCategoryOut) => {
@@ -84,7 +89,11 @@ export function ServicesAdmin() {
       sort_order: catForm.sort_order,
     };
     if (editingCat) {
-      await updateCategory.mutateAsync({ id: editingCat.id, ...payload });
+      await updateCategory.mutateAsync({
+        id: editingCat.id,
+        ...payload,
+        service_ids: selectedServiceIds,
+      });
     } else {
       await createCategory.mutateAsync(payload);
     }
@@ -97,8 +106,38 @@ export function ServicesAdmin() {
     closeCatDialog();
   };
 
+  function toggleServiceInCategory(svcId: string) {
+    setSelectedServiceIds((prev) =>
+      prev.includes(svcId) ? prev.filter((id) => id !== svcId) : [...prev, svcId],
+    );
+  }
+
   const { data: catData } = useServiceCategories();
   const { data: svcData, isLoading } = useServices(activeCategoryId, search);
+
+  const { data: catDetail } = useQuery({
+    queryKey: ["service-categories", "detail", editingCat?.id],
+    queryFn: () => apiJson<ServiceCategoryOut>(`/service-categories/${editingCat!.id}`),
+    enabled: Boolean(catDialogOpen && editingCat?.id),
+  });
+
+  const { data: pickerSvc } = useQuery({
+    queryKey: ["services", "picker-all"],
+    queryFn: () => apiJson<Paginated<ServiceOut>>(`/services?page=1&page_size=500`),
+    enabled: catDialogOpen,
+  });
+  const pickerServices = pickerSvc?.items ?? [];
+
+  useEffect(() => {
+    if (!catDialogOpen) {
+      setSelectedServiceIds([]);
+      return;
+    }
+    if (!editingCat) return;
+    if (catDetail && Array.isArray(catDetail.service_ids)) {
+      setSelectedServiceIds(catDetail.service_ids.map(String));
+    }
+  }, [catDialogOpen, editingCat?.id, catDetail]);
 
   const categories = useMemo(() => catData?.items ?? [], [catData?.items]);
   const services = useMemo(() => svcData?.items ?? [], [svcData?.items]);
@@ -266,7 +305,6 @@ export function ServicesAdmin() {
                 <ServiceCard
                   key={svc.id}
                   service={svc}
-                  categories={categories}
                   locale={locale}
                   onDelete={setDeleteTarget}
                 />
@@ -357,6 +395,60 @@ export function ServicesAdmin() {
                 }
               />
             </div>
+
+            {editingCat && (
+              <div className="mt-4 space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("categoryDialogServices")}
+                </label>
+                <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-border p-3">
+                  {pickerServices.map((svc) => {
+                    const checked = selectedServiceIds.includes(svc.id);
+                    const svcName =
+                      svc.name_i18n[locale] ?? svc.name_i18n.ru ?? svc.name_i18n.en ?? svc.id;
+                    const priceNum = Number.parseFloat(svc.price);
+                    const priceLabel = Number.isNaN(priceNum)
+                      ? ""
+                      : `€${priceNum.toLocaleString(locale, { maximumFractionDigits: 2 })}`;
+                    return (
+                      <label
+                        key={svc.id}
+                        className={cn(
+                          "flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors",
+                          checked ? "bg-primary/5" : "hover:bg-muted/60",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors",
+                            checked ? "border-primary bg-primary" : "border-border bg-card",
+                          )}
+                        >
+                          {checked && (
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden>
+                              <polyline points="20 6 9 17 4 12" stroke="white" strokeWidth="3.5" />
+                            </svg>
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={checked}
+                          onChange={() => toggleServiceInCategory(svc.id)}
+                        />
+                        <span className="flex-1 text-sm text-foreground">{svcName}</span>
+                        {priceLabel ? (
+                          <span className="text-xs text-muted-foreground">{priceLabel}</span>
+                        ) : null}
+                      </label>
+                    );
+                  })}
+                  {pickerServices.length === 0 && (
+                    <p className="py-2 text-xs text-muted-foreground">{t("categoryDialogServicesEmpty")}</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2">
