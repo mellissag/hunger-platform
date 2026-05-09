@@ -68,6 +68,24 @@ class ScheduleBlockCreate(BaseModel):
         return self
 
 
+class MasterScheduleBlockCreate(BaseModel):
+    """Блок/отпуск мастера: master_id задаётся в path."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    starts_at: datetime = Field(description="UTC")
+    ends_at: datetime = Field(description="UTC")
+    slot_type: SlotType = Field(default=SlotType.vacation)
+    note: str | None = None
+
+    @model_validator(mode="after")
+    def _only_blockish(self) -> MasterScheduleBlockCreate:
+        allowed = {SlotType.block, SlotType.vacation, SlotType.sick}
+        if self.slot_type not in allowed:
+            raise ValueError("slot_type must be block, vacation, or sick")
+        return self
+
+
 class ScheduleBlockOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

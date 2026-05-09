@@ -628,13 +628,13 @@ export function MasterDetail({ masterId }: { masterId: string }) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="schedule" className="mt-4 space-y-4">
-          <Card>
-            <CardHeader>
+        <TabsContent value="schedule" className="mt-4 flex min-h-0 flex-col space-y-4">
+          <Card className="flex min-h-[480px] flex-col overflow-hidden lg:min-h-[560px]">
+            <CardHeader className="shrink-0">
               <CardTitle>{t("schedule")}</CardTitle>
               <CardDescription>{t("scheduleDesc")}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="min-h-0 flex-1 overflow-auto">
               <MasterSchedule masterId={masterId} />
             </CardContent>
           </Card>

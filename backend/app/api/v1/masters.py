@@ -20,8 +20,10 @@ from app.core.scope import ensure_master_own_master_id
 from app.deps import get_db, require_roles
 from app.models.booking import Booking, Review
 from app.models.catalog import MasterService, Service
-from app.models.enums import BookingStatus, UserRole
+from app.models.enums import BookingStatus, SlotType, UserRole
+from app.models.master import Master
 from app.models.salon import Salon
+from app.models.schedule import ScheduleSlot
 from app.models.user import User
 from app.schemas.booking import BookingOut
 from app.schemas.common import PaginatedResponse
@@ -44,7 +46,13 @@ from app.schemas.master import (
     ReviewsPageOut,
     WorkingHoursSchema,
 )
-from app.schemas.schedule import CalendarBookingOut, CalendarResponse, CalendarSlotOut
+from app.schemas.schedule import (
+    CalendarBookingOut,
+    CalendarResponse,
+    CalendarSlotOut,
+    MasterScheduleBlockCreate,
+    ScheduleBlockOut,
+)
 from app.services import master_phase20, master_service, schedule_service
 from app.services.master_service import master_to_out
 
@@ -426,6 +434,96 @@ async def get_master_calendar(
             for s in slots
         ],
     )
+
+
+_BLOCK_SLOT_TYPES = (SlotType.block, SlotType.vacation, SlotType.sick)
+
+
+@router.get("/{master_id}/blocks", response_model=list[ScheduleBlockOut])
+async def list_master_blocks(
+    master_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_roles(*READ_STAFF))],
+) -> list[ScheduleBlockOut]:
+    """Все блоки отпуска / больничного / «block» для мастера (до 500 записей)."""
+    if user.role == UserRole.master:
+        ensure_master_own_master_id(user, master_id)
+    master = await db.get(Master, master_id)
+    if master is None:
+        raise NotFoundError("Master not found")
+    rows = (
+        (
+            await db.execute(
+                select(ScheduleSlot)
+                .where(
+                    ScheduleSlot.master_id == master_id,
+                    ScheduleSlot.slot_type.in_(_BLOCK_SLOT_TYPES),
+                )
+                .order_by(ScheduleSlot.starts_at.asc())
+                .limit(500)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return [
+        ScheduleBlockOut(
+            id=s.id,
+            master_id=s.master_id,
+            slot_type=s.slot_type.value,
+            starts_at=s.starts_at,
+            ends_at=s.ends_at,
+            note=s.note,
+        )
+        for s in rows
+    ]
+
+
+@router.post("/{master_id}/blocks", response_model=ScheduleBlockOut)
+async def create_master_block(
+    master_id: UUID,
+    body: MasterScheduleBlockCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.master))],
+) -> ScheduleBlockOut:
+    ensure_master_own_master_id(user, master_id)
+    master = await db.get(Master, master_id)
+    if master is None:
+        raise NotFoundError("Master not found")
+    slot = ScheduleSlot(
+        master_id=master_id,
+        slot_type=body.slot_type,
+        starts_at=body.starts_at,
+        ends_at=body.ends_at,
+        note=body.note,
+    )
+    db.add(slot)
+    await db.flush()
+    await db.refresh(slot)
+    return ScheduleBlockOut(
+        id=slot.id,
+        master_id=slot.master_id,
+        slot_type=slot.slot_type.value,
+        starts_at=slot.starts_at,
+        ends_at=slot.ends_at,
+        note=slot.note,
+    )
+
+
+@router.delete("/{master_id}/blocks/{block_id}")
+async def delete_master_block(
+    master_id: UUID,
+    block_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.master))],
+) -> dict[str, bool]:
+    ensure_master_own_master_id(user, master_id)
+    slot = await db.get(ScheduleSlot, block_id)
+    if slot is None or slot.master_id != master_id or slot.slot_type not in _BLOCK_SLOT_TYPES:
+        raise NotFoundError("Schedule block not found")
+    await db.delete(slot)
+    await db.flush()
+    return {"ok": True}
 
 
 @router.get("/{master_id}/bookings")
