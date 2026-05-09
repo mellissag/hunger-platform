@@ -1,11 +1,13 @@
-"""AI-консультант: RAG + Gemini 1.5 Flash, стриминг, логирование диалогов."""
+"""AI-консультант: RAG + Gemini, стриминг, логирование диалогов."""
 
 from __future__ import annotations
 
 import asyncio
 import uuid
 from collections.abc import Awaitable, Callable
-import google.generativeai as genai
+
+from google import genai
+from google.genai import types as genai_types
 from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,24 +28,33 @@ _DEFAULT_SYSTEM = (
     "Do not invent booking times; for booking, direct the user to use the booking button in the bot menu."
 )
 
-# Явный запрет «записать через AI» при ai_allow_booking=false (проверяется в тестах).
 NO_BOOKING_VIA_AI_INSTRUCTION = (
     "\nIMPORTANT: You must NOT book appointments or promise specific time slots. "
     "Tell the user to tap «Book» / «Записаться» in the bot menu for booking.\n"
 )
 
-_EMBED_MODEL = "models/text-embedding-004"
+_EMBED_MODEL = "gemini-embedding-001"
+_DEFAULT_GEN_MODEL = "gemini-2.0-flash"
 
 
-def _ensure_gemini(api_key: str | None = None) -> None:
-    """Configure Gemini with `api_key` (from DB settings) or fall back to env var."""
-    key = api_key or get_settings().gemini_api_key
-    if not key:
-        raise AIUnavailableError(
-            "AI assistant is not configured. "
-            "Add your Gemini API key in Admin → AI → Settings."
-        )
-    genai.configure(api_key=key)
+def _get_api_key(salon_settings: Settings | None = None) -> str:
+    """Return API key: DB settings first, then env var fallback."""
+    if salon_settings is not None:
+        integrations = salon_settings.integrations or {}
+        raw = integrations.get("ai_api_key", "")
+        if isinstance(raw, str) and raw.strip():
+            return raw.strip()
+    env_key = get_settings().gemini_api_key
+    if env_key:
+        return env_key
+    raise AIUnavailableError(
+        "AI assistant is not configured. "
+        "Add your Gemini API key in Admin → AI → Settings."
+    )
+
+
+def _make_client(api_key: str) -> genai.Client:
+    return genai.Client(api_key=api_key)
 
 
 def _pick_system_prompt(settings_row: Settings, lang: str) -> str:
@@ -55,19 +66,17 @@ def _pick_system_prompt(settings_row: Settings, lang: str) -> str:
     return _DEFAULT_SYSTEM
 
 
-async def _embed_question(text: str, api_key: str | None = None) -> list[float]:
-    _ensure_gemini(api_key)
-
+async def _embed_question(text: str, client: genai.Client) -> list[float]:
     def _sync() -> list[float]:
-        out = genai.embed_content(
+        result = client.models.embed_content(
             model=_EMBED_MODEL,
-            content=text.strip(),
-            output_dimensionality=768,
+            contents=text.strip(),
+            config=genai_types.EmbedContentConfig(output_dimensionality=768),
         )
-        emb = out.get("embedding")
-        if not isinstance(emb, list):
-            raise RuntimeError("invalid embedding response")
-        return emb
+        emb = result.embeddings[0].values
+        if not emb:
+            raise RuntimeError("empty embedding response")
+        return list(emb)
 
     return await asyncio.to_thread(_sync)
 
@@ -133,7 +142,9 @@ class AIService:
         if not q:
             raise ValueError("empty question")
 
-        salon_row = await self.db.execute(select(Salon, Settings).join(Settings, Settings.salon_id == Salon.id).limit(1))
+        salon_row = await self.db.execute(
+            select(Salon, Settings).join(Settings, Settings.salon_id == Salon.id).limit(1)
+        )
         first = salon_row.first()
         if not first:
             raise AIUnavailableError("Salon is not configured.")
@@ -141,14 +152,8 @@ class AIService:
         if not salon_settings.ai_enabled:
             raise AIUnavailableError("AI assistant is disabled in salon settings.")
 
-        # Use API key stored in DB integrations first, fall back to env var
-        db_api_key: str | None = None
-        integrations = salon_settings.integrations or {}
-        raw_key = integrations.get("ai_api_key", "")
-        if isinstance(raw_key, str) and raw_key.strip():
-            db_api_key = raw_key.strip()
-
-        _ensure_gemini(db_api_key)
+        api_key = _get_api_key(salon_settings)
+        ai_client = _make_client(api_key)
 
         client = await self.db.get(Client, client_id)
         if client is None:
@@ -160,7 +165,7 @@ class AIService:
 
         await check_ai_rate_limit(self.db, self.redis, client_id)
 
-        embedding = await _embed_question(q, db_api_key)
+        embedding = await _embed_question(q, ai_client)
         chunks = await _retrieve_chunks(self.db, embedding)
         cited_ids = [c.id for c in chunks]
 
@@ -177,8 +182,8 @@ class AIService:
         conv, conv_is_new = await _get_or_create_conversation(self.db, client_id, lang)
         if conv_is_new:
             from app.services.client_bot_activity import bump_client_funnel
-
             bump_client_funnel(client, "ai_sessions")
+
         hist = await _load_history(self.db, conv.id, limit=10)
         hist_block = _history_block(hist)
 
@@ -186,7 +191,6 @@ class AIService:
         if hist_block:
             user_prompt_parts.append("Previous dialogue:\n" + hist_block)
         user_prompt_parts.append(f"Client question:\n{q}")
-
         user_prompt = "\n\n".join(user_prompt_parts)
 
         user_msg = AIMessage(
@@ -197,28 +201,29 @@ class AIService:
         self.db.add(user_msg)
         await self.db.flush()
 
-        model_name = (salon_settings.ai_model or "gemini-1.5-flash").strip()
-        if not model_name.startswith("models/"):
-            model_name = f"models/{model_name}"
-
-        model = genai.GenerativeModel(
-            model_name=model_name,
-            system_instruction=system,
-        )
+        # Determine model name from DB settings or default
+        raw_model = (salon_settings.ai_model or _DEFAULT_GEN_MODEL).strip()
+        # Remove "models/" prefix if present — new SDK uses bare names
+        model_name = raw_model.removeprefix("models/")
 
         full_answer_parts: list[str] = []
 
         async def _run_stream() -> None:
-            resp = await model.generate_content_async(
-                user_prompt,
-                stream=True,
-            )
-            async for chunk in resp:
-                t = getattr(chunk, "text", None) or ""
-                if t:
-                    full_answer_parts.append(t)
-                    if on_stream_chunk:
-                        await on_stream_chunk(t)
+            def _sync_stream() -> str:
+                response = ai_client.models.generate_content(
+                    model=model_name,
+                    contents=user_prompt,
+                    config=genai_types.GenerateContentConfig(
+                        system_instruction=system,
+                        temperature=float(salon_settings.ai_temperature or 0.7),
+                    ),
+                )
+                return response.text or ""
+
+            text = await asyncio.to_thread(_sync_stream)
+            full_answer_parts.append(text)
+            if on_stream_chunk and text:
+                await on_stream_chunk(text)
 
         await _run_stream()
 
@@ -246,8 +251,10 @@ class AIService:
         question: str,
         lang: str = "en",
     ) -> tuple[str, list[uuid.UUID]]:
-        """Тест из админки без client — без rate limit и без записи в ai_message (optional)."""
-        salon_row = await self.db.execute(select(Salon, Settings).join(Settings, Settings.salon_id == Salon.id).limit(1))
+        """Тест из админки без client — без rate limit и без записи в ai_message."""
+        salon_row = await self.db.execute(
+            select(Salon, Settings).join(Settings, Settings.salon_id == Salon.id).limit(1)
+        )
         first = salon_row.first()
         if not first:
             raise AIUnavailableError("Salon is not configured.")
@@ -255,15 +262,11 @@ class AIService:
         if not salon_settings.ai_enabled:
             raise AIUnavailableError("AI assistant is disabled.")
 
-        db_api_key: str | None = None
-        integrations = salon_settings.integrations or {}
-        raw_key = integrations.get("ai_api_key", "")
-        if isinstance(raw_key, str) and raw_key.strip():
-            db_api_key = raw_key.strip()
-        _ensure_gemini(db_api_key)
+        api_key = _get_api_key(salon_settings)
+        ai_client = _make_client(api_key)
 
         q = question.strip()
-        embedding = await _embed_question(q, db_api_key)
+        embedding = await _embed_question(q, ai_client)
         chunks = await _retrieve_chunks(self.db, embedding)
         cited_ids = [c.id for c in chunks]
         kb_text = "\n\n".join(f"[chunk {c.id}]\n{c.content}" for c in chunks) or "(empty)"
@@ -274,20 +277,24 @@ class AIService:
         if not salon_settings.ai_allow_booking:
             system += NO_BOOKING_VIA_AI_INSTRUCTION
 
-        model_name = (salon_settings.ai_model or "gemini-1.5-flash").strip()
-        if not model_name.startswith("models/"):
-            model_name = f"models/{model_name}"
+        raw_model = (salon_settings.ai_model or _DEFAULT_GEN_MODEL).strip()
+        model_name = raw_model.removeprefix("models/")
 
-        model = genai.GenerativeModel(model_name=model_name, system_instruction=system)
-        full: list[str] = []
-        resp = await model.generate_content_async(f"Client question:\n{q}", stream=True)
-        async for chunk in resp:
-            t = getattr(chunk, "text", None) or ""
-            if t:
-                full.append(t)
-        answer = "".join(full).strip() or "…"
-        return answer, cited_ids
+        def _sync() -> str:
+            response = ai_client.models.generate_content(
+                model=model_name,
+                contents=f"Client question:\n{q}",
+                config=genai_types.GenerateContentConfig(
+                    system_instruction=system,
+                    temperature=float(salon_settings.ai_temperature or 0.7),
+                ),
+            )
+            return response.text or "…"
+
+        answer = await asyncio.to_thread(_sync)
+        return answer.strip() or "…", cited_ids
 
 
 def gemini_configured() -> bool:
+    """Check if a Gemini API key is available (env or DB — rough check via env only)."""
     return bool(get_settings().gemini_api_key)

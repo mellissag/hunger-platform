@@ -6,17 +6,19 @@ import asyncio
 from typing import Any
 from uuid import UUID
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types as genai_types
 from loguru import logger
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 from app.config import get_settings
 from app.models.knowledge import KBChunk, KBDocument
+from app.models.salon import Settings
 
 # ~500 токенов × ~4 символа; overlap ~50 токенов
 _CHUNK_CHARS = 2000
 _OVERLAP_CHARS = 200
-_EMBED_MODEL = "models/text-embedding-004"
+_EMBED_MODEL = "gemini-embedding-001"
 _EMBED_DIM = 768
 
 
@@ -38,28 +40,40 @@ def _split_chunks(text: str) -> list[str]:
     return out
 
 
-def _embed_sync(text: str) -> list[float]:
-    result = genai.embed_content(
+def _embed_sync(text: str, api_key: str) -> list[float]:
+    client = genai.Client(api_key=api_key)
+    result = client.models.embed_content(
         model=_EMBED_MODEL,
-        content=text,
-        output_dimensionality=_EMBED_DIM,
+        contents=text,
+        config=genai_types.EmbedContentConfig(output_dimensionality=_EMBED_DIM),
     )
-    emb = result.get("embedding")
-    if not isinstance(emb, list):
-        raise RuntimeError("unexpected embedding response")
-    return emb
+    emb = result.embeddings[0].values
+    if not emb:
+        raise RuntimeError("empty embedding response")
+    return list(emb)
 
 
 async def index_kb_document(ctx: dict[str, Any], doc_id: str) -> None:
     """Пересобрать чанки и эмбеддинги для kb_document."""
     settings = get_settings()
-    if not settings.gemini_api_key:
-        logger.error("index_kb_document: GEMINI_API_KEY missing")
-        return
-
-    genai.configure(api_key=settings.gemini_api_key)
     factory = ctx["db"]
     did = UUID(doc_id)
+
+    # Try to get the API key from DB settings first, fall back to env
+    api_key: str | None = None
+    async with factory() as session:
+        row = (await session.execute(select(Settings).limit(1))).scalar_one_or_none()
+        if row:
+            integrations = row.integrations or {}
+            db_key = integrations.get("ai_api_key", "")
+            if isinstance(db_key, str) and db_key.strip():
+                api_key = db_key.strip()
+    if not api_key:
+        api_key = settings.gemini_api_key
+
+    if not api_key:
+        logger.error("index_kb_document: no Gemini API key configured")
+        return
 
     async with factory() as session:
         doc = await session.get(KBDocument, did)
@@ -78,7 +92,7 @@ async def index_kb_document(ctx: dict[str, Any], doc_id: str) -> None:
 
     chunks = _split_chunks(content)
     for pos, chunk_text in enumerate(chunks):
-        embedding = await asyncio.to_thread(_embed_sync, chunk_text)
+        embedding = await asyncio.to_thread(_embed_sync, chunk_text, api_key)
         token_guess = max(1, len(chunk_text) // 4)
         async with factory() as session:
             session.add(

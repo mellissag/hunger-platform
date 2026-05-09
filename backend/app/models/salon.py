@@ -109,7 +109,7 @@ class Settings(UUIDPrimaryKeyMixin, Base):
     ai_system_prompt: Mapped[dict[str, Any]] = mapped_column(
         JSONB, nullable=False, server_default=text("'{}'::jsonb")
     )
-    ai_model: Mapped[str | None] = mapped_column(Text, nullable=True, default="gemini-1.5-flash")
+    ai_model: Mapped[str | None] = mapped_column(Text, nullable=True, default="gemini-2.0-flash")
     ai_allow_booking: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     payment_provider_config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
