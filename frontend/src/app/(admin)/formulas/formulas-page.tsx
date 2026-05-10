@@ -39,6 +39,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiJson, HttpError } from "@/lib/api";
 import { tc } from "@/lib/theme-inline";
 import { FormulaCard } from "@/components/formulas/FormulaCard";
+import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
 import { useDebounce } from "@/hooks/useDebounce";
 import { buildClientsListUrl, useCreateClient, type ClientsFiltersState } from "@/hooks/useClients";
 import type { ClientOut, MasterOut, Paginated, UserMe } from "@/types/admin-api";
@@ -237,9 +238,12 @@ export function FormulasPage() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
         <div>
-          <h1 style={{ fontFamily: "Playfair Display, serif", fontSize: "28px", fontWeight: 700, margin: 0 }}>
-            {t("title")}
-          </h1>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <h1 style={{ fontFamily: "Playfair Display, serif", fontSize: "28px", fontWeight: 700, margin: 0 }}>
+              {t("title")}
+            </h1>
+            <MasterDataBadge pagePermission="page_formulas" />
+          </div>
           <p style={{ color: tc.mutedFg, fontSize: "13px", margin: "3px 0 0" }}>
             {t("subtitle")}
           </p>

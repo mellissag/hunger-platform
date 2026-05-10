@@ -74,6 +74,9 @@ ALL_PERMISSIONS: list[str] = [
     "page_schedule",
     "page_statistics",
     "page_masters",
+    "page_inventory",
+    "page_formulas",
+    "page_chats",
 ]
 
 ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
@@ -122,6 +125,9 @@ ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
         "page_schedule": True,
         "page_statistics": True,
         "page_masters": True,
+        "page_inventory": True,
+        "page_formulas": True,
+        "page_chats": True,
     },
 
     "reception": {
@@ -167,6 +173,9 @@ ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
         "page_schedule": True,
         "page_statistics": False,
         "page_masters": False,
+        "page_inventory": False,
+        "page_formulas": False,
+        "page_chats": True,
     },
 
     "master": {
@@ -212,6 +221,9 @@ ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
         "page_schedule": False,
         "page_statistics": False,
         "page_masters": False,
+        "page_inventory": False,
+        "page_formulas": False,
+        "page_chats": False,
     },
 }
 

@@ -22,6 +22,7 @@ import { apiJson } from "@/lib/api";
 import { utcAddDays, utcStartOfDay, toIsoParam } from "@/lib/date-utc";
 import { cn } from "@/lib/utils";
 import type { CalendarResponse, MasterOut, Paginated } from "@/types/admin-api";
+import { usePermissions } from "@/hooks/usePermissions";
 
 import { BookingDetailDrawer } from "../bookings/booking-detail-drawer";
 import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
@@ -42,6 +43,8 @@ function toIsoDate(d: Date): string {
 export function ScheduleView() {
   const t = useTranslations("pages.schedule");
   const locale = useLocale();
+  const { me } = usePermissions();
+  const ownMasterId = me?.role === "master" && me.master_id ? me.master_id : null;
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [weekMonday, setWeekMonday] = useState<Date>(() => mondayOfWeek(new Date()));
   const [focusMasterId, setFocusMasterId] = useState<string | null>(null);
@@ -51,10 +54,11 @@ export function ScheduleView() {
   const weekDateStr = toIsoDate(weekMonday);
 
   const { data: weekData, isLoading: weekLoading } = useQuery({
-    queryKey: ["schedule", "week", weekDateStr, focusMasterId ?? "all"],
+    queryKey: ["schedule", "week", weekDateStr, ownMasterId ?? focusMasterId ?? "all"],
     queryFn: () => {
       const params = new URLSearchParams({ date: weekDateStr });
-      if (focusMasterId) params.set("master_id", focusMasterId);
+      if (ownMasterId) params.set("master_id", ownMasterId);
+      else if (focusMasterId) params.set("master_id", focusMasterId);
       return apiJson<WeekScheduleData>(`/schedule/week?${params.toString()}`);
     },
     enabled: viewMode === "grid",
@@ -84,7 +88,9 @@ export function ScheduleView() {
   });
 
   const listRows = useMemo(() => {
-    const masters = mastersPg?.items ?? [];
+    const mastersAll = mastersPg?.items ?? [];
+    const masters =
+      ownMasterId ? mastersAll.filter((m) => m.id === ownMasterId) : mastersAll;
     const bookings = cal?.bookings ?? [];
     const slots = cal?.slots ?? [];
     return masters.map((m) => ({
@@ -92,7 +98,7 @@ export function ScheduleView() {
       bookingCount: bookings.filter((b) => b.master_id === m.id).length,
       slotCount: slots.filter((s) => s.master_id === m.id).length,
     }));
-  }, [cal?.bookings, cal?.slots, mastersPg?.items]);
+  }, [cal?.bookings, cal?.slots, mastersPg?.items, ownMasterId]);
 
   const salonTz = weekData?.timezone ?? "Europe/Sofia";
 
@@ -148,8 +154,8 @@ export function ScheduleView() {
           ) : weekData ? (
             <WeekScheduler
               data={weekData}
-              focusMasterId={focusMasterId}
-              onFocusMaster={setFocusMasterId}
+              focusMasterId={ownMasterId ?? focusMasterId}
+              onFocusMaster={ownMasterId ? () => {} : setFocusMasterId}
               onPrevWeek={() => setWeekMonday((w) => { const d = new Date(w); d.setUTCDate(d.getUTCDate() - 7); return d; })}
               onNextWeek={() => setWeekMonday((w) => { const d = new Date(w); d.setUTCDate(d.getUTCDate() + 7); return d; })}
               onToday={() => setWeekMonday(mondayOfWeek(new Date()))}

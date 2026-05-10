@@ -980,7 +980,13 @@
       "pPageStatistics": "Statistics tab",
       "pPageStatisticsHint": "Master can open /statistics and see their own stats",
       "pPageMasters": "My profile tab",
-      "pPageMastersHint": "Master can open /masters and see only their own card"
+      "pPageMastersHint": "Master can open /masters and see only their own card",
+      "pPageInventory": "Warehouse tab",
+      "pPageInventoryHint": "Master can open /inventory (stock visibility follows warehouse permissions)",
+      "pPageFormulas": "Color formulas tab",
+      "pPageFormulasHint": "Master can open /formulas (their formulas / linked clients)",
+      "pPageChats": "Chats tab",
+      "pPageChatsHint": "Master can open /chats and see all salon chats"
     },
     "audit": {
       "title": "Audit log",

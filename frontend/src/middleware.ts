@@ -12,6 +12,9 @@ const MASTER_ALLOWED_ADMIN_PATHS = [
   "/masters",
   "/schedule",
   "/statistics",
+  "/inventory",
+  "/formulas",
+  "/chats",
 ];
 
 /** Pages that are always forbidden for master (redirect to /m/dashboard). */
@@ -22,10 +25,7 @@ const MASTER_FORBIDDEN_PATHS = [
   "/audit",
   "/ai",
   "/broadcasts",
-  "/chats",
   "/services",
-  "/formulas",
-  "/inventory",
   "/blacklist",
 ];
 

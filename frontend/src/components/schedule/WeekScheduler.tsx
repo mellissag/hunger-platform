@@ -206,45 +206,47 @@ export function WeekScheduler({
           </button>
         </div>
 
-        {/* Master filter chips */}
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            onClick={() => onFocusMaster(null)}
-            className={cn(
-              "rounded-full border px-2.5 py-0.5 text-xs",
-              focusMasterId === null
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:border-primary/50",
-            )}
-          >
-            Все мастера
-          </button>
-          {data.masters.map((m) => (
+        {/* Master filter chips — скрыты при одном мастере (роль master: только своё расписание) */}
+        {data.masters.length > 1 ? (
+          <div className="flex flex-wrap gap-1.5">
             <button
-              key={m.id}
               type="button"
-              onClick={() => onFocusMaster(m.id === focusMasterId ? null : m.id)}
+              onClick={() => onFocusMaster(null)}
               className={cn(
-                "flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition-colors",
-                focusMasterId === m.id
-                  ? "border-transparent text-white"
+                "rounded-full border px-2.5 py-0.5 text-xs",
+                focusMasterId === null
+                  ? "border-primary bg-primary/10 text-primary"
                   : "border-border text-muted-foreground hover:border-primary/50",
               )}
-              style={
-                focusMasterId === m.id
-                  ? { backgroundColor: m.color, borderColor: m.color }
-                  : undefined
-              }
             >
-              <span
-                className="inline-block h-2 w-2 rounded-full"
-                style={{ backgroundColor: m.color }}
-              />
-              {m.name}
+              Все мастера
             </button>
-          ))}
-        </div>
+            {data.masters.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => onFocusMaster(m.id === focusMasterId ? null : m.id)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition-colors",
+                  focusMasterId === m.id
+                    ? "border-transparent text-white"
+                    : "border-border text-muted-foreground hover:border-primary/50",
+                )}
+                style={
+                  focusMasterId === m.id
+                    ? { backgroundColor: m.color, borderColor: m.color }
+                    : undefined
+                }
+              >
+                <span
+                  className="inline-block h-2 w-2 rounded-full"
+                  style={{ backgroundColor: m.color }}
+                />
+                {m.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {/* Grid */}

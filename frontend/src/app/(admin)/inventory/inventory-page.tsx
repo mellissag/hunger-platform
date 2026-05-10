@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import { tc } from "@/lib/theme-inline";
+import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -302,7 +303,10 @@ export function InventoryPage() {
       {/* Header */}
       <div style={s.header}>
         <div>
-          <h1 style={s.title}>{t("title")}</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <h1 style={s.title}>{t("title")}</h1>
+            <MasterDataBadge pagePermission="page_inventory" />
+          </div>
           <p style={s.subtitle}>{t("subtitle")}</p>
         </div>
         <div style={{ display: "flex", gap: "10px" }}>

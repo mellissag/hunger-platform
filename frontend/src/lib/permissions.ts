@@ -45,6 +45,9 @@ const MASTER_PAGE_RESOURCES: Resource[] = [
   "schedule",
   "statistics",
   "masters",
+  "inventory",
+  "formulas",
+  "chats",
 ];
 
 /** Maps page-level resource → page_* permission key (only used for master role). */
@@ -54,6 +57,9 @@ const MASTER_PAGE_PERM_MAP: Partial<Record<Resource, string>> = {
   schedule: "page_schedule",
   statistics: "page_statistics",
   masters: "page_masters",
+  inventory: "page_inventory",
+  formulas: "page_formulas",
+  chats: "page_chats",
 };
 
 /** Maps a sidebar resource to the granular permission key that controls its visibility (non-master roles). */

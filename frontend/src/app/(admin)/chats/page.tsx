@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { apiJson, HttpError } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
 import {
   chatKeys,
   ChatListItem,
@@ -485,6 +486,7 @@ export default function ChatsPage() {
         {/* Header */}
         <div className="flex items-center gap-2 border-b border-border px-4 py-3">
           <h1 className="font-playfair text-base font-semibold">{t("title")}</h1>
+          <MasterDataBadge pagePermission="page_chats" />
           {totalUnread > 0 && (
             <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
               {totalUnread > 99 ? "99+" : totalUnread}

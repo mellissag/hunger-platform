@@ -980,7 +980,13 @@
       "pPageStatistics": "Раздел Статистика",
       "pPageStatisticsHint": "Майсторът отваря /statistics и вижда само своята статистика",
       "pPageMasters": "Раздел Моят профил",
-      "pPageMastersHint": "Майсторът отваря /masters и вижда само своята карта"
+      "pPageMastersHint": "Майсторът отваря /masters и вижда само своята карта",
+      "pPageInventory": "Раздел Склад",
+      "pPageInventoryHint": "Майсторът отваря /inventory (правата следват настройките по-долу)",
+      "pPageFormulas": "Раздел Бои формули",
+      "pPageFormulasHint": "Майсторът отваря /formulas",
+      "pPageChats": "Раздел Чатове",
+      "pPageChatsHint": "Майсторът отваря /chats и вижда всички чатове на салона"
     },
     "audit": {
       "title": "Одит",

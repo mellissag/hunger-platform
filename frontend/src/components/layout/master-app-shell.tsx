@@ -4,10 +4,13 @@ import {
   Bell,
   CalendarDays,
   ChevronDown,
+  FlaskConical,
   Globe,
   LayoutDashboard,
   Menu,
+  MessageSquare,
   Moon,
+  Package,
   Scissors,
   Search,
   Sun,
@@ -58,6 +61,9 @@ const NAV_PAGE: NavItem[] = [
   { href: "/schedule",   labelKey: "schedule",   icon: CalendarDays,  permKey: "page_schedule" },
   { href: "/statistics", labelKey: "statistics", icon: LayoutDashboard, permKey: "page_statistics" },
   { href: "/masters",    labelKey: "masters",    icon: Scissors,      permKey: "page_masters" },
+  { href: "/inventory",  labelKey: "inventory",  icon: Package,       permKey: "page_inventory" },
+  { href: "/formulas",   labelKey: "formulas",   icon: FlaskConical,  permKey: "page_formulas" },
+  { href: "/chats",      labelKey: "chats",      icon: MessageSquare, permKey: "page_chats" },
 ];
 
 const LOCALES = [

@@ -980,7 +980,13 @@
       "pPageStatistics": "Вкладка Статистика",
       "pPageStatisticsHint": "Мастер открывает /statistics и видит только свою статистику",
       "pPageMasters": "Вкладка Мой профиль",
-      "pPageMastersHint": "Мастер открывает /masters и видит только свою карточку"
+      "pPageMastersHint": "Мастер открывает /masters и видит только свою карточку",
+      "pPageInventory": "Вкладка Склад",
+      "pPageInventoryHint": "Мастер открывает /inventory (права на склад как заданы ниже)",
+      "pPageFormulas": "Вкладка Формулы красок",
+      "pPageFormulasHint": "Мастер открывает /formulas",
+      "pPageChats": "Вкладка Чаты",
+      "pPageChatsHint": "Мастер открывает /chats и видит все чаты салона"
     },
     "audit": {
       "title": "Аудит",

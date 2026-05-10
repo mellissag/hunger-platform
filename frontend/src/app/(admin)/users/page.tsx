@@ -113,6 +113,9 @@ const PERM_GROUPS = [
       { key: "page_schedule",   label: "pPageSchedule",   hint: "pPageScheduleHint" },
       { key: "page_statistics", label: "pPageStatistics", hint: "pPageStatisticsHint" },
       { key: "page_masters",    label: "pPageMasters",    hint: "pPageMastersHint" },
+      { key: "page_inventory",  label: "pPageInventory",  hint: "pPageInventoryHint" },
+      { key: "page_formulas",   label: "pPageFormulas",   hint: "pPageFormulasHint" },
+      { key: "page_chats",      label: "pPageChats",      hint: "pPageChatsHint" },
     ],
   },
 ] as const;
@@ -157,7 +160,14 @@ const ROLE_DEFAULTS: Record<string, Record<string, boolean>> = {
     broadcasts_view: false, broadcasts_send: false,
     inventory_view: true, inventory_edit: false, formulas_view: true, formulas_edit: true,
     settings_edit: false, users_manage: false, audit_view: false, ai_manage: false, integrations_manage: false,
-    page_bookings: false, page_clients: false, page_schedule: false, page_statistics: false, page_masters: false,
+    page_bookings: false,
+    page_clients: false,
+    page_schedule: false,
+    page_statistics: false,
+    page_masters: false,
+    page_inventory: false,
+    page_formulas: false,
+    page_chats: false,
   },
 };
 

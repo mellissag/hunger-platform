@@ -114,7 +114,7 @@ async def _publish(redis, event: str, payload: dict) -> None:
 
 @router.get("", response_model=list[ChatListItem])
 async def list_chats(
-    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception)),
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)),
     db: AsyncSession = Depends(get_db),
 ):
     """Список клиентов с диалогами, сортированных по последнему сообщению."""
@@ -177,7 +177,7 @@ async def get_messages(
     client_id: UUID,
     limit: int = 50,
     before_id: UUID | None = None,
-    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception)),
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)),
     db: AsyncSession = Depends(get_db),
 ):
     q = select(ChatMessage).where(ChatMessage.client_id == client_id)
@@ -196,7 +196,7 @@ async def get_messages(
 @router.post("/{client_id}/read")
 async def mark_read(
     client_id: UUID,
-    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception)),
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)),
     db: AsyncSession = Depends(get_db),
     redis=Depends(get_redis),
 ):
@@ -220,7 +220,7 @@ async def mark_read(
 async def send_text(
     client_id: UUID,
     payload: SendTextPayload,
-    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception)),
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)),
     db: AsyncSession = Depends(get_db),
     redis=Depends(get_redis),
     bot=Depends(get_telegram_bot),
@@ -266,7 +266,7 @@ async def send_media(
     client_id: UUID,
     file: UploadFile = File(...),
     caption: str | None = Form(None),
-    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception)),
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)),
     db: AsyncSession = Depends(get_db),
     redis=Depends(get_redis),
     bot=Depends(get_telegram_bot),

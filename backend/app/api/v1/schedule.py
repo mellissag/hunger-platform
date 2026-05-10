@@ -225,11 +225,16 @@ class WeekScheduleResponse(BaseModel):
 @router.get("/week", response_model=WeekScheduleResponse)
 async def get_week_schedule(
     db: Annotated[AsyncSession, Depends(get_db)],
-    _user: Annotated[User, Depends(require_roles(*STAFF_READ))],
+    user: Annotated[User, Depends(require_roles(*STAFF_READ))],
     date: date = Query(..., description="ISO date — Monday of the desired week"),
     master_id: UUID | None = Query(None),
 ) -> WeekScheduleResponse:
     """Enriched weekly grid data: masters with working_hours, bookings, blocks."""
+    if user.role == UserRole.master and user.master_id is not None:
+        master_id = user.master_id
+    elif master_id is not None:
+        ensure_master_own_master_id(user, master_id)
+
     salon_row = (await db.execute(select(Salon).limit(1))).scalar_one_or_none()
     tz_name = salon_row.timezone if salon_row else "Europe/Sofia"
 
