@@ -8,6 +8,7 @@ import {
   useMastersByService,
   useAvailableSlots,
   useCreateBooking,
+  useClientProfile,
   pickI18n,
   type Service,
   type Master,
@@ -86,6 +87,7 @@ function BookContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useTelegram();
+  const { data: clientProfile } = useClientProfile();
   const { t } = useT();
   const [step, setStep] = useState<Step>(0);
   const [activeCatKey, setActiveCatKey] = useState<'catAll'|'catHair'|'catNails'|'catFace'|'catBody'>('catAll');
@@ -158,28 +160,40 @@ function BookContent() {
   const handleConfirm = useCallback(async () => {
     if (!selectedService || !selectedMaster || !selectedDate || !selectedTime) return;
     const starts_at = zonedToUtcIso(selectedDate, selectedTime, TZ);
+    const storedName =
+      typeof window !== 'undefined' ? window.localStorage.getItem('hunger_profile_name')?.trim() : '';
+    const browserClientName =
+      user
+        ? `${user.first_name} ${user.last_name ?? ''}`.trim()
+        : clientProfile?.first_name?.trim() || storedName || undefined;
     try {
       await createBooking.mutateAsync({
         service_id: selectedService.id,
         master_id: selectedMaster.id,
         starts_at,
-        client_name: user ? `${user.first_name} ${user.last_name ?? ''}`.trim() : undefined,
+        client_name: browserClientName,
         telegram_id: user?.id,
       });
       setStep(4);
     } catch {
       alert(t.bookErrorMsg);
     }
-  }, [selectedService, selectedMaster, selectedDate, selectedTime, user, createBooking, t]);
+  }, [selectedService, selectedMaster, selectedDate, selectedTime, user, clientProfile, createBooking, t]);
 
   const handleSubmitConsultation = useCallback(async () => {
     if (!selectedService) return;
     setIsSubmittingConsultation(true);
+    const storedName =
+      typeof window !== 'undefined' ? window.localStorage.getItem('hunger_profile_name')?.trim() : '';
+    const browserClientName =
+      user
+        ? `${user.first_name} ${user.last_name ?? ''}`.trim()
+        : clientProfile?.first_name?.trim() || storedName || undefined;
     try {
       await createBooking.mutateAsync({
         service_id: selectedService.id,
         needs_consultation: true,
-        client_name: user ? `${user.first_name} ${user.last_name ?? ''}`.trim() : undefined,
+        client_name: browserClientName,
         telegram_id: user?.id,
       });
       setStep(4);
@@ -188,7 +202,7 @@ function BookContent() {
     } finally {
       setIsSubmittingConsultation(false);
     }
-  }, [selectedService, user, createBooking, t]);
+  }, [selectedService, user, clientProfile, createBooking, t]);
 
   const CAT_KEYS: Array<'catAll'|'catHair'|'catNails'|'catFace'|'catBody'> = ['catAll','catHair','catNails','catFace','catBody'];
   const CAT_KWMAP: Record<typeof CAT_KEYS[number], string[]> = {

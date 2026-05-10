@@ -229,6 +229,16 @@ def _resolve_lang(code: str | None) -> str:
     return short if short in _SUPPORTED_LANGS else "en"
 
 
+_PLACEHOLDER_MINI_APP_FIRST_NAMES = frozenset({"Guest", "Dev", "Test"})
+
+
+def _is_placeholder_mini_app_first_name(name: str | None) -> bool:
+    """Synthetic Mini App users use these labels until the client saves a real name."""
+    if not name:
+        return False
+    return name.strip() in _PLACEHOLDER_MINI_APP_FIRST_NAMES
+
+
 async def _sync_client_lang(client: Client, payload: InitDataPayload, db: AsyncSession) -> None:
     """Update client.lang from Telegram initData if not yet set."""
     if not client.lang and payload.language_code:
@@ -258,9 +268,16 @@ async def _get_or_create_client(payload: InitDataPayload, db: AsyncSession) -> C
     if payload.username and client.tg_username != payload.username:
         client.tg_username = payload.username
         changed = True
-    if payload.first_name and client.first_name != payload.first_name:
-        client.first_name = payload.first_name
-        changed = True
+    if payload.first_name:
+        new_fn = payload.first_name.strip()
+        cur = (client.first_name or "").strip()
+        if new_fn and new_fn != cur:
+            # Do not overwrite a saved real name with synthetic Guest/Dev from auth payload.
+            if _is_placeholder_mini_app_first_name(new_fn) and cur and not _is_placeholder_mini_app_first_name(cur):
+                pass
+            else:
+                client.first_name = new_fn
+                changed = True
     if payload.last_name and client.last_name != payload.last_name:
         client.last_name = payload.last_name
         changed = True
@@ -699,14 +716,10 @@ async def get_me(
     current_user: MiniAppUser,
     db: AsyncSession = Depends(get_db),
 ) -> MiniAppMeOut:
-    """Authenticated: return client profile (or 404 if not yet registered)."""
+    """Authenticated: return client profile (creates browser guest row if needed)."""
     if not current_user.tg_user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
-    client = (
-        await db.execute(select(Client).where(Client.tg_user_id == current_user.tg_user_id))
-    ).scalar_one_or_none()
-    if client is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not registered")
+    client = await _get_or_create_client(current_user, db)
     return MiniAppMeOut(
         first_name=client.first_name or "",
         phone=client.phone or "",
@@ -1178,12 +1191,7 @@ async def get_client_profile(
     if not current_user.tg_user_id:
         from fastapi import HTTPException as _HE
         raise _HE(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
-    client = (
-        await db.execute(select(Client).where(Client.tg_user_id == current_user.tg_user_id))
-    ).scalar_one_or_none()
-    if client is None:
-        from fastapi import HTTPException as _HE
-        raise _HE(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+    client = await _get_or_create_client(current_user, db)
     return MiniAppClientProfileOut(
         id=str(client.id),
         first_name=client.first_name or "",
@@ -1206,12 +1214,7 @@ async def update_client_profile(
     if not current_user.tg_user_id:
         from fastapi import HTTPException as _HE
         raise _HE(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
-    client = (
-        await db.execute(select(Client).where(Client.tg_user_id == current_user.tg_user_id))
-    ).scalar_one_or_none()
-    if client is None:
-        from fastapi import HTTPException as _HE
-        raise _HE(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+    client = await _get_or_create_client(current_user, db)
 
     if payload.first_name is not None:
         stripped = payload.first_name.strip()

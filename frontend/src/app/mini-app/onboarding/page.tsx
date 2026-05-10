@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
 import { useT } from '../i18n/context';
 
 const GOLD = '#9A7230';
@@ -10,7 +11,6 @@ const NEAR_BLACK = '#1C1408';
 const IVORY = '#FAF8F3';
 const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
-const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 /** Split salon name for two-line hero (first word / rest), with static fallbacks when empty. */
 function splitBrandTitle(
@@ -134,9 +134,8 @@ export default function OnboardingPage() {
   const t = T[lang];
 
   useEffect(() => {
-    if (!API) return;
     let cancelled = false;
-    fetch(`${API}/api/v1/mini-app/salon?lang=${lang}`)
+    fetch(miniAppRequestUrl(`/api/v1/mini-app/salon?lang=${lang}`), { credentials: 'same-origin' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { name?: string; city?: string; address?: string } | null) => {
         if (cancelled || !d) return;
@@ -179,7 +178,8 @@ export default function OnboardingPage() {
       .Telegram?.WebApp?.initData;
     if (!initData) return;
 
-    fetch(`${API}/api/v1/mini-app/me`, {
+    fetch(miniAppRequestUrl('/api/v1/mini-app/me'), {
+      credentials: 'same-origin',
       headers: { 'X-Telegram-Init-Data': initData },
     })
       .then(r => r.ok ? r.json() : null)
@@ -202,17 +202,24 @@ export default function OnboardingPage() {
         .Telegram?.WebApp?.initData ?? '';
       if (initData) {
         // Telegram mini-app: authenticated registration
-        await fetch(`${API}/api/v1/mini-app/register`, {
+        await fetch(miniAppRequestUrl('/api/v1/mini-app/register'), {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
           body: JSON.stringify({ first_name: trimmedName, phone: trimmedPhone, lang, theme }),
         });
       } else {
-        // Browser fallback: guest registration (no Telegram auth)
-        await fetch(`${API}/api/v1/mini-app/register-guest`, {
-          method: 'POST',
+        // Browser: same anonymous session as bookings — PATCH client profile via BFF (cookie/JWT)
+        await fetch(miniAppRequestUrl('/api/v1/mini-app/client/profile'), {
+          method: 'PATCH',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ first_name: trimmedName, phone: trimmedPhone, lang }),
+          body: JSON.stringify({
+            first_name: trimmedName,
+            phone: trimmedPhone,
+            lang,
+            theme,
+          }),
         });
       }
     } catch { /* offline — still proceed */ } finally {

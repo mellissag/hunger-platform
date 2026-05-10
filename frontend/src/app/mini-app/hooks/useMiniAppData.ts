@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
 import { getInitData, useTelegram } from './useTelegram';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -10,25 +11,8 @@ function authHeaders(): Record<string, string> {
   return id ? { 'X-Telegram-Init-Data': id } : {};
 }
 
-/**
- * Same-origin BFF forwards `Authorization: Bearer` from the httpOnly session cookie.
- * Merge path query with `window.location.search` using `&` — never append a second `?`
- * (e.g. `/book?service_id=…` + `/slots?master_id=…&date=…` must not become `…date=…?service_id=…`).
- */
 function requestUrl(path: string): string {
-  if (typeof window === 'undefined') {
-    return `${API}${path}`;
-  }
-  const withoutPrefix = path.replace(/^\/api\/v1\//, '');
-  const [rawPath, queryFromPath = ''] = withoutPrefix.split('?');
-  const params = new URLSearchParams(queryFromPath);
-  const page = new URLSearchParams(window.location.search.slice(1));
-  page.forEach((value, key) => {
-    if (!params.has(key)) params.set(key, value);
-  });
-  const qs = params.toString();
-  const base = `/api/bff/${rawPath}`;
-  return qs ? `${base}?${qs}` : base;
+  return miniAppRequestUrl(path);
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -304,11 +288,9 @@ export function useCancelBooking() {
 }
 
 export function useClientProfile() {
-  const { initData } = useTelegram();
   return useQuery<ClientProfileFull>({
     queryKey: ['mini-app', 'client-profile'],
     queryFn: () => apiFetch('/api/v1/mini-app/client/profile'),
-    enabled: !!initData,
     staleTime: 5 * 60_000,
     retry: false,
   });
