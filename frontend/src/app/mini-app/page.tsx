@@ -19,14 +19,15 @@ const BODY = '"Inter", system-ui, sans-serif';
 const TZ = 'Europe/Sofia';
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? '';
 
-/** Подборка дня — светлая премиум-палитра (макет: крем #FDFBF7, карточка белая, акцент #B59449 / #1A120B) */
-const PICK_CARD = '#FFFFFF';
-const PICK_BORDER = 'rgba(181, 148, 73, 0.14)';
-const PICK_LABEL = 'rgba(26, 18, 11, 0.42)';
-const PICK_TITLE_GOLD = '#B59449';
-const PICK_PRICE_GOLD = '#9A7230';
+/** Подборка дня — тёмная карточка на светлом фоне страницы (премиум, золото на charcoal) */
+const PICK_CARD =
+  'linear-gradient(165deg, #221c14 0%, #16130e 42%, #12100c 100%)';
+const PICK_BORDER = 'rgba(201, 168, 76, 0.22)';
+const PICK_LABEL = 'rgba(201, 168, 76, 0.72)';
+const PICK_TITLE_GOLD = '#D4B76A';
+const PICK_PRICE_GOLD = '#C9A84C';
 const PICK_SHADOW =
-  '0 18px 52px rgba(26, 17, 8, 0.07), 0 6px 20px rgba(181, 148, 73, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1)';
+  '0 22px 56px rgba(0, 0, 0, 0.34), 0 8px 24px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.06)';
 const PICK_BTN_FROM = '#B59449';
 const PICK_BTN_TO = '#C9A84C';
 
@@ -201,7 +202,7 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ── Подборка дня — белая карточка на кремовом фоне, золото #B59449 (светлый премиум) ── */}
+      {/* ── Подборка дня — тёмная карточка (светлая тема страницы, контрастная подборка) ── */}
       {dailyPick && (
         <div style={{ padding: '0 16px', marginTop: 8 }}>
           <div
@@ -223,10 +224,10 @@ export default function HomePage() {
                 right: 0,
                 height: 2,
                 background:
-                  'linear-gradient(90deg, transparent, rgba(181, 148, 73, 0.35), rgba(201, 168, 76, 0.65), rgba(181, 148, 73, 0.35), transparent)',
+                  'linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.45), rgba(232, 207, 128, 0.55), rgba(201, 168, 76, 0.45), transparent)',
               }}
             />
-            {/* Тёплый золотистый блик справа снизу (как на макете) */}
+            {/* Тёплый золотистый блик на тёмном фоне */}
             <div
               style={{
                 position: 'absolute',
@@ -236,7 +237,7 @@ export default function HomePage() {
                 aspectRatio: '1',
                 borderRadius: '50%',
                 background:
-                  'radial-gradient(circle, rgba(201, 168, 76, 0.14) 0%, rgba(245, 239, 230, 0.35) 42%, transparent 70%)',
+                  'radial-gradient(circle, rgba(201, 168, 76, 0.22) 0%, rgba(154, 114, 48, 0.08) 45%, transparent 72%)',
                 pointerEvents: 'none',
               }}
             />
@@ -295,14 +296,14 @@ export default function HomePage() {
                   <div
                     key={tag}
                     style={{
-                      border: '1px solid rgba(181, 148, 73, 0.38)',
-                      background: 'rgba(253, 251, 247, 0.95)',
+                      border: '1px solid rgba(201, 168, 76, 0.42)',
+                      background: 'rgba(255, 255, 255, 0.05)',
                       padding: '7px 14px',
                       borderRadius: 6,
                       fontSize: 10,
                       fontWeight: 600,
                       letterSpacing: '0.08em',
-                      color: '#1A120B',
+                      color: 'rgba(245, 240, 230, 0.88)',
                       fontFamily: BODY,
                     }}
                   >
@@ -320,7 +321,7 @@ export default function HomePage() {
                 marginTop: 20,
                 background: `linear-gradient(135deg, ${PICK_BTN_FROM} 0%, ${PICK_BTN_TO} 100%)`,
                 border: 'none',
-                color: '#FDFBF7',
+                color: '#1C1408',
                 padding: '13px 26px',
                 borderRadius: 999,
                 fontSize: 10,
@@ -330,7 +331,7 @@ export default function HomePage() {
                 fontFamily: BODY,
                 cursor: 'pointer',
                 position: 'relative',
-                boxShadow: '0 8px 26px rgba(181, 148, 73, 0.35)',
+                boxShadow: '0 10px 32px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(201, 168, 76, 0.35)',
               }}
             >
               {t.homeBtnBook}
