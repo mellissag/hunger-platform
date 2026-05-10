@@ -522,19 +522,12 @@ async def get_availability(
     from zoneinfo import ZoneInfo
     import app.core.clock as clock
     today = clock.utc_now().astimezone(ZoneInfo(ctx.timezone)).date()
-    working_hours = (
-        master.working_hours
-        if isinstance(master.working_hours, dict) and master.working_hours
-        else _default_working_hours()
-    )
     available_dates: list[str] = []
     for day in range(1, days_in_month + 1):
         d = _date(year, real_month, day)
         if d < today:
             continue
-        dow = str(d.isoweekday())
-        day_schedule = working_hours.get(dow, {})
-        if isinstance(day_schedule, dict) and day_schedule.get("enabled", False):
+        if await schedule_service.master_has_bookable_window_on_date(db, mid, d, ctx):
             available_dates.append(d.isoformat())
     return MiniAppAvailabilityResponse(available_dates=available_dates)
 

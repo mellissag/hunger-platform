@@ -247,6 +247,21 @@ async def _working_ranges_for_day(
     return [x for x in merged if x[0] < x[1]]
 
 
+async def master_has_bookable_window_on_date(
+    db: AsyncSession,
+    master_id: UUID,
+    day: date,
+    ctx: SalonScheduleContext,
+) -> bool:
+    """Whether ``day`` has a non-empty working window for this master.
+
+    Uses the same pipeline as :func:`get_available_slots` (JSON ``mon``–``sun`` or ISO
+    keys, optional ScheduleSlot working rows, salon default fallback, blocks).
+    """
+    ranges = await _working_ranges_for_day(db, master_id, day, ctx)
+    return bool(ranges)
+
+
 async def _bookings_conflicts(
     db: AsyncSession, master_id: UUID, day_start: datetime, day_end: datetime
 ) -> list[tuple[datetime, datetime, UUID]]:
@@ -301,10 +316,11 @@ async def get_available_slots(
     dur = timedelta(minutes=service_duration_minutes)
     step = timedelta(minutes=SLOT_STEP_MINUTES)
 
+    # Each window [wa, wb): bookable starts t where t + service_duration <= wb (service ends by closing time).
     out: list[time] = []
     for wa, wb in windows:
         t = wa
-        while t + dur <= wb + timedelta(seconds=0):
+        while t + dur <= wb:
             ne = t + dur
             if apply_lead_time and t < now + lead:
                 t += step
@@ -354,7 +370,7 @@ async def enumerate_slot_candidates(
     out: list[tuple[time, bool]] = []
     for wa, wb in windows:
         t = wa
-        while t + dur <= wb + timedelta(seconds=0):
+        while t + dur <= wb:
             ne = t + dur
             blocked_by_lead = apply_lead_time and t < now + lead
             conflict = _conflicts_with_bookings(t, ne, buf, bookings, exclude_booking_id=None)

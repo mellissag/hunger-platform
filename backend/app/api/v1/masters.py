@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import app.core.clock as clock
 from app.core.exceptions import ConflictError
 from app.core.exceptions import NotFoundError
 from app.core.security import hash_password
@@ -650,19 +651,13 @@ async def get_master_availability(
         raise NotFoundError("Master not found")
     real_month = month + 1 if 0 <= month <= 11 else month
     _, days_in_month = monthrange(year, real_month)
-    today = date.today()
-    working_hours = (
-        master.working_hours
-        if isinstance(master.working_hours, dict) and master.working_hours
-        else _default_working_hours()
-    )
+    ctx = await schedule_service.get_schedule_context(db)
+    today = clock.utc_now().astimezone(ZoneInfo(ctx.timezone)).date()
     available_dates: list[str] = []
     for day_num in range(1, days_in_month + 1):
         d = date(year, real_month, day_num)
         if d < today:
             continue
-        dow = str(d.isoweekday())
-        day_schedule = working_hours.get(dow, {})
-        if isinstance(day_schedule, dict) and day_schedule.get("enabled", False):
+        if await schedule_service.master_has_bookable_window_on_date(db, master_id, d, ctx):
             available_dates.append(d.isoformat())
     return {"available_dates": available_dates}
