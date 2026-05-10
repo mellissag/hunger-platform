@@ -842,6 +842,8 @@
       "currency": "Валута",
       "prepaymentEnabled": "Предплащане включено",
       "telegramVerify": "Провери връзката",
+      "ownerTelegramId": "Telegram ID на собственика",
+      "ownerTelegramIdHint": "Числов Telegram ID на собственика. Всички известия за записи ще бъдат изпращани тук.",
       "backupRun": "Създай архив",
       "backupDownload": "Свали последния",
       "primaryColor": "Основен цвят",

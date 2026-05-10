@@ -40,6 +40,7 @@ from app.models.salon import Salon
 from app.models.user import User
 from app.services import schedule_service
 from app.services.bot_booking import create_tg_booking, is_blacklisted
+from app.services.notification_service import AdminEvent, get_admin_notify_chat_id, notify_admin
 from app.services.notifications import notify_master_new_booking
 from app.utils.datetime_utils import ensure_aware
 
@@ -630,6 +631,23 @@ async def create_booking(
         await db.commit()
         await db.refresh(booking)
 
+        bot = getattr(request.app.state, "bot", None)
+        admin_chat_id = await get_admin_notify_chat_id(db)
+        if admin_chat_id:
+            from app.config import get_settings
+            cfg = get_settings()
+            svc_name = (svc.name_i18n or {}).get("ru") or (svc.name_i18n or {}).get("en") or svc.name
+            await notify_admin(
+                bot,
+                admin_chat_id=admin_chat_id,
+                event=AdminEvent.new_booking,
+                app_domain=cfg.app_domain,
+                client=client.first_name or str(client.tg_user_id or "—"),
+                master="—",
+                service=svc_name,
+                date="уточняется",
+            )
+
         return MiniAppBookingOut(
             id=str(booking.id),
             status=booking.status.value,
@@ -695,8 +713,29 @@ async def create_booking(
         await db.flush()
         await db.refresh(booking)
 
+        bot = getattr(request.app.state, "bot", None)
         if mid is not None:
-            await notify_master_new_booking(booking.id, getattr(request.app.state, "bot", None), db)
+            await notify_master_new_booking(booking.id, bot, db)
+
+        admin_chat_id = await get_admin_notify_chat_id(db)
+        if admin_chat_id:
+            from app.config import get_settings
+            from app.models.master import Master
+            cfg = get_settings()
+            svc_obj = await db.get(Service, sid)
+            svc_name = (svc_obj.name_i18n or {}).get("ru") or (svc_obj.name_i18n or {}).get("en") or svc_obj.name if svc_obj else "—"
+            m_obj = await db.get(Master, mid) if mid else None
+            date_str = booking.starts_at.strftime("%Y-%m-%d %H:%M") if booking.starts_at else "по звонку"
+            await notify_admin(
+                bot,
+                admin_chat_id=admin_chat_id,
+                event=AdminEvent.new_booking,
+                app_domain=cfg.app_domain,
+                client=client.first_name or str(client.tg_user_id or "—"),
+                master=m_obj.display_name if m_obj else "любой",
+                service=svc_name,
+                date=date_str,
+            )
 
         return MiniAppBookingOut(
             id=str(booking.id),
@@ -736,6 +775,26 @@ async def create_booking(
     booking.any_master = False
     booking.call_for_time = False
     await db.flush()
+
+    bot = getattr(request.app.state, "bot", None)
+    admin_chat_id = await get_admin_notify_chat_id(db)
+    if admin_chat_id:
+        from app.config import get_settings
+        from app.models.master import Master
+        cfg = get_settings()
+        m_obj = await db.get(Master, _uuid.UUID(payload.master_id))
+        svc_obj = await db.get(Service, _uuid.UUID(payload.service_id))
+        svc_name = (svc_obj.name_i18n or {}).get("ru") or (svc_obj.name_i18n or {}).get("en") or svc_obj.name if svc_obj else "—"
+        await notify_admin(
+            bot,
+            admin_chat_id=admin_chat_id,
+            event=AdminEvent.new_booking,
+            app_domain=cfg.app_domain,
+            client=client.first_name or str(client.tg_user_id or "—"),
+            master=m_obj.display_name if m_obj else "—",
+            service=svc_name,
+            date=booking.starts_at.strftime("%Y-%m-%d %H:%M") if booking.starts_at else "—",
+        )
 
     return MiniAppBookingOut(
         id=str(booking.id),

@@ -842,6 +842,8 @@
       "currency": "Currency",
       "prepaymentEnabled": "Prepayment enabled",
       "telegramVerify": "Check connection",
+      "ownerTelegramId": "Owner Telegram ID",
+      "ownerTelegramIdHint": "Numeric Telegram user ID of the owner. All booking notifications will be sent here.",
       "backupRun": "Create backup now",
       "backupDownload": "Download last",
       "primaryColor": "Primary color",

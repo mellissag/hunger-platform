@@ -842,6 +842,8 @@
       "currency": "Валюта",
       "prepaymentEnabled": "Передоплата увімкнена",
       "telegramVerify": "Перевірити з'єднання",
+      "ownerTelegramId": "Telegram ID власника",
+      "ownerTelegramIdHint": "Числовий Telegram ID власника. Усі сповіщення про записи надсилатимуться сюди.",
       "backupRun": "Створити бекап",
       "backupDownload": "Завантажити останній",
       "primaryColor": "Основний колір",

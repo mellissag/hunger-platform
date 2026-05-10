@@ -461,6 +461,7 @@ export type SalonBundle = {
     integrations: Record<string, unknown>;
     date_format: string;
     time_format: string;
+    admin_notify_chat_id: string | null;
     updated_at: string;
   };
 };

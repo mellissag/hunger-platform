@@ -56,6 +56,7 @@ class SettingsOut(BaseModel):
     integrations: dict[str, Any]
     date_format: str
     time_format: str
+    admin_notify_chat_id: str | None = None
     updated_at: datetime
 
 
@@ -107,6 +108,7 @@ class SettingsPatch(BaseModel):
     integrations: dict[str, Any] | None = None
     date_format: str | None = None
     time_format: str | None = None
+    admin_notify_chat_id: str | None = None
 
 
 class SalonBundlePatch(BaseModel):

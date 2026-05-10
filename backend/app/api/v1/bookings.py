@@ -32,6 +32,7 @@ from app.services.broadcast_service import (
     get_active_post_visit_trigger,
 )
 from app.schemas.booking import BookingRejectBody
+from app.services.notification_service import AdminEvent, get_admin_notify_chat_id, notify_admin
 from app.services.notifications import (
     notify_client_booking_confirmed,
     notify_client_booking_rejected,
@@ -220,7 +221,26 @@ async def create_booking(
     user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> BookingOut:
     b = await booking_service.create_booking(db, user, body)
-    await notify_master_new_booking(b.id, getattr(request.app.state, "bot", None), db)
+    bot = getattr(request.app.state, "bot", None)
+    await notify_master_new_booking(b.id, bot, db)
+    admin_chat_id = await get_admin_notify_chat_id(db)
+    if admin_chat_id:
+        from app.config import get_settings
+        from app.models.master import Master
+        from app.models.service import Service
+        cfg = get_settings()
+        m = await db.get(Master, b.master_id) if b.master_id else None
+        svc = await db.get(Service, b.service_id)
+        await notify_admin(
+            bot,
+            admin_chat_id=admin_chat_id,
+            event=AdminEvent.new_booking,
+            app_domain=cfg.app_domain,
+            client=b.client_name or "—",
+            master=m.display_name if m else "—",
+            service=svc.name if svc else "—",
+            date=b.starts_at.strftime("%Y-%m-%d %H:%M") if b.starts_at else "—",
+        )
     return BookingOut.model_validate(b)
 
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, Suspense, useEffect, useRef, type CSSProperties } from 'react';
-import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { miniAppBookingDurationLabel } from '@/lib/booking-duration-label';
 import { useTelegram } from '../hooks/useTelegram';
@@ -31,11 +30,6 @@ const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, serif';
 const BODY = '"Inter", system-ui, sans-serif';
 const TZ = 'Europe/Sofia';
 
-function formatDur(min: number) {
-  if (min < 60) return `${min} min`;
-  const h = Math.floor(min / 60), m = min % 60;
-  return m ? `${h}h ${m}m` : `${h}h`;
-}
 
 function getMasterName(m: Master): string {
   return m.display_name ?? m.name ?? '';
@@ -91,7 +85,6 @@ function BookContent() {
   const { user } = useTelegram();
   const { data: clientProfile } = useClientProfile();
   const { t } = useT();
-  const tc = useTranslations('miniApp.bookingConfirm');
   const [step, setStep] = useState<Step>(0);
   const [activeCatKey, setActiveCatKey] = useState<'catAll'|'catHair'|'catNails'|'catFace'|'catBody'>('catAll');
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -308,7 +301,7 @@ function BookContent() {
             >
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.2 }}>{getServiceName(svc)}</div>
-                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: MUTED, marginTop: 4 }}>{formatDur(svc.duration_minutes)}</div>
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: MUTED, marginTop: 4 }}>{t.bookDurLabel(svc.duration_minutes)}</div>
               </div>
               <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 500, color: GOLD, marginLeft: 12 }}>€{svc.price}</div>
             </button>
@@ -460,10 +453,10 @@ function BookContent() {
                   lineHeight: 1.3,
                 }}
               >
-                {tc('checkboxAnyMaster')}
+                {t.bookCheckboxAnyMaster}
               </div>
               <div style={{ fontSize: 11, color: MUTED, marginTop: 3, lineHeight: 1.4 }}>
-                {tc('anyMasterHint')}
+                {t.bookCheckboxAnyMasterHint}
               </div>
             </div>
           </div>
@@ -622,7 +615,7 @@ function BookContent() {
           onBack={() => setStep(1)}
           label={
             anyMaster
-              ? tc('checkboxAnyMaster')
+              ? t.bookCheckboxAnyMaster
               : selectedMaster
                 ? getMasterName(selectedMaster)
                 : t.back
@@ -731,10 +724,10 @@ function BookContent() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontFamily: SERIF, fontSize: 14, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.3 }}>
-                {tc('checkboxCallForTime')}
+                {t.bookCheckboxCallForTime}
               </div>
               <div style={{ fontSize: 11, color: MUTED, marginTop: 3, lineHeight: 1.4 }}>
-                {tc('callForTimeHint')}
+                {t.bookCheckboxCallForTimeHint}
               </div>
             </div>
           </div>
@@ -758,13 +751,13 @@ function BookContent() {
 
           {anyMaster ? (
             <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13, fontFamily: SERIF }}>
-              {tc('anyMasterHint')}
+              {t.bookCheckboxAnyMasterHint}
             </div>
           ) : !selectedDate ? (
             <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13 }}>{t.bookSelectDate}</div>
           ) : callForTime ? (
             <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13, fontFamily: SERIF }}>
-              {tc('timeByPhoneDisplay')}
+              {t.bookConfirmTimeByPhone}
             </div>
           ) : slots.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13, fontFamily: SERIF }}>{t.bookNoSlots}</div>
@@ -859,16 +852,16 @@ function BookContent() {
             duration_max_minutes: selectedService.duration_max_minutes,
             duration_type: selectedService.duration_type,
           },
-          (v) => tc('durationMinutes', v),
-          () => tc('durationRangeNote'),
+          (v) => t.bookConfirmDurationMinutes(v),
+          () => t.bookConfirmDurationRangeNote,
         )
       : '';
     const masterDisplay = anyMaster
-      ? tc('anyMasterDisplay')
+      ? t.bookConfirmAnyMasterDisplay
       : selectedMaster
         ? getMasterName(selectedMaster)
         : '—';
-    const timeDisplay = callForTime ? tc('timeByPhoneDisplay') : selectedTime ?? '—';
+    const timeDisplay = callForTime ? t.bookConfirmTimeByPhone : selectedTime ?? '—';
 
     const fieldBase: CSSProperties = {
       width: '100%',
@@ -894,8 +887,8 @@ function BookContent() {
 
         {/* Client */}
         <div style={{ margin: '0 16px 14px', padding: '18px', background: '#fff', border: '1px solid rgba(228,221,208,1)', borderRadius: 20 }}>
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: MUTED, marginBottom: 12 }}>{tc('clientBlockTitle')}</div>
-          <label style={{ display: 'block', fontSize: 11, color: MUTED, marginBottom: 6 }} htmlFor="confirm-name">{tc('nameLabel')}</label>
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: MUTED, marginBottom: 12 }}>{t.bookConfirmClientTitle}</div>
+          <label style={{ display: 'block', fontSize: 11, color: MUTED, marginBottom: 6 }} htmlFor="confirm-name">{t.bookConfirmNameLabel}</label>
           <input
             id="confirm-name"
             name="client_name"
@@ -904,7 +897,7 @@ function BookContent() {
             style={{ ...fieldBase, marginBottom: 12 }}
             autoComplete="name"
           />
-          <label style={{ display: 'block', fontSize: 11, color: MUTED, marginBottom: 6 }} htmlFor="confirm-phone">{tc('phoneLabel')}</label>
+          <label style={{ display: 'block', fontSize: 11, color: MUTED, marginBottom: 6 }} htmlFor="confirm-phone">{t.bookConfirmPhoneLabel}</label>
           <input
             id="confirm-phone"
             name="client_phone"
@@ -920,20 +913,20 @@ function BookContent() {
         <div style={{ margin: '0 16px 14px', background: '#fff', border: '1px solid rgba(228,221,208,1)', borderRadius: 20, overflow: 'hidden' }}>
           <div style={{ height: 2, background: `linear-gradient(90deg, transparent, ${GOLD_HI}, transparent)` }} />
           <div style={{ padding: '18px' }}>
-            <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: MUTED, marginBottom: 12 }}>{tc('detailsBlockTitle')}</div>
+            <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: MUTED, marginBottom: 12 }}>{t.bookConfirmDetailsTitle}</div>
             <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(228,221,208,.8)' }}>
-              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{tc('serviceLabel')}</div>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookConfirmServiceLabel}</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>{selectedService ? getServiceName(selectedService) : '—'}</div>
                 <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 500, color: GOLD }}>€{selectedService?.price}</div>
               </div>
             </div>
             <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(228,221,208,.8)' }}>
-              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{tc('durationLabel')}</div>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookConfirmDurationLabel}</div>
               <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 500, color: NEAR_BLACK }}>{durLabel || '—'}</div>
             </div>
             <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(228,221,208,.8)' }}>
-              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{tc('masterLabel')}</div>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookConfirmMasterLabel}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div
                   style={{
@@ -958,11 +951,11 @@ function BookContent() {
             </div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ flex: '1 1 140px' }}>
-                <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{tc('dateLabel')}</div>
+                <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookConfirmDateLabel}</div>
                 <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 500, color: NEAR_BLACK }}>{dayLabel}</div>
               </div>
               <div style={{ flex: '1 1 120px' }}>
-                <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{tc('timeLabel')}</div>
+                <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookConfirmTimeLabel}</div>
                 <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 600, color: GOLD }}>{timeDisplay}</div>
               </div>
             </div>
@@ -971,13 +964,13 @@ function BookContent() {
 
         {/* Comment */}
         <div style={{ margin: '0 16px 20px', padding: '18px', background: '#fff', border: '1px solid rgba(228,221,208,1)', borderRadius: 20 }}>
-          <label style={{ display: 'block', fontSize: 9, fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: MUTED, marginBottom: 10 }} htmlFor="booking-comment">{tc('commentLabel')}</label>
+          <label style={{ display: 'block', fontSize: 9, fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: MUTED, marginBottom: 10 }} htmlFor="booking-comment">{t.bookConfirmCommentLabel}</label>
           <textarea
             id="booking-comment"
             name="comment"
             value={bookingComment}
             onChange={(e) => setBookingComment(e.target.value)}
-            placeholder={tc('commentPlaceholder')}
+            placeholder={t.bookConfirmCommentPlaceholder}
             rows={3}
             style={{
               ...fieldBase,
@@ -988,7 +981,19 @@ function BookContent() {
           />
         </div>
 
-        <div style={{ padding: '8px 16px 40px' }}>
+        {/* Spacer so content is not hidden under the sticky button */}
+        <div style={{ height: 120 }} />
+
+        {/* Sticky confirm button — sits just above the bottom tab bar */}
+        <div style={{
+          position: 'fixed',
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'calc(100% - 32px)',
+          maxWidth: 420,
+          zIndex: 200,
+        }}>
           <button
             type="button"
             onClick={handleConfirm}
@@ -1000,7 +1005,7 @@ function BookContent() {
               padding: '16px 22px', borderRadius: 999, fontSize: 12, fontWeight: 600,
               letterSpacing: '0.10em', textTransform: 'uppercase', fontFamily: BODY,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              boxShadow: '0 8px 28px rgba(154,114,48,.35)',
+              boxShadow: '0 8px 28px rgba(154,114,48,.45)',
               cursor: createBooking.isPending ? 'wait' : 'pointer',
               opacity: createBooking.isPending ? 0.7 : 1,
             }}

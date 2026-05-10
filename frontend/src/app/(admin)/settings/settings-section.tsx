@@ -815,6 +815,20 @@ export function SettingsSection({ section }: { section: string }) {
             <Label>Admin chat id</Label>
             <Input defaultValue={tg.admin_chat_id ?? ""} id="tg-admin" className="mt-1" />
           </div>
+          <div className="border-t pt-3">
+            <Label htmlFor="tg-owner-id" className="font-semibold">
+              {t("ownerTelegramId")}
+            </Label>
+            <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">
+              {t("ownerTelegramIdHint")}
+            </p>
+            <Input
+              defaultValue={settings.admin_notify_chat_id ?? ""}
+              id="tg-owner-id"
+              className="mt-1 font-mono"
+              placeholder="123456789"
+            />
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
@@ -842,8 +856,10 @@ export function SettingsSection({ section }: { section: string }) {
               disabled={busy}
               onClick={() => {
                 const token = (document.getElementById("tg-token") as HTMLInputElement).value;
+                const ownerIdRaw = (document.getElementById("tg-owner-id") as HTMLInputElement).value.trim();
                 patch.mutate({
                   settings: {
+                    admin_notify_chat_id: ownerIdRaw || null,
                     integrations: {
                       telegram: {
                         ...tg,

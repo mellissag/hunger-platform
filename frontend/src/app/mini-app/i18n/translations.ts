@@ -70,6 +70,30 @@ export interface AppTranslations {
   profVisits: string; profFavorite: string;
   profLang: string; profNotif: string; profContact: string;
   profSignOut: string; profHistory: string;
+  // Duration label (service catalog + confirmation)
+  bookDurLabel: (totalMinutes: number) => string;
+  // Step 1 – master selection checkboxes
+  bookCheckboxAnyMaster: string;
+  bookCheckboxAnyMasterHint: string;
+  // Step 2 – flexible-time checkbox
+  bookCheckboxCallForTime: string;
+  bookCheckboxCallForTimeHint: string;
+  // Step 3 – booking confirmation block
+  bookConfirmClientTitle: string;
+  bookConfirmNameLabel: string;
+  bookConfirmPhoneLabel: string;
+  bookConfirmDetailsTitle: string;
+  bookConfirmServiceLabel: string;
+  bookConfirmMasterLabel: string;
+  bookConfirmDateLabel: string;
+  bookConfirmTimeLabel: string;
+  bookConfirmDurationLabel: string;
+  bookConfirmDurationMinutes: (values: { minutes: number }) => string;
+  bookConfirmDurationRangeNote: string;
+  bookConfirmAnyMasterDisplay: string;
+  bookConfirmTimeByPhone: string;
+  bookConfirmCommentLabel: string;
+  bookConfirmCommentPlaceholder: string;
 }
 
 const RU: AppTranslations = {
@@ -131,6 +155,26 @@ const RU: AppTranslations = {
   profLang: 'Язык интерфейса', profNotif: 'Уведомления',
   profContact: 'Связаться с салоном', profSignOut: 'Выйти',
   profHistory: 'История визитов',
+  bookDurLabel: (m) => m < 60 ? `${m} мин` : m % 60 ? `${Math.floor(m / 60)} ч ${m % 60} мин` : `${m / 60} ч`,
+  bookCheckboxAnyMaster: 'Не важно / любой мастер',
+  bookCheckboxAnyMasterHint: 'Назначим свободного мастера.',
+  bookCheckboxCallForTime: 'Время не важно — уточним по телефону',
+  bookCheckboxCallForTimeHint: 'Перезвоним и согласуем точное время.',
+  bookConfirmClientTitle: 'Ваши данные',
+  bookConfirmNameLabel: 'Имя',
+  bookConfirmPhoneLabel: 'Телефон',
+  bookConfirmDetailsTitle: 'Запись',
+  bookConfirmServiceLabel: 'Услуга',
+  bookConfirmMasterLabel: 'Мастер',
+  bookConfirmDateLabel: 'Дата',
+  bookConfirmTimeLabel: 'Время',
+  bookConfirmDurationLabel: 'Длительность',
+  bookConfirmDurationMinutes: ({ minutes }) => `${minutes} мин`,
+  bookConfirmDurationRangeNote: 'Длительность уточняется по телефону в зависимости от сложности',
+  bookConfirmAnyMasterDisplay: 'Любой свободный мастер',
+  bookConfirmTimeByPhone: 'Время согласовывается по телефону',
+  bookConfirmCommentLabel: 'Комментарий',
+  bookConfirmCommentPlaceholder: 'Ваши пожелания или уточнения...',
 };
 
 const EN: AppTranslations = {
@@ -192,6 +236,26 @@ const EN: AppTranslations = {
   profLang: 'Interface language', profNotif: 'Notifications',
   profContact: 'Contact salon', profSignOut: 'Sign out',
   profHistory: 'Visit history',
+  bookDurLabel: (m) => m < 60 ? `${m} min` : m % 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m / 60}h`,
+  bookCheckboxAnyMaster: 'Any available master',
+  bookCheckboxAnyMasterHint: 'We will assign an available master.',
+  bookCheckboxCallForTime: 'Time is flexible / confirm by phone',
+  bookCheckboxCallForTimeHint: 'We will call you to confirm the exact time.',
+  bookConfirmClientTitle: 'Your details',
+  bookConfirmNameLabel: 'Name',
+  bookConfirmPhoneLabel: 'Phone',
+  bookConfirmDetailsTitle: 'Appointment',
+  bookConfirmServiceLabel: 'Service',
+  bookConfirmMasterLabel: 'Master',
+  bookConfirmDateLabel: 'Date',
+  bookConfirmTimeLabel: 'Time',
+  bookConfirmDurationLabel: 'Duration',
+  bookConfirmDurationMinutes: ({ minutes }) => `${minutes} min`,
+  bookConfirmDurationRangeNote: 'Duration will be confirmed by phone depending on complexity',
+  bookConfirmAnyMasterDisplay: 'Any available master',
+  bookConfirmTimeByPhone: 'Time to be confirmed by phone',
+  bookConfirmCommentLabel: 'Comment',
+  bookConfirmCommentPlaceholder: 'Your wishes or notes...',
 };
 
 const UK: AppTranslations = {
@@ -253,6 +317,26 @@ const UK: AppTranslations = {
   profLang: 'Мова інтерфейсу', profNotif: 'Сповіщення',
   profContact: "Зв'язатися із салоном", profSignOut: 'Вийти',
   profHistory: 'Історія візитів',
+  bookDurLabel: (m) => m < 60 ? `${m} хв` : m % 60 ? `${Math.floor(m / 60)} год ${m % 60} хв` : `${m / 60} год`,
+  bookCheckboxAnyMaster: 'Не важливо / будь-який майстер',
+  bookCheckboxAnyMasterHint: 'Призначимо вільного майстра.',
+  bookCheckboxCallForTime: 'Час не важливий — узгодимо по телефону',
+  bookCheckboxCallForTimeHint: 'Ми передзвонимо й узгодимо точний час.',
+  bookConfirmClientTitle: 'Ваші дані',
+  bookConfirmNameLabel: "Ім'я",
+  bookConfirmPhoneLabel: 'Телефон',
+  bookConfirmDetailsTitle: 'Запис',
+  bookConfirmServiceLabel: 'Послуга',
+  bookConfirmMasterLabel: 'Майстер',
+  bookConfirmDateLabel: 'Дата',
+  bookConfirmTimeLabel: 'Час',
+  bookConfirmDurationLabel: 'Тривалість',
+  bookConfirmDurationMinutes: ({ minutes }) => `${minutes} хв`,
+  bookConfirmDurationRangeNote: 'Тривалість уточнюється по телефону залежно від складності',
+  bookConfirmAnyMasterDisplay: 'Будь-який вільний майстер',
+  bookConfirmTimeByPhone: 'Час узгоджується по телефону',
+  bookConfirmCommentLabel: 'Коментар',
+  bookConfirmCommentPlaceholder: 'Ваші побажання або уточнення...',
 };
 
 const BG: AppTranslations = {
@@ -314,6 +398,26 @@ const BG: AppTranslations = {
   profLang: 'Език на интерфейса', profNotif: 'Известия',
   profContact: 'Свържете се с салона', profSignOut: 'Изход',
   profHistory: 'История на посещенията',
+  bookDurLabel: (m) => m < 60 ? `${m} мин` : m % 60 ? `${Math.floor(m / 60)} ч ${m % 60} мин` : `${m / 60} ч`,
+  bookCheckboxAnyMaster: 'Без значение / всеки майстор',
+  bookCheckboxAnyMasterHint: 'Ще назначим свободен майстор.',
+  bookCheckboxCallForTime: 'Часът не е важен — по телефон',
+  bookCheckboxCallForTimeHint: 'Ще ви се обадим за точен час.',
+  bookConfirmClientTitle: 'Вашите данни',
+  bookConfirmNameLabel: 'Име',
+  bookConfirmPhoneLabel: 'Телефон',
+  bookConfirmDetailsTitle: 'Записване',
+  bookConfirmServiceLabel: 'Услуга',
+  bookConfirmMasterLabel: 'Майстор',
+  bookConfirmDateLabel: 'Дата',
+  bookConfirmTimeLabel: 'Час',
+  bookConfirmDurationLabel: 'Продължителност',
+  bookConfirmDurationMinutes: ({ minutes }) => `${minutes} мин`,
+  bookConfirmDurationRangeNote: 'Продължителността се уточнява по телефон според сложността',
+  bookConfirmAnyMasterDisplay: 'Всеки свободен майстор',
+  bookConfirmTimeByPhone: 'Часът се уточнява по телефон',
+  bookConfirmCommentLabel: 'Коментар',
+  bookConfirmCommentPlaceholder: 'Вашите пожелания или уточнения...',
 };
 
 export const translations: Record<Lang, AppTranslations> = { ru: RU, en: EN, uk: UK, bg: BG };
