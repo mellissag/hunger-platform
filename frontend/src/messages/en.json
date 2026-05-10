@@ -249,7 +249,11 @@
       "blockHoursSave": "Save block",
       "blockHoursEmpty": "No blocks for selected week",
       "blockHoursInvalidTime": "Please check time interval",
-      "blockHoursNotePlaceholder": "Break / personal time"
+      "blockHoursNotePlaceholder": "Break / personal time",
+      "durationRangeNote": "Duration will be confirmed by phone depending on complexity",
+      "detailClientComment": "Client comment",
+      "badgeAnyMaster": "Any master",
+      "badgeCallForTime": "Time by phone"
     },
     "clients": {
       "title": "Clients",
@@ -1229,6 +1233,30 @@
       "statusStockLow": "Low",
       "statusStockModerate": "Moderate",
       "statusStockOk": "OK"
+    }
+  },
+  "miniApp": {
+    "bookingConfirm": {
+      "clientBlockTitle": "Your details",
+      "nameLabel": "Name",
+      "phoneLabel": "Phone",
+      "detailsBlockTitle": "Appointment",
+      "serviceLabel": "Service",
+      "masterLabel": "Master",
+      "dateLabel": "Date",
+      "timeLabel": "Time",
+      "durationLabel": "Duration",
+      "durationMinutes": "{minutes} min",
+      "durationRangeNote": "Duration will be confirmed by phone depending on complexity",
+      "anyMasterDisplay": "Any available master",
+      "timeByPhoneDisplay": "Time to be confirmed by phone",
+      "commentLabel": "Comment",
+      "commentPlaceholder": "Your wishes or notes...",
+      "checkboxAnyMaster": "Any available master",
+      "checkboxCallForTime": "Time is flexible / confirm by phone",
+      "anyMasterHint": "We will assign an available master.",
+      "callForTimeHint": "We will call you to confirm the exact time.",
+      "step2DateRequired": "Select a preferred date."
     }
   }
 }

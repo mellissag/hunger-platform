@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useBooking, useCancelBooking, useConfirmBooking, usePatchBooking } from "@/hooks/useBookings";
 import { useDebounce } from "@/hooks/useDebounce";
+import { adminBookingDurationLabel } from "@/lib/booking-duration-label";
 import { durationMinutes } from "@/lib/date-local";
 import type { BookingDetailOut } from "@/types/admin-api";
 import { cn } from "@/lib/utils";
@@ -120,15 +121,26 @@ export function BookingDetailDrawer({
   };
 
   const fmtWhen = useMemo(() => {
-    if (!data?.starts_at) return data?.needs_consultation ? "Созвон (уточняется)" : "—";
+    if (!data) return "—";
+    if (data.call_for_time && !data.starts_at) return t("badgeCallForTime");
+    if (!data.starts_at) return data.needs_consultation ? "Созвон (уточняется)" : "—";
     return new Intl.DateTimeFormat(locale, {
       dateStyle: "full",
       timeStyle: "short",
       timeZone: salonTz,
     }).format(new Date(data.starts_at));
-  }, [data, locale, salonTz]);
+  }, [data, locale, salonTz, t]);
 
   const dur = data?.starts_at && data?.ends_at ? durationMinutes(data.starts_at, data.ends_at) : 0;
+
+  const durDisplay = useMemo(() => {
+    if (!data?.service) return "";
+    return adminBookingDurationLabel(
+      data.service,
+      (n) => t("durationMin", { n }),
+      () => t("durationRangeNote"),
+    );
+  }, [data?.service, t]);
 
   const tgDomain = data?.client.tg_username?.replace(/^@/, "") ?? "";
 
@@ -183,7 +195,18 @@ export function BookingDetailDrawer({
                       {[data.client.first_name, data.client.last_name].filter(Boolean).join(" ") ||
                         t("unnamedClient")}
                     </p>
-                    <p className="text-xs text-muted-foreground">{data.client.phone ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {data.client.phone ? (
+                        <a
+                          href={`tel:${data.client.phone.replace(/\s/g, "")}`}
+                          className="font-medium text-primary underline"
+                        >
+                          {data.client.phone}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </p>
                     {data.client.tg_username && (
                       <p className="text-xs text-muted-foreground">@{data.client.tg_username}</p>
                     )}
@@ -198,11 +221,41 @@ export function BookingDetailDrawer({
                   </div>
                 </div>
 
+                {(data.any_master || data.call_for_time) && (
+                  <div className="flex flex-wrap gap-2">
+                    {data.any_master && (
+                      <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-foreground">
+                        {t("badgeAnyMaster")}
+                      </span>
+                    )}
+                    {data.call_for_time && (
+                      <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-foreground">
+                        {t("badgeCallForTime")}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {data.client_comment?.trim() ? (
+                  <div className="rounded-lg border border-border bg-muted/15 p-3 text-sm">
+                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {t("detailClientComment")}
+                    </p>
+                    <p className="whitespace-pre-wrap text-foreground">{data.client_comment.trim()}</p>
+                  </div>
+                ) : null}
+
                 <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3 text-sm">
                   <Row label={t("detailService")} value={pickName(data.service.name_i18n, locale)} />
-                  <Row label={t("detailMaster")} value={data.master?.display_name ?? "—"} />
+                  <Row
+                    label={t("detailMaster")}
+                    value={data.any_master ? t("badgeAnyMaster") : data.master?.display_name ?? "—"}
+                  />
                   <Row label={t("detailWhen")} value={fmtWhen} />
-                  <Row label={t("detailDuration")} value={t("durationMin", { n: dur })} />
+                  <Row
+                    label={t("detailDuration")}
+                    value={durDisplay || (dur > 0 ? t("durationMin", { n: dur }) : "—")}
+                  />
                   <Row label={t("detailPrice")} value={`€${data.price}`} />
                 </div>
 

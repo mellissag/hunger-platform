@@ -273,6 +273,9 @@ export type BookingOut = {
   prepayment_amount?: string | null;
   prepayment_status?: string;
   notes: string | null;
+  client_comment?: string | null;
+  any_master?: boolean;
+  call_for_time?: boolean;
   created_via?: string;
   created_at?: string;
   cancelled_at?: string | null;
@@ -297,6 +300,8 @@ export type BookingDetailMaster = {
 export type BookingDetailService = {
   id: string;
   name_i18n: Record<string, string>;
+  duration_type?: string;
+  duration_max_minutes?: number | null;
   duration_minutes: number;
 };
 

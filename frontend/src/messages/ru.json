@@ -249,7 +249,11 @@
       "blockHoursSave": "Сохранить блок",
       "blockHoursEmpty": "Нет блоков на выбранную неделю",
       "blockHoursInvalidTime": "Проверьте интервал времени",
-      "blockHoursNotePlaceholder": "Перерыв / личные дела"
+      "blockHoursNotePlaceholder": "Перерыв / личные дела",
+      "durationRangeNote": "Длительность уточняется по телефону в зависимости от сложности",
+      "detailClientComment": "Комментарий клиента",
+      "badgeAnyMaster": "Любой мастер",
+      "badgeCallForTime": "Время по звонку"
     },
     "clients": {
       "title": "Клиенты",
@@ -1229,6 +1233,30 @@
       "statusStockLow": "Мало",
       "statusStockModerate": "Умеренно",
       "statusStockOk": "Достаточно"
+    }
+  },
+  "miniApp": {
+    "bookingConfirm": {
+      "clientBlockTitle": "Ваши данные",
+      "nameLabel": "Имя",
+      "phoneLabel": "Телефон",
+      "detailsBlockTitle": "Запись",
+      "serviceLabel": "Услуга",
+      "masterLabel": "Мастер",
+      "dateLabel": "Дата",
+      "timeLabel": "Время",
+      "durationLabel": "Длительность",
+      "durationMinutes": "{minutes} мин",
+      "durationRangeNote": "Длительность уточняется по телефону в зависимости от сложности",
+      "anyMasterDisplay": "Любой свободный мастер",
+      "timeByPhoneDisplay": "Время согласовывается по телефону",
+      "commentLabel": "Комментарий",
+      "commentPlaceholder": "Ваши пожелания или уточнения...",
+      "checkboxAnyMaster": "Не важно / любой мастер",
+      "checkboxCallForTime": "Время не важно — уточним по телефону",
+      "anyMasterHint": "Назначим свободного мастера.",
+      "callForTimeHint": "Перезвоним и согласуем точное время.",
+      "step2DateRequired": "Выберите предпочтительную дату."
     }
   }
 }

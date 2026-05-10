@@ -88,6 +88,9 @@ class Booking(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
     payment_provider_ref: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    client_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    any_master: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    call_for_time: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_via: Mapped[BookingCreatedVia] = mapped_column(
         SQLEnum(
             BookingCreatedVia,

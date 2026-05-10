@@ -111,6 +111,9 @@ export interface BookingCreatePayload {
   client_phone?: string;
   telegram_id?: number;
   notes?: string;
+  comment?: string;
+  any_master?: boolean;
+  call_for_time?: boolean;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -272,6 +275,8 @@ export function useCreateBooking() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mini-app', 'my-bookings'] });
       qc.invalidateQueries({ queryKey: ['mini-app', 'slots'] });
+      qc.invalidateQueries({ queryKey: ['mini-app', 'client-profile'] });
+      qc.invalidateQueries({ queryKey: ['mini-app', 'me'] });
     },
   });
 }

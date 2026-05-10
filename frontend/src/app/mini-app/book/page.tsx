@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useCallback, Suspense, useEffect, useRef } from 'react';
+import { useState, useCallback, Suspense, useEffect, useRef, type CSSProperties } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { miniAppBookingDurationLabel } from '@/lib/booking-duration-label';
 import { useTelegram } from '../hooks/useTelegram';
 import {
   useServices,
@@ -89,6 +91,7 @@ function BookContent() {
   const { user } = useTelegram();
   const { data: clientProfile } = useClientProfile();
   const { t } = useT();
+  const tc = useTranslations('miniApp.bookingConfirm');
   const [step, setStep] = useState<Step>(0);
   const [activeCatKey, setActiveCatKey] = useState<'catAll'|'catHair'|'catNails'|'catFace'|'catBody'>('catAll');
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -97,6 +100,11 @@ function BookContent() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [calMonth, setCalMonth] = useState(() => new Date());
   const [consultationMode, setConsultationMode] = useState(false);
+  const [anyMaster, setAnyMaster] = useState(false);
+  const [callForTime, setCallForTime] = useState(false);
+  const [confirmName, setConfirmName] = useState('');
+  const [confirmPhone, setConfirmPhone] = useState('');
+  const [bookingComment, setBookingComment] = useState('');
   const [isSubmittingConsultation, setIsSubmittingConsultation] = useState(false);
   const [brokenMasterPhotos, setBrokenMasterPhotos] = useState<Record<string, boolean>>({});
   const serviceQueryHandledRef = useRef(false);
@@ -147,6 +155,16 @@ function BookContent() {
     setStep(2);
   }, [qMasterId, qServiceId, selectedService, masters]);
 
+  useEffect(() => {
+    if (consultationMode) setAnyMaster(false);
+  }, [consultationMode]);
+  useEffect(() => {
+    if (anyMaster) setConsultationMode(false);
+  }, [anyMaster]);
+  useEffect(() => {
+    if (step === 2 && anyMaster) setCallForTime(true);
+  }, [step, anyMaster]);
+
   // Days for the current calendar month view
   const calDays = days.filter(d => d.getMonth() === calMonth.getMonth() && d.getFullYear() === calMonth.getFullYear());
 
@@ -158,27 +176,63 @@ function BookContent() {
   }
 
   const handleConfirm = useCallback(async () => {
-    if (!selectedService || !selectedMaster || !selectedDate || !selectedTime) return;
-    const starts_at = zonedToUtcIso(selectedDate, selectedTime, TZ);
+    if (!selectedService || !selectedDate) return;
+    if (!anyMaster && !selectedMaster) return;
+    if (!callForTime && !selectedTime) return;
+
     const storedName =
       typeof window !== 'undefined' ? window.localStorage.getItem('hunger_profile_name')?.trim() : '';
-    const browserClientName =
-      user
-        ? `${user.first_name} ${user.last_name ?? ''}`.trim()
-        : clientProfile?.first_name?.trim() || storedName || undefined;
+    const defaultName = user
+      ? `${user.first_name} ${user.last_name ?? ''}`.trim()
+      : clientProfile?.first_name?.trim() || storedName || '';
+    const nameForBooking = confirmName.trim() || defaultName;
+
+    const flex = anyMaster || callForTime;
+    let starts_at: string | undefined;
+    if (!flex) {
+      starts_at = zonedToUtcIso(selectedDate, selectedTime!, TZ);
+    } else if (!callForTime && selectedTime) {
+      starts_at = zonedToUtcIso(selectedDate, selectedTime, TZ);
+    } else {
+      starts_at = undefined;
+    }
+
     try {
       await createBooking.mutateAsync({
         service_id: selectedService.id,
-        master_id: selectedMaster.id,
+        master_id: anyMaster ? undefined : selectedMaster?.id,
         starts_at,
-        client_name: browserClientName,
+        client_name: nameForBooking || undefined,
+        client_phone: confirmPhone.trim() || undefined,
+        comment: bookingComment.trim() || undefined,
+        any_master: anyMaster,
+        call_for_time: callForTime,
         telegram_id: user?.id,
       });
+      try {
+        if (nameForBooking) localStorage.setItem('hunger_profile_name', nameForBooking);
+      } catch {
+        /* ignore */
+      }
       setStep(4);
     } catch {
       alert(t.bookErrorMsg);
     }
-  }, [selectedService, selectedMaster, selectedDate, selectedTime, user, clientProfile, createBooking, t]);
+  }, [
+    selectedService,
+    selectedMaster,
+    selectedDate,
+    selectedTime,
+    anyMaster,
+    callForTime,
+    confirmName,
+    confirmPhone,
+    bookingComment,
+    user,
+    clientProfile,
+    createBooking,
+    t,
+  ]);
 
   const handleSubmitConsultation = useCallback(async () => {
     if (!selectedService) return;
@@ -289,7 +343,10 @@ function BookContent() {
         {/* ── Consultation checkpoint ── */}
         <div style={{ padding: '0 16px 4px' }}>
           <div
-            onClick={() => setConsultationMode(prev => !prev)}
+            onClick={() => {
+              setAnyMaster(false);
+              setConsultationMode((prev) => !prev);
+            }}
             style={{
               padding: '14px 16px',
               borderRadius: 16,
@@ -335,6 +392,83 @@ function BookContent() {
           </div>
         </div>
 
+        {/* Any master */}
+        <div style={{ padding: '0 16px 4px' }}>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              if (consultationMode) return;
+              setAnyMaster((prev) => !prev);
+              setSelectedMaster(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (!consultationMode) {
+                  setAnyMaster((prev) => !prev);
+                  setSelectedMaster(null);
+                }
+              }
+            }}
+            style={{
+              padding: '14px 16px',
+              borderRadius: 16,
+              border: anyMaster ? `1.5px solid ${GOLD}` : '1px solid rgba(28,20,9,.12)',
+              background: anyMaster ? 'rgba(154,114,48,.07)' : 'var(--bg-overlay)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              cursor: consultationMode ? 'default' : 'pointer',
+              transition: 'all .15s ease',
+              opacity: consultationMode ? 0.35 : 1,
+              pointerEvents: consultationMode ? 'none' : 'auto',
+            }}
+          >
+            <div
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: '50%',
+                flexShrink: 0,
+                border: anyMaster ? 'none' : '1.5px solid var(--border-strong)',
+                background: anyMaster ? `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})` : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {anyMaster && (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M5 13l4 4L19 7"
+                    stroke="white"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  fontFamily: SERIF,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  color: NEAR_BLACK,
+                  lineHeight: 1.3,
+                }}
+              >
+                {tc('checkboxAnyMaster')}
+              </div>
+              <div style={{ fontSize: 11, color: MUTED, marginTop: 3, lineHeight: 1.4 }}>
+                {tc('anyMasterHint')}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* "или выберите мастера" divider */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
@@ -349,8 +483,8 @@ function BookContent() {
           <div style={{ flex: 1, height: 1, background: 'rgba(28,20,9,.08)' }}/>
         </div>
 
-        {/* Masters list — dimmed when consultation mode active */}
-        <div style={{ opacity: consultationMode ? 0.35 : 1, pointerEvents: consultationMode ? 'none' : 'auto', transition: 'opacity .2s ease' }}>
+        {/* Masters list — dimmed when consultation or any-master mode active */}
+        <div style={{ opacity: consultationMode || anyMaster ? 0.35 : 1, pointerEvents: consultationMode || anyMaster ? 'none' : 'auto', transition: 'opacity .2s ease' }}>
           {masters.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '24px', color: MUTED, fontFamily: SERIF, fontSize: 18 }}>
               {t.bookNoMasters}
@@ -365,7 +499,11 @@ function BookContent() {
                 return (
                   <button
                     key={m.id}
-                    onClick={() => { setSelectedMaster(m); setStep(2); }}
+                    onClick={() => {
+                      setAnyMaster(false);
+                      setSelectedMaster(m);
+                      setStep(2);
+                    }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 14,
                       background: '#fff', border: '1px solid rgba(228,221,208,1)',
@@ -409,6 +547,43 @@ function BookContent() {
           )}
         </div>
 
+        {/* CTA when any-master mode */}
+        {anyMaster && (
+          <div style={{ padding: '20px 16px 40px', position: 'sticky', bottom: 0 }}>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedMaster(null);
+                setStep(2);
+              }}
+              style={{
+                width: '100%',
+                background: NEAR_BLACK,
+                border: 'none',
+                color: IVORY,
+                padding: '15px 22px',
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: '0.10em',
+                textTransform: 'uppercase',
+                fontFamily: BODY,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                boxShadow: '0 8px 24px rgba(28,20,9,.18)',
+                cursor: 'pointer',
+              }}
+            >
+              {t.continueBtn}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* CTA when consultation mode */}
         {consultationMode && (
           <div style={{ padding: '20px 16px 40px', position: 'sticky', bottom: 0 }}>
@@ -443,7 +618,16 @@ function BookContent() {
 
     return (
       <div style={pageBg}>
-        <BackBar onBack={() => setStep(1)} label={selectedMaster ? getMasterName(selectedMaster) : t.back} />
+        <BackBar
+          onBack={() => setStep(1)}
+          label={
+            anyMaster
+              ? tc('checkboxAnyMaster')
+              : selectedMaster
+                ? getMasterName(selectedMaster)
+                : t.back
+          }
+        />
         <div style={{ padding: '20px 22px 10px' }}>
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookStep2}</div>
           <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 10, letterSpacing: '-0.02em' }}>
@@ -497,6 +681,65 @@ function BookContent() {
           })}
         </div>
 
+        {/* Call time flexible */}
+        <div style={{ padding: '0 16px 12px' }}>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              setCallForTime((prev) => {
+                const next = !prev;
+                if (next) setSelectedTime(null);
+                return next;
+              });
+            }}
+            style={{
+              padding: '14px 16px',
+              borderRadius: 16,
+              border: callForTime ? `1.5px solid ${GOLD}` : '1px solid rgba(28,20,9,.12)',
+              background: callForTime ? 'rgba(154,114,48,.07)' : 'var(--bg-overlay)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              cursor: 'pointer',
+            }}
+          >
+            <div
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: '50%',
+                flexShrink: 0,
+                border: callForTime ? 'none' : '1.5px solid var(--border-strong)',
+                background: callForTime ? `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})` : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {callForTime && (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M5 13l4 4L19 7"
+                    stroke="white"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: SERIF, fontSize: 14, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.3 }}>
+                {tc('checkboxCallForTime')}
+              </div>
+              <div style={{ fontSize: 11, color: MUTED, marginTop: 3, lineHeight: 1.4 }}>
+                {tc('callForTimeHint')}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Ornament */}
         <div style={{ textAlign: 'center', color: GOLD, opacity: .4, letterSpacing: '0.6em', fontSize: 11, padding: '4px 0', fontFamily: SERIF }}>
           ⸻ ✦ ⸻
@@ -513,8 +756,16 @@ function BookContent() {
             )}
           </div>
 
-          {!selectedDate ? (
+          {anyMaster ? (
+            <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13, fontFamily: SERIF }}>
+              {tc('anyMasterHint')}
+            </div>
+          ) : !selectedDate ? (
             <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13 }}>{t.bookSelectDate}</div>
+          ) : callForTime ? (
+            <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13, fontFamily: SERIF }}>
+              {tc('timeByPhoneDisplay')}
+            </div>
           ) : slots.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13, fontFamily: SERIF }}>{t.bookNoSlots}</div>
           ) : (
@@ -525,6 +776,7 @@ function BookContent() {
                 return (
                   <button
                     key={slot}
+                    type="button"
                     onClick={() => setSelectedTime(timeStr)}
                     style={{
                       padding: '12px 8px', borderRadius: 14, textAlign: 'center',
@@ -546,8 +798,8 @@ function BookContent() {
         {/* Bottom spacer so content isn't hidden under sticky CTA */}
         <div style={{ height: 100 }} />
 
-        {/* Sticky CTA — only visible when a time slot is selected */}
-        {selectedTime && (
+        {/* Sticky CTA — date + (time or call-for-time) */}
+        {selectedDate && (callForTime || selectedTime) && (
           <div style={{
             position: 'fixed',
             bottom: 'calc(env(safe-area-inset-bottom, 0px) + 76px)',
@@ -558,7 +810,21 @@ function BookContent() {
             zIndex: 200,
           }}>
             <button
-              onClick={() => setStep(3)}
+              type="button"
+              onClick={() => {
+                const stored =
+                  typeof window !== 'undefined'
+                    ? window.localStorage.getItem('hunger_profile_name')?.trim()
+                    : '';
+                setConfirmName(
+                  clientProfile?.first_name?.trim() ||
+                    stored ||
+                    (user ? `${user.first_name} ${user.last_name ?? ''}`.trim() : ''),
+                );
+                setConfirmPhone(clientProfile?.phone?.trim() || '');
+                setBookingComment('');
+                setStep(3);
+              }}
               style={{
                 width: '100%',
                 background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`,
@@ -586,6 +852,36 @@ function BookContent() {
       return `${t.daysShort[d.getDay()]} · ${d.getDate()} ${t.monthsGen[d.getMonth()]}`;
     })() : '—';
 
+    const durLabel = selectedService
+      ? miniAppBookingDurationLabel(
+          {
+            duration_minutes: selectedService.duration_minutes,
+            duration_max_minutes: selectedService.duration_max_minutes,
+            duration_type: selectedService.duration_type,
+          },
+          (v) => tc('durationMinutes', v),
+          () => tc('durationRangeNote'),
+        )
+      : '';
+    const masterDisplay = anyMaster
+      ? tc('anyMasterDisplay')
+      : selectedMaster
+        ? getMasterName(selectedMaster)
+        : '—';
+    const timeDisplay = callForTime ? tc('timeByPhoneDisplay') : selectedTime ?? '—';
+
+    const fieldBase: CSSProperties = {
+      width: '100%',
+      padding: '12px 14px',
+      border: '1px solid rgba(28,20,9,.15)',
+      borderRadius: 12,
+      fontSize: 15,
+      fontFamily: BODY,
+      color: NEAR_BLACK,
+      background: '#fff',
+      boxSizing: 'border-box',
+    };
+
     return (
       <div style={pageBg}>
         <BackBar onBack={() => setStep(2)} label={t.back} />
@@ -596,45 +892,105 @@ function BookContent() {
           </div>
         </div>
 
-        {/* Summary card */}
-        <div style={{ margin: '0 16px', background: '#fff', border: '1px solid rgba(228,221,208,1)', borderRadius: 20, overflow: 'hidden' }}>
-          {/* Gold top stripe */}
+        {/* Client */}
+        <div style={{ margin: '0 16px 14px', padding: '18px', background: '#fff', border: '1px solid rgba(228,221,208,1)', borderRadius: 20 }}>
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: MUTED, marginBottom: 12 }}>{tc('clientBlockTitle')}</div>
+          <label style={{ display: 'block', fontSize: 11, color: MUTED, marginBottom: 6 }} htmlFor="confirm-name">{tc('nameLabel')}</label>
+          <input
+            id="confirm-name"
+            name="client_name"
+            value={confirmName}
+            onChange={(e) => setConfirmName(e.target.value)}
+            style={{ ...fieldBase, marginBottom: 12 }}
+            autoComplete="name"
+          />
+          <label style={{ display: 'block', fontSize: 11, color: MUTED, marginBottom: 6 }} htmlFor="confirm-phone">{tc('phoneLabel')}</label>
+          <input
+            id="confirm-phone"
+            name="client_phone"
+            value={confirmPhone}
+            onChange={(e) => setConfirmPhone(e.target.value)}
+            style={fieldBase}
+            inputMode="tel"
+            autoComplete="tel"
+          />
+        </div>
+
+        {/* Details (read-only) */}
+        <div style={{ margin: '0 16px 14px', background: '#fff', border: '1px solid rgba(228,221,208,1)', borderRadius: 20, overflow: 'hidden' }}>
           <div style={{ height: 2, background: `linear-gradient(90deg, transparent, ${GOLD_HI}, transparent)` }} />
-          <div style={{ padding: '20px 20px' }}>
-            {/* Service */}
-            <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(228,221,208,.8)' }}>
-              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.20em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookSvcLabel}</div>
+          <div style={{ padding: '18px' }}>
+            <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: MUTED, marginBottom: 12 }}>{tc('detailsBlockTitle')}</div>
+            <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(228,221,208,.8)' }}>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{tc('serviceLabel')}</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 500, color: NEAR_BLACK }}>{selectedService ? getServiceName(selectedService) : '—'}</div>
-                <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 500, color: GOLD }}>€{selectedService?.price}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>{selectedService ? getServiceName(selectedService) : '—'}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 500, color: GOLD }}>€{selectedService?.price}</div>
               </div>
-              {selectedService && (
-                <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{formatDur(selectedService.duration_minutes)}</div>
-              )}
             </div>
-            {/* Master */}
-            <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(228,221,208,.8)' }}>
-              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.20em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookMasterLabel}</div>
+            <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(228,221,208,.8)' }}>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{tc('durationLabel')}</div>
+              <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 500, color: NEAR_BLACK }}>{durLabel || '—'}</div>
+            </div>
+            <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(228,221,208,.8)' }}>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{tc('masterLabel')}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: SERIF, fontSize: 14, fontWeight: 500, flexShrink: 0 }}>
-                  {selectedMaster ? getMasterInitials(getMasterName(selectedMaster)) : '?'}
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    fontFamily: SERIF,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    flexShrink: 0,
+                  }}
+                >
+                  {anyMaster ? '★' : selectedMaster ? getMasterInitials(getMasterName(selectedMaster)) : '?'}
                 </div>
-                <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 500, color: NEAR_BLACK }}>{selectedMaster ? getMasterName(selectedMaster) : '—'}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 500, color: NEAR_BLACK }}>{masterDisplay}</div>
               </div>
             </div>
-            {/* Date + time */}
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.20em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookDateTimeLabel}</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 500, color: NEAR_BLACK }}>{dayLabel}</div>
-                <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 600, color: GOLD, letterSpacing: '-0.02em' }}>{selectedTime}</div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 140px' }}>
+                <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{tc('dateLabel')}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 500, color: NEAR_BLACK }}>{dayLabel}</div>
+              </div>
+              <div style={{ flex: '1 1 120px' }}>
+                <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{tc('timeLabel')}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 600, color: GOLD }}>{timeDisplay}</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div style={{ padding: '24px 16px 40px' }}>
+        {/* Comment */}
+        <div style={{ margin: '0 16px 20px', padding: '18px', background: '#fff', border: '1px solid rgba(228,221,208,1)', borderRadius: 20 }}>
+          <label style={{ display: 'block', fontSize: 9, fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: MUTED, marginBottom: 10 }} htmlFor="booking-comment">{tc('commentLabel')}</label>
+          <textarea
+            id="booking-comment"
+            name="comment"
+            value={bookingComment}
+            onChange={(e) => setBookingComment(e.target.value)}
+            placeholder={tc('commentPlaceholder')}
+            rows={3}
+            style={{
+              ...fieldBase,
+              resize: 'vertical',
+              minHeight: 88,
+              lineHeight: 1.45,
+            }}
+          />
+        </div>
+
+        <div style={{ padding: '8px 16px 40px' }}>
           <button
+            type="button"
             onClick={handleConfirm}
             disabled={createBooking.isPending}
             style={{

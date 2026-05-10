@@ -7,6 +7,8 @@ import hmac
 import os
 import urllib.parse
 import uuid
+from datetime import timedelta
+from decimal import Decimal
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -37,7 +39,8 @@ from app.models.booking import Booking
 from app.models.salon import Salon
 from app.models.user import User
 from app.services import schedule_service
-from app.services.bot_booking import create_tg_booking
+from app.services.bot_booking import create_tg_booking, is_blacklisted
+from app.services.notifications import notify_master_new_booking
 from app.utils.datetime_utils import ensure_aware
 
 router = APIRouter(prefix="/mini-app", tags=["mini-app"])
@@ -535,6 +538,37 @@ async def get_availability(
     return MiniAppAvailabilityResponse(available_dates=available_dates)
 
 
+def _apply_mini_booking_client_updates(client: Client, payload: MiniAppBookingCreate) -> None:
+    if payload.client_name and payload.client_name.strip():
+        client.first_name = payload.client_name.strip()
+    if payload.client_phone is not None:
+        stripped = payload.client_phone.strip()
+        client.phone = stripped or None
+
+
+async def _mini_resolve_price_duration(
+    db: AsyncSession, master_id: uuid.UUID | None, service_id: uuid.UUID
+) -> tuple[Decimal, int]:
+    svc = await db.get(Service, service_id)
+    if svc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service not found")
+    if master_id is None:
+        return Decimal(svc.price), int(svc.duration_minutes)
+    ms = (
+        await db.execute(
+            select(MasterService).where(
+                MasterService.master_id == master_id,
+                MasterService.service_id == service_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if ms is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service not offered by this master")
+    price = ms.price_override if ms.price_override is not None else svc.price
+    dur = ms.duration_override if ms.duration_override is not None else svc.duration_minutes
+    return Decimal(price), int(dur)
+
+
 @router.post("/bookings", response_model=MiniAppBookingOut)
 async def create_booking(
     request: Request,
@@ -547,11 +581,21 @@ async def create_booking(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
 
     client = await _get_or_create_client(current_user, db)
+    _apply_mini_booking_client_updates(client, payload)
+    await db.flush()
 
     import uuid as _uuid
-    from decimal import Decimal as _Decimal
+    from datetime import UTC as _UTC
+    from datetime import datetime as _dt
+    from zoneinfo import ZoneInfo as _ZoneInfo
 
+    from app.core.exceptions import ClientBlacklistedError, SlotTakenError
     from app.models.enums import BookingCreatedVia, BookingStatus
+
+    if await is_blacklisted(db, client.id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Client is blacklisted")
+
+    comment_text = (payload.comment or payload.notes or "").strip() or None
 
     # ── Consultation booking (no master / time) ──────────────────────────
     if payload.needs_consultation:
@@ -578,6 +622,9 @@ async def create_booking(
             created_via=BookingCreatedVia.bot,
             needs_consultation=True,
             notes=payload.notes,
+            client_comment=comment_text,
+            any_master=False,
+            call_for_time=False,
         )
         db.add(booking)
         await db.commit()
@@ -592,18 +639,78 @@ async def create_booking(
             needs_consultation=True,
         )
 
-    # ── Regular booking ────────────────────────────────────────────────────
-    from datetime import UTC as _UTC
-    from datetime import datetime as _dt
-    from zoneinfo import ZoneInfo as _ZoneInfo
+    # ── Flexible: any master and/or time by phone ───────────────────────
+    flexible = payload.any_master or payload.call_for_time
+    if flexible:
+        if not payload.service_id:
+            raise HTTPException(status_code=400, detail="service_id required")
+        try:
+            sid = _uuid.UUID(payload.service_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid service_id")
 
-    from app.core.exceptions import ClientBlacklistedError, SlotTakenError
+        mid: uuid.UUID | None = None
+        if payload.any_master:
+            mid = None
+        elif payload.master_id:
+            try:
+                mid = _uuid.UUID(payload.master_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid master_id")
+        else:
+            raise HTTPException(status_code=400, detail="master_id required unless any_master")
 
+        if not payload.call_for_time and not payload.starts_at:
+            raise HTTPException(status_code=400, detail="starts_at required unless call_for_time")
+
+        price_dec, dur_min = await _mini_resolve_price_duration(db, mid, sid)
+
+        starts_at_utc = None
+        ends_at_utc = None
+        if payload.starts_at and not payload.call_for_time:
+            _dt_parsed = _dt.fromisoformat(payload.starts_at)
+            if _dt_parsed.tzinfo is None:
+                salon_row = (await db.execute(select(Salon).limit(1))).scalar_one_or_none()
+                _tz_name = salon_row.timezone if salon_row else "Europe/Sofia"
+                _dt_parsed = _dt_parsed.replace(tzinfo=_ZoneInfo(_tz_name))
+            starts_at_utc = _dt_parsed.astimezone(_UTC)
+            ends_at_utc = starts_at_utc + timedelta(minutes=dur_min)
+
+        booking = Booking(
+            client_id=client.id,
+            service_id=sid,
+            master_id=mid,
+            starts_at=starts_at_utc,
+            ends_at=ends_at_utc,
+            price=price_dec,
+            status=BookingStatus.pending,
+            created_via=BookingCreatedVia.bot,
+            needs_consultation=False,
+            notes=None,
+            client_comment=comment_text,
+            any_master=payload.any_master,
+            call_for_time=payload.call_for_time,
+        )
+        db.add(booking)
+        await db.flush()
+        await db.refresh(booking)
+
+        if mid is not None:
+            await notify_master_new_booking(booking.id, getattr(request.app.state, "bot", None), db)
+
+        return MiniAppBookingOut(
+            id=str(booking.id),
+            status=booking.status.value,
+            starts_at=booking.starts_at.isoformat() if booking.starts_at else None,
+            ends_at=booking.ends_at.isoformat() if booking.ends_at else None,
+            price=float(booking.price),
+            needs_consultation=False,
+        )
+
+    # ── Regular booking (fixed master + slot) ─────────────────────────────
     if not payload.master_id or not payload.starts_at:
         raise HTTPException(status_code=400, detail="master_id and starts_at required for regular booking")
 
-    # Parse starts_at; the mini-app sends local salon-timezone times (from the slots endpoint)
-    # so a naive datetime must be treated as salon local time, NOT UTC.
     _dt_parsed = _dt.fromisoformat(payload.starts_at)
     if _dt_parsed.tzinfo is None:
         salon_row = (await db.execute(select(Salon).limit(1))).scalar_one_or_none()
@@ -624,6 +731,11 @@ async def create_booking(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Client is blacklisted")
     except SlotTakenError:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Slot is taken")
+
+    booking.client_comment = comment_text
+    booking.any_master = False
+    booking.call_for_time = False
+    await db.flush()
 
     return MiniAppBookingOut(
         id=str(booking.id),

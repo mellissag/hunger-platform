@@ -56,7 +56,11 @@ class MiniAppBookingCreate(BaseModel):
     starts_at: str | None = None  # ISO datetime string; None for consultation bookings
     needs_consultation: bool = False
     client_name: str | None = None
+    client_phone: str | None = None
     notes: str | None = None
+    comment: str | None = None
+    any_master: bool = False
+    call_for_time: bool = False
 
 
 class MiniAppBookingOut(BaseModel):

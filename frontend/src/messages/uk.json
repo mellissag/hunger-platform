@@ -249,7 +249,11 @@
       "blockHoursSave": "Зберегти блок",
       "blockHoursEmpty": "Немає блоків на вибраний тиждень",
       "blockHoursInvalidTime": "Перевірте інтервал часу",
-      "blockHoursNotePlaceholder": "Перерва / особисті справи"
+      "blockHoursNotePlaceholder": "Перерва / особисті справи",
+      "durationRangeNote": "Тривалість уточнюється по телефону залежно від складності",
+      "detailClientComment": "Коментар клієнта",
+      "badgeAnyMaster": "Будь-який майстер",
+      "badgeCallForTime": "Час по телефону"
     },
     "clients": {
       "title": "Клієнти",
@@ -1229,6 +1233,30 @@
       "statusStockLow": "Мало",
       "statusStockModerate": "Помірно",
       "statusStockOk": "Достатньо"
+    }
+  },
+  "miniApp": {
+    "bookingConfirm": {
+      "clientBlockTitle": "Ваші дані",
+      "nameLabel": "Ім'я",
+      "phoneLabel": "Телефон",
+      "detailsBlockTitle": "Запис",
+      "serviceLabel": "Послуга",
+      "masterLabel": "Майстер",
+      "dateLabel": "Дата",
+      "timeLabel": "Час",
+      "durationLabel": "Тривалість",
+      "durationMinutes": "{minutes} хв",
+      "durationRangeNote": "Тривалість уточнюється по телефону залежно від складності",
+      "anyMasterDisplay": "Будь-який вільний майстер",
+      "timeByPhoneDisplay": "Час узгоджується по телефону",
+      "commentLabel": "Коментар",
+      "commentPlaceholder": "Ваші побажання або уточнення...",
+      "checkboxAnyMaster": "Не важливо / будь-який майстер",
+      "checkboxCallForTime": "Час не важливий — узгодимо по телефону",
+      "anyMasterHint": "Призначимо вільного майстра.",
+      "callForTimeHint": "Ми передзвонимо й узгодимо точний час.",
+      "step2DateRequired": "Оберіть бажану дату."
     }
   }
 }

@@ -370,6 +370,8 @@ async def get_booking_detail(db: AsyncSession, user: User, booking_id: UUID) -> 
             id=service.id,
             name_i18n=dict(service.name_i18n or {}),
             duration_minutes=int(service.duration_minutes),
+            duration_type=str(service.duration_type or "fixed"),
+            duration_max_minutes=service.duration_max_minutes,
         ),
     )
 

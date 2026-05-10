@@ -249,7 +249,11 @@
       "blockHoursSave": "Запази блок",
       "blockHoursEmpty": "Няма блокове за избраната седмица",
       "blockHoursInvalidTime": "Проверете часовия интервал",
-      "blockHoursNotePlaceholder": "Почивка / лично време"
+      "blockHoursNotePlaceholder": "Почивка / лично време",
+      "durationRangeNote": "Продължителността се уточнява по телефон според сложността",
+      "detailClientComment": "Коментар на клиента",
+      "badgeAnyMaster": "Всеки майстор",
+      "badgeCallForTime": "Час по телефон"
     },
     "clients": {
       "title": "Клиенти",
@@ -1229,6 +1233,30 @@
       "statusStockLow": "Малко",
       "statusStockModerate": "Умерено",
       "statusStockOk": "Достатъчно"
+    }
+  },
+  "miniApp": {
+    "bookingConfirm": {
+      "clientBlockTitle": "Вашите данни",
+      "nameLabel": "Име",
+      "phoneLabel": "Телефон",
+      "detailsBlockTitle": "Записване",
+      "serviceLabel": "Услуга",
+      "masterLabel": "Майстор",
+      "dateLabel": "Дата",
+      "timeLabel": "Час",
+      "durationLabel": "Продължителност",
+      "durationMinutes": "{minutes} мин",
+      "durationRangeNote": "Продължителността се уточнява по телефон според сложността",
+      "anyMasterDisplay": "Всеки свободен майстор",
+      "timeByPhoneDisplay": "Часът се уточнява по телефон",
+      "commentLabel": "Коментар",
+      "commentPlaceholder": "Вашите пожелания или уточнения...",
+      "checkboxAnyMaster": "Без значение / всеки майстор",
+      "checkboxCallForTime": "Часът не е важен — по телефон",
+      "anyMasterHint": "Ще назначим свободен майстор.",
+      "callForTimeHint": "Ще ви се обадим за точен час.",
+      "step2DateRequired": "Изберете предпочитана дата."
     }
   }
 }

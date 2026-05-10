@@ -69,6 +69,9 @@ class BookingOut(BaseModel):
     prepayment_amount: Decimal | None
     prepayment_status: PrepaymentStatus
     notes: str | None
+    client_comment: str | None = None
+    any_master: bool = False
+    call_for_time: bool = False
     created_via: BookingCreatedVia
     created_at: datetime
     cancelled_at: datetime | None
@@ -101,6 +104,8 @@ class BookingDetailServiceOut(BaseModel):
     id: UUID
     name_i18n: dict[str, str]
     duration_minutes: int
+    duration_type: str = "fixed"
+    duration_max_minutes: int | None = None
 
 
 class BookingDetailOut(BookingOut):
