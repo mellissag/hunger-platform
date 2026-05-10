@@ -6,6 +6,12 @@ export const metadata: Metadata = {
   title: "Client — Hunger Beauty",
 };
 
-export default function ClientPage({ params }: { params: { id: string } }) {
-  return <ClientDetail clientId={params.id} />;
+/** Next.js 15 passes `params` as Promise; 14 uses a plain object — support both. */
+export default async function ClientPage({
+  params,
+}: {
+  params: Promise<{ id: string }> | { id: string };
+}) {
+  const { id } = await Promise.resolve(params);
+  return <ClientDetail clientId={id} />;
 }

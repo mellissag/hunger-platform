@@ -25,6 +25,9 @@ function upstreamSubpath(pathSegments: string[], method: string): string {
 }
 
 async function proxy(request: NextRequest, pathSegments: string[], method: string) {
+  if (!pathSegments.length) {
+    return Response.json({ detail: "Missing upstream path" }, { status: 400 });
+  }
   const base = getApiBaseUrl();
   const subpath = upstreamSubpath(pathSegments, method);
   const target = new URL(`${base}/api/v1/${subpath}`);
@@ -37,7 +40,12 @@ async function proxy(request: NextRequest, pathSegments: string[], method: strin
   headers.set("Accept", request.headers.get("Accept") ?? "application/json");
   const contentType = request.headers.get("Content-Type");
   if (contentType) headers.set("Content-Type", contentType);
-  if (access) headers.set("Authorization", `Bearer ${access}`);
+  const incomingAuth = request.headers.get("Authorization");
+  if (incomingAuth) {
+    headers.set("Authorization", incomingAuth);
+  } else if (access) {
+    headers.set("Authorization", `Bearer ${access}`);
+  }
   // Telegram Mini App: browser fetch sends this; must reach FastAPI or every user shares one anonymous Client row.
   const tgInit = request.headers.get("X-Telegram-Init-Data");
   if (tgInit) headers.set("X-Telegram-Init-Data", tgInit);
@@ -66,24 +74,30 @@ async function proxy(request: NextRequest, pathSegments: string[], method: strin
   });
 }
 
-type Ctx = { params: { path: string[] } };
+type RouteCtx = { params: Promise<{ path: string[] }> | { path: string[] } };
 
-export async function GET(request: NextRequest, ctx: Ctx) {
-  return proxy(request, ctx.params.path, "GET");
+async function pathSegmentsFromCtx(ctx: RouteCtx): Promise<string[]> {
+  const raw = await Promise.resolve(ctx.params);
+  const p = raw?.path;
+  return Array.isArray(p) ? p : [];
 }
 
-export async function POST(request: NextRequest, ctx: Ctx) {
-  return proxy(request, ctx.params.path, "POST");
+export async function GET(request: NextRequest, ctx: RouteCtx) {
+  return proxy(request, await pathSegmentsFromCtx(ctx), "GET");
 }
 
-export async function PATCH(request: NextRequest, ctx: Ctx) {
-  return proxy(request, ctx.params.path, "PATCH");
+export async function POST(request: NextRequest, ctx: RouteCtx) {
+  return proxy(request, await pathSegmentsFromCtx(ctx), "POST");
 }
 
-export async function PUT(request: NextRequest, ctx: Ctx) {
-  return proxy(request, ctx.params.path, "PUT");
+export async function PATCH(request: NextRequest, ctx: RouteCtx) {
+  return proxy(request, await pathSegmentsFromCtx(ctx), "PATCH");
 }
 
-export async function DELETE(request: NextRequest, ctx: Ctx) {
-  return proxy(request, ctx.params.path, "DELETE");
+export async function PUT(request: NextRequest, ctx: RouteCtx) {
+  return proxy(request, await pathSegmentsFromCtx(ctx), "PUT");
+}
+
+export async function DELETE(request: NextRequest, ctx: RouteCtx) {
+  return proxy(request, await pathSegmentsFromCtx(ctx), "DELETE");
 }

@@ -12,6 +12,7 @@ from decimal import Decimal
 from uuid import UUID
 
 import app.core.clock as clock
+from sqlalchemy import delete as sql_delete
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -297,6 +298,48 @@ async def client_detail_extras(
     total_revenue: Decimal,
 ) -> dict[str, Any]:
     """Доп. поля для карточки клиента (воронка, AI, рассылки, фавориты)."""
+    try:
+        return await _client_detail_extras_compute(
+            db, user, client_id, client, total_bookings, total_revenue
+        )
+    except Exception:
+        logger.exception("client_detail_extras failed for client_id=%s", client_id)
+        return _client_detail_extras_fallback(client, total_bookings, total_revenue)
+
+
+def _client_detail_extras_fallback(
+    client: Client,
+    total_bookings: int,
+    total_revenue: Decimal,
+) -> dict[str, Any]:
+    raw_fs = client.funnel_stats if isinstance(client.funnel_stats, dict) else {}
+    started = int(raw_fs.get("started_booking") or 0)
+    completed = int(raw_fs.get("completed_booking") or 0)
+    avg_check = (total_revenue / Decimal(total_bookings)) if total_bookings else Decimal(0)
+    return {
+        "avg_check": avg_check,
+        "favourite_service": None,
+        "favourite_master": None,
+        "funnel_stats": {
+            "started_booking": started,
+            "completed_booking": completed,
+            "abandoned_booking": max(0, started - completed),
+            "ai_sessions": int(raw_fs.get("ai_sessions") or 0),
+        },
+        "ai_dialogs": [],
+        "broadcasts": [],
+        "bot_language": client.lang or "en",
+    }
+
+
+async def _client_detail_extras_compute(
+    db: AsyncSession,
+    user: User,
+    client_id: UUID,
+    client: Client,
+    total_bookings: int,
+    total_revenue: Decimal,
+) -> dict[str, Any]:
     master_scope = user.master_id if user.role == UserRole.master else None
     b_where: list[Any] = [
         Booking.client_id == client_id,
@@ -386,7 +429,7 @@ async def client_detail_extras(
             select(Broadcast.id, Broadcast.title, BroadcastRecipient.status, BroadcastRecipient.sent_at)
             .join(BroadcastRecipient, BroadcastRecipient.broadcast_id == Broadcast.id)
             .where(BroadcastRecipient.client_id == client_id)
-            .order_by(BroadcastRecipient.sent_at.desc().nulls_last())
+            .order_by(BroadcastRecipient.sent_at.desc())
             .limit(50)
         )
     ).all()
@@ -422,7 +465,7 @@ async def list_client_broadcast_history(
             select(Broadcast.id, Broadcast.title, BroadcastRecipient.status, BroadcastRecipient.sent_at)
             .join(BroadcastRecipient, BroadcastRecipient.broadcast_id == Broadcast.id)
             .where(BroadcastRecipient.client_id == client_id)
-            .order_by(BroadcastRecipient.sent_at.desc().nulls_last())
+            .order_by(BroadcastRecipient.sent_at.desc())
             .limit(100)
         )
     ).all()
@@ -595,9 +638,10 @@ async def update_client(db: AsyncSession, user: User, client_id: UUID, data: Cli
 async def delete_client(db: AsyncSession, user: User, client_id: UUID) -> None:
     if user.role == UserRole.master:
         raise ForbiddenScopeError("Masters cannot delete clients")
-    row = await db.get(Client, client_id)
-    if row is None:
-        raise NotFoundError("Client not found")
+    row, _tb, _tr, _lv = await get_client(db, user, client_id)
+    # booking.client_id uses ON DELETE RESTRICT — delete bookings first.
+    await db.execute(sql_delete(Booking).where(Booking.client_id == client_id))
+    await db.flush()
     try:
         await db.delete(row)
         await db.flush()
