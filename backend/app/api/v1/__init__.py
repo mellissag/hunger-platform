@@ -16,6 +16,7 @@ from app.api.v1 import (
     color_formulas,
     inventory,
     knowledge,
+    master_portal,
     masters,
     mini_app,
     notifications,
@@ -58,3 +59,4 @@ api_router.include_router(upload.router)
 api_router.include_router(inventory.router)
 api_router.include_router(color_formulas.router)
 api_router.include_router(color_formulas.client_router)
+api_router.include_router(master_portal.router)

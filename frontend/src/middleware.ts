@@ -81,9 +81,15 @@ export async function middleware(request: NextRequest) {
     if (!ADMIN_ROLES.has(session.role)) {
       return NextResponse.redirect(new URL("/403", request.url));
     }
-    if ((pathname === "/ai" || pathname.startsWith("/ai/")) && session.role === "reception") {
-      return NextResponse.redirect(new URL("/403", request.url));
+
+    if (session.role === "reception") {
+      const receptionAllowed = ["/dashboard", "/bookings", "/clients", "/schedule", "/profile"];
+      const allowed = receptionAllowed.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+      if (!allowed) {
+        return NextResponse.redirect(new URL("/403", request.url));
+      }
     }
+
     const ownerOnly =
       pathname === "/users" ||
       pathname.startsWith("/users/") ||
