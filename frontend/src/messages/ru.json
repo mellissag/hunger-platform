@@ -317,7 +317,16 @@
       "colTelegram": "Telegram",
       "badgeNoTg": "Без Telegram",
       "sendViaBot": "Написать через бота",
-      "activityLegend": "Активность в боте (точка)"
+      "activityLegend": "Активность в боте (точка)",
+      "openDetail": "Открыть профиль",
+      "selectAllPage": "Выбрать всех на странице",
+      "selectRow": "Выбрать клиента",
+      "deleteOne": "Удалить клиента",
+      "confirmDeleteOne": "Удалить этого клиента? Это действие нельзя отменить.",
+      "confirmDeleteBulk": "Удалить выбранных клиентов: {count}? Это действие нельзя отменить.",
+      "toastDeleted": "Клиент удалён",
+      "toastBulkDeleted": "Удалено клиентов: {count}",
+      "deleteSelected": "Удалить выбранных ({count})"
     },
     "chats": {
       "title": "Чаты",
@@ -342,6 +351,8 @@
     },
     "clientDetail": {
       "notFound": "Клиент не найден",
+      "loadError": "Не удалось загрузить профиль клиента",
+      "retry": "Повторить",
       "unnamed": "Без имени",
       "back": "Клиенты",
       "soonBook": "Запись — скоро",

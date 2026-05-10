@@ -46,7 +46,7 @@ import {
   useUpdateClientNote,
 } from "@/hooks/useClients";
 import { formatVisitAgo } from "@/lib/date-local";
-import { apiJson } from "@/lib/api";
+import { HttpError, apiJson } from "@/lib/api";
 import type { ClientNoteOut, ServiceOut, Paginated } from "@/types/admin-api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -76,10 +76,14 @@ export function ClientDetail({ clientId }: { clientId: string }) {
   const detailQ = useClientDetail(clientId);
   const c = detailQ.data;
 
-  const is404 =
-    detailQ.isError &&
-    detailQ.error instanceof Error &&
-    /404|not found/i.test(detailQ.error.message);
+  function isClientNotFound(err: unknown): boolean {
+    if (err instanceof HttpError && err.status === 404) return true;
+    if (err instanceof Error && /404|not found|client not found/i.test(err.message)) return true;
+    return false;
+  }
+
+  const is404 = detailQ.isError && isClientNotFound(detailQ.error);
+  const loadFailed = detailQ.isError && !isClientNotFound(detailQ.error);
 
   useEffect(() => {
     if (is404) router.replace("/clients");
@@ -134,6 +138,25 @@ export function ClientDetail({ clientId }: { clientId: string }) {
       <div className="space-y-4">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-40 w-full" />
+      </div>
+    );
+  }
+
+  if (loadFailed) {
+    const msg =
+      detailQ.error instanceof Error ? detailQ.error.message : String(detailQ.error ?? "");
+    return (
+      <div className="space-y-6 rounded-lg border border-destructive/30 bg-destructive/5 p-8">
+        <p className="font-medium text-destructive">{t("loadError")}</p>
+        <p className="text-sm text-muted-foreground">{msg}</p>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="secondary" onClick={() => detailQ.refetch()}>
+            {t("retry")}
+          </Button>
+          <Button type="button" variant="outline" asChild>
+            <Link href="/clients">{t("back")}</Link>
+          </Button>
+        </div>
       </div>
     );
   }

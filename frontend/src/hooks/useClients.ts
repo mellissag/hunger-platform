@@ -255,3 +255,29 @@ export function useRemoveBlacklist(clientId: string) {
     onError: (e: Error) => toast.error(e.message),
   });
 }
+
+export function useDeleteClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (clientId: string) => {
+      const res = await apiFetch(`/clients/${clientId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const detail =
+          typeof err === "object" && err && "detail" in err ? (err as { detail: unknown }).detail : null;
+        const msg =
+          typeof detail === "string"
+            ? detail
+            : Array.isArray(detail) && detail[0] && typeof detail[0] === "object" && "msg" in detail[0]
+              ? String((detail[0] as { msg: unknown }).msg)
+              : res.statusText;
+        throw new Error(msg || res.statusText);
+      }
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["clients"] });
+      await qc.invalidateQueries({ queryKey: ["clients", "stats"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}

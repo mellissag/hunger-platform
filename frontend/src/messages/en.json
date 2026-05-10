@@ -317,7 +317,16 @@
       "colTelegram": "Telegram",
       "badgeNoTg": "No Telegram",
       "sendViaBot": "Message via bot",
-      "activityLegend": "Bot activity (dot)"
+      "activityLegend": "Bot activity (dot)",
+      "openDetail": "Open profile",
+      "selectAllPage": "Select all on this page",
+      "selectRow": "Select client",
+      "deleteOne": "Delete client",
+      "confirmDeleteOne": "Delete this client? This cannot be undone.",
+      "confirmDeleteBulk": "Delete {count} selected clients? This cannot be undone.",
+      "toastDeleted": "Client deleted",
+      "toastBulkDeleted": "{count} clients deleted",
+      "deleteSelected": "Delete selected ({count})"
     },
     "chats": {
       "title": "Chats",
@@ -342,6 +351,8 @@
     },
     "clientDetail": {
       "notFound": "Client not found",
+      "loadError": "Could not load client profile",
+      "retry": "Retry",
       "unnamed": "Unnamed",
       "back": "Clients",
       "soonBook": "Booking flow — coming soon",

@@ -317,7 +317,16 @@
       "colTelegram": "Telegram",
       "badgeNoTg": "Без Telegram",
       "sendViaBot": "Написати через бота",
-      "activityLegend": "Активність у боті (крапка)"
+      "activityLegend": "Активність у боті (крапка)",
+      "openDetail": "Відкрити профіль",
+      "selectAllPage": "Обрати всіх на сторінці",
+      "selectRow": "Обрати клієнта",
+      "deleteOne": "Видалити клієнта",
+      "confirmDeleteOne": "Видалити цього клієнта? Цю дію не скасувати.",
+      "confirmDeleteBulk": "Видалити обраних клієнтів: {count}? Цю дію не скасувати.",
+      "toastDeleted": "Клієнта видалено",
+      "toastBulkDeleted": "Видалено клієнтів: {count}",
+      "deleteSelected": "Видалити обраних ({count})"
     },
     "chats": {
       "title": "Чати",
@@ -342,6 +351,8 @@
     },
     "clientDetail": {
       "notFound": "Клієнта не знайдено",
+      "loadError": "Не вдалося завантажити профіль клієнта",
+      "retry": "Повторити",
       "unnamed": "Без імені",
       "back": "Клієнти",
       "soonBook": "Запис — згодом",

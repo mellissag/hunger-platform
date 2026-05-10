@@ -317,7 +317,16 @@
       "colTelegram": "Telegram",
       "badgeNoTg": "Без Telegram",
       "sendViaBot": "Съобщение през бота",
-      "activityLegend": "Активност в бота (точка)"
+      "activityLegend": "Активност в бота (точка)",
+      "openDetail": "Отвори профил",
+      "selectAllPage": "Избери всички на страницата",
+      "selectRow": "Избери клиент",
+      "deleteOne": "Изтрий клиент",
+      "confirmDeleteOne": "Да изтриете този клиент? Действието е необратимо.",
+      "confirmDeleteBulk": "Да изтриете избраните {count} клиента? Действието е необратимо.",
+      "toastDeleted": "Клиентът е изтрит",
+      "toastBulkDeleted": "Изтрити клиенти: {count}",
+      "deleteSelected": "Изтрий избраните ({count})"
     },
     "chats": {
       "title": "Чатове",
@@ -342,6 +351,8 @@
     },
     "clientDetail": {
       "notFound": "Клиентът не е намерен",
+      "loadError": "Профилът на клиента не можа да се зареди",
+      "retry": "Опитай отново",
       "unnamed": "Без име",
       "back": "Клиенти",
       "soonBook": "Резервация — скоро",

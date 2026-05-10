@@ -1,13 +1,14 @@
 "use client";
 
 import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Eye,
   MessageSquare,
   Plus,
   Search,
   ShieldOff,
+  Trash2,
   Upload,
   Users,
 } from "lucide-react";
@@ -19,7 +20,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -47,11 +48,13 @@ import {
   useClientStats,
   useClients,
   useCreateClient,
+  useDeleteClient,
 } from "@/hooks/useClients";
 import { formatVisitAgo } from "@/lib/date-local";
-import { apiJson } from "@/lib/api";
+import { apiFetch, apiJson } from "@/lib/api";
 import type { ClientOut, MasterOut, Paginated } from "@/types/admin-api";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { TagMultiSelect } from "@/components/clients/tag-multi-select";
 
 const TAG_OPTIONS = ["VIP", "Постоянный", "Новый", "No-show"] as const;
@@ -117,6 +120,7 @@ export function ClientsList() {
   const t = useTranslations("pages.clients");
   const locale = useLocale();
   const router = useRouter();
+  const qc = useQueryClient();
   const [filters, setFilters] = useState<ClientsFiltersState>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(filters.search, 400);
@@ -141,13 +145,69 @@ export function ClientsList() {
     queryFn: () => apiJson<Paginated<MasterOut>>("/masters?page=1&page_size=200"),
   });
   const masters = mastersPg?.items ?? [];
+  const rows = useMemo(() => listQ.data?.items ?? [], [listQ.data?.items]);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [blOpen, setBlOpen] = useState(false);
   const [blClient, setBlClient] = useState<ClientOut | null>(null);
   const [blReason, setBlReason] = useState("");
   const createMut = useCreateClient();
+  const deleteMut = useDeleteClient();
   const blMut = useAddBlacklist();
+
+  /** Selection applies to clients visible on the current page only. */
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [page]);
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }, []);
+
+  const idsOnPage = useMemo(() => rows.map((r) => r.id), [rows]);
+  const allPageSelected =
+    idsOnPage.length > 0 && idsOnPage.every((id) => selectedIds.includes(id));
+
+  const toggleSelectAllPage = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (allPageSelected) {
+        return prev.filter((id) => !idsOnPage.includes(id));
+      }
+      return [...new Set([...prev, ...idsOnPage])];
+    });
+  }, [allPageSelected, idsOnPage]);
+
+  const handleDeleteOne = useCallback(
+    async (c: ClientOut) => {
+      if (!confirm(t("confirmDeleteOne"))) return;
+      try {
+        await deleteMut.mutateAsync(c.id);
+        toast.success(t("toastDeleted"));
+        setSelectedIds((prev) => prev.filter((id) => id !== c.id));
+      } catch {
+        /* useDeleteClient shows error toast */
+      }
+    },
+    [deleteMut, t],
+  );
+
+  const runBulkDelete = useCallback(async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(t("confirmDeleteBulk", { count: selectedIds.length }))) return;
+    let ok = 0;
+    for (const id of selectedIds) {
+      const res = await apiFetch(`/clients/${id}`, { method: "DELETE" });
+      if (res.ok) ok++;
+    }
+    if (ok > 0) {
+      toast.success(t("toastBulkDeleted", { count: ok }));
+      await qc.invalidateQueries({ queryKey: ["clients"] });
+      await qc.invalidateQueries({ queryKey: ["clients", "stats"] });
+    }
+    setSelectedIds([]);
+  }, [selectedIds, t, qc]);
 
   const form = useForm<CreateForm>({
     resolver: zodResolver(createSchema),
@@ -161,8 +221,6 @@ export function ClientsList() {
     },
   });
 
-  const rows = listQ.data?.items ?? [];
-
   const goClient = useCallback(
     (id: string) => {
       router.push(`/clients/${id}`);
@@ -172,6 +230,36 @@ export function ClientsList() {
 
   const columns = useMemo<ColumnDef<ClientOut>[]>(
     () => [
+      {
+        id: "select",
+        header: () => {
+          const someOnPage = idsOnPage.some((id) => selectedIds.includes(id));
+          const indeterminate = someOnPage && !allPageSelected;
+          return (
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-input accent-[hsl(37_53%_40%)]"
+              aria-label={t("selectAllPage")}
+              checked={allPageSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = indeterminate;
+              }}
+              onChange={toggleSelectAllPage}
+              onClick={(e) => e.stopPropagation()}
+            />
+          );
+        },
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-input accent-[hsl(37_53%_40%)]"
+            aria-label={t("selectRow")}
+            checked={selectedIds.includes(row.original.id)}
+            onChange={() => toggleSelected(row.original.id)}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ),
+      },
       {
         id: "client",
         header: t("colClient"),
@@ -284,11 +372,15 @@ export function ClientsList() {
           const canBotMsg = Boolean(c.tg_user_id) && !c.bot_blocked;
           return (
             <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8" asChild>
-                <Link href={`/clients/${c.id}`} aria-label="open">
-                  <Eye className="h-4 w-4" />
-                </Link>
-              </Button>
+              <Link
+                href={`/clients/${c.id}`}
+                className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "h-8 w-8")}
+                aria-label={t("openDetail")}
+                prefetch
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Eye className="h-4 w-4" />
+              </Link>
               <Button
                 type="button"
                 variant="ghost"
@@ -315,12 +407,34 @@ export function ClientsList() {
               >
                 <ShieldOff className="h-4 w-4" />
               </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive"
+                aria-label={t("deleteOne")}
+                disabled={deleteMut.isPending}
+                onClick={() => void handleDeleteOne(c)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
           );
         },
       },
     ],
-    [locale, t],
+    [
+      locale,
+      t,
+      router,
+      idsOnPage,
+      selectedIds,
+      allPageSelected,
+      toggleSelectAllPage,
+      toggleSelected,
+      deleteMut.isPending,
+      handleDeleteOne,
+    ],
   );
 
   const table = useReactTable({
@@ -371,6 +485,16 @@ export function ClientsList() {
             <Upload className="h-4 w-4" />
             {t("exportCsv")}
           </Button>
+          {selectedIds.length > 0 ? (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => void runBulkDelete()}
+            >
+              <Trash2 className="h-4 w-4" />
+              {t("deleteSelected", { count: selectedIds.length })}
+            </Button>
+          ) : null}
           <Button
             type="button"
             className="bg-[hsl(37_53%_40%)] text-white hover:bg-[hsl(37_53%_34%)]"
