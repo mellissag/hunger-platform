@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useCallback, Suspense, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTelegram } from '../hooks/useTelegram';
 import {
   useServices,
@@ -13,7 +13,10 @@ import {
   type Master,
 } from '../hooks/useMiniAppData';
 import { zonedToUtcIso, isoToTimeInZone, isoToDateInZone } from '@/lib/date-local';
+import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
 import { useT } from '../i18n/context';
+
+const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 const GOLD = 'var(--gold-deep)';
 const GOLD_HI = 'var(--gold)';
@@ -81,6 +84,7 @@ function BackBar({ onBack, label }: { onBack: () => void; label?: string }) {
 
 function BookContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useTelegram();
   const { t } = useT();
   const [step, setStep] = useState<Step>(0);
@@ -92,6 +96,12 @@ function BookContent() {
   const [calMonth, setCalMonth] = useState(() => new Date());
   const [consultationMode, setConsultationMode] = useState(false);
   const [isSubmittingConsultation, setIsSubmittingConsultation] = useState(false);
+  const [brokenMasterPhotos, setBrokenMasterPhotos] = useState<Record<string, boolean>>({});
+  const serviceQueryHandledRef = useRef(false);
+  const masterJumpRef = useRef(false);
+
+  const qServiceId = searchParams.get('service_id');
+  const qMasterId = searchParams.get('master_id');
 
   const { data: services = [] } = useServices();
   const { data: masters = [] } = useMastersByService(selectedService?.id ?? null);
@@ -110,6 +120,30 @@ function BookContent() {
 
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const days = getNextDays(30, today);
+
+  useEffect(() => {
+    if (serviceQueryHandledRef.current || services.length === 0) return;
+    if (!qServiceId) {
+      serviceQueryHandledRef.current = true;
+      return;
+    }
+    const svc = services.find((s) => s.id === qServiceId);
+    serviceQueryHandledRef.current = true;
+    if (!svc) return;
+    setSelectedService(svc);
+    setStep(1);
+  }, [services, qServiceId]);
+
+  useEffect(() => {
+    if (masterJumpRef.current || !qMasterId || !qServiceId) return;
+    if (!selectedService || selectedService.id !== qServiceId) return;
+    if (masters.length === 0) return;
+    const m = masters.find((x) => x.id === qMasterId);
+    masterJumpRef.current = true;
+    if (!m) return;
+    setSelectedMaster(m);
+    setStep(2);
+  }, [qMasterId, qServiceId, selectedService, masters]);
 
   // Days for the current calendar month view
   const calDays = days.filter(d => d.getMonth() === calMonth.getMonth() && d.getFullYear() === calMonth.getFullYear());
@@ -217,11 +251,20 @@ function BookContent() {
     );
   }
 
+  const handleBackFromMasterStep = () => {
+    if (qServiceId) {
+      router.back();
+      return;
+    }
+    setStep(0);
+    setConsultationMode(false);
+  };
+
   // ── Step 1: Master selection ──────────────────────────────────────────────
   if (step === 1) {
     return (
       <div style={pageBg}>
-        <BackBar onBack={() => { setStep(0); setConsultationMode(false); }} label={selectedService ? getServiceName(selectedService) : t.back} />
+        <BackBar onBack={handleBackFromMasterStep} label={selectedService ? getServiceName(selectedService) : t.back} />
         <div style={{ padding: '20px 22px 16px' }}>
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookStep1}</div>
           <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 10, letterSpacing: '-0.02em' }}>
@@ -303,6 +346,8 @@ function BookContent() {
               {masters.map(m => {
                 const mName = getMasterName(m);
                 const spec = typeof m.specialization === 'object' ? pickI18n(m.specialization) : (m.specialization ?? '');
+                const avatarSrc = salonMediaSrcForApiOrigin(m.photo_url ?? m.avatar_url ?? null, API_ORIGIN);
+                const showPhoto = Boolean(avatarSrc) && !brokenMasterPhotos[m.id];
                 return (
                   <button
                     key={m.id}
@@ -315,11 +360,22 @@ function BookContent() {
                   >
                     <div style={{
                       width: 50, height: 50, borderRadius: '50%', flexShrink: 0,
+                      overflow: 'hidden',
                       background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       color: '#fff', fontFamily: SERIF, fontSize: 18, fontWeight: 500,
                     }}>
-                      {getMasterInitials(mName)}
+                      {showPhoto ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={avatarSrc}
+                          alt=""
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={() => setBrokenMasterPhotos((prev) => ({ ...prev, [m.id]: true }))}
+                        />
+                      ) : (
+                        getMasterInitials(mName)
+                      )}
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>{mName}</div>

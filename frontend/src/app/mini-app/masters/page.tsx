@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { salonMediaSrcForApiOrigin } from "@/lib/salon-branding";
 
 interface Master {
   id: string;
@@ -101,6 +102,7 @@ export default function MastersPage() {
         {masters.map((m) => {
           const bio = pickI18n(m.bio, lang);
           const spec = pickI18n(m.specialization, lang);
+          const avatarUrl = salonMediaSrcForApiOrigin(m.photo_url, API_BASE);
           return (
             <Link
               key={m.id}
@@ -134,9 +136,9 @@ export default function MastersPage() {
                     border: "2px solid var(--border)",
                   }}
                 >
-                  {m.photo_url && !brokenAvatars[m.id] ? (
+                  {avatarUrl && !brokenAvatars[m.id] ? (
                     <Image
-                      src={m.photo_url}
+                      src={avatarUrl}
                       alt={m.display_name}
                       width={64}
                       height={64}

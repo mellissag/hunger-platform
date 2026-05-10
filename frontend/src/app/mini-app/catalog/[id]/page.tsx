@@ -3,7 +3,10 @@
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { useServices, useMastersByService, pickI18n } from '../../hooks/useMiniAppData';
+import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
 import { useT } from '../../i18n/context';
+
+const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 const GOLD = '#9A7230';
 const GOLD_HI = '#C9A84C';
@@ -94,9 +97,8 @@ export default function ServiceDetailPage() {
   const categoryName =
     svc.category_name_i18n ? pickI18n(svc.category_name_i18n as Record<string, string>, lang) : (svc.category ?? '');
 
-  const hasPhoto = Boolean(svc.photo_url);
-  // photo_url is stored as an absolute URL (e.g. https://…/media/services/…)
-  const photoUrl = svc.photo_url ?? null;
+  const photoUrl = salonMediaSrcForApiOrigin(svc.photo_url, API_ORIGIN) ?? null;
+  const hasPhoto = Boolean(photoUrl);
 
   return (
     <div
@@ -361,6 +363,7 @@ export default function ServiceDetailPage() {
                   : (master.specialization ?? '');
               const initials = getMasterInitials(mName);
               const isLast = idx === masters.length - 1;
+              const mPhoto = salonMediaSrcForApiOrigin(master.photo_url ?? null, API_ORIGIN);
 
               return (
                 <div
@@ -386,9 +389,9 @@ export default function ServiceDetailPage() {
                       flexShrink: 0,
                     }}
                   >
-                    {master.photo_url ? (
+                    {mPhoto ? (
                       <Image
-                        src={master.photo_url}
+                        src={mPhoto}
                         alt={mName}
                         width={400}
                         height={300}

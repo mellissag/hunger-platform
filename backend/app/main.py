@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.api.v1 import api_router
 from app.bot import build_bot, build_dispatcher
@@ -58,6 +59,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Hunger Beauty API", version="1.0.0", lifespan=lifespan)
+
+# Trust X-Forwarded-* from reverse proxy so request.base_url matches the public host (correct /media URLs).
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)

@@ -37,6 +37,32 @@ from app.utils.datetime_utils import ensure_aware
 router = APIRouter(prefix="/mini-app", tags=["mini-app"])
 
 
+def _public_origin_for_media(request: Request) -> str:
+    """Base URL for /media links: dev uses request; prod uses app_domain (behind reverse proxy)."""
+    settings = get_settings()
+    if settings.app_env in ("development", "test"):
+        return str(request.base_url).rstrip("/")
+    return f"https://{settings.app_domain}".rstrip("/")
+
+
+def _resolve_mini_app_media_url(raw: str | None, request: Request) -> str | None:
+    """Normalize relative paths and localhost absolute URLs so Telegram WebApp can load images."""
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    if not s:
+        return None
+    public = _public_origin_for_media(request)
+    if s.startswith(("http://", "https://")):
+        u = urllib.parse.urlparse(s)
+        if u.hostname in ("127.0.0.1", "localhost", "0.0.0.0"):
+            qs = f"?{u.query}" if u.query else ""
+            return f"{public}{u.path}{qs}"
+        return s
+    path = s if s.startswith("/") else f"/{s}"
+    return f"{public}{path}"
+
+
 # ─── HMAC validation ───────────────────────────────────────────────────────────
 
 
@@ -177,6 +203,7 @@ async def _get_or_create_client(payload: InitDataPayload, db: AsyncSession) -> C
 
 @router.get("/services", response_model=list[MiniAppServiceOut])
 async def list_services(
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> list[MiniAppServiceOut]:
     """Public: active services grouped by category."""
@@ -211,7 +238,7 @@ async def list_services(
                 duration_minutes=svc.duration_minutes,
                 duration_type=svc.duration_type,
                 duration_max_minutes=svc.duration_max_minutes,
-                photo_url=svc.photo_url,
+                photo_url=_resolve_mini_app_media_url(svc.photo_url, request),
                 category_id=str(svc.category_id) if svc.category_id else None,
                 category_name_i18n=cat_name,
                 masters_count=masters_count,
@@ -222,6 +249,7 @@ async def list_services(
 
 @router.get("/services/{service_id}", response_model=MiniAppServiceOut)
 async def get_service(
+    request: Request,
     service_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> MiniAppServiceOut:
@@ -261,7 +289,7 @@ async def get_service(
         duration_minutes=svc.duration_minutes,
         duration_type=svc.duration_type,
         duration_max_minutes=svc.duration_max_minutes,
-        photo_url=svc.photo_url,
+        photo_url=_resolve_mini_app_media_url(svc.photo_url, request),
         category_id=str(svc.category_id) if svc.category_id else None,
         category_name_i18n=cat_name,
         masters_count=master_count_row,
@@ -270,6 +298,7 @@ async def get_service(
 
 @router.get("/masters", response_model=list[MiniAppMasterOut])
 async def list_masters(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     service_id: str | None = None,
 ) -> list[MiniAppMasterOut]:
@@ -300,7 +329,7 @@ async def list_masters(
             id=str(m.id),
             display_name=m.display_name,
             bio=m.bio,
-            photo_url=m.photo_url,
+            photo_url=_resolve_mini_app_media_url(m.photo_url, request),
             specialization=m.specialization,
             rating_avg=float(m.rating_avg) if m.rating_avg is not None else None,
             rating_count=m.rating_count,

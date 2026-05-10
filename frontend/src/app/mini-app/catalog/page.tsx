@@ -4,7 +4,10 @@ import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useServices, useServiceCategories, pickI18n } from '../hooks/useMiniAppData';
+import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
 import { useT } from '../i18n/context';
+
+const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 const GOLD = 'var(--gold-deep)';
 const GOLD_HI = 'var(--gold)';
@@ -176,6 +179,7 @@ export default function CatalogPage() {
             const durStr = durMin < 60
               ? `${durMin} min`
               : `${Math.floor(durMin/60)}h${durMin%60 ? ' ' + (durMin%60) + 'm' : ''}`;
+            const photoSrc = salonMediaSrcForApiOrigin(svc.photo_url, API_ORIGIN);
             return (
               <button
                 key={svc.id}
@@ -191,9 +195,9 @@ export default function CatalogPage() {
                   height: 120, background: gradient, position: 'relative',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  {svc.photo_url ? (
+                  {photoSrc ? (
                     <Image
-                      src={svc.photo_url}
+                      src={photoSrc}
                       alt={name}
                       width={400}
                       height={300}
