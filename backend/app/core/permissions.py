@@ -1,11 +1,26 @@
-"""Гранулярные права доступа пользователей."""
+"""Гранулярные права доступа пользователей + RBAC-наборы ролей."""
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import TYPE_CHECKING
+
+from app.models.enums import UserRole
 
 if TYPE_CHECKING:
     from app.models.user import User
+
+# Публичный алиас (обратная совместимость)
+Role = UserRole
+
+
+class RolesRequired(Enum):
+    """Именованные наборы ролей для эндпоинтов."""
+
+    STAFF = (UserRole.owner, UserRole.admin, UserRole.master, UserRole.reception)
+    ADMINS = (UserRole.owner, UserRole.admin)
+    OWNER_ONLY = (UserRole.owner,)
+    SALON_SETTINGS = (UserRole.owner,)
 
 ALL_PERMISSIONS: list[str] = [
     # Клиенты
