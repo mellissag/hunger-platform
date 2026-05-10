@@ -256,10 +256,17 @@ function UserDrawer({
 
   const savePerms = useMutation({
     mutationFn: () => {
-      // Send only overrides that differ from role defaults
+      /** Stored overrides in DB (merge patch). If we omit a key when UI matches role default,
+       * an old `true` override would never be cleared — must send `false` explicitly. */
+      const rawOverrides = user.permissions ?? {};
       const overrides: Record<string, boolean> = {};
       for (const [k, v] of Object.entries(perms)) {
-        if (defaults[k] !== v) overrides[k] = v;
+        const defVal = defaults[k] ?? false;
+        if (v !== defVal) {
+          overrides[k] = v;
+        } else if (rawOverrides[k] !== undefined) {
+          overrides[k] = false;
+        }
       }
       return apiJson<UserStaffOut>(`/users/${user.id}`, {
         method: "PATCH",
