@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { salonMediaSrcForApiOrigin } from "@/lib/salon-branding";
 
 interface Master {
@@ -137,12 +136,10 @@ export default function MastersPage() {
                   }}
                 >
                   {avatarUrl && !brokenAvatars[m.id] ? (
-                    <Image
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
                       src={avatarUrl}
                       alt={m.display_name}
-                      width={64}
-                      height={64}
-                      unoptimized
                       onError={() => setBrokenAvatars((prev) => ({ ...prev, [m.id]: true }))}
                       style={{ objectFit: "cover", width: "100%", height: "100%" }}
                     />

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import os
 import urllib.parse
 from typing import Annotated, Any
 
@@ -38,7 +39,10 @@ router = APIRouter(prefix="/mini-app", tags=["mini-app"])
 
 
 def _public_origin_for_media(request: Request) -> str:
-    """Base URL for /media links: dev uses request; prod uses app_domain (behind reverse proxy)."""
+    """Public origin for /media — align with upload.py (BASE_URL) so files resolve on the real API host."""
+    explicit = (os.environ.get("BASE_URL") or "").strip().rstrip("/")
+    if explicit:
+        return explicit
     settings = get_settings()
     if settings.app_env in ("development", "test"):
         return str(request.base_url).rstrip("/")

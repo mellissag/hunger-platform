@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useServices, useServiceCategories, pickI18n } from '../hooks/useMiniAppData';
@@ -34,6 +33,7 @@ export default function CatalogPage() {
   const { t, lang } = useT();
   const [activeCatId, setActiveCatId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [brokenSvcPhotos, setBrokenSvcPhotos] = useState<Record<string, boolean>>({});
   const { data: services = [], isLoading } = useServices();
   const { data: apiCategories = [] } = useServiceCategories(lang);
 
@@ -180,6 +180,7 @@ export default function CatalogPage() {
               ? `${durMin} min`
               : `${Math.floor(durMin/60)}h${durMin%60 ? ' ' + (durMin%60) + 'm' : ''}`;
             const photoSrc = salonMediaSrcForApiOrigin(svc.photo_url, API_ORIGIN);
+            const showPhoto = Boolean(photoSrc) && !brokenSvcPhotos[svc.id];
             return (
               <button
                 key={svc.id}
@@ -195,14 +196,14 @@ export default function CatalogPage() {
                   height: 120, background: gradient, position: 'relative',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  {photoSrc ? (
-                    <Image
+                  {showPhoto ? (
+                    /* eslint-disable-next-line @next/next/no-img-element -- API host must not depend on next/image remotePatterns */
+                    <img
                       src={photoSrc}
                       alt={name}
-                      width={400}
-                      height={300}
                       className="h-full w-full object-cover"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={() => setBrokenSvcPhotos((p) => ({ ...p, [svc.id]: true }))}
                     />
                   ) : (
                     <span style={{ fontFamily: SERIF, fontSize: 44, fontStyle: 'italic', color: GOLD, opacity: 0.35, userSelect: 'none' }}>H</span>

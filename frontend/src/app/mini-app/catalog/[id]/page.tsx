@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useServices, useMastersByService, pickI18n } from '../../hooks/useMiniAppData';
 import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
@@ -60,6 +60,8 @@ function getMasterInitials(name: string): string {
 
 export default function ServiceDetailPage() {
   const router = useRouter();
+  const [heroPhotoBroken, setHeroPhotoBroken] = useState(false);
+  const [brokenMasterPhotos, setBrokenMasterPhotos] = useState<Record<string, boolean>>({});
   const params = useParams();
   const id = params.id as string;
   const { t, lang } = useT();
@@ -98,7 +100,7 @@ export default function ServiceDetailPage() {
     svc.category_name_i18n ? pickI18n(svc.category_name_i18n as Record<string, string>, lang) : (svc.category ?? '');
 
   const photoUrl = salonMediaSrcForApiOrigin(svc.photo_url, API_ORIGIN) ?? null;
-  const hasPhoto = Boolean(photoUrl);
+  const hasPhoto = Boolean(photoUrl) && !heroPhotoBroken;
 
   return (
     <div
@@ -116,11 +118,26 @@ export default function ServiceDetailPage() {
           position: 'relative',
           height: 320,
           background: hasPhoto
-            ? `url(${photoUrl}) center/cover no-repeat`
+            ? '#1C1408'
             : 'linear-gradient(135deg, #2a1f0a 0%, #1C1408 40%, #0d0a05 100%)',
           overflow: 'hidden',
         }}
       >
+        {photoUrl && !heroPhotoBroken ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={photoUrl}
+            alt=""
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+            onError={() => setHeroPhotoBroken(true)}
+          />
+        ) : null}
         {/* Bottom gradient for readability */}
         <div
           style={{
@@ -364,6 +381,7 @@ export default function ServiceDetailPage() {
               const initials = getMasterInitials(mName);
               const isLast = idx === masters.length - 1;
               const mPhoto = salonMediaSrcForApiOrigin(master.photo_url ?? null, API_ORIGIN);
+              const showMAvatar = Boolean(mPhoto) && !brokenMasterPhotos[master.id];
 
               return (
                 <div
@@ -389,19 +407,20 @@ export default function ServiceDetailPage() {
                       flexShrink: 0,
                     }}
                   >
-                    {mPhoto ? (
-                      <Image
+                    {showMAvatar ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
                         src={mPhoto}
                         alt={mName}
-                        width={400}
-                        height={300}
-                        className="h-full w-full rounded-full object-cover"
                         style={{
                           width: '100%',
                           height: '100%',
                           borderRadius: '50%',
                           objectFit: 'cover',
                         }}
+                        onError={() =>
+                          setBrokenMasterPhotos((p) => ({ ...p, [master.id]: true }))
+                        }
                       />
                     ) : (
                       <span

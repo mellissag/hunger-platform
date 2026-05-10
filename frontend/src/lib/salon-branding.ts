@@ -16,7 +16,20 @@ export function salonMediaSrcForApiOrigin(
 ): string | undefined {
   if (!url?.trim()) return undefined;
   const u = url.trim();
-  if (u.startsWith("http://") || u.startsWith("https://")) return u;
+  if (u.startsWith("http://") || u.startsWith("https://")) {
+    if (!apiBase.trim()) return u;
+    try {
+      const parsed = new URL(u);
+      // Same-path media always lives on the API host in this project — rewrite stale absolute URLs (old domain / http).
+      if (parsed.pathname.startsWith("/media/")) {
+        const origin = new URL(apiBase.endsWith("/") ? apiBase : `${apiBase}/`).origin;
+        return `${origin}${parsed.pathname}${parsed.search}`;
+      }
+    } catch {
+      /* fall through */
+    }
+    return u;
+  }
   const path = u.startsWith("/") ? u : `/${u}`;
   const base = apiBase.replace(/\/$/, "");
   return `${base}${path}`;
