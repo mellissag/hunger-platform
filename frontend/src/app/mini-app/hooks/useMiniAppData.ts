@@ -254,9 +254,11 @@ export function useMyBookings() {
 export function useMeProfile() {
   const { initData } = useTelegram();
   return useQuery<ClientProfile>({
+    // Key includes initData so we refetch when Telegram auth becomes available;
+    // query stays enabled so /me runs with whatever getInitData() can send (hash / session).
     queryKey: ['mini-app', 'me', !!initData],
     queryFn: () => apiFetch('/api/v1/mini-app/me'),
-    enabled: !!initData,
+    enabled: true,
     staleTime: 5 * 60_000,
     retry: false,
   });

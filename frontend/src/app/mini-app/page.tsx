@@ -19,6 +19,23 @@ const BODY = '"Inter", system-ui, sans-serif';
 const TZ = 'Europe/Sofia';
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? '';
 
+/** Matches backend `_PLACEHOLDER_MINI_APP_FIRST_NAMES` — do not treat as a real display name. */
+const MINI_APP_PLACEHOLDER_FIRST_NAMES = new Set(['Guest', 'Dev', 'Test']);
+
+function isPlaceholderMiniAppFirstName(name: string | null | undefined): boolean {
+  const n = (name ?? '').trim();
+  return n !== '' && MINI_APP_PLACEHOLDER_FIRST_NAMES.has(n);
+}
+
+function telegramUserDisplayName(user: {
+  first_name?: string;
+  last_name?: string;
+} | null): string {
+  if (!user?.first_name?.trim()) return '';
+  const parts = [user.first_name.trim(), user.last_name?.trim()].filter(Boolean);
+  return parts.join(' ');
+}
+
 /** Подборка дня — тёмная карточка на светлом фоне страницы (премиум, золото на charcoal) */
 const PICK_CARD =
   'linear-gradient(165deg, #221c14 0%, #16130e 42%, #12100c 100%)';
@@ -64,9 +81,16 @@ export default function HomePage() {
   const upcoming = bookings.filter(b => ['confirmed', 'pending'].includes(b.status));
   const nextBooking = upcoming.find(b => b.starts_at != null) ?? null;
 
-  // Prefer the name the user set during registration over their Telegram display name
+  // Real API name → onboarding/local name → Telegram WebApp user (when API still has Guest/Dev placeholder)
   const storedName = typeof window !== 'undefined' ? localStorage.getItem('hunger_profile_name') : null;
-  const clientName = profile?.first_name || storedName || t.greetingGuest;
+  const tgName = telegramUserDisplayName(user);
+  const apiName = (profile?.first_name ?? '').trim();
+  const stored = (storedName ?? '').trim();
+  const clientName =
+    (apiName && !isPlaceholderMiniAppFirstName(apiName) ? apiName : '') ||
+    stored ||
+    tgName ||
+    t.greetingGuest;
 
   const today = new Date();
   const issueNum = String(today.getMonth() + 1).padStart(2, '0');
