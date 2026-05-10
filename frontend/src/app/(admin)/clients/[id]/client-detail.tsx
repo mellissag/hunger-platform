@@ -606,9 +606,12 @@ export function ClientDetail({ clientId }: { clientId: string }) {
                 {bookingsShow.map((b) => (
                   <tr key={b.id} className="border-b border-border/60">
                     <td className="py-2 pr-2">
-                      {new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(
-                        new Date(b.starts_at),
-                      )}
+                      {b.starts_at
+                        ? new Intl.DateTimeFormat(locale, {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          }).format(new Date(b.starts_at))
+                        : "—"}
                     </td>
                     <td className="py-2 pr-2">{b.service_name}</td>
                     <td className="py-2 pr-2">{b.master_name}</td>

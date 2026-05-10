@@ -325,7 +325,8 @@
       "confirmDeleteOne": "Да изтриете този клиент? Действието е необратимо.",
       "confirmDeleteBulk": "Да изтриете избраните {count} клиента? Действието е необратимо.",
       "toastDeleted": "Клиентът е изтрит",
-      "toastBulkDeleted": "Изтрити клиенти: {count}",
+      "toastBulkDeleted": "Изтрити са {count} клиента",
+      "toastDeleteFailedGeneric": "Изтриването не успя. Възможно има резервации или свързани данни.",
       "deleteSelected": "Изтрий избраните ({count})"
     },
     "chats": {

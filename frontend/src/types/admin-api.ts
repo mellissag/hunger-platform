@@ -75,8 +75,8 @@ export type ClientStatsOut = {
 
 export type ClientBookingHistoryOut = {
   id: string;
-  starts_at: string;
-  ends_at: string;
+  starts_at: string | null;
+  ends_at: string | null;
   status: string;
   price: string;
   service_name: string;

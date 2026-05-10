@@ -197,14 +197,29 @@ export function ClientsList() {
     if (selectedIds.length === 0) return;
     if (!confirm(t("confirmDeleteBulk", { count: selectedIds.length }))) return;
     let ok = 0;
+    let lastErr = "";
     for (const id of selectedIds) {
       const res = await apiFetch(`/clients/${id}`, { method: "DELETE" });
-      if (res.ok) ok++;
+      if (res.ok) {
+        ok++;
+        continue;
+      }
+      const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
+      const detail = body?.detail;
+      lastErr =
+        typeof detail === "string"
+          ? detail
+          : Array.isArray(detail) && detail[0] && typeof detail[0] === "object" && "msg" in detail[0]
+            ? String((detail[0] as { msg: string }).msg)
+            : res.statusText;
     }
     if (ok > 0) {
       toast.success(t("toastBulkDeleted", { count: ok }));
       await qc.invalidateQueries({ queryKey: ["clients"] });
       await qc.invalidateQueries({ queryKey: ["clients", "stats"] });
+    }
+    if (ok < selectedIds.length) {
+      toast.error(lastErr.trim() || t("toastDeleteFailedGeneric"));
     }
     setSelectedIds([]);
   }, [selectedIds, t, qc]);

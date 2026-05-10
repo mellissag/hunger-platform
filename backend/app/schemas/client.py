@@ -73,8 +73,8 @@ class ClientStatsOut(BaseModel):
 
 class ClientBookingHistoryOut(BaseModel):
     id: UUID
-    starts_at: datetime
-    ends_at: datetime
+    starts_at: datetime | None = None
+    ends_at: datetime | None = None
     status: str
     price: Decimal
     service_name: str

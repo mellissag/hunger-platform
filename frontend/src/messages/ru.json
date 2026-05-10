@@ -326,6 +326,7 @@
       "confirmDeleteBulk": "Удалить выбранных клиентов: {count}? Это действие нельзя отменить.",
       "toastDeleted": "Клиент удалён",
       "toastBulkDeleted": "Удалено клиентов: {count}",
+      "toastDeleteFailedGeneric": "Не удалось удалить. Возможно, есть записи или связанные данные.",
       "deleteSelected": "Удалить выбранных ({count})"
     },
     "chats": {

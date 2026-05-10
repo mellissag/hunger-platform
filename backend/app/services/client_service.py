@@ -393,7 +393,7 @@ async def client_detail_extras(
     broadcasts = [
         {
             "broadcast_id": bid,
-            "broadcast_title": title,
+            "broadcast_title": (title or ""),
             "status": st.value if hasattr(st, "value") else str(st),
             "sent_at": sent_at,
         }

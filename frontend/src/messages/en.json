@@ -326,6 +326,7 @@
       "confirmDeleteBulk": "Delete {count} selected clients? This cannot be undone.",
       "toastDeleted": "Client deleted",
       "toastBulkDeleted": "{count} clients deleted",
+      "toastDeleteFailedGeneric": "Could not delete. The client may have bookings or related records.",
       "deleteSelected": "Delete selected ({count})"
     },
     "chats": {
