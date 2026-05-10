@@ -12,6 +12,7 @@ from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy import select
 
@@ -91,13 +92,13 @@ async def test_mini_app_masters_public(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_mini_app_booking_without_init_data(client: AsyncClient) -> None:
-    """POST /api/v1/mini-app/bookings — requires initData in production."""
+    """POST /api/v1/mini-app/bookings — without initData uses anonymous/JWT fallback (not 401)."""
     r = await client.post(
         "/api/v1/mini-app/bookings",
         json={"service_id": str(uuid.uuid4()), "master_id": str(uuid.uuid4()), "starts_at": "2026-05-10T14:00:00"},
     )
-    # In test env without bot token → 503; in dev without initData → 401; no client → 404
-    assert r.status_code in (401, 404, 503)
+    assert r.status_code != status.HTTP_401_UNAUTHORIZED
+    # Random UUIDs → usually 4xx; no longer 401 when initData is missing
 
 
 # ─── Review worker tests ───────────────────────────────────────────────────────

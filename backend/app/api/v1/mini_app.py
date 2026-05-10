@@ -6,16 +6,20 @@ import hashlib
 import hmac
 import os
 import urllib.parse
+import uuid
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials
+from jose import JWTError
 from pydantic import BaseModel as _BM, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.config import get_settings
-from app.deps import get_db, get_redis
+from app.config import Settings, get_settings
+from app.core.security import decode_access_token, parse_access_payload
+from app.deps import get_db, get_redis, security_bearer
 from app.models.catalog import MasterService, Service
 from app.models.client import Client
 from app.models.enums import ClientSource
@@ -31,6 +35,7 @@ from app.schemas.mini_app import (
 )
 from app.models.booking import Booking
 from app.models.salon import Salon
+from app.models.user import User
 from app.services import schedule_service
 from app.services.bot_booking import create_tg_booking
 from app.utils.datetime_utils import ensure_aware
@@ -100,38 +105,103 @@ def validate_init_data(raw_init_data: str, bot_token: str) -> dict[str, str]:
     return parsed
 
 
+def _synthetic_tg_from_user_uuid(user_id: uuid.UUID) -> int:
+    """Map staff JWT user to a negative synthetic tg_user_id (real Telegram ids are positive)."""
+    digest = hashlib.sha256(str(user_id).encode()).digest()
+    val = int.from_bytes(digest[:8], "big") % (10**12)
+    return -(val + 1)
+
+
+def _allow_query_tg_fallback(cfg: Settings) -> bool:
+    return cfg.mini_app_allow_query_tg_fallback or cfg.app_env in ("development", "test")
+
+
 async def get_mini_app_user(
     request: Request,
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Depends(security_bearer),
+    ],
     db: AsyncSession = Depends(get_db),
 ) -> InitDataPayload:
-    """FastAPI dependency: validate initData header, return parsed payload."""
-    cfg = get_settings()
-    if not cfg.telegram_bot_token:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Bot not configured")
-
-    init_data_raw = request.headers.get("X-Telegram-Init-Data", "")
-    if not init_data_raw:
-        # Allow missing in dev/test
-        if cfg.app_env == "development":
-            return InitDataPayload(tg_user_id=0, first_name="Dev", last_name=None, username=None, photo_url=None)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing X-Telegram-Init-Data")
-
-    parsed = validate_init_data(init_data_raw, cfg.telegram_bot_token)
-
+    """Resolve Mini App user: Telegram initData (preferred), JWT Bearer, query tg_user_id, or anonymous guest."""
     import json
-    user_json = parsed.get("user", "{}")
-    try:
-        user_data: dict[str, Any] = json.loads(user_json)
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user JSON")
 
+    cfg = get_settings()
+    init_data_raw = (request.headers.get("X-Telegram-Init-Data") or "").strip()
+
+    if init_data_raw:
+        if not cfg.telegram_bot_token:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Bot not configured")
+        try:
+            parsed = validate_init_data(init_data_raw, cfg.telegram_bot_token)
+        except HTTPException as exc:
+            if exc.status_code != status.HTTP_401_UNAUTHORIZED:
+                raise
+            # Wrong/expired initData from Telegram WebApp — fall through to JWT / guest modes.
+            parsed = None
+        else:
+            user_json = parsed.get("user", "{}")
+            try:
+                user_data: dict[str, Any] = json.loads(user_json)
+            except Exception:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user JSON")
+
+            return InitDataPayload(
+                tg_user_id=user_data.get("id", 0),
+                first_name=user_data.get("first_name", ""),
+                last_name=user_data.get("last_name"),
+                username=user_data.get("username"),
+                photo_url=user_data.get("photo_url"),
+                language_code=user_data.get("language_code"),
+            )
+
+    if credentials is not None:
+        try:
+            token_payload = decode_access_token(credentials.credentials)
+            user_uuid, _role = parse_access_payload(token_payload)
+        except (JWTError, ValueError, KeyError):
+            user_uuid = None
+
+        if user_uuid is not None:
+            result = await db.execute(select(User).where(User.id == user_uuid))
+            user_row = result.scalar_one_or_none()
+            if user_row is not None and user_row.is_active:
+                return InitDataPayload(
+                    tg_user_id=_synthetic_tg_from_user_uuid(user_row.id),
+                    first_name=user_row.first_name or "",
+                    last_name=user_row.last_name,
+                    username=None,
+                    photo_url=user_row.avatar_url,
+                    language_code=user_row.lang,
+                )
+
+    if _allow_query_tg_fallback(cfg):
+        qs = request.query_params.get("tg_user_id")
+        if qs:
+            try:
+                tid = int(qs)
+            except ValueError:
+                tid = 0
+            if tid != 0:
+                return InitDataPayload(
+                    tg_user_id=tid,
+                    first_name="Test",
+                    last_name=None,
+                    username=None,
+                    photo_url=None,
+                    language_code=None,
+                )
+
+    anon_id = cfg.mini_app_browser_anonymous_tg_id
+    guest_label = "Dev" if cfg.app_env == "development" else "Guest"
     return InitDataPayload(
-        tg_user_id=user_data.get("id", 0),
-        first_name=user_data.get("first_name", ""),
-        last_name=user_data.get("last_name"),
-        username=user_data.get("username"),
-        photo_url=user_data.get("photo_url"),
-        language_code=user_data.get("language_code"),
+        tg_user_id=anon_id,
+        first_name=guest_label,
+        last_name=None,
+        username=None,
+        photo_url=None,
+        language_code=None,
     )
 
 

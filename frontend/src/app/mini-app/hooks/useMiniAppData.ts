@@ -10,8 +10,19 @@ function authHeaders(): Record<string, string> {
   return id ? { 'X-Telegram-Init-Data': id } : {};
 }
 
+/** Same-origin BFF forwards `Authorization: Bearer` from the httpOnly session cookie. */
+function requestUrl(path: string): string {
+  if (typeof window === 'undefined') {
+    return `${API}${path}`;
+  }
+  const rest = path.replace(/^\/api\/v1\//, '');
+  const rel = `/api/bff/${rest}${window.location.search}`;
+  return rel;
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(requestUrl(path), {
+    credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
       ...authHeaders(),

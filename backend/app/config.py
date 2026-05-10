@@ -6,6 +6,7 @@ from functools import lru_cache
 
 from typing import Literal
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,6 +25,13 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     upload_dir: str = "./data/uploads"
     salon_timezone: str = "Europe/Sofia"
+    # Mini App: when initData is missing (plain browser), use this synthetic tg_user_id for all guests
+    mini_app_browser_anonymous_tg_id: int = Field(
+        default=-9000000000000000000,
+        description="Stable synthetic Telegram id for guest mini-app users without Telegram context.",
+    )
+    # Allow ?tg_user_id=… on mini-app requests as an explicit test override (also enabled in dev/test by code)
+    mini_app_allow_query_tg_fallback: bool = False
 
 
 @lru_cache
