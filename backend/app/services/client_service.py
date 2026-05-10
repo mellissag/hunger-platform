@@ -258,10 +258,12 @@ async def get_client_detail(
     c, tb, tr, lv = await get_client(db, user, client_id)
     notes = await client_note_service.list_notes(db, user, client_id)
 
+    # master_id may be NULL — INNER JOIN Master dropped rows and could confuse loaders;
+    # use OUTER JOIN and tolerate missing master for display.
     b_stmt = (
         select(Booking, Service, Master)
         .join(Service, Service.id == Booking.service_id)
-        .join(Master, Master.id == Booking.master_id)
+        .outerjoin(Master, Master.id == Booking.master_id)
         .where(Booking.client_id == client_id)
         .order_by(Booking.starts_at.desc())
         .limit(5)
@@ -271,7 +273,8 @@ async def get_client_detail(
     brows = (await db.execute(b_stmt)).all()
     bookings_out: list[tuple[Booking, str, str]] = []
     for b, svc, m in brows:
-        bookings_out.append((b, _service_name(svc), m.display_name))
+        mn = (m.display_name if m is not None else "") or "—"
+        bookings_out.append((b, _service_name(svc), mn))
 
     r_stmt = (
         select(Review, Master)
@@ -284,7 +287,7 @@ async def get_client_detail(
 
     be = (
         await db.execute(select(BlacklistEntry).where(BlacklistEntry.client_id == client_id).limit(1))
-    ).scalar_one_or_none()
+    ).scalars().first()
 
     return c, tb, tr, lv, notes, bookings_out, reviews_out, be
 
@@ -411,7 +414,7 @@ async def _client_detail_extras_compute(
                 .order_by(AIMessage.created_at.asc())
                 .limit(1)
             )
-        ).scalar_one_or_none()
+        ).scalars().first()
         preview: str | None = None
         if preview_msg and preview_msg.content:
             text = preview_msg.content.strip()
