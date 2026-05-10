@@ -54,7 +54,9 @@ services:
     env_file:
       - ../.env
     volumes:
-      - uploads_data:/app/data/uploads
+      # Bind-mount: файлы живут на хосте в ./data/uploads и не зависят от Docker volumes.
+      # Это значит docker-compose down -v НЕ удалит загруженные медиафайлы.
+      - ../data/uploads:/app/data/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,7 +72,7 @@ services:
     env_file:
       - ../.env
     volumes:
-      - uploads_data:/app/data/uploads
+      - ../data/uploads:/app/data/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,4 +99,3 @@ services:
 volumes:
   pgdata:
   redisdata:
-  uploads_data:

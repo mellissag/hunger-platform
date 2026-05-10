@@ -2,6 +2,38 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+/** Безопасный рендер фото формулы: при broken-image показывает серый placeholder. */
+function SafeFormulaImage({ src, size = 80 }: { src: string; size?: number }) {
+  const [broken, setBroken] = useState(false);
+  if (broken) {
+    return (
+      <div
+        style={{
+          width: size, height: size, borderRadius: 10,
+          background: "var(--muted, #f1f0ee)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+      </div>
+    );
+  }
+  return (
+    <Image
+      src={src}
+      alt=""
+      width={size}
+      height={size}
+      style={{ width: size, height: size, borderRadius: 10, objectFit: "cover" }}
+      onError={() => setBroken(true)}
+    />
+  );
+}
 import { useLocale, useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiJson, HttpError } from "@/lib/api";
@@ -385,14 +417,9 @@ export function FormulaViewDrawer({ formula: f, onClose, onEdit }: { formula: Co
               <div style={{ fontSize: "11px", color: tc.mutedFg, textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: "8px" }}>{t("resultPhotos")}</div>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 {(f.photo_urls ?? []).map((url, i) => (
-                  <Image
-                    key={i}
-                    src={url}
-                    alt=""
-                    width={80}
-                    height={80}
-                    style={{ width: "80px", height: "80px", borderRadius: "10px", objectFit: "cover", border: `1px solid ${tc.border}` }}
-                  />
+                  <div key={i} style={{ border: `1px solid ${tc.border}`, borderRadius: "10px", overflow: "hidden" }}>
+                    <SafeFormulaImage src={url} size={80} />
+                  </div>
                 ))}
               </div>
             </div>
@@ -1081,7 +1108,7 @@ export function FormulaDrawer({
                 {photos.map((url, i) => (
                   <div key={i} style={{ position: "relative" }}>
                     <div style={{ width: "72px", height: "72px", borderRadius: "8px", background: tc.background, border: `1px solid ${tc.border}`, overflow: "hidden" }}>
-                      <Image src={url} alt="" width={400} height={300} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <SafeFormulaImage src={url} size={72} />
                     </div>
                     <button onClick={() => setPhotos((prev) => prev.filter((_, j) => j !== i))} style={{ position: "absolute", top: "-6px", right: "-6px", width: "18px", height: "18px", background: "#c0392b", color: "#fff", border: "none", borderRadius: "50%", cursor: "pointer", fontSize: "11px", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
                   </div>

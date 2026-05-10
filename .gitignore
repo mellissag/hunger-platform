@@ -25,8 +25,12 @@ dist/
 *.tsbuildinfo
 
 # ── Docker volumes / runtime data ─────────────────────────────
-data/
-uploads/
+# data/uploads — bind-mount для загруженных медиафайлов.
+# Медиафайлы живут на хосте и не должны попадать в git.
+# .gitkeep позволяет git отслеживать пустую папку (для bind-mount при первом деплое).
+data/uploads/*
+!data/uploads/.gitkeep
+/uploads/
 backups/
 
 # ── Logs ──────────────────────────────────────────────────────
