@@ -41,7 +41,6 @@ const PICK_CARD =
   'linear-gradient(165deg, #221c14 0%, #16130e 42%, #12100c 100%)';
 const PICK_BORDER = 'rgba(201, 168, 76, 0.22)';
 const PICK_LABEL = 'rgba(201, 168, 76, 0.72)';
-const PICK_TITLE_GOLD = '#D4B76A';
 const PICK_PRICE_GOLD = '#C9A84C';
 const PICK_SHADOW =
   '0 22px 56px rgba(0, 0, 0, 0.34), 0 8px 24px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.06)';
@@ -64,7 +63,7 @@ export default function HomePage() {
   const { data: bookings = [] } = useMyBookings();
   const { data: profile } = useMeProfile();
   const { data: salonInfo } = useSalonInfo(lang);
-  const { data: dailyPick } = useDailyPick(lang);
+  const { data: dailyPicks = [] } = useDailyPick(lang);
 
   const salonAddress = (salonInfo?.address ?? '').trim();
   const salonCity = (salonInfo?.city ?? '').trim();
@@ -230,141 +229,151 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ── Подборка дня — тёмная карточка (светлая тема страницы, контрастная подборка) ── */}
-      {dailyPick && (
-        <div style={{ padding: '0 16px', marginTop: 8 }}>
-          <div
-            style={{
-              background: PICK_CARD,
-              borderRadius: 28,
-              padding: '24px 24px 22px',
-              position: 'relative',
-              overflow: 'hidden',
-              border: `1px solid ${PICK_BORDER}`,
-              boxShadow: PICK_SHADOW,
-            }}
-          >
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 2,
-                background:
-                  'linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.45), rgba(232, 207, 128, 0.55), rgba(201, 168, 76, 0.45), transparent)',
-              }}
-            />
-            {/* Тёплый золотистый блик на тёмном фоне */}
-            <div
-              style={{
-                position: 'absolute',
-                right: '-18%',
-                bottom: '-22%',
-                width: '62%',
-                aspectRatio: '1',
-                borderRadius: '50%',
-                background:
-                  'radial-gradient(circle, rgba(201, 168, 76, 0.22) 0%, rgba(154, 114, 48, 0.08) 45%, transparent 72%)',
-                pointerEvents: 'none',
-              }}
-            />
-            <div
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                letterSpacing: '0.28em',
-                color: PICK_LABEL,
-                textTransform: 'uppercase',
-                position: 'relative',
-                fontFamily: BODY,
-              }}
-            >
-              {t.homeDayPick}
-            </div>
-            <div
-              style={{
-                fontFamily: SERIF,
-                fontSize: 28,
-                fontWeight: 600,
-                marginTop: 12,
-                lineHeight: 1.12,
-                position: 'relative',
-              }}
-            >
-              <span style={{ fontStyle: 'italic', color: PICK_TITLE_GOLD }}>{dailyPick.title}</span>
-              {dailyPick.price != null && (
-                <>
-                  <br />
-                  <span
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 600,
-                      color: PICK_PRICE_GOLD,
-                      fontStyle: 'normal',
-                      letterSpacing: '-0.02em',
-                    }}
-                  >
-                    €{dailyPick.price}
-                  </span>
-                </>
-              )}
-            </div>
-            {dailyPick.tags.length > 0 && (
+      {/* ── Подборки дня — вертикальный стек тёмных карточек ── */}
+      {dailyPicks.length > 0 && (
+        <div style={{ padding: '0 16px', marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {dailyPicks.map((pick) => {
+            const btnLabel = pick.button_text ?? t.homeBtnBook;
+            const handleBtnClick = () => {
+              if (pick.button_url) {
+                window.open(pick.button_url, '_blank', 'noopener,noreferrer');
+              } else {
+                router.push(pick.service_id ? `/mini-app/catalog/${pick.service_id}` : '/mini-app/book');
+              }
+            };
+            return (
               <div
+                key={pick.id}
                 style={{
-                  display: 'flex',
-                  gap: 8,
-                  flexWrap: 'wrap' as const,
-                  marginTop: 16,
+                  background: PICK_CARD,
+                  borderRadius: 28,
+                  padding: '24px 24px 22px',
                   position: 'relative',
+                  overflow: 'hidden',
+                  border: `1px solid ${PICK_BORDER}`,
+                  boxShadow: PICK_SHADOW,
                 }}
               >
-                {dailyPick.tags.map((tag) => (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 2,
+                    background:
+                      'linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.45), rgba(232, 207, 128, 0.55), rgba(201, 168, 76, 0.45), transparent)',
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: '-18%',
+                    bottom: '-22%',
+                    width: '62%',
+                    aspectRatio: '1',
+                    borderRadius: '50%',
+                    background:
+                      'radial-gradient(circle, rgba(201, 168, 76, 0.22) 0%, rgba(154, 114, 48, 0.08) 45%, transparent 72%)',
+                    pointerEvents: 'none',
+                  }}
+                />
+                <div
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    letterSpacing: '0.28em',
+                    color: PICK_LABEL,
+                    textTransform: 'uppercase',
+                    position: 'relative',
+                    fontFamily: BODY,
+                  }}
+                >
+                  {t.homeDayPick}
+                </div>
+                <div
+                  style={{
+                    fontFamily: SERIF,
+                    fontSize: 28,
+                    fontWeight: 700,
+                    marginTop: 12,
+                    lineHeight: 1.12,
+                    position: 'relative',
+                    color: '#FFFFFF',
+                  }}
+                >
+                  {pick.title}
+                  {pick.price != null && (
+                    <>
+                      <br />
+                      <span
+                        style={{
+                          fontSize: 22,
+                          fontWeight: 600,
+                          color: PICK_PRICE_GOLD,
+                          letterSpacing: '-0.02em',
+                        }}
+                      >
+                        €{pick.price}
+                      </span>
+                    </>
+                  )}
+                </div>
+                {pick.tags.length > 0 && (
                   <div
-                    key={tag}
                     style={{
-                      border: '1px solid rgba(201, 168, 76, 0.42)',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      padding: '7px 14px',
-                      borderRadius: 6,
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: '0.08em',
-                      color: 'rgba(245, 240, 230, 0.88)',
-                      fontFamily: BODY,
+                      display: 'flex',
+                      gap: 8,
+                      flexWrap: 'wrap' as const,
+                      marginTop: 16,
+                      position: 'relative',
                     }}
                   >
-                    {tag}
+                    {pick.tags.map((tag) => (
+                      <div
+                        key={tag}
+                        style={{
+                          border: '1px solid rgba(201, 168, 76, 0.42)',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          padding: '7px 14px',
+                          borderRadius: 6,
+                          fontSize: 10,
+                          fontWeight: 600,
+                          letterSpacing: '0.08em',
+                          color: 'rgba(245, 240, 230, 0.88)',
+                          fontFamily: BODY,
+                        }}
+                      >
+                        {tag}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+                <button
+                  type="button"
+                  onClick={handleBtnClick}
+                  style={{
+                    marginTop: 20,
+                    background: `linear-gradient(135deg, ${PICK_BTN_FROM} 0%, ${PICK_BTN_TO} 100%)`,
+                    border: 'none',
+                    color: '#1C1408',
+                    padding: '13px 26px',
+                    borderRadius: 999,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: '0.14em',
+                    textTransform: 'uppercase',
+                    fontFamily: BODY,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    boxShadow: '0 10px 32px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(201, 168, 76, 0.35)',
+                  }}
+                >
+                  {btnLabel}
+                </button>
               </div>
-            )}
-            <button
-              type="button"
-              onClick={() =>
-                router.push(dailyPick.service_id ? `/mini-app/catalog/${dailyPick.service_id}` : '/mini-app/book')
-              }
-              style={{
-                marginTop: 20,
-                background: `linear-gradient(135deg, ${PICK_BTN_FROM} 0%, ${PICK_BTN_TO} 100%)`,
-                border: 'none',
-                color: '#1C1408',
-                padding: '13px 26px',
-                borderRadius: 999,
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: '0.14em',
-                textTransform: 'uppercase',
-                fontFamily: BODY,
-                cursor: 'pointer',
-                position: 'relative',
-                boxShadow: '0 10px 32px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(201, 168, 76, 0.35)',
-              }}
-            >
-              {t.homeBtnBook}
-            </button>
-          </div>
+            );
+          })}
         </div>
       )}
 

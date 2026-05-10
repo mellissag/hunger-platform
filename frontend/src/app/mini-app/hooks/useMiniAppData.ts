@@ -223,17 +223,19 @@ export function useSalonInfo(lang = 'ru') {
 }
 
 export interface DailyPick {
-  id: number;
+  id: string;
   title: string;
   tags: string[];
   price: number | null;
   service_id: string | null;
+  button_text: string | null;
+  button_url: string | null;
 }
 
 export function useDailyPick(lang = 'ru') {
-  return useQuery<DailyPick | null>({
+  return useQuery<DailyPick[]>({
     queryKey: ['mini-app', 'daily-pick', lang],
-    queryFn: () => apiFetch<DailyPick | null>(`/api/v1/mini-app/daily-pick?lang=${lang}`),
+    queryFn: () => apiFetch<DailyPick[]>(`/api/v1/mini-app/daily-pick?lang=${lang}`),
     staleTime: 30 * 60_000,
   });
 }

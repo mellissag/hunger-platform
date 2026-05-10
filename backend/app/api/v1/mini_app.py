@@ -1049,6 +1049,8 @@ class MiniAppDailyPickOut(_BM):
     tags: list[str]
     price: float | None = None
     service_id: str | None = None
+    button_text: str | None = None
+    button_url: str | None = None
 
 
 class DailyPickUpsert(_BM):
@@ -1060,6 +1062,11 @@ class DailyPickUpsert(_BM):
     tags_en: str = ""
     tags_uk: str = ""
     tags_bg: str = ""
+    button_text_ru: str = ""
+    button_text_en: str = ""
+    button_text_uk: str = ""
+    button_text_bg: str = ""
+    button_url: str = ""
     price: float | None = None
     service_id: str | None = None
     active: bool = True
@@ -1067,12 +1074,12 @@ class DailyPickUpsert(_BM):
     valid_to: str | None = None
 
 
-@router.get("/daily-pick", response_model=MiniAppDailyPickOut | None)
+@router.get("/daily-pick", response_model=list[MiniAppDailyPickOut])
 async def get_daily_pick(
     lang: str = "ru",
     db: AsyncSession = Depends(get_db),
-) -> MiniAppDailyPickOut | None:
-    """Public: return today's active daily pick for Mini App."""
+) -> list[MiniAppDailyPickOut]:
+    """Public: return all today's active daily picks for Mini App (vertical stack)."""
     from datetime import date as _date
 
     from sqlalchemy import or_
@@ -1088,30 +1095,36 @@ async def get_daily_pick(
             or_(DailyPick.valid_to.is_(None), DailyPick.valid_to >= today),
         )
         .order_by(DailyPick.updated_at.desc())
-        .limit(1)
     )
-    result = await db.execute(q)
-    pick = result.scalar_one_or_none()
-    if not pick:
-        return None
+    rows = (await db.execute(q)).scalars().all()
 
     resolved = lang if lang in _SUPPORTED_LANGS else "ru"
-    title = (
-        getattr(pick, f"title_{resolved}", None)
-        or pick.title_ru
-        or pick.title_en
-        or ""
-    )
-    raw_tags = getattr(pick, f"tags_{resolved}", None) or pick.tags_ru or ""
-    tags = [t.strip() for t in raw_tags.split(",") if t.strip()] if raw_tags else []
-
-    return MiniAppDailyPickOut(
-        id=str(pick.id),
-        title=title,
-        tags=tags,
-        price=float(pick.price) if pick.price is not None else None,
-        service_id=str(pick.service_id) if pick.service_id else None,
-    )
+    out: list[MiniAppDailyPickOut] = []
+    for pick in rows:
+        title = (
+            getattr(pick, f"title_{resolved}", None)
+            or pick.title_ru
+            or pick.title_en
+            or ""
+        )
+        raw_tags = getattr(pick, f"tags_{resolved}", None) or pick.tags_ru or ""
+        tags = [t.strip() for t in raw_tags.split(",") if t.strip()] if raw_tags else []
+        button_text = (
+            getattr(pick, f"button_text_{resolved}", None)
+            or pick.button_text_ru
+            or pick.button_text_en
+            or None
+        )
+        out.append(MiniAppDailyPickOut(
+            id=str(pick.id),
+            title=title,
+            tags=tags,
+            price=float(pick.price) if pick.price is not None else None,
+            service_id=str(pick.service_id) if pick.service_id else None,
+            button_text=button_text or None,
+            button_url=pick.button_url or None,
+        ))
+    return out
 
 
 @router.get("/daily-pick/admin", response_model=list[MiniAppDailyPickOut])
@@ -1149,6 +1162,11 @@ class DailyPickFull(_BM):
     tags_en: str
     tags_uk: str
     tags_bg: str
+    button_text_ru: str
+    button_text_en: str
+    button_text_uk: str
+    button_text_bg: str
+    button_url: str
     price: float | None = None
     service_id: str | None = None
     active: bool
@@ -1179,6 +1197,11 @@ async def get_daily_pick_admin(
         tags_en=p.tags_en or "",
         tags_uk=p.tags_uk or "",
         tags_bg=p.tags_bg or "",
+        button_text_ru=p.button_text_ru or "",
+        button_text_en=p.button_text_en or "",
+        button_text_uk=p.button_text_uk or "",
+        button_text_bg=p.button_text_bg or "",
+        button_url=p.button_url or "",
         price=float(p.price) if p.price is not None else None,
         service_id=str(p.service_id) if p.service_id else None,
         active=p.active,
@@ -1207,6 +1230,11 @@ async def create_daily_pick(
         tags_en=payload.tags_en or None,
         tags_uk=payload.tags_uk or None,
         tags_bg=payload.tags_bg or None,
+        button_text_ru=payload.button_text_ru or None,
+        button_text_en=payload.button_text_en or None,
+        button_text_uk=payload.button_text_uk or None,
+        button_text_bg=payload.button_text_bg or None,
+        button_url=payload.button_url or None,
         price=payload.price,
         service_id=_uuid.UUID(payload.service_id) if payload.service_id else None,
         active=payload.active,
@@ -1243,6 +1271,11 @@ async def update_daily_pick(
     p.tags_en = payload.tags_en or None
     p.tags_uk = payload.tags_uk or None
     p.tags_bg = payload.tags_bg or None
+    p.button_text_ru = payload.button_text_ru or None
+    p.button_text_en = payload.button_text_en or None
+    p.button_text_uk = payload.button_text_uk or None
+    p.button_text_bg = payload.button_text_bg or None
+    p.button_url = payload.button_url or None
     p.price = payload.price
     p.service_id = _uuid.UUID(payload.service_id) if payload.service_id else None
     p.active = payload.active

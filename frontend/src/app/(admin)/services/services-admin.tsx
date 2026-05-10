@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, Plus, Tag } from "lucide-react";
+import { Check, Download, Loader2, Pencil, Plus, Tag, Trash2, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { ServiceCard, ServiceCardSkeleton } from "@/components/services/ServiceCard";
 import { ServiceDeleteModal } from "@/components/services/ServiceDeleteModal";
@@ -19,12 +20,332 @@ import {
 } from "@/hooks/useServices";
 import { useHealth } from "@/hooks/useServiceStats";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import type { Paginated, ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
+
+// ── Daily Pick types & helpers ───────────────────────────────────────────────
+
+const PICK_LANGS = ["ru", "en", "uk", "bg"] as const;
+type PickLang = (typeof PICK_LANGS)[number];
+const PICK_API = "/mini-app/daily-pick/admin";
+
+interface DailyPickFull {
+  id: string;
+  title_ru: string; title_en: string; title_uk: string; title_bg: string;
+  tags_ru: string; tags_en: string; tags_uk: string; tags_bg: string;
+  button_text_ru: string; button_text_en: string; button_text_uk: string; button_text_bg: string;
+  button_url: string;
+  price: number | null;
+  service_id: string | null;
+  active: boolean;
+  valid_from: string | null;
+  valid_to: string | null;
+}
+
+const emptyPickForm = (): Omit<DailyPickFull, "id"> => ({
+  title_ru: "", title_en: "", title_uk: "", title_bg: "",
+  tags_ru: "", tags_en: "", tags_uk: "", tags_bg: "",
+  button_text_ru: "", button_text_en: "", button_text_uk: "", button_text_bg: "",
+  button_url: "",
+  price: null, service_id: null, active: true,
+  valid_from: null, valid_to: null,
+});
+
+// ── DailyPickBlock ────────────────────────────────────────────────────────────
+
+function DailyPickBlock() {
+  const qc = useQueryClient();
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState<Omit<DailyPickFull, "id">>(emptyPickForm());
+  const [activeLang, setActiveLang] = useState<PickLang>("ru");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const { data: picks = [], isLoading } = useQuery<DailyPickFull[]>({
+    queryKey: ["daily-picks-admin"],
+    queryFn: () => apiJson<DailyPickFull[]>(PICK_API),
+  });
+
+  const createMut = useMutation({
+    mutationFn: (body: Omit<DailyPickFull, "id">) =>
+      apiJson<DailyPickFull>(PICK_API, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["daily-picks-admin"] });
+      closeDrawer();
+      toast.success("Подборка создана");
+    },
+    onError: () => toast.error("Ошибка сохранения"),
+  });
+
+  const updateMut = useMutation({
+    mutationFn: (body: Omit<DailyPickFull, "id">) =>
+      apiJson<DailyPickFull>(`${PICK_API}/${editId}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["daily-picks-admin"] });
+      closeDrawer();
+      toast.success("Подборка обновлена");
+    },
+    onError: () => toast.error("Ошибка сохранения"),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) =>
+      apiJson<void>(`${PICK_API}/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["daily-picks-admin"] });
+      toast.success("Удалено");
+    },
+    onError: () => toast.error("Ошибка удаления"),
+  });
+
+  function openCreate() {
+    setEditId(null);
+    setForm(emptyPickForm());
+    setDrawerOpen(true);
+  }
+
+  function openEdit(p: DailyPickFull) {
+    setEditId(p.id);
+    setForm({
+      title_ru: p.title_ru, title_en: p.title_en, title_uk: p.title_uk, title_bg: p.title_bg,
+      tags_ru: p.tags_ru, tags_en: p.tags_en, tags_uk: p.tags_uk, tags_bg: p.tags_bg,
+      button_text_ru: p.button_text_ru, button_text_en: p.button_text_en,
+      button_text_uk: p.button_text_uk, button_text_bg: p.button_text_bg,
+      button_url: p.button_url,
+      price: p.price, service_id: p.service_id, active: p.active,
+      valid_from: p.valid_from, valid_to: p.valid_to,
+    });
+    setDrawerOpen(true);
+  }
+
+  function closeDrawer() { setDrawerOpen(false); setEditId(null); }
+
+  function setField<K extends keyof Omit<DailyPickFull, "id">>(k: K, v: Omit<DailyPickFull, "id">[K]) {
+    setForm(f => ({ ...f, [k]: v }));
+  }
+
+  const isPending = createMut.isPending || updateMut.isPending;
+
+  return (
+    <>
+      <div className="rounded border border-border bg-card shadow-[0_1px_4px_rgba(28,20,9,.06)]">
+        <div className="border-b border-border px-6 py-5 flex items-center justify-between">
+          <div>
+            <h2 className="font-playfair text-lg font-medium">Подборка дня</h2>
+            <p className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+              Блок на главном экране Mini App
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex items-center gap-2 rounded bg-primary px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Добавить подборку
+          </button>
+        </div>
+
+        <div className="px-6 pb-6 pt-4">
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+              <Loader2 className="h-4 w-4 animate-spin" /> Загрузка...
+            </div>
+          ) : picks.length === 0 ? (
+            <div className="rounded border border-dashed border-border bg-muted/30 p-8 text-center">
+              <p className="font-playfair text-base text-foreground/50">Нет подборок</p>
+              <p className="mt-1 text-xs text-muted-foreground">Создай первую — она появится на главной Mini App</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {picks.map(p => (
+                <div key={p.id} className="flex items-center justify-between rounded border border-border bg-background px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className={cn(
+                      "inline-flex h-2 w-2 rounded-full shrink-0",
+                      p.active ? "bg-emerald-500" : "bg-border",
+                    )} />
+                    <div>
+                      <p className="font-medium text-sm">{p.title_ru || p.title_en || "—"}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {p.price != null ? `€${p.price}` : "без цены"}
+                        {p.valid_from || p.valid_to ? ` · ${p.valid_from ?? "∞"} — ${p.valid_to ?? "∞"}` : ""}
+                        {p.button_url ? ` · ${p.button_url}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => openEdit(p)}
+                      className="flex h-7 w-7 items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => deleteMut.mutate(p.id)}
+                      className="flex h-7 w-7 items-center justify-center rounded border border-red-200 text-red-400 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Drawer backdrop */}
+      {drawerOpen && <div className="fixed inset-0 z-40 bg-black/30" onClick={closeDrawer} />}
+
+      {/* Drawer */}
+      <div className={cn(
+        "fixed right-0 top-0 z-50 flex h-full w-full max-w-[480px] flex-col bg-card shadow-xl transition-transform duration-300",
+        drawerOpen ? "translate-x-0" : "translate-x-full",
+      )}>
+        <div className="flex items-center justify-between border-b border-border px-6 py-5">
+          <h2 className="font-playfair text-xl font-medium">
+            {editId ? "Редактировать" : "Создать"} подборку
+          </h2>
+          <button onClick={closeDrawer} className="flex h-8 w-8 items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {/* Language tabs */}
+          <div>
+            <div className="flex gap-1 mb-3">
+              {PICK_LANGS.map(l => (
+                <button key={l} type="button" onClick={() => setActiveLang(l)}
+                  className={cn(
+                    "rounded border px-3 py-1 text-[11px] font-medium uppercase tracking-wider transition-all",
+                    activeLang === l
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:border-primary/40",
+                  )}>
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
+            {PICK_LANGS.map(l => (
+              <div key={l} className={cn("space-y-3", activeLang !== l && "hidden")}>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Заголовок ({l.toUpperCase()})
+                  </Label>
+                  <Input
+                    value={String(form[`title_${l}` as keyof typeof form] ?? "")}
+                    onChange={e => setField(`title_${l}` as keyof Omit<DailyPickFull, "id">, e.target.value as never)}
+                    placeholder={`Заголовок на ${l.toUpperCase()}...`}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Теги ({l.toUpperCase()}) — через запятую
+                  </Label>
+                  <Input
+                    value={String(form[`tags_${l}` as keyof typeof form] ?? "")}
+                    onChange={e => setField(`tags_${l}` as keyof Omit<DailyPickFull, "id">, e.target.value as never)}
+                    placeholder="Маникюр, Уход за лицом, Массаж"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Текст кнопки ({l.toUpperCase()})
+                  </Label>
+                  <Input
+                    value={String(form[`button_text_${l}` as keyof typeof form] ?? "")}
+                    onChange={e => setField(`button_text_${l}` as keyof Omit<DailyPickFull, "id">, e.target.value as never)}
+                    placeholder="Записаться"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Button URL */}
+          <div className="space-y-1.5">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              Ссылка кнопки (URL)
+            </Label>
+            <Input
+              value={form.button_url}
+              onChange={e => setField("button_url", e.target.value)}
+              placeholder="https://... или /mini-app/book (если пусто — стандартное бронирование)"
+            />
+          </div>
+
+          {/* Price */}
+          <div className="space-y-1.5">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Цена (€)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              min={0}
+              value={form.price ?? ""}
+              onChange={e => setField("price", e.target.value ? Number(e.target.value) : null)}
+              placeholder="180"
+            />
+          </div>
+
+          {/* Date range */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Действует от</Label>
+              <Input type="date" value={form.valid_from ?? ""} onChange={e => setField("valid_from", e.target.value || null)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Действует до</Label>
+              <Input type="date" value={form.valid_to ?? ""} onChange={e => setField("valid_to", e.target.value || null)} />
+            </div>
+          </div>
+
+          {/* Active toggle */}
+          <div className="flex items-center justify-between rounded border border-border bg-muted/50 px-4 py-3">
+            <span className="text-sm font-medium">Активно</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.active}
+              onClick={() => setField("active", !form.active)}
+              className={cn(
+                "relative inline-flex h-[18px] w-8 shrink-0 cursor-pointer rounded-full border-none transition-colors",
+                form.active ? "bg-emerald-600" : "bg-border",
+              )}
+            >
+              <span className={cn(
+                "pointer-events-none absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-sm transition-all",
+                form.active ? "right-[3px]" : "left-[3px]",
+              )} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex gap-3 border-t border-border px-6 py-4">
+          <Button type="button" variant="outline" onClick={closeDrawer} className="flex-1 text-[11px] uppercase tracking-wider">
+            Отмена
+          </Button>
+          <Button
+            type="button"
+            disabled={isPending}
+            onClick={() => editId ? updateMut.mutate(form) : createMut.mutate(form)}
+            className="flex-1 text-[11px] uppercase tracking-wider"
+          >
+            {isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
+            Сохранить
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+}
 
 function SyncBadge({ syncActive, syncInactive }: { syncActive: string; syncInactive: string }) {
   const { data: health } = useHealth();
@@ -332,6 +653,9 @@ export function ServicesAdmin() {
           </p>
         </div>
       </div>
+
+      {/* ── Daily Pick block ── */}
+      <DailyPickBlock />
 
       {/* ── ServiceDrawer ── */}
       <ServiceDrawer open={drawerOpen} serviceId={null} service={null} onClose={closeDrawer} />

@@ -34,6 +34,13 @@ class DailyPick(Base):
     tags_uk: Mapped[str | None] = mapped_column(Text, nullable=True)
     tags_bg: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    button_text_ru: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    button_text_en: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    button_text_uk: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    button_text_bg: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+    button_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     price: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     valid_from: Mapped[date | None] = mapped_column(Date, nullable=True)
