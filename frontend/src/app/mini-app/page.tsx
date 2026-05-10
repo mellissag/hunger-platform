@@ -49,6 +49,10 @@ export default function HomePage() {
   const { data: salonInfo } = useSalonInfo(lang);
   const { data: dailyPick } = useDailyPick(lang);
 
+  const salonAddress = (salonInfo?.address ?? '').trim();
+  const salonCity = (salonInfo?.city ?? '').trim();
+  const salonPhone = (salonInfo?.phone ?? '').trim();
+
   useEffect(() => {
     try {
       if (!localStorage.getItem('hunger_onboarded')) {
@@ -340,43 +344,41 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ── 2-column glass cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '14px 16px' }}>
+      {/* ── Salon address & phone (full width, from GET /api/v1/mini-app/salon) ── */}
+      <div style={{ padding: '14px 16px' }}>
         <div style={{
           background: 'rgba(250,248,243,0.65)',
           backdropFilter: 'blur(20px) saturate(160%)',
           WebkitBackdropFilter: 'blur(20px) saturate(160%)',
           border: '1px solid rgba(154,114,48,.18)',
-          borderRadius: 20, padding: '16px 14px',
+          borderRadius: 20,
+          padding: '16px 14px',
         }}>
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', color: MUTED, textTransform: 'uppercase', marginBottom: 6 }}>{t.homePastVisit}</div>
-          {bookings.find(b => b.status === 'completed') ? (() => {
-            const last = bookings.find(b => b.status === 'completed')!;
-            return (
-              <>
-                <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.2 }}>{last.service_name}</div>
-                <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{last.starts_at ? formatLocalDate(last.starts_at, t.daysShort, t.monthsGen) : ''}</div>
-              </>
-            );
-          })() : (
-            <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.2, opacity: 0.4 }}>{t.noData}</div>
-          )}
-        </div>
-        <div style={{
-          background: 'rgba(250,248,243,0.65)',
-          backdropFilter: 'blur(20px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-          border: '1px solid rgba(154,114,48,.18)',
-          borderRadius: 20, padding: '16px 14px',
-        }}>
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', color: MUTED, textTransform: 'uppercase', marginBottom: 6 }}>{t.homeAddress}</div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', color: MUTED, textTransform: 'uppercase', marginBottom: 10 }}>{t.homeAddress}</div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: salonCity ? 6 : 0 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" style={{ flexShrink: 0, marginTop: 2 }}>
               <path d="M12 21s7-7 7-12a7 7 0 10-14 0c0 5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>
             </svg>
-            <div style={{ fontFamily: SERIF, fontSize: 14, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.3 }}>ул. Витоша, 24</div>
+            <div style={{ fontFamily: SERIF, fontSize: 14, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.35 }}>
+              {salonAddress || '—'}
+            </div>
           </div>
-          <div style={{ fontSize: 10, color: MUTED }}>{t.homeCity}</div>
+          {salonCity ? (
+            <div style={{ fontSize: 11, color: MUTED, paddingLeft: 22 }}>{salonCity}</div>
+          ) : null}
+          {salonPhone ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" style={{ flexShrink: 0 }}>
+                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 9.63a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+              </svg>
+              <a
+                href={`tel:${salonPhone.replace(/\s/g, '')}`}
+                style={{ fontSize: 13, fontWeight: 500, color: NEAR_BLACK, textDecoration: 'none' }}
+              >
+                {salonPhone}
+              </a>
+            </div>
+          ) : null}
         </div>
       </div>
 
