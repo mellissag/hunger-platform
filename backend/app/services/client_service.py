@@ -75,6 +75,34 @@ def normalize_client_tag_filters(
     return out
 
 
+def _merge_last_visit_dates(
+    stored: datetime | None,
+    computed_from_bookings: datetime | None,
+) -> datetime | None:
+    """Берём более позднюю из даты в профиле и фактического max(starts_at) по записям."""
+    candidates = [d for d in (stored, computed_from_bookings) if d is not None]
+    return max(candidates) if candidates else None
+
+
+def _last_visit_from_bookings_sq(now: datetime) -> Any:
+    """MAX(starts_at) по прошедшим броням (не отменённым)."""
+    cancelled = (
+        BookingStatus.cancelled_by_client,
+        BookingStatus.cancelled_by_salon,
+    )
+    return (
+        select(func.max(Booking.starts_at))
+        .where(
+            Booking.client_id == Client.id,
+            Booking.starts_at.is_not(None),
+            Booking.starts_at <= now,
+            Booking.status.not_in(cancelled),
+        )
+        .correlate(Client)
+        .scalar_subquery()
+    )
+
+
 def _agg_subqueries() -> tuple[Any, Any]:
     tb = (
         select(func.count(Booking.id))
@@ -123,20 +151,19 @@ def _list_client_filters(
             Client.id.in_(select(Booking.client_id).where(Booking.master_id == master_id).distinct())
         )
     now = clock.utc_now()
+    lv_sq = _last_visit_from_bookings_sq(now)
     lv = (last_visit_days or "").strip()
     if lv == "7":
-        filters.append(Client.last_visit_at.is_not(None))
-        filters.append(Client.last_visit_at >= now - timedelta(days=7))
+        filters.append(lv_sq.is_not(None))
+        filters.append(lv_sq >= now - timedelta(days=7))
     elif lv == "30":
-        filters.append(Client.last_visit_at.is_not(None))
-        filters.append(Client.last_visit_at >= now - timedelta(days=30))
+        filters.append(lv_sq.is_not(None))
+        filters.append(lv_sq >= now - timedelta(days=30))
     elif lv == "90":
-        filters.append(Client.last_visit_at.is_not(None))
-        filters.append(Client.last_visit_at >= now - timedelta(days=90))
+        filters.append(lv_sq.is_not(None))
+        filters.append(lv_sq >= now - timedelta(days=90))
     elif lv == "180+":
-        filters.append(
-            or_(Client.last_visit_at.is_(None), Client.last_visit_at < now - timedelta(days=180))
-        )
+        filters.append(or_(lv_sq.is_(None), lv_sq < now - timedelta(days=180)))
     return filters
 
 
@@ -150,8 +177,10 @@ async def list_clients(
     tags: list[str] | None = None,
     master_id: UUID | None = None,
     last_visit_days: str | None = None,
-) -> tuple[list[tuple[Client, int, Decimal]], int]:
+) -> tuple[list[tuple[Client, int, Decimal, datetime | None]], int]:
     tb, tr = _agg_subqueries()
+    now = clock.utc_now()
+    lv_sq = _last_visit_from_bookings_sq(now)
     filters = _list_client_filters(
         user, q=q, tags=tags, master_id=master_id, last_visit_days=last_visit_days
     )
@@ -159,17 +188,19 @@ async def list_clients(
     total = int((await db.execute(count_stmt)).scalar_one())
 
     stmt = (
-        select(Client, tb.label("total_bookings"), tr.label("total_revenue"))
+        select(Client, tb.label("total_bookings"), tr.label("total_revenue"), lv_sq.label("lv_bookings"))
         .where(*filters)
         .order_by(Client.created_at.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
     rows = (await db.execute(stmt)).all()
-    out: list[tuple[Client, int, Decimal]] = []
+    out: list[tuple[Client, int, Decimal, datetime | None]] = []
     for row in rows:
         c = row[0]
-        out.append((c, int(row.total_bookings or 0), Decimal(row.total_revenue or 0)))
+        lv_raw = row.lv_bookings
+        lv_merged = _merge_last_visit_dates(c.last_visit_at, lv_raw)
+        out.append((c, int(row.total_bookings or 0), Decimal(row.total_revenue or 0), lv_merged))
     return out, total
 
 
@@ -219,11 +250,11 @@ async def get_client_detail(
     db: AsyncSession,
     user: User,
     client_id: UUID,
-) -> tuple[Client, int, Decimal, list, list, list, BlacklistEntry | None]:
+) -> tuple[Client, int, Decimal, datetime | None, list, list, list, BlacklistEntry | None]:
     """Заметки, история броней, отзывы, блэклист."""
     from app.services import client_note_service
 
-    c, tb, tr = await get_client(db, user, client_id)
+    c, tb, tr, lv = await get_client(db, user, client_id)
     notes = await client_note_service.list_notes(db, user, client_id)
 
     b_stmt = (
@@ -254,7 +285,7 @@ async def get_client_detail(
         await db.execute(select(BlacklistEntry).where(BlacklistEntry.client_id == client_id).limit(1))
     ).scalar_one_or_none()
 
-    return c, tb, tr, notes, bookings_out, reviews_out, be
+    return c, tb, tr, lv, notes, bookings_out, reviews_out, be
 
 
 async def client_detail_extras(
@@ -416,11 +447,13 @@ async def export_clients_csv_bytes(
     last_visit_days: str | None,
 ) -> bytes:
     tb, tr = _agg_subqueries()
+    now = clock.utc_now()
+    lv_sq = _last_visit_from_bookings_sq(now)
     filters = _list_client_filters(
         user, q=q, tags=tags, master_id=master_id, last_visit_days=last_visit_days
     )
     stmt = (
-        select(Client, tb.label("total_bookings"), tr.label("total_revenue"))
+        select(Client, tb.label("total_bookings"), tr.label("total_revenue"), lv_sq.label("lv_bookings"))
         .where(*filters)
         .order_by(Client.created_at.desc())
         .limit(10_000)
@@ -444,6 +477,7 @@ async def export_clients_csv_bytes(
     )
     for row in rows:
         cl = row[0]
+        lv_out = _merge_last_visit_dates(cl.last_visit_at, row.lv_bookings)
         w.writerow(
             [
                 str(cl.id),
@@ -454,7 +488,7 @@ async def export_clients_csv_bytes(
                 ",".join(cl.tags or []),
                 int(row.total_bookings or 0),
                 str(row.total_revenue or 0),
-                cl.last_visit_at.isoformat() if cl.last_visit_at else "",
+                lv_out.isoformat() if lv_out else "",
                 cl.joined_at.isoformat(),
             ]
         )
@@ -463,20 +497,25 @@ async def export_clients_csv_bytes(
 
 async def get_client(
     db: AsyncSession, user: User, client_id: UUID
-) -> tuple[Client, int, Decimal]:
+) -> tuple[Client, int, Decimal, datetime | None]:
     tb, tr = _agg_subqueries()
+    now = clock.utc_now()
+    lv_sq = _last_visit_from_bookings_sq(now)
     stmt = (
-        select(Client, tb.label("total_bookings"), tr.label("total_revenue"))
+        select(Client, tb.label("total_bookings"), tr.label("total_revenue"), lv_sq.label("lv_bookings"))
         .where(Client.id == client_id)
         .where(client_scope_filter(user))
     )
     row = (await db.execute(stmt)).one_or_none()
     if row is None:
         raise NotFoundError("Client not found")
+    c = row[0]
+    lv_merged = _merge_last_visit_dates(c.last_visit_at, row.lv_bookings)
     return (
-        row[0],
+        c,
         int(row.total_bookings or 0),
         Decimal(row.total_revenue or 0),
+        lv_merged,
     )
 
 

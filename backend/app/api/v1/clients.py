@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
@@ -44,8 +45,20 @@ router = APIRouter(prefix="/clients", tags=["clients"])
 STAFF = (UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)
 ADMINS = (UserRole.owner, UserRole.admin)
 
+_MISSING_LAST_VISIT = object()
 
-def _to_out(c: ClientModel, tb: int, tr: Decimal) -> ClientOut:
+
+def _to_out(
+    c: ClientModel,
+    tb: int,
+    tr: Decimal,
+    *,
+    last_visit_at: datetime | None | object = _MISSING_LAST_VISIT,
+) -> ClientOut:
+    if last_visit_at is _MISSING_LAST_VISIT:
+        eff_lv = c.last_visit_at
+    else:
+        eff_lv = last_visit_at  # type: ignore[assignment]
     return ClientOut(
         id=c.id,
         tg_user_id=c.tg_user_id,
@@ -65,7 +78,7 @@ def _to_out(c: ClientModel, tb: int, tr: Decimal) -> ClientOut:
         total_bookings=tb,
         total_revenue=tr,
         no_show_count=c.no_show_count,
-        last_visit_at=c.last_visit_at,
+        last_visit_at=eff_lv,
         tags=list(c.tags) if c.tags else [],
         created_at=c.created_at,
         updated_at=c.updated_at,
@@ -135,7 +148,7 @@ async def list_clients(
         master_id=master_id,
         last_visit_days=last_visit_days,
     )
-    items = [_to_out(c, tb, tr) for c, tb, tr in rows]
+    items = [_to_out(c, tb, tr, last_visit_at=lv) for c, tb, tr, lv in rows]
     return PaginatedResponse(items=items, total=total, page=page, page_size=page_size)
 
 
@@ -155,10 +168,10 @@ async def get_client_detail(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> ClientDetailOut:
-    c, tb, tr, notes, bookings_raw, reviews_raw, be = await client_service.get_client_detail(
+    c, tb, tr, lv, notes, bookings_raw, reviews_raw, be = await client_service.get_client_detail(
         db, user, client_id
     )
-    base = _to_out(c, tb, tr)
+    base = _to_out(c, tb, tr, last_visit_at=lv)
     bookings = [
         ClientBookingHistoryOut(
             id=b.id,
@@ -222,7 +235,7 @@ async def send_message_to_client(
     user: Annotated[User, Depends(require_roles(*ADMINS))],
     bot: Annotated[Bot, Depends(get_telegram_bot)],
 ) -> SendMessageResponse:
-    c, _tb, _tr = await client_service.get_client(db, user, client_id)
+    c, _tb, _tr, _lv = await client_service.get_client(db, user, client_id)
     if not c.tg_user_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -275,7 +288,7 @@ async def resolve_telegram(
     user: Annotated[User, Depends(require_roles(*ADMINS))],
     bot: Annotated[Bot, Depends(get_telegram_bot)],
 ) -> ResolveTelegramResponse:
-    c, _tb, _tr = await client_service.get_client(db, user, client_id)
+    c, _tb, _tr, _lv = await client_service.get_client(db, user, client_id)
     if not c.tg_user_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -307,8 +320,8 @@ async def get_client(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> ClientOut:
-    c, tb, tr = await client_service.get_client(db, user, client_id)
-    return _to_out(c, tb, tr)
+    c, tb, tr, lv = await client_service.get_client(db, user, client_id)
+    return _to_out(c, tb, tr, last_visit_at=lv)
 
 
 @router.patch("/{client_id}", response_model=ClientOut)
@@ -320,8 +333,8 @@ async def update_client(
     user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> ClientOut:
     await client_service.update_client(db, user, client_id, body)
-    c, tb, tr = await client_service.get_client(db, user, client_id)
-    return _to_out(c, tb, tr)
+    c, tb, tr, lv = await client_service.get_client(db, user, client_id)
+    return _to_out(c, tb, tr, last_visit_at=lv)
 
 
 @router.delete("/{client_id}", status_code=204)
