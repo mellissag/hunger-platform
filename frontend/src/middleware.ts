@@ -5,6 +5,30 @@ import { COOKIE_ACCESS } from "@/lib/cookies";
 
 const ADMIN_ROLES = new Set(["owner", "admin", "reception"]);
 
+/** Pages a master is allowed to visit (page-level permission checked inside each page). */
+const MASTER_ALLOWED_ADMIN_PATHS = [
+  "/bookings",
+  "/clients",
+  "/masters",
+  "/schedule",
+  "/statistics",
+];
+
+/** Pages that are always forbidden for master (redirect to /m/dashboard). */
+const MASTER_FORBIDDEN_PATHS = [
+  "/dashboard",
+  "/settings",
+  "/users",
+  "/audit",
+  "/ai",
+  "/broadcasts",
+  "/chats",
+  "/services",
+  "/formulas",
+  "/inventory",
+  "/blacklist",
+];
+
 function getJwtSecret(): Uint8Array | null {
   const s = process.env.JWT_SECRET;
   if (!s) return null;
@@ -77,6 +101,38 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(login);
   }
 
+  // ── Master role ────────────────────────────────────────────────────────
+  if (session.role === "master") {
+    // /m/* only /m/dashboard is valid; anything else → /m/dashboard
+    if (pathname.startsWith("/m/") && pathname !== "/m/dashboard") {
+      return NextResponse.redirect(new URL("/m/dashboard", request.url));
+    }
+    if (pathname === "/m/dashboard" || pathname === "/m") {
+      return NextResponse.next();
+    }
+
+    // Allowed admin paths: page-level permission enforced inside the page
+    const isMasterAllowed = MASTER_ALLOWED_ADMIN_PATHS.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`),
+    );
+    if (isMasterAllowed) return NextResponse.next();
+
+    // Forbidden paths → /m/dashboard
+    const isMasterForbidden = MASTER_FORBIDDEN_PATHS.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`),
+    );
+    if (isMasterForbidden) {
+      return NextResponse.redirect(new URL("/m/dashboard", request.url));
+    }
+
+    return NextResponse.next();
+  }
+
+  // ── Non-master roles accessing /m/* → redirect to /dashboard ──────────
+  if (pathname.startsWith("/m/")) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
   if (isAdminSalonPath(pathname)) {
     if (!ADMIN_ROLES.has(session.role)) {
       return NextResponse.redirect(new URL("/403", request.url));
@@ -98,13 +154,6 @@ export async function middleware(request: NextRequest) {
       pathname === "/audit" ||
       pathname.startsWith("/audit/");
     if (ownerOnly && session.role !== "owner") {
-      return NextResponse.redirect(new URL("/403", request.url));
-    }
-    return NextResponse.next();
-  }
-
-  if (pathname === "/m" || pathname.startsWith("/m/")) {
-    if (session.role !== "master") {
       return NextResponse.redirect(new URL("/403", request.url));
     }
     return NextResponse.next();

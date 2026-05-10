@@ -56,6 +56,7 @@ import type { ClientOut, MasterOut, Paginated } from "@/types/admin-api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { TagMultiSelect } from "@/components/clients/tag-multi-select";
+import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
 
 const TAG_OPTIONS = ["VIP", "Постоянный", "Новый", "No-show"] as const;
 
@@ -487,7 +488,10 @@ export function ClientsList() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{t("pageEyebrow")}</p>
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{t("pageEyebrow")}</p>
+            <MasterDataBadge pagePermission="page_clients" />
+          </div>
           <h1 className="font-playfair mt-1 text-[32px] font-medium leading-tight tracking-tight">
             {t("pageTitle")}
           </h1>

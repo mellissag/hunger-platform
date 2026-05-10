@@ -5,7 +5,8 @@
     "salonTagline": "Управление на салона",
     "toggleTheme": "Превключи тема",
     "switchToLight": "Превключи на светла тема",
-    "switchToDark": "Превключи на тъмна тема"
+    "switchToDark": "Превключи на тъмна тема",
+    "myData": "Моите данни"
   },
   "login": {
     "titleWelcomeBack": "Добре дошли отново",
@@ -967,7 +968,19 @@
       "pUsersManage": "Управление на персонала",
       "pAuditView": "Виждане на журнала за одит",
       "pAiManage": "Управление на AI настройки",
-      "pIntegrationsManage": "Управление на интеграции"
+      "pIntegrationsManage": "Управление на интеграции",
+      "catPageAccess": "Достъп до страници (майстор)",
+      "catPageAccessHint": "Майсторът вижда страницата, но само своите данни",
+      "pPageBookings": "Раздел Записи",
+      "pPageBookingsHint": "Майсторът отваря /bookings и вижда само своите записи",
+      "pPageClients": "Раздел Клиенти",
+      "pPageClientsHint": "Майсторът отваря /clients и вижда само своите клиенти",
+      "pPageSchedule": "Раздел График",
+      "pPageScheduleHint": "Майсторът отваря /schedule и вижда само своята седмица",
+      "pPageStatistics": "Раздел Статистика",
+      "pPageStatisticsHint": "Майсторът отваря /statistics и вижда само своята статистика",
+      "pPageMasters": "Раздел Моят профил",
+      "pPageMastersHint": "Майсторът отваря /masters и вижда само своята карта"
     },
     "audit": {
       "title": "Одит",

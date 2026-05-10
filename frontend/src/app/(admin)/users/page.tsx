@@ -16,6 +16,7 @@ import type { Paginated, UserStaffOut } from "@/types/admin-api";
 const PERM_GROUPS = [
   {
     key: "catClients",
+    masterOnly: false,
     perms: [
       { key: "clients_view",      label: "pClientsView" },
       { key: "clients_own_only",  label: "pClientsOwnOnly",   hint: "pClientsOwnOnlyHint" },
@@ -29,6 +30,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catMasters",
+    masterOnly: false,
     perms: [
       { key: "masters_view_all", label: "pMastersViewAll" },
       { key: "masters_own_only", label: "pMastersOwnOnly", hint: "pMastersOwnOnlyHint" },
@@ -36,6 +38,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catBookings",
+    masterOnly: false,
     perms: [
       { key: "bookings_view_all",      label: "pBookingsViewAll" },
       { key: "bookings_create",        label: "pBookingsCreate" },
@@ -46,6 +49,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catFinance",
+    masterOnly: false,
     perms: [
       { key: "finance_revenue",  label: "pFinanceRevenue" },
       { key: "finance_salaries", label: "pFinanceSalaries" },
@@ -55,6 +59,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catStats",
+    masterOnly: false,
     perms: [
       { key: "stats_salon",    label: "pStatsSalon" },
       { key: "stats_masters",  label: "pStatsMasters" },
@@ -63,6 +68,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catServices",
+    masterOnly: false,
     perms: [
       { key: "services_manage",  label: "pServicesManage" },
       { key: "masters_manage",   label: "pMastersManage" },
@@ -71,6 +77,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catMarketing",
+    masterOnly: false,
     perms: [
       { key: "broadcasts_view", label: "pBroadcastsView" },
       { key: "broadcasts_send", label: "pBroadcastsSend" },
@@ -78,6 +85,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catInventory",
+    masterOnly: false,
     perms: [
       { key: "inventory_view",  label: "pInventoryView" },
       { key: "inventory_edit",  label: "pInventoryEdit" },
@@ -87,12 +95,24 @@ const PERM_GROUPS = [
   },
   {
     key: "catSystem",
+    masterOnly: false,
     perms: [
       { key: "settings_edit",       label: "pSettingsEdit" },
       { key: "users_manage",        label: "pUsersManage" },
       { key: "audit_view",          label: "pAuditView" },
       { key: "ai_manage",           label: "pAiManage" },
       { key: "integrations_manage", label: "pIntegrationsManage" },
+    ],
+  },
+  {
+    key: "catPageAccess",
+    masterOnly: true,
+    perms: [
+      { key: "page_bookings",   label: "pPageBookings",   hint: "pPageBookingsHint" },
+      { key: "page_clients",    label: "pPageClients",    hint: "pPageClientsHint" },
+      { key: "page_schedule",   label: "pPageSchedule",   hint: "pPageScheduleHint" },
+      { key: "page_statistics", label: "pPageStatistics", hint: "pPageStatisticsHint" },
+      { key: "page_masters",    label: "pPageMasters",    hint: "pPageMastersHint" },
     ],
   },
 ] as const;
@@ -137,6 +157,7 @@ const ROLE_DEFAULTS: Record<string, Record<string, boolean>> = {
     broadcasts_view: false, broadcasts_send: false,
     inventory_view: true, inventory_edit: false, formulas_view: true, formulas_edit: true,
     settings_edit: false, users_manage: false, audit_view: false, ai_manage: false, integrations_manage: false,
+    page_bookings: false, page_clients: false, page_schedule: false, page_statistics: false, page_masters: false,
   },
 };
 
@@ -417,11 +438,16 @@ function UserDrawer({
 
           {tab === "perms" && (
             <div className="space-y-5">
-              {PERM_GROUPS.map((group) => (
+              {PERM_GROUPS.filter((group) => !group.masterOnly || user.role === "master").map((group) => (
                 <div key={group.key}>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                     {t(group.key as never)}
                   </p>
+                  {"masterOnly" in group && group.masterOnly && (
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      {t("catPageAccessHint" as never)}
+                    </p>
+                  )}
                   <div className="space-y-1.5">
                     {group.perms.map((perm) => {
                       const value = perms[perm.key] ?? false;

@@ -5,7 +5,8 @@
     "salonTagline": "Salon management",
     "toggleTheme": "Toggle theme",
     "switchToLight": "Switch to light theme",
-    "switchToDark": "Switch to dark theme"
+    "switchToDark": "Switch to dark theme",
+    "myData": "My data"
   },
   "login": {
     "titleWelcomeBack": "Welcome back",
@@ -967,7 +968,19 @@
       "pUsersManage": "Manage staff",
       "pAuditView": "View audit log",
       "pAiManage": "Manage AI settings",
-      "pIntegrationsManage": "Manage integrations"
+      "pIntegrationsManage": "Manage integrations",
+      "catPageAccess": "Page access (master)",
+      "catPageAccessHint": "Master sees the page but only their own data",
+      "pPageBookings": "Bookings tab",
+      "pPageBookingsHint": "Master can open /bookings and see their own appointments",
+      "pPageClients": "Clients tab",
+      "pPageClientsHint": "Master can open /clients and see their own clients",
+      "pPageSchedule": "Schedule tab",
+      "pPageScheduleHint": "Master can open /schedule and see their own week",
+      "pPageStatistics": "Statistics tab",
+      "pPageStatisticsHint": "Master can open /statistics and see their own stats",
+      "pPageMasters": "My profile tab",
+      "pPageMastersHint": "Master can open /masters and see only their own card"
     },
     "audit": {
       "title": "Audit log",

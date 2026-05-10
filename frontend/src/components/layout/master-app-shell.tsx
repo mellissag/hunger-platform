@@ -2,17 +2,13 @@
 
 import {
   Bell,
-  CalendarDays,
   ChevronDown,
-  ClipboardList,
   Globe,
   LayoutDashboard,
-  LineChart,
   Menu,
   Moon,
   Search,
   Sun,
-  UserCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -54,21 +50,6 @@ const NAV: NavItem[] = [
     icon: LayoutDashboard,
     resource: "master_dashboard",
   },
-  {
-    href: "/m/schedule",
-    labelKey: "masterSchedule",
-    icon: CalendarDays,
-    resource: "master_schedule",
-  },
-  { href: "/m/clients", labelKey: "masterClients", icon: UserCircle2, resource: "master_clients" },
-  {
-    href: "/m/bookings",
-    labelKey: "masterBookings",
-    icon: ClipboardList,
-    resource: "master_bookings",
-  },
-  { href: "/m/statistics", labelKey: "masterStats", icon: LineChart, resource: "master_stats" },
-  { href: "/m/profile", labelKey: "masterProfile", icon: UserCircle2, resource: "master_profile" },
 ];
 
 const LOCALES = [

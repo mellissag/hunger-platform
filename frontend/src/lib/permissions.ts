@@ -18,12 +18,7 @@ export type Resource =
   | "audit"
   | "inventory"
   | "formulas"
-  | "master_dashboard"
-  | "master_schedule"
-  | "master_clients"
-  | "master_bookings"
-  | "master_stats"
-  | "master_profile";
+  | "master_dashboard";
 
 export type Action = "read" | "create" | "update" | "delete" | "manage";
 
@@ -43,16 +38,33 @@ const SALON_ADMIN: Resource[] = [
   "formulas",
 ];
 
-const RECEPTION_READ_EXTRA: Resource[] = ["services"];
-
-const MASTER: Resource[] = [
-  "master_dashboard",
-  "master_schedule",
-  "master_clients",
-  "master_bookings",
-  "master_stats",
-  "master_profile",
+/** Page-level resources a master can access when the owner grants the matching page_* permission. */
+const MASTER_PAGE_RESOURCES: Resource[] = [
+  "bookings",
+  "clients",
+  "schedule",
+  "statistics",
+  "masters",
 ];
+
+/** Maps page-level resource → page_* permission key (only used for master role). */
+const MASTER_PAGE_PERM_MAP: Partial<Record<Resource, string>> = {
+  bookings: "page_bookings",
+  clients: "page_clients",
+  schedule: "page_schedule",
+  statistics: "page_statistics",
+  masters: "page_masters",
+};
+
+/** Maps a sidebar resource to the granular permission key that controls its visibility (non-master roles). */
+const RESOURCE_PERM_MAP: Partial<Record<Resource, string>> = {
+  broadcasts: "broadcasts_view",
+  inventory: "inventory_view",
+  formulas: "formulas_view",
+  statistics: "stats_salon",
+  audit: "audit_view",
+  ai: "ai_manage",
+};
 
 function allowedResources(role: UserRole): Set<Resource> {
   switch (role) {
@@ -66,24 +78,17 @@ function allowedResources(role: UserRole): Set<Resource> {
         "bookings",
         "clients",
         "schedule",
-        ...RECEPTION_READ_EXTRA,
+        "services",
       ]);
     case "master":
-      return new Set<Resource>(MASTER);
+      return new Set<Resource>([
+        "master_dashboard",
+        ...MASTER_PAGE_RESOURCES,
+      ]);
     default:
       return new Set();
   }
 }
-
-/** Maps a sidebar resource to the granular permission key that controls its visibility. */
-const RESOURCE_PERM_MAP: Partial<Record<Resource, string>> = {
-  broadcasts: "broadcasts_view",
-  inventory: "inventory_view",
-  formulas: "formulas_view",
-  statistics: "stats_salon",
-  audit: "audit_view",
-  ai: "ai_manage",
-};
 
 export function can(
   user: { role: UserRole; effective_permissions?: Record<string, boolean> | null },
@@ -108,7 +113,18 @@ export function can(
     if (resource === "clients" || resource === "bookings") return false;
   }
 
-  // Check granular permission if available and mapped
+  // Master: page-level resources are gated by page_* permissions set by the owner.
+  // Default to false so no flash of hidden items before permissions load.
+  if (user.role === "master") {
+    const pagePermKey = MASTER_PAGE_PERM_MAP[resource];
+    if (pagePermKey !== undefined) {
+      return user.effective_permissions?.[pagePermKey] ?? false;
+    }
+    // master_dashboard is always allowed for master
+    return true;
+  }
+
+  // Non-master: check granular permission if available and mapped
   if (user.effective_permissions) {
     const permKey = RESOURCE_PERM_MAP[resource];
     if (permKey !== undefined) {

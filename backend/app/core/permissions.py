@@ -68,6 +68,12 @@ ALL_PERMISSIONS: list[str] = [
     "audit_view",
     "ai_manage",
     "integrations_manage",
+    # Доступ мастера к страницам (управляется владельцем через /users)
+    "page_bookings",
+    "page_clients",
+    "page_schedule",
+    "page_statistics",
+    "page_masters",
 ]
 
 ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
@@ -110,6 +116,12 @@ ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
         "audit_view": True,
         "ai_manage": False,
         "integrations_manage": False,
+        # Доступ к страницам (для мастеров; admin имеет полный доступ)
+        "page_bookings": True,
+        "page_clients": True,
+        "page_schedule": True,
+        "page_statistics": True,
+        "page_masters": True,
     },
 
     "reception": {
@@ -149,6 +161,12 @@ ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
         "audit_view": False,
         "ai_manage": False,
         "integrations_manage": False,
+        # Доступ к страницам (reception не управляет мастерами)
+        "page_bookings": True,
+        "page_clients": True,
+        "page_schedule": True,
+        "page_statistics": False,
+        "page_masters": False,
     },
 
     "master": {
@@ -188,6 +206,12 @@ ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
         "audit_view": False,
         "ai_manage": False,
         "integrations_manage": False,
+        # Доступ к страницам: по умолчанию False — владелец включает через /users
+        "page_bookings": False,
+        "page_clients": False,
+        "page_schedule": False,
+        "page_statistics": False,
+        "page_masters": False,
     },
 }
 

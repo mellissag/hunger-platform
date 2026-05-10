@@ -134,6 +134,12 @@ export function AdminAppShell({
     staleTime: 60_000,
   });
 
+  // For master: always prepend "Мой день" → /m/dashboard
+  const masterDayItem: NavItem | null =
+    user.role === "master"
+      ? { href: "/m/dashboard", labelKey: "masterDashboard", icon: LayoutDashboard, resource: "master_dashboard" }
+      : null;
+
   const itemsBase = NAV.filter((item) => can(userWithPerms, "read", item.resource));
   const navOrder = Array.isArray(salonBundle?.settings?.integrations?.admin_nav_order)
     ? (salonBundle?.settings?.integrations?.admin_nav_order as string[])
@@ -143,12 +149,14 @@ export function AdminAppShell({
     : new Set<string>();
   const visibleBase = itemsBase.filter((item) => !navHidden.has(item.href));
   const orderRank = new Map(navOrder.map((href, idx) => [href, idx]));
-  const items = [...visibleBase].sort((a, b) => {
+  const itemsSorted = [...visibleBase].sort((a, b) => {
     const ra = orderRank.has(a.href) ? (orderRank.get(a.href) as number) : Number.MAX_SAFE_INTEGER;
     const rb = orderRank.has(b.href) ? (orderRank.get(b.href) as number) : Number.MAX_SAFE_INTEGER;
     if (ra !== rb) return ra - rb;
     return NAV.findIndex((x) => x.href === a.href) - NAV.findIndex((x) => x.href === b.href);
   });
+  // Prepend "Мой день" for master role (always first, always visible)
+  const items = masterDayItem ? [masterDayItem, ...itemsSorted] : itemsSorted;
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
@@ -201,7 +209,7 @@ export function AdminAppShell({
           <div className="ml-2 min-w-0 flex flex-col">
             <span className="truncate text-sm font-semibold leading-none">{brandTitle}</span>
             <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider">
-              {t("panelAdmin")}
+              {user.role === "master" ? t("panelMaster") : t("panelAdmin")}
             </span>
           </div>
         </div>

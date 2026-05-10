@@ -51,6 +51,7 @@ import {
 import { apiFetch, apiJson } from "@/lib/api";
 import { addDaysLocal, durationMinutes, startOfWeekMondayLocal, zonedToUtcIso } from "@/lib/date-local";
 import { toIsoParam } from "@/lib/date-utc";
+import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
 import type {
   BookingOut,
   CalendarResponse,
@@ -420,9 +421,12 @@ export function BookingsView() {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            {t("pageEyebrow")}
-          </p>
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              {t("pageEyebrow")}
+            </p>
+            <MasterDataBadge pagePermission="page_bookings" />
+          </div>
           <h1 className="font-playfair mt-1 text-[32px] font-medium leading-tight tracking-tight">
             {t("pageTitle")}
           </h1>

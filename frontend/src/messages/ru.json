@@ -5,7 +5,8 @@
     "salonTagline": "Управление салоном",
     "toggleTheme": "Переключить тему",
     "switchToLight": "Переключить на светлую тему",
-    "switchToDark": "Переключить на тёмную тему"
+    "switchToDark": "Переключить на тёмную тему",
+    "myData": "Мои данные"
   },
   "login": {
     "titleWelcomeBack": "С возвращением",
@@ -967,7 +968,19 @@
       "pUsersManage": "Управлять сотрудниками",
       "pAuditView": "Видеть журнал аудита",
       "pAiManage": "Управлять AI настройками",
-      "pIntegrationsManage": "Управлять интеграциями"
+      "pIntegrationsManage": "Управлять интеграциями",
+      "catPageAccess": "Доступ к страницам (мастер)",
+      "catPageAccessHint": "Мастер видит страницу, но только свои данные",
+      "pPageBookings": "Вкладка Бронирования",
+      "pPageBookingsHint": "Мастер открывает /bookings и видит только свои записи",
+      "pPageClients": "Вкладка Клиенты",
+      "pPageClientsHint": "Мастер открывает /clients и видит только своих клиентов",
+      "pPageSchedule": "Вкладка Расписание",
+      "pPageScheduleHint": "Мастер открывает /schedule и видит только свою неделю",
+      "pPageStatistics": "Вкладка Статистика",
+      "pPageStatisticsHint": "Мастер открывает /statistics и видит только свою статистику",
+      "pPageMasters": "Вкладка Мой профиль",
+      "pPageMastersHint": "Мастер открывает /masters и видит только свою карточку"
     },
     "audit": {
       "title": "Аудит",

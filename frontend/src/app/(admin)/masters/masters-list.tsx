@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiJson } from "@/lib/api";
 import type { PublicSalonBranding } from "@/lib/salon-branding";
 import { useMastersList } from "@/hooks/useMasters";
+import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
 
 export function MastersList() {
   const t = useTranslations("pages.masters");
@@ -48,7 +49,10 @@ export function MastersList() {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">{t("pageSubtitle")}</p>
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">{t("pageSubtitle")}</p>
+            <MasterDataBadge pagePermission="page_masters" />
+          </div>
           <h1 className="font-playfair text-3xl font-semibold tracking-tight">{t("pageTitle")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("ornament")}</p>
         </div>

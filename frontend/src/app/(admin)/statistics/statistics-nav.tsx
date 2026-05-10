@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
+import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
 
 import { StatisticsPeriodBar } from "./statistics-period-bar";
 
@@ -23,7 +24,10 @@ export function StatisticsChrome({ children }: { children: React.ReactNode }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
+          <MasterDataBadge pagePermission="page_statistics" />
+        </div>
         <nav className="mt-3 flex flex-wrap gap-2 border-b border-border pb-3">
           {LINKS.map((l) => (
             <Link

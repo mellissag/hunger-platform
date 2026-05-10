@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import type { CalendarResponse, MasterOut, Paginated } from "@/types/admin-api";
 
 import { BookingDetailDrawer } from "../bookings/booking-detail-drawer";
+import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
 
 function mondayOfWeek(d: Date): Date {
   const day = d.getUTCDay();
@@ -100,7 +101,10 @@ export function ScheduleView() {
       {/* Page header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-playfair text-2xl font-semibold tracking-tight">{t("title")}</h1>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="font-playfair text-2xl font-semibold tracking-tight">{t("title")}</h1>
+            <MasterDataBadge pagePermission="page_schedule" />
+          </div>
           <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
