@@ -53,3 +53,4 @@ class UserMeResponse(BaseModel):
     lang: str
     is_active: bool
     master_id: UUID | None
+    effective_permissions: dict | None = None

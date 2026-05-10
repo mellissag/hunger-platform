@@ -13,8 +13,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
-from app.core.security import hash_password
-from app.deps import get_db, require_roles
+from app.core.permissions import get_effective_permissions
+from app.core.security import hash_password, verify_password
+from app.deps import get_current_user, get_db, require_roles
 from app.models.enums import UserRole
 from app.models.user import User
 from app.models.user_invite import UserInvite
@@ -22,6 +23,7 @@ from app.schemas.common import PaginatedResponse
 from app.schemas.users_admin import (
     InviteCreate,
     InviteCreatedResponse,
+    UserPasswordChange,
     UserStaffCreate,
     UserStaffOut,
     UserStaffPatch,
@@ -31,10 +33,17 @@ from app.services.audit_log import record_event, record_role_change
 router = APIRouter(prefix="/users", tags=["users"])
 
 _OWNER = (UserRole.owner,)
+_OWNER_OR_ADMIN = (UserRole.owner, UserRole.admin)
 
 
 def _hash_invite(raw: str) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _to_out(u: User) -> UserStaffOut:
+    out = UserStaffOut.model_validate(u)
+    out.effective_permissions = get_effective_permissions(u)
+    return out
 
 
 @router.get("", response_model=PaginatedResponse[UserStaffOut])
@@ -50,7 +59,7 @@ async def list_users(
         select(User).order_by(User.created_at.desc()).offset(offset).limit(page_size)
     )
     rows = list(res.scalars().all())
-    items = [UserStaffOut.model_validate(u) for u in rows]
+    items = [_to_out(u) for u in rows]
     return PaginatedResponse(items=items, total=int(total or 0), page=page, page_size=page_size)
 
 
@@ -86,7 +95,7 @@ async def create_user(
         entity_id=u.id,
         payload={"email": email_norm, "role": body.role.value},
     )
-    return UserStaffOut.model_validate(u)
+    return _to_out(u)
 
 
 @router.patch("/{user_id}", response_model=UserStaffOut)
@@ -103,6 +112,19 @@ async def patch_user(
     data = body.model_dump(exclude_unset=True)
     if "role" in data and data["role"] == UserRole.owner and u.role != UserRole.owner:
         raise HTTPException(status_code=400, detail="Cannot promote to owner")
+    if "email" in data:
+        email_norm = data["email"].lower()
+        exists = (
+            await db.execute(select(User.id).where(User.email == email_norm, User.id != u.id))
+        ).scalar_one_or_none()
+        if exists:
+            raise HTTPException(status_code=409, detail="Email already in use")
+        u.email = email_norm
+        del data["email"]
+    if "permissions" in data:
+        existing = dict(u.permissions or {})
+        existing.update(data.pop("permissions") or {})
+        u.permissions = existing
     for k, v in data.items():
         setattr(u, k, v)
     await db.flush()
@@ -116,7 +138,57 @@ async def patch_user(
             ip=None,
             user_agent=None,
         )
-    return UserStaffOut.model_validate(u)
+    return _to_out(u)
+
+
+@router.post("/{user_id}/change-password", status_code=200)
+async def change_password(
+    user_id: UUID,
+    body: UserPasswordChange,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    actor: Annotated[User, Depends(require_roles(*_OWNER_OR_ADMIN))],
+) -> dict:
+    u = await db.get(User, user_id)
+    if u is None:
+        raise NotFoundError("User not found")
+
+    if body.new_password != body.new_password_confirm:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+
+    # Пользователь меняет себе — нужен старый пароль
+    if actor.id == user_id:
+        if not body.old_password:
+            raise HTTPException(status_code=400, detail="old_password required")
+        if not verify_password(body.old_password, u.password_hash):
+            raise HTTPException(status_code=400, detail="Incorrect current password")
+    elif actor.role != UserRole.owner:
+        raise HTTPException(status_code=403, detail="Only owner can change other users passwords")
+
+    u.password_hash = hash_password(body.new_password)
+    await db.flush()
+    await record_event(
+        db,
+        user_id=actor.id,
+        action="user.password_changed",
+        entity_type="user",
+        entity_id=u.id,
+        payload={"changed_by": str(actor.id)},
+    )
+    return {"ok": True}
+
+
+@router.delete("/{user_id}/permissions", status_code=200)
+async def reset_permissions(
+    user_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _actor: Annotated[User, Depends(require_roles(*_OWNER))],
+) -> dict:
+    u = await db.get(User, user_id)
+    if u is None:
+        raise NotFoundError("User not found")
+    u.permissions = None
+    await db.flush()
+    return {"ok": True, "effective_permissions": get_effective_permissions(u)}
 
 
 @router.delete("/{user_id}", status_code=204)

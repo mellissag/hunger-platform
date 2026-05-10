@@ -14,6 +14,7 @@ export type UserMe = {
   lang: string;
   is_active: boolean;
   master_id: string | null;
+  effective_permissions: Record<string, boolean> | null;
 };
 
 export type CalendarBooking = {
@@ -488,6 +489,8 @@ export type UserStaffOut = {
   master_id: string | null;
   last_login_at: string | null;
   created_at: string;
+  permissions: Record<string, boolean> | null;
+  effective_permissions: Record<string, boolean> | null;
 };
 
 export type AuditLogOut = {

@@ -51,6 +51,7 @@ import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { COOKIE_LOCALE } from "@/lib/cookies";
 import { can } from "@/lib/permissions";
+import { usePermissions } from "@/hooks/usePermissions";
 import { SalonFaviconEffect } from "@/components/branding/SalonFaviconEffect";
 import { cn } from "@/lib/utils";
 import { apiJson } from "@/lib/api";
@@ -109,7 +110,12 @@ export function AdminAppShell({
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
+  const { me: meWithPerms } = usePermissions();
   const canReadSalon = user.role === "owner" || user.role === "admin";
+  // Use granular permissions from /auth/me once available; fall back to role-based
+  const userWithPerms = meWithPerms
+    ? { ...user, effective_permissions: meWithPerms.effective_permissions }
+    : user;
   const { data: salonBundle } = useQuery({
     queryKey: ["salon-bundle"],
     queryFn: () => apiJson<SalonBundle>("/salon"),
@@ -128,7 +134,7 @@ export function AdminAppShell({
     staleTime: 60_000,
   });
 
-  const itemsBase = NAV.filter((item) => can(user, "read", item.resource));
+  const itemsBase = NAV.filter((item) => can(userWithPerms, "read", item.resource));
   const navOrder = Array.isArray(salonBundle?.settings?.integrations?.admin_nav_order)
     ? (salonBundle?.settings?.integrations?.admin_nav_order as string[])
     : [];

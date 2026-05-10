@@ -8,4 +8,5 @@ export type SessionUser = {
   last_name: string | null;
   lang: string;
   master_id: string | null;
+  effective_permissions?: Record<string, boolean> | null;
 };

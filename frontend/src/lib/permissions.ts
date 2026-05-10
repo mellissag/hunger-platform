@@ -75,7 +75,21 @@ function allowedResources(role: UserRole): Set<Resource> {
   }
 }
 
-export function can(user: { role: UserRole }, action: Action, resource: Resource): boolean {
+/** Maps a sidebar resource to the granular permission key that controls its visibility. */
+const RESOURCE_PERM_MAP: Partial<Record<Resource, string>> = {
+  broadcasts: "broadcasts_view",
+  inventory: "inventory_view",
+  formulas: "formulas_view",
+  statistics: "stats_salon",
+  audit: "audit_view",
+  ai: "ai_manage",
+};
+
+export function can(
+  user: { role: UserRole; effective_permissions?: Record<string, boolean> | null },
+  action: Action,
+  resource: Resource,
+): boolean {
   const set = allowedResources(user.role);
   if (!set.has(resource)) return false;
 
@@ -92,6 +106,14 @@ export function can(user: { role: UserRole }, action: Action, resource: Resource
 
   if (action === "delete" && user.role === "reception") {
     if (resource === "clients" || resource === "bookings") return false;
+  }
+
+  // Check granular permission if available and mapped
+  if (user.effective_permissions) {
+    const permKey = RESOURCE_PERM_MAP[resource];
+    if (permKey !== undefined) {
+      return user.effective_permissions[permKey] ?? false;
+    }
   }
 
   return true;

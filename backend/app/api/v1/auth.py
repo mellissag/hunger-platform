@@ -267,8 +267,11 @@ async def logout(
 @router.get("/me", response_model=UserMeResponse)
 async def read_me(
     user: Annotated[User, Depends(get_current_user)],
-) -> User:
-    return user
+) -> UserMeResponse:
+    from app.core.permissions import get_effective_permissions
+    data = UserMeResponse.model_validate(user)
+    data.effective_permissions = get_effective_permissions(user)
+    return data
 
 
 @router.get(

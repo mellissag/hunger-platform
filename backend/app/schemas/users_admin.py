@@ -23,6 +23,8 @@ class UserStaffOut(BaseModel):
     master_id: UUID | None
     last_login_at: datetime | None
     created_at: datetime
+    permissions: dict | None = None
+    effective_permissions: dict | None = None
 
 
 class UserStaffCreate(BaseModel):
@@ -40,12 +42,20 @@ class UserStaffCreate(BaseModel):
 class UserStaffPatch(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    email: EmailStr | None = None
     role: UserRole | None = None
     first_name: str | None = Field(None, min_length=1, max_length=200)
     last_name: str | None = None
     lang: str | None = Field(None, min_length=2, max_length=5)
     is_active: bool | None = None
     master_id: UUID | None = None
+    permissions: dict | None = None
+
+
+class UserPasswordChange(BaseModel):
+    old_password: str | None = None
+    new_password: str = Field(..., min_length=8, max_length=128)
+    new_password_confirm: str = Field(..., min_length=8, max_length=128)
 
 
 class InviteCreate(BaseModel):

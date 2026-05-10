@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, Uuid, func, text
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, String, Text, Uuid, func, text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import CITEXT, INET
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -54,6 +54,9 @@ class User(UUIDPrimaryKeyMixin, Base):
     lang: Mapped[str] = mapped_column(String(5), nullable=False, default="en")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Гранулярные права — JSON вида {"clients_phones": false, "inventory_view": true, ...}
+    # None = использовать дефолт роли. owner всегда получает все права.
+    permissions: Mapped[dict | None] = mapped_column(JSON, nullable=True, default=None)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
