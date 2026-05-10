@@ -306,10 +306,10 @@ function BookContent() {
             {/* Text */}
             <div style={{ flex: 1 }}>
               <div style={{ fontFamily: SERIF, fontSize: 14, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.3 }}>
-                Не знаю к какому мастеру
+                {t.bookConsultUnknownTitle}
               </div>
               <div style={{ fontSize: 11, color: MUTED, marginTop: 3, lineHeight: 1.4 }}>
-                Обсудим детали и подберём специалиста на созвоне
+                {t.bookConsultUnknownSub}
               </div>
             </div>
             {/* Phone icon */}
@@ -330,7 +330,7 @@ function BookContent() {
         }}>
           <div style={{ flex: 1, height: 1, background: 'rgba(28,20,9,.08)' }}/>
           <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.20em', textTransform: 'uppercase', color: GOLD }}>
-            или выберите мастера
+            {t.bookOrPickMaster}
           </span>
           <div style={{ flex: 1, height: 1, background: 'rgba(28,20,9,.08)' }}/>
         </div>
@@ -408,7 +408,7 @@ function BookContent() {
                 boxShadow: '0 8px 24px rgba(28,20,9,.18)', cursor: 'pointer',
               }}
             >
-              Продолжить
+              {t.continueBtn}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </button>
           </div>
@@ -664,14 +664,14 @@ function BookContent() {
 
           {/* Title */}
           <div style={{ fontFamily: SERIF, fontSize: 30, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.15, marginBottom: 12 }}>
-            Мы{' '}
-            <span style={{ fontStyle: 'italic', color: GOLD }}>свяжемся</span>
-            {' '}с вами
+            {t.bookConsultCallTitleBefore}
+            <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookConsultCallHi}</span>
+            {t.bookConsultCallTitleAfter}
           </div>
 
           {/* Sub */}
           <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.6, maxWidth: 280, margin: '0 auto 24px' }}>
-            Наш администратор подберёт для вас мастера и удобное время. Ожидайте звонка.
+            {t.bookConsultCallSub}
           </p>
 
           {/* Summary card */}
@@ -684,13 +684,13 @@ function BookContent() {
             marginBottom: 24,
           }}>
             <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: GOLD, marginBottom: 10 }}>
-              Ваша заявка
+              {t.bookConsultYourRequest}
             </div>
             <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>
               {selectedService ? getServiceName(selectedService) : '—'}
             </div>
             <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
-              Мастер и время — уточним при звонке
+              {t.bookConsultTimeNote}
             </div>
           </div>
 
@@ -708,7 +708,7 @@ function BookContent() {
               opacity: isSubmittingConsultation ? 0.7 : 1,
             }}
           >
-            {isSubmittingConsultation ? 'Отправляем...' : 'Отправить заявку'}
+            {isSubmittingConsultation ? t.bookConsultSubmitting : t.bookConsultSubmit}
             {!isSubmittingConsultation && (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             )}

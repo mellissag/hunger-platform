@@ -23,8 +23,15 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       const saved = localStorage.getItem('hunger_lang') as Lang | null;
       if (saved && ['bg', 'en', 'uk', 'ru'].includes(saved)) {
         setLangState(saved);
+        return;
       }
     } catch { /**/ }
+    const tg = typeof window !== 'undefined'
+      ? window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code?.slice(0, 2)
+      : undefined;
+    if (tg && ['bg', 'en', 'uk', 'ru'].includes(tg)) {
+      setLangState(tg as Lang);
+    }
   }, []);
 
   function setLang(l: Lang) {

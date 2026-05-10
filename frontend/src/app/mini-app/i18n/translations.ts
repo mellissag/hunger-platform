@@ -32,6 +32,18 @@ export interface AppTranslations {
   // Booking
   bookEyebrow: string; bookCatH: string; bookCatHi: string;
   bookStep1: string; bookMasterH: string; bookMasterHi: string; bookNoMasters: string;
+  /** «Не знаю к какому мастеру» — консультация вместо выбора мастера */
+  bookConsultUnknownTitle: string;
+  bookConsultUnknownSub: string;
+  bookOrPickMaster: string;
+  bookConsultCallTitleBefore: string;
+  bookConsultCallHi: string;
+  bookConsultCallTitleAfter: string;
+  bookConsultCallSub: string;
+  bookConsultYourRequest: string;
+  bookConsultTimeNote: string;
+  bookConsultSubmit: string;
+  bookConsultSubmitting: string;
   bookStep2: string; bookWhenH: string; bookWhenHi: string;
   bookFreeTime: string; bookSelectDate: string; bookNoSlots: string; bookBtnNext: string;
   bookStep3: string; bookConfirmH: string; bookConfirmHi: string;
@@ -84,6 +96,17 @@ const RU: AppTranslations = {
   detailDuration: 'Длительность', detailPrice: 'Цена', detailMasters: 'Мастер', detailBook: 'Записаться',
   bookEyebrow: 'Бронирование', bookCatH: 'Коллекция', bookCatHi: 'услуг',
   bookStep1: 'Шаг 1 из 3', bookMasterH: 'Выберите', bookMasterHi: 'мастера', bookNoMasters: 'Нет доступных мастеров',
+  bookConsultUnknownTitle: 'Не знаю к какому мастеру',
+  bookConsultUnknownSub: 'Обсудим детали и подберём специалиста на созвоне',
+  bookOrPickMaster: 'или выберите мастера',
+  bookConsultCallTitleBefore: 'Мы ',
+  bookConsultCallHi: 'свяжемся',
+  bookConsultCallTitleAfter: ' с вами',
+  bookConsultCallSub: 'Наш администратор подберёт для вас мастера и удобное время. Ожидайте звонка.',
+  bookConsultYourRequest: 'Ваша заявка',
+  bookConsultTimeNote: 'Мастер и время — уточним при звонке',
+  bookConsultSubmit: 'Отправить заявку',
+  bookConsultSubmitting: 'Отправляем...',
   bookStep2: 'Шаг 2 из 3', bookWhenH: 'Когда вам', bookWhenHi: 'удобно',
   bookFreeTime: 'Свободное время', bookSelectDate: 'Выберите дату', bookNoSlots: 'Нет свободного времени', bookBtnNext: 'К подтверждению',
   bookStep3: 'Шаг 3 из 3', bookConfirmH: 'Подтвердите', bookConfirmHi: 'запись',
@@ -134,6 +157,17 @@ const EN: AppTranslations = {
   detailDuration: 'Duration', detailPrice: 'Price', detailMasters: 'Master', detailBook: 'Book now',
   bookEyebrow: 'Booking', bookCatH: 'Service', bookCatHi: 'catalog',
   bookStep1: 'Step 1 of 3', bookMasterH: 'Choose', bookMasterHi: 'master', bookNoMasters: 'No masters available',
+  bookConsultUnknownTitle: "I'm not sure which stylist I need",
+  bookConsultUnknownSub: "We'll discuss the details and match you with the right person on a quick call",
+  bookOrPickMaster: 'or choose a stylist',
+  bookConsultCallTitleBefore: 'We ',
+  bookConsultCallHi: 'will reach out',
+  bookConsultCallTitleAfter: ' to you',
+  bookConsultCallSub: 'Our team will match you with a stylist and a convenient time. Expect a call soon.',
+  bookConsultYourRequest: 'Your request',
+  bookConsultTimeNote: 'Stylist & time — confirmed by phone',
+  bookConsultSubmit: 'Send request',
+  bookConsultSubmitting: 'Sending...',
   bookStep2: 'Step 2 of 3', bookWhenH: 'When is it', bookWhenHi: 'convenient',
   bookFreeTime: 'Available time', bookSelectDate: 'Select a date', bookNoSlots: 'No available time', bookBtnNext: 'To confirmation',
   bookStep3: 'Step 3 of 3', bookConfirmH: 'Confirm', bookConfirmHi: 'booking',
@@ -184,6 +218,17 @@ const UK: AppTranslations = {
   detailDuration: 'Тривалість', detailPrice: 'Ціна', detailMasters: 'Майстер', detailBook: 'Записатись',
   bookEyebrow: 'Бронювання', bookCatH: 'Колекція', bookCatHi: 'послуг',
   bookStep1: 'Крок 1 з 3', bookMasterH: 'Оберіть', bookMasterHi: 'майстра', bookNoMasters: 'Немає доступних майстрів',
+  bookConsultUnknownTitle: 'Не знаю, до якого майстра',
+  bookConsultUnknownSub: 'Обговоримо деталі й підберемо спеціаліста під час дзвінка',
+  bookOrPickMaster: 'або оберіть майстра',
+  bookConsultCallTitleBefore: 'Ми ',
+  bookConsultCallHi: 'звʼяжемося',
+  bookConsultCallTitleAfter: ' з вами',
+  bookConsultCallSub: 'Адміністратор підбере майстра й зручний час. Очікуйте дзвінка.',
+  bookConsultYourRequest: 'Ваша заявка',
+  bookConsultTimeNote: 'Майстра й час уточнимо під час дзвінка',
+  bookConsultSubmit: 'Надіслати заявку',
+  bookConsultSubmitting: 'Надсилаємо...',
   bookStep2: 'Крок 2 з 3', bookWhenH: 'Коли вам', bookWhenHi: 'зручно',
   bookFreeTime: 'Вільний час', bookSelectDate: 'Оберіть дату', bookNoSlots: 'Немає вільного часу', bookBtnNext: 'До підтвердження',
   bookStep3: 'Крок 3 з 3', bookConfirmH: 'Підтвердіть', bookConfirmHi: 'запис',
@@ -234,6 +279,17 @@ const BG: AppTranslations = {
   detailDuration: 'Продължителност', detailPrice: 'Цена', detailMasters: 'Майстор', detailBook: 'Запиши се',
   bookEyebrow: 'Резервация', bookCatH: 'Колекция', bookCatHi: 'услуги',
   bookStep1: 'Стъпка 1 от 3', bookMasterH: 'Изберете', bookMasterHi: 'майстор', bookNoMasters: 'Няма достъпни майстори',
+  bookConsultUnknownTitle: 'Не знам към кой майстор',
+  bookConsultUnknownSub: 'Ще обсъдим детайлите и ще ви насочим към специалист при обаждане',
+  bookOrPickMaster: 'или изберете майстор',
+  bookConsultCallTitleBefore: 'Ще се ',
+  bookConsultCallHi: 'свържем',
+  bookConsultCallTitleAfter: ' с вас',
+  bookConsultCallSub: 'Администраторът ще ви насочи към майстор и удобно време. Очаквайте обаждане.',
+  bookConsultYourRequest: 'Вашата заявка',
+  bookConsultTimeNote: 'Майстор и час — ще уточним по телефона',
+  bookConsultSubmit: 'Изпрати заявка',
+  bookConsultSubmitting: 'Изпращаме...',
   bookStep2: 'Стъпка 2 от 3', bookWhenH: 'Кога ви е', bookWhenHi: 'удобно',
   bookFreeTime: 'Свободно време', bookSelectDate: 'Изберете дата', bookNoSlots: 'Няма свободно време', bookBtnNext: 'Към потвърждение',
   bookStep3: 'Стъпка 3 от 3', bookConfirmH: 'Потвърдете', bookConfirmHi: 'записа',
