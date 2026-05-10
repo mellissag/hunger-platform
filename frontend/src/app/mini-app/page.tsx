@@ -19,6 +19,17 @@ const BODY = '"Inter", system-ui, sans-serif';
 const TZ = 'Europe/Sofia';
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? '';
 
+/** Подборка дня — светлая премиум-палитра (макет: крем #FDFBF7, карточка белая, акцент #B59449 / #1A120B) */
+const PICK_CARD = '#FFFFFF';
+const PICK_BORDER = 'rgba(181, 148, 73, 0.14)';
+const PICK_LABEL = 'rgba(26, 18, 11, 0.42)';
+const PICK_TITLE_GOLD = '#B59449';
+const PICK_PRICE_GOLD = '#9A7230';
+const PICK_SHADOW =
+  '0 18px 52px rgba(26, 17, 8, 0.07), 0 6px 20px rgba(181, 148, 73, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1)';
+const PICK_BTN_FROM = '#B59449';
+const PICK_BTN_TO = '#C9A84C';
+
 function formatLocalDate(iso: string, daysShort: string[], monthsGen: string[]): string {
   try {
     const d = new Date(iso);
@@ -190,36 +201,136 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ── Dark Card "Подборка дня" — from Admin ── */}
+      {/* ── Подборка дня — белая карточка на кремовом фоне, золото #B59449 (светлый премиум) ── */}
       {dailyPick && (
         <div style={{ padding: '0 16px', marginTop: 8 }}>
-          <div style={{
-            background: 'var(--bg-surface)', borderRadius: 24, padding: '22px', color: 'var(--text-primary)',
-            position: 'relative', overflow: 'hidden',
-          }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${GOLD_HI}, transparent)` }} />
-            <div style={{ position: 'absolute', right: -40, bottom: -40, width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,.25), transparent 70%)' }} />
-            <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD_HI, textTransform: 'uppercase' }}>{t.homeDayPick}</div>
-            <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 600, marginTop: 10, lineHeight: 1.15, position: 'relative' }}>
-              <span style={{ fontStyle: 'italic', color: GOLD_HI }}>{dailyPick.title}</span>
+          <div
+            style={{
+              background: PICK_CARD,
+              borderRadius: 28,
+              padding: '24px 24px 22px',
+              position: 'relative',
+              overflow: 'hidden',
+              border: `1px solid ${PICK_BORDER}`,
+              boxShadow: PICK_SHADOW,
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 2,
+                background:
+                  'linear-gradient(90deg, transparent, rgba(181, 148, 73, 0.35), rgba(201, 168, 76, 0.65), rgba(181, 148, 73, 0.35), transparent)',
+              }}
+            />
+            {/* Тёплый золотистый блик справа снизу (как на макете) */}
+            <div
+              style={{
+                position: 'absolute',
+                right: '-18%',
+                bottom: '-22%',
+                width: '62%',
+                aspectRatio: '1',
+                borderRadius: '50%',
+                background:
+                  'radial-gradient(circle, rgba(201, 168, 76, 0.14) 0%, rgba(245, 239, 230, 0.35) 42%, transparent 70%)',
+                pointerEvents: 'none',
+              }}
+            />
+            <div
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                letterSpacing: '0.28em',
+                color: PICK_LABEL,
+                textTransform: 'uppercase',
+                position: 'relative',
+                fontFamily: BODY,
+              }}
+            >
+              {t.homeDayPick}
+            </div>
+            <div
+              style={{
+                fontFamily: SERIF,
+                fontSize: 28,
+                fontWeight: 600,
+                marginTop: 12,
+                lineHeight: 1.12,
+                position: 'relative',
+              }}
+            >
+              <span style={{ fontStyle: 'italic', color: PICK_TITLE_GOLD }}>{dailyPick.title}</span>
               {dailyPick.price != null && (
-                <><br /><span style={{ fontSize: 20, fontWeight: 500 }}>€{dailyPick.price}</span></>
+                <>
+                  <br />
+                  <span
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 600,
+                      color: PICK_PRICE_GOLD,
+                      fontStyle: 'normal',
+                      letterSpacing: '-0.02em',
+                    }}
+                  >
+                    €{dailyPick.price}
+                  </span>
+                </>
               )}
             </div>
             {dailyPick.tags.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginTop: 14, position: 'relative' }}>
-                {dailyPick.tags.map(tag => (
-                  <div key={tag} style={{ border: '1px solid rgba(201,168,76,.4)', padding: '5px 10px', borderRadius: 2, fontSize: 10, letterSpacing: '0.06em' }}>{tag}</div>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  flexWrap: 'wrap' as const,
+                  marginTop: 16,
+                  position: 'relative',
+                }}
+              >
+                {dailyPick.tags.map((tag) => (
+                  <div
+                    key={tag}
+                    style={{
+                      border: '1px solid rgba(181, 148, 73, 0.38)',
+                      background: 'rgba(253, 251, 247, 0.95)',
+                      padding: '7px 14px',
+                      borderRadius: 6,
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: '0.08em',
+                      color: '#1A120B',
+                      fontFamily: BODY,
+                    }}
+                  >
+                    {tag}
+                  </div>
                 ))}
               </div>
             )}
             <button
-              onClick={() => router.push(dailyPick.service_id ? `/mini-app/catalog/${dailyPick.service_id}` : '/mini-app/book')}
+              type="button"
+              onClick={() =>
+                router.push(dailyPick.service_id ? `/mini-app/catalog/${dailyPick.service_id}` : '/mini-app/book')
+              }
               style={{
-                marginTop: 16, background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`,
-                border: 'none', color: '#fff', padding: '11px 20px', borderRadius: 999,
-                fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase',
-                fontFamily: BODY, cursor: 'pointer', position: 'relative',
+                marginTop: 20,
+                background: `linear-gradient(135deg, ${PICK_BTN_FROM} 0%, ${PICK_BTN_TO} 100%)`,
+                border: 'none',
+                color: '#FDFBF7',
+                padding: '13px 26px',
+                borderRadius: 999,
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                fontFamily: BODY,
+                cursor: 'pointer',
+                position: 'relative',
+                boxShadow: '0 8px 26px rgba(181, 148, 73, 0.35)',
               }}
             >
               {t.homeBtnBook}
