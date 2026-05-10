@@ -1079,21 +1079,16 @@ async def get_daily_pick(
     lang: str = "ru",
     db: AsyncSession = Depends(get_db),
 ) -> list[MiniAppDailyPickOut]:
-    """Public: return all today's active daily picks for Mini App (vertical stack)."""
-    from datetime import date as _date
+    """Public: all active daily picks for Mini App (vertical stack).
 
-    from sqlalchemy import or_
-
+    Visibility is controlled only by the ``active`` flag. ``valid_from`` / ``valid_to``
+    are stored for planning reference in admin and do not hide picks from clients.
+    """
     from app.models.daily_pick import DailyPick
 
-    today = _date.today()
     q = (
         select(DailyPick)
-        .where(
-            DailyPick.active.is_(True),
-            or_(DailyPick.valid_from.is_(None), DailyPick.valid_from <= today),
-            or_(DailyPick.valid_to.is_(None), DailyPick.valid_to >= today),
-        )
+        .where(DailyPick.active.is_(True))
         .order_by(DailyPick.updated_at.desc())
     )
     rows = (await db.execute(q)).scalars().all()

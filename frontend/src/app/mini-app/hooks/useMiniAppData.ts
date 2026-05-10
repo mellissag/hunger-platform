@@ -235,8 +235,24 @@ export interface DailyPick {
 export function useDailyPick(lang = 'ru') {
   return useQuery<DailyPick[]>({
     queryKey: ['mini-app', 'daily-pick', lang],
-    queryFn: () => apiFetch<DailyPick[]>(`/api/v1/mini-app/daily-pick?lang=${lang}`),
-    staleTime: 30 * 60_000,
+    queryFn: async () => {
+      const res = await fetch(requestUrl(`/api/v1/mini-app/daily-pick?lang=${lang}`), {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders(),
+        },
+      });
+      if (!res.ok) throw new Error(`API daily-pick → ${res.status}`);
+      const raw: unknown = await res.json();
+      // Backend returns a JSON array; legacy/proxy may still send one object.
+      if (Array.isArray(raw)) return raw as DailyPick[];
+      if (raw && typeof raw === 'object' && 'id' in (raw as object))
+        return [raw as DailyPick];
+      return [];
+    },
+    staleTime: 60_000,
   });
 }
 

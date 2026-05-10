@@ -57,6 +57,11 @@ const emptyPickForm = (): Omit<DailyPickFull, "id"> => ({
   valid_from: null, valid_to: null,
 });
 
+/** Mirrors Mini App rule: only ``active`` controls visibility on the home screen. */
+function pickShowsInMiniApp(p: DailyPickFull): boolean {
+  return p.active;
+}
+
 // ── DailyPickBlock ────────────────────────────────────────────────────────────
 
 function DailyPickBlock() {
@@ -140,6 +145,10 @@ function DailyPickBlock() {
             <p className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
               Блок на главном экране Mini App
             </p>
+            <p className="mt-2 max-w-xl text-xs text-muted-foreground leading-relaxed">
+              В приложении показываются только подборки с включённым переключателем «Активно».
+              Даты «действует от / до» — для справки в админке и не скрывают блок у клиентов.
+            </p>
           </div>
           <button
             type="button"
@@ -165,16 +174,28 @@ function DailyPickBlock() {
             <div className="space-y-3">
               {picks.map(p => (
                 <div key={p.id} className="flex items-center justify-between rounded border border-border bg-background px-4 py-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <span className={cn(
                       "inline-flex h-2 w-2 rounded-full shrink-0",
                       p.active ? "bg-emerald-500" : "bg-border",
                     )} />
-                    <div>
-                      <p className="font-medium text-sm">{p.title_ru || p.title_en || "—"}</p>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 gap-y-1">
+                        <p className="font-medium text-sm truncate">{p.title_ru || p.title_en || "—"}</p>
+                        <span
+                          className={cn(
+                            "inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                            pickShowsInMiniApp(p)
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                              : "border-border bg-muted/60 text-muted-foreground",
+                          )}
+                        >
+                          {pickShowsInMiniApp(p) ? "В приложении" : "Не в приложении"}
+                        </span>
+                      </div>
                       <p className="text-[10px] text-muted-foreground">
                         {p.price != null ? `€${p.price}` : "без цены"}
-                        {p.valid_from || p.valid_to ? ` · ${p.valid_from ?? "∞"} — ${p.valid_to ?? "∞"}` : ""}
+                        {p.valid_from || p.valid_to ? ` · период: ${p.valid_from ?? "∞"} — ${p.valid_to ?? "∞"}` : ""}
                         {p.button_url ? ` · ${p.button_url}` : ""}
                       </p>
                     </div>
@@ -306,6 +327,9 @@ function DailyPickBlock() {
               <Input type="date" value={form.valid_to ?? ""} onChange={e => setField("valid_to", e.target.value || null)} />
             </div>
           </div>
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            Период не влияет на показ в Mini App — скрыть подборку можно только отключив «Активно».
+          </p>
 
           {/* Active toggle */}
           <div className="flex items-center justify-between rounded border border-border bg-muted/50 px-4 py-3">
