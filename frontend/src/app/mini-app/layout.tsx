@@ -151,7 +151,6 @@ function TabBar() {
             background: 'linear-gradient(135deg, var(--gold-deep), var(--gold))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: 'var(--text-inverse)', cursor: 'pointer', flexShrink: 0,
-            transform: 'translateY(-8px)',
             boxShadow: 'var(--shadow-md)',
           }}
         >
