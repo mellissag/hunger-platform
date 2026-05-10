@@ -2,13 +2,16 @@
 
 import {
   Bell,
+  CalendarDays,
   ChevronDown,
   Globe,
   LayoutDashboard,
   Menu,
   Moon,
+  Scissors,
   Search,
   Sun,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -16,6 +19,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { useTheme } from "@/providers/ThemeProvider";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -37,19 +41,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { COOKIE_LOCALE } from "@/lib/cookies";
-import { can } from "@/lib/permissions";
-import type { Resource } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/types/user";
-type NavItem = { href: string; labelKey: string; icon: React.ElementType; resource: Resource };
 
-const NAV: NavItem[] = [
-  {
-    href: "/m/dashboard",
-    labelKey: "masterDashboard",
-    icon: LayoutDashboard,
-    resource: "master_dashboard",
-  },
+type NavItem = { href: string; labelKey: string; icon: React.ElementType; permKey?: string };
+
+/** Always-visible items for master */
+const NAV_ALWAYS: NavItem[] = [
+  { href: "/m/dashboard", labelKey: "masterDashboard", icon: LayoutDashboard },
+];
+
+/** Page-level items shown only when owner has enabled the matching page_* permission */
+const NAV_PAGE: NavItem[] = [
+  { href: "/bookings",   labelKey: "bookings",   icon: CalendarDays, permKey: "page_bookings" },
+  { href: "/clients",    labelKey: "clients",    icon: Users,         permKey: "page_clients" },
+  { href: "/schedule",   labelKey: "schedule",   icon: CalendarDays,  permKey: "page_schedule" },
+  { href: "/statistics", labelKey: "statistics", icon: LayoutDashboard, permKey: "page_statistics" },
+  { href: "/masters",    labelKey: "masters",    icon: Scissors,      permKey: "page_masters" },
 ];
 
 const LOCALES = [
@@ -75,7 +83,17 @@ export function MasterAppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
 
-  const items = NAV.filter((item) => can(user, "read", item.resource));
+  // Live permissions — use client-side hook, fall back to SSR effective_permissions
+  const { me: meWithPerms } = usePermissions();
+  const effectivePerms: Record<string, boolean> =
+    meWithPerms?.effective_permissions ??
+    user.effective_permissions ??
+    {};
+
+  const pageItems = NAV_PAGE.filter((item) =>
+    item.permKey ? (effectivePerms[item.permKey] ?? false) : true,
+  );
+  const items: NavItem[] = [...NAV_ALWAYS, ...pageItems];
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
