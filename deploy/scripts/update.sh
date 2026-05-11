@@ -102,6 +102,18 @@ fi
 
 # ── Step 4: Restart services ──────────────────────────────────────────────────
 step "4/6  Перезапуск сервисов"
+
+# Идемпотентно переносим uploads из legacy named volume в bind-mount.
+# До коммита d840945 загруженные медиа жили в Docker volume `hunger-beauty_uploads_data`.
+# Если деплой выполнен без переноса данных — api маунтит пустую папку и /media/* отдаёт 404.
+if [[ -x "${INSTALL_DIR}/deploy/scripts/migrate-uploads-volume.sh" ]]; then
+  if INSTALL_DIR="${INSTALL_DIR}" bash "${INSTALL_DIR}/deploy/scripts/migrate-uploads-volume.sh"; then
+    log "Uploads volume check OK"
+  else
+    warn "Migration uploads volume завершилась с ошибкой — продолжаю"
+  fi
+fi
+
 dc up -d --remove-orphans
 log "Сервисы перезапущены"
 

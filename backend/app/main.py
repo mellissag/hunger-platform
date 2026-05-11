@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -20,6 +21,8 @@ from app.bot import build_bot, build_dispatcher
 from app.config import get_settings
 from app.core.exceptions import DomainError
 from app.limiter import limiter
+
+_logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -99,6 +102,37 @@ app.include_router(api_router, prefix="/api/v1")
 _media_root = Path(os.environ.get("UPLOAD_DIR", "./data/uploads"))
 _media_root.mkdir(parents=True, exist_ok=True)
 app.mount("/media", StaticFiles(directory=str(_media_root)), name="media")
+
+
+def _log_media_root_state() -> None:
+    """Log the resolved upload directory and a quick file count so that
+    deploys missing the bind-mount (or with an empty bind-mount) are
+    immediately visible in the api startup logs instead of silently
+    serving 404 for every /media/* request.
+    """
+    try:
+        resolved = _media_root.resolve()
+        non_gitkeep = [
+            p for p in _media_root.rglob("*") if p.is_file() and p.name != ".gitkeep"
+        ]
+        if not non_gitkeep:
+            _logger.warning(
+                "UPLOAD_DIR=%s resolved to %s is empty (no media files). "
+                "If the database still references /media/... URLs, those "
+                "requests will return 404. Check the bind-mount path "
+                "(deploy/docker-compose.yml: ../data/uploads:/app/data/uploads).",
+                _media_root, resolved,
+            )
+        else:
+            _logger.info(
+                "UPLOAD_DIR=%s resolved to %s (%d media files)",
+                _media_root, resolved, len(non_gitkeep),
+            )
+    except Exception:  # noqa: BLE001
+        _logger.exception("Failed to inspect UPLOAD_DIR=%s", _media_root)
+
+
+_log_media_root_state()
 
 
 @app.get("/healthz", response_model=None)
