@@ -373,46 +373,143 @@ export type SegmentPreviewResponse = {
   count: number;
 };
 
+export type StatsOverviewKpi = {
+  revenue: string;
+  completed_bookings: number;
+  bookings_started_bot: number;
+  avg_check: string;
+  ltv_avg: string;
+  retention_repeat_clients: number;
+  retention_clients_in_period: number;
+  retention_rate: number;
+  conversion_completed_per_bot_started: number;
+  new_clients_count: number;
+  cancelled_bookings_count: number;
+  prev_revenue: string;
+  prev_completed_bookings: number;
+  prev_avg_check: string;
+  prev_new_clients_count: number;
+  prev_cancelled_bookings_count: number;
+};
+
+export type StatsRevenueTrendItem = {
+  date: string;
+  revenue: string;
+  bookings_count: number;
+};
+
+export type StatsHeatmapCell = {
+  dow: number;
+  hour: number;
+  count: number;
+};
+
+export type StatsPeakHour = {
+  hour: number;
+  count: number;
+  avg_per_day: number;
+};
+
+export type StatsSourceItem = {
+  source: string;
+  count: number;
+};
+
+export type StatsFunnelStep = {
+  key: string;
+  count: number;
+};
+
+export type StatsTopService = {
+  service_id: string;
+  name_i18n: Record<string, string>;
+  revenue: string;
+  completed_bookings: number;
+  avg_check?: string;
+};
+
 export type StatsOverviewResponse = {
   period: { from: string; to: string };
-  kpi: Record<string, string | number>;
-  revenue_trend: { date: string; revenue: string }[];
-  heatmap: { dow: number; hour: number; count: number }[];
+  group_by: "day" | "week" | "month";
+  master_id: string | null;
+  kpi: StatsOverviewKpi;
+  revenue_trend: StatsRevenueTrendItem[];
+  heatmap: StatsHeatmapCell[];
+  peak_hours: StatsPeakHour[];
+  sources: StatsSourceItem[];
+  funnel: StatsFunnelStep[];
+  top_services_revenue: StatsTopService[];
+  top_services_popularity: StatsTopService[];
   currency: string;
+};
+
+export type StatsMastersListResponse = {
+  masters: { master_id: string; display_name: string }[];
 };
 
 export type StatsBotResponse = {
   stats: Record<string, unknown>;
   joins_by_day: { date: string; new_joins: number }[];
+  activity_by_day: { date: string; active_users: number }[];
+  retention: {
+    new_clients_in_period: number;
+    retained_clients: number;
+    retention_rate: number;
+  };
+};
+
+export type StatsMasterRow = {
+  master_id: string;
+  display_name: string;
+  revenue: string;
+  completed_bookings: number;
+  avg_check: string;
+  rating_avg: string | null;
+  rating_count?: number;
+  utilization_pct: number;
+  payroll_amount: string;
 };
 
 export type StatsMastersResponse = {
   period: { from: string; to: string };
-  masters: {
-    master_id: string;
-    display_name: string;
-    revenue: string;
-    completed_bookings: number;
-    rating_avg: string | null;
-    utilization_pct: number;
-    payroll_amount: string;
+  currency: string;
+  masters: StatsMasterRow[];
+};
+
+export type StatsMasterDetailResponse = StatsMasterRow & {
+  period: { from: string; to: string };
+  currency: string;
+  revenue_by_day: StatsRevenueTrendItem[];
+  services_breakdown: StatsTopService[];
+  unique_clients: number;
+  new_clients: number;
+  repeat_clients: number;
+  recent_bookings: {
+    booking_id: string;
+    starts_at: string | null;
+    price: string;
+    status: string;
+    client_name: string;
+    service_name_i18n: Record<string, string>;
   }[];
 };
 
 export type StatsServicesResponse = {
   period: { from: string; to: string };
-  top: {
-    service_id: string;
-    name_i18n: Record<string, string>;
-    revenue: string;
-    completed_bookings: number;
-  }[];
+  order_by: "revenue" | "popularity";
+  currency: string;
+  top: StatsTopService[];
 };
 
 export type StatsDeadServicesResponse = {
   to: string;
   dead_days: number;
-  dead: { service_id: string; name_i18n: Record<string, string>; is_active: boolean }[];
+  dead: {
+    service_id: string;
+    name_i18n: Record<string, string>;
+    is_active: boolean;
+    last_booking_at: string | null;
+  }[];
 };
 
 export type StatsFinanceResponse = {

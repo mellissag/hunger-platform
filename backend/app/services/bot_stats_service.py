@@ -1,4 +1,4 @@
-"""Метрики бота: воронка, визиты, AI."""
+"""Метрики бота: воронка, визиты, AI, удержание."""
 
 from __future__ import annotations
 
@@ -21,11 +21,16 @@ async def get_bot_stats(
     dfrom: date,
     dto: date,
 ) -> dict:
-    """Агрегаты за период: из таблиц + сумма по bot_visit_stat."""
     start, end = period_utc_range(dfrom, dto)
 
     new_joins = int(
-        (await db.execute(select(func.count()).select_from(Client).where(Client.joined_at >= start, Client.joined_at < end))).scalar_one()
+        (
+            await db.execute(
+                select(func.count())
+                .select_from(Client)
+                .where(Client.joined_at >= start, Client.joined_at < end)
+            )
+        ).scalar_one()
         or 0
     )
 
@@ -89,7 +94,6 @@ async def get_bot_stats(
         or 0
     )
 
-    # Оценка «уникальных посетителей» — distinct клиенты с активностью в периоде
     subq = union_all(
         select(Booking.client_id.label("cid")).where(
             Booking.created_at >= start,
@@ -108,7 +112,6 @@ async def get_bot_stats(
         or 0
     )
 
-    # Сумма по дневной таблице (если заполнена refresh-джобом)
     stat_sum = (
         await db.execute(
             select(
@@ -156,7 +159,6 @@ async def get_bot_funnel_series(
 ) -> list[dict[str, int | str]]:
     """По дням: joins, started, completed (для графиков)."""
     start, end = period_utc_range(dfrom, dto)
-    # Упрощённо: группировка по дате UTC created_at для started, joined_at для joins
     day_bucket = func.date_trunc("day", Client.joined_at).label("day_bucket")
     rows = (
         (
@@ -174,3 +176,104 @@ async def get_bot_funnel_series(
         d = day.date() if isinstance(day, datetime) else day
         out.append({"date": d.isoformat() if hasattr(d, "isoformat") else str(d), "new_joins": int(cnt)})
     return out
+
+
+async def get_bot_activity_daily(
+    db: AsyncSession,
+    *,
+    dfrom: date,
+    dto: date,
+) -> list[dict[str, int | str]]:
+    """По дням: уникальные пользователи, взаимодействовавшие с ботом (created booking, AI, joined)."""
+    start, end = period_utc_range(dfrom, dto)
+    activity = union_all(
+        select(
+            func.date_trunc("day", Booking.created_at).label("d"),
+            Booking.client_id.label("cid"),
+        ).where(Booking.created_at >= start, Booking.created_at < end),
+        select(
+            func.date_trunc("day", AIConversation.started_at).label("d"),
+            AIConversation.client_id.label("cid"),
+        ).where(AIConversation.started_at >= start, AIConversation.started_at < end),
+        select(
+            func.date_trunc("day", Client.joined_at).label("d"),
+            Client.id.label("cid"),
+        ).where(Client.joined_at >= start, Client.joined_at < end),
+    ).subquery()
+
+    rows = (
+        (
+            await db.execute(
+                select(activity.c.d, func.count(func.distinct(activity.c.cid)))
+                .group_by(activity.c.d)
+                .order_by(activity.c.d)
+            )
+        )
+        .all()
+    )
+    out: list[dict[str, int | str]] = []
+    for day, cnt in rows:
+        d = day.date() if isinstance(day, datetime) else day
+        out.append(
+            {
+                "date": d.isoformat() if hasattr(d, "isoformat") else str(d),
+                "active_users": int(cnt),
+            }
+        )
+    return out
+
+
+async def get_bot_retention(
+    db: AsyncSession,
+    *,
+    dfrom: date,
+    dto: date,
+) -> dict:
+    """Из клиентов с первой записью в период — сколько вернулись повторно (≥2 записей за всё время)."""
+    start, end = period_utc_range(dfrom, dto)
+
+    first_booking_subq = (
+        select(
+            Booking.client_id.label("client_id"),
+            func.min(Booking.starts_at).label("first_at"),
+        )
+        .where(Booking.starts_at.is_not(None))
+        .group_by(Booking.client_id)
+        .subquery()
+    )
+    new_clients_in_period = (
+        select(first_booking_subq.c.client_id)
+        .where(
+            first_booking_subq.c.first_at >= start,
+            first_booking_subq.c.first_at < end,
+        )
+        .subquery()
+    )
+    new_count = int(
+        (await db.execute(select(func.count()).select_from(new_clients_in_period))).scalar_one()
+        or 0
+    )
+
+    multi_clients = (
+        select(Booking.client_id)
+        .where(Booking.status == BookingStatus.completed)
+        .group_by(Booking.client_id)
+        .having(func.count() >= 2)
+        .subquery()
+    )
+    retained = int(
+        (
+            await db.execute(
+                select(func.count())
+                .select_from(new_clients_in_period)
+                .where(new_clients_in_period.c.client_id.in_(select(multi_clients.c.client_id)))
+            )
+        ).scalar_one()
+        or 0
+    )
+    rate = float(retained) / float(new_count) if new_count else 0.0
+    return {
+        "new_clients_in_period": new_count,
+        "retained_clients": retained,
+        "retention_rate": round(rate, 4),
+    }

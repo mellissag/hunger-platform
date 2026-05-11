@@ -8,10 +8,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_roles
 from app.models.enums import UserRole
+from app.models.master import Master
 from app.models.user import User
 from app.services import (
     booking_stats_service,
@@ -40,18 +42,62 @@ async def stats_overview(
     db: Annotated[AsyncSession, Depends(get_db)],
     _user: Annotated[User, Depends(require_roles(*STATS_ROLES))],
     period: Annotated[tuple[date, date], Depends(parse_period)],
+    master_id: UUID | None = Query(None),
+    group_by: Literal["day", "week", "month"] = Query("day"),
 ) -> dict:
     dfrom, dto = period
-    overview = await booking_stats_service.get_booking_overview(db, dfrom=dfrom, dto=dto)
-    trend = await booking_stats_service.get_revenue_trend_daily(db, dfrom=dfrom, dto=dto)
-    heatmap = await booking_stats_service.get_heatmap(db, dfrom=dfrom, dto=dto)
+    overview = await booking_stats_service.get_booking_overview(
+        db, dfrom=dfrom, dto=dto, master_id=master_id
+    )
+    trend = await booking_stats_service.get_revenue_trend(
+        db, dfrom=dfrom, dto=dto, group_by=group_by, master_id=master_id
+    )
+    heatmap = await booking_stats_service.get_heatmap(
+        db, dfrom=dfrom, dto=dto, master_id=master_id
+    )
+    peak_hours = await booking_stats_service.get_peak_hours(
+        db, dfrom=dfrom, dto=dto, master_id=master_id
+    )
+    sources = await booking_stats_service.get_booking_sources(
+        db, dfrom=dfrom, dto=dto, master_id=master_id
+    )
+    funnel = await booking_stats_service.get_funnel(
+        db, dfrom=dfrom, dto=dto, master_id=master_id
+    )
+    top_services_revenue = await booking_stats_service.get_top_services(
+        db, dfrom=dfrom, dto=dto, master_id=master_id, limit=5, order_by="revenue"
+    )
+    top_services_popularity = await booking_stats_service.get_top_services(
+        db, dfrom=dfrom, dto=dto, master_id=master_id, limit=5, order_by="popularity"
+    )
     currency = await booking_stats_service.get_currency(db)
     return {
         "period": {"from": dfrom.isoformat(), "to": dto.isoformat()},
+        "group_by": group_by,
+        "master_id": str(master_id) if master_id else None,
         "kpi": overview,
         "revenue_trend": trend,
         "heatmap": heatmap,
+        "peak_hours": peak_hours,
+        "sources": sources,
+        "funnel": funnel,
+        "top_services_revenue": top_services_revenue,
+        "top_services_popularity": top_services_popularity,
         "currency": currency,
+    }
+
+
+@router.get("/masters-list")
+async def stats_masters_list(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _user: Annotated[User, Depends(require_roles(*STATS_ROLES))],
+) -> dict:
+    """Лёгкий список мастеров (для дропдауна-фильтра)."""
+    rows = (await db.execute(select(Master).order_by(Master.sort_order.asc()))).scalars().all()
+    return {
+        "masters": [
+            {"master_id": str(m.id), "display_name": m.display_name} for m in rows
+        ]
     }
 
 
@@ -64,7 +110,14 @@ async def stats_bot(
     dfrom, dto = period
     stats = await bot_stats_service.get_bot_stats(db, dfrom=dfrom, dto=dto)
     funnel_daily = await bot_stats_service.get_bot_funnel_series(db, dfrom=dfrom, dto=dto)
-    return {"stats": stats, "joins_by_day": funnel_daily}
+    activity = await bot_stats_service.get_bot_activity_daily(db, dfrom=dfrom, dto=dto)
+    retention = await bot_stats_service.get_bot_retention(db, dfrom=dfrom, dto=dto)
+    return {
+        "stats": stats,
+        "joins_by_day": funnel_daily,
+        "activity_by_day": activity,
+        "retention": retention,
+    }
 
 
 @router.get("/bookings")
@@ -91,7 +144,12 @@ async def stats_masters(
 ) -> dict:
     dfrom, dto = period
     rows = await master_stats_service.list_master_stats(db, dfrom=dfrom, dto=dto)
-    return {"period": {"from": dfrom.isoformat(), "to": dto.isoformat()}, "masters": rows}
+    currency = await booking_stats_service.get_currency(db)
+    return {
+        "period": {"from": dfrom.isoformat(), "to": dto.isoformat()},
+        "currency": currency,
+        "masters": rows,
+    }
 
 
 @router.get("/masters/{master_id}")
@@ -102,10 +160,13 @@ async def stats_master_detail(
     period: Annotated[tuple[date, date], Depends(parse_period)],
 ) -> dict:
     dfrom, dto = period
-    row = await master_stats_service.get_master_detail_stats(db, master_id=master_id, dfrom=dfrom, dto=dto)
+    row = await master_stats_service.get_master_detail_stats(
+        db, master_id=master_id, dfrom=dfrom, dto=dto
+    )
     if row is None:
         raise HTTPException(status_code=404, detail="Master not found")
-    return row
+    currency = await booking_stats_service.get_currency(db)
+    return {**row, "currency": currency}
 
 
 @router.get("/services/top")
@@ -114,10 +175,19 @@ async def stats_services_top(
     _user: Annotated[User, Depends(require_roles(*STATS_ROLES))],
     period: Annotated[tuple[date, date], Depends(parse_period)],
     limit: int = Query(20, ge=1, le=100),
+    order_by: Literal["revenue", "popularity"] = Query("revenue"),
 ) -> dict:
     dfrom, dto = period
-    top = await service_stats_service.top_services_by_revenue(db, dfrom=dfrom, dto=dto, limit=limit)
-    return {"period": {"from": dfrom.isoformat(), "to": dto.isoformat()}, "top": top}
+    top = await service_stats_service.top_services(
+        db, dfrom=dfrom, dto=dto, limit=limit, order_by=order_by
+    )
+    currency = await booking_stats_service.get_currency(db)
+    return {
+        "period": {"from": dfrom.isoformat(), "to": dto.isoformat()},
+        "order_by": order_by,
+        "currency": currency,
+        "top": top,
+    }
 
 
 @router.get("/services/dead")
@@ -173,4 +243,58 @@ async def stats_finance_export(
         content=body,
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="payroll-{dfrom}-{dto}.pdf"'},
+    )
+
+
+@router.get("/export")
+async def stats_full_export(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _user: Annotated[User, Depends(require_roles(*STATS_ROLES))],
+    period: Annotated[tuple[date, date], Depends(parse_period)],
+    export_format: Literal["csv", "pdf"] = Query("csv", alias="format"),
+    master_id: UUID | None = Query(None),
+) -> Response:
+    """Универсальный экспорт снапшота статистики: CSV или PDF."""
+    dfrom, dto = period
+    label = f"{dfrom.isoformat()} — {dto.isoformat()}"
+    kpi = await booking_stats_service.get_booking_overview(
+        db, dfrom=dfrom, dto=dto, master_id=master_id
+    )
+    trend = await booking_stats_service.get_revenue_trend(
+        db, dfrom=dfrom, dto=dto, group_by="day", master_id=master_id
+    )
+    masters = await master_stats_service.list_master_stats(db, dfrom=dfrom, dto=dto)
+    top = await service_stats_service.top_services(
+        db, dfrom=dfrom, dto=dto, limit=10, order_by="revenue"
+    )
+    currency = await booking_stats_service.get_currency(db)
+
+    if export_format == "csv":
+        body = stats_export_service.stats_snapshot_to_csv(
+            period_label=label,
+            kpi=kpi,
+            revenue_trend=trend,
+            masters=masters,
+            services_top=top,
+        )
+        return Response(
+            content=body,
+            media_type="text/csv; charset=utf-8",
+            headers={
+                "Content-Disposition": f'attachment; filename="statistics-{dfrom}-{dto}.csv"',
+            },
+        )
+    body = stats_export_service.stats_snapshot_to_pdf(
+        period_label=label,
+        kpi=kpi,
+        masters=masters,
+        services_top=top,
+        currency=currency,
+    )
+    return Response(
+        content=body,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="statistics-{dfrom}-{dto}.pdf"',
+        },
     )

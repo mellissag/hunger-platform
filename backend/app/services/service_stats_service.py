@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import Literal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,22 +15,26 @@ from app.models.enums import BookingStatus
 from app.services.stats_common import period_utc_range
 
 
-async def top_services_by_revenue(
+async def top_services(
     db: AsyncSession,
     *,
     dfrom: date,
     dto: date,
     limit: int = 20,
+    order_by: Literal["revenue", "popularity"] = "revenue",
 ) -> list[dict]:
     start, end = period_utc_range(dfrom, dto)
+    rev_sum = func.coalesce(func.sum(Booking.price), 0)
+    cnt = func.count()
+    order_col = rev_sum.desc() if order_by == "revenue" else cnt.desc()
     rows = (
         (
             await db.execute(
                 select(
                     Service.id,
                     Service.name_i18n,
-                    func.coalesce(func.sum(Booking.price), 0).label("rev"),
-                    func.count().label("n"),
+                    rev_sum.label("rev"),
+                    cnt.label("n"),
                 )
                 .join(Booking, Booking.service_id == Service.id)
                 .where(
@@ -38,7 +43,7 @@ async def top_services_by_revenue(
                     Booking.starts_at < end,
                 )
                 .group_by(Service.id)
-                .order_by(func.coalesce(func.sum(Booking.price), 0).desc())
+                .order_by(order_col)
                 .limit(limit)
             )
         )
@@ -46,15 +51,29 @@ async def top_services_by_revenue(
     )
     out: list[dict] = []
     for sid, name_i18n, rev, n in rows:
+        revenue = Decimal(str(rev))
+        n_int = int(n)
+        avg = (revenue / n_int) if n_int else Decimal("0")
         out.append(
             {
                 "service_id": str(sid),
                 "name_i18n": dict(name_i18n) if name_i18n else {},
-                "revenue": str(Decimal(str(rev)).quantize(Decimal("0.01"))),
-                "completed_bookings": int(n),
+                "revenue": str(revenue.quantize(Decimal("0.01"))),
+                "completed_bookings": n_int,
+                "avg_check": str(avg.quantize(Decimal("0.01"))),
             }
         )
     return out
+
+
+async def top_services_by_revenue(
+    db: AsyncSession,
+    *,
+    dfrom: date,
+    dto: date,
+    limit: int = 20,
+) -> list[dict]:
+    return await top_services(db, dfrom=dfrom, dto=dto, limit=limit, order_by="revenue")
 
 
 async def dead_services(
@@ -63,7 +82,7 @@ async def dead_services(
     dto: date,
     dead_days: int = 30,
 ) -> list[dict]:
-    """Услуги без завершённых записей за последние dead_days (окно до dto включительно)."""
+    """Услуги без завершённых записей за последние dead_days; включает last_booking_at."""
     dfrom = dto - timedelta(days=dead_days - 1)
     start, end = period_utc_range(dfrom, dto)
 
@@ -78,10 +97,26 @@ async def dead_services(
         .subquery()
     )
 
+    last_booking_subq = (
+        select(
+            Booking.service_id.label("service_id"),
+            func.max(Booking.starts_at).label("last_at"),
+        )
+        .where(Booking.starts_at.is_not(None))
+        .group_by(Booking.service_id)
+        .subquery()
+    )
+
     rows = (
         (
             await db.execute(
-                select(Service.id, Service.name_i18n, Service.is_active)
+                select(
+                    Service.id,
+                    Service.name_i18n,
+                    Service.is_active,
+                    last_booking_subq.c.last_at,
+                )
+                .outerjoin(last_booking_subq, last_booking_subq.c.service_id == Service.id)
                 .where(Service.is_active.is_(True))
                 .where(Service.id.notin_(select(busy.c.service_id)))
             )
@@ -93,6 +128,7 @@ async def dead_services(
             "service_id": str(r[0]),
             "name_i18n": dict(r[1]) if r[1] else {},
             "is_active": r[2],
+            "last_booking_at": r[3].isoformat() if r[3] else None,
         }
         for r in rows
     ]
