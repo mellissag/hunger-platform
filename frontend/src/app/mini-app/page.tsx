@@ -92,7 +92,7 @@ export default function HomePage() {
     t.greetingGuest;
 
   const today = new Date();
-  const issueNum = String(today.getMonth() + 1).padStart(2, '0');
+  const issueNum = String(today.getDate()).padStart(2, '0');
   const monthName = t.monthsLong[today.getMonth()];
 
   return (

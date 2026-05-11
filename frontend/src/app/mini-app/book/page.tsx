@@ -94,7 +94,6 @@ function BookContent() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [calMonth, setCalMonth] = useState(() => new Date());
   const [consultationMode, setConsultationMode] = useState(false);
-  const [anyMaster, setAnyMaster] = useState(false);
   const [callForTime, setCallForTime] = useState(false);
   const [confirmName, setConfirmName] = useState('');
   const [confirmPhone, setConfirmPhone] = useState('');
@@ -150,16 +149,6 @@ function BookContent() {
     setStep(2);
   }, [qMasterId, qServiceId, selectedService, masters]);
 
-  useEffect(() => {
-    if (consultationMode) setAnyMaster(false);
-  }, [consultationMode]);
-  useEffect(() => {
-    if (anyMaster) setConsultationMode(false);
-  }, [anyMaster]);
-  useEffect(() => {
-    if (step === 2 && anyMaster) setCallForTime(true);
-  }, [step, anyMaster]);
-
   // Days for the current calendar month view
   const calDays = days.filter(d => d.getMonth() === calMonth.getMonth() && d.getFullYear() === calMonth.getFullYear());
 
@@ -171,8 +160,7 @@ function BookContent() {
   }
 
   const handleConfirm = useCallback(async () => {
-    if (!selectedService || !selectedDate) return;
-    if (!anyMaster && !selectedMaster) return;
+    if (!selectedService || !selectedDate || !selectedMaster) return;
     if (!callForTime && !selectedTime) return;
 
     const storedName =
@@ -182,25 +170,18 @@ function BookContent() {
       : clientProfile?.first_name?.trim() || storedName || '';
     const nameForBooking = confirmName.trim() || defaultName;
 
-    const flex = anyMaster || callForTime;
-    let starts_at: string | undefined;
-    if (!flex) {
-      starts_at = zonedToUtcIso(selectedDate, selectedTime!, TZ);
-    } else if (!callForTime && selectedTime) {
-      starts_at = zonedToUtcIso(selectedDate, selectedTime, TZ);
-    } else {
-      starts_at = undefined;
-    }
+    const starts_at = callForTime
+      ? undefined
+      : zonedToUtcIso(selectedDate, selectedTime!, TZ);
 
     try {
       await createBooking.mutateAsync({
         service_id: selectedService.id,
-        master_id: anyMaster ? undefined : selectedMaster?.id,
+        master_id: selectedMaster.id,
         starts_at,
         client_name: nameForBooking || undefined,
         client_phone: confirmPhone.trim() || undefined,
         comment: bookingComment.trim() || undefined,
-        any_master: anyMaster,
         call_for_time: callForTime,
         telegram_id: user?.id,
       });
@@ -218,7 +199,6 @@ function BookContent() {
     selectedMaster,
     selectedDate,
     selectedTime,
-    anyMaster,
     callForTime,
     confirmName,
     confirmPhone,
@@ -358,7 +338,6 @@ function BookContent() {
         <div style={{ padding: '0 16px 4px' }}>
           <div
             onClick={() => {
-              setAnyMaster(false);
               setConsultationMode((prev) => !prev);
             }}
             style={{
@@ -406,83 +385,6 @@ function BookContent() {
           </div>
         </div>
 
-        {/* Any master */}
-        <div style={{ padding: '0 16px 4px' }}>
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => {
-              if (consultationMode) return;
-              setAnyMaster((prev) => !prev);
-              setSelectedMaster(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                if (!consultationMode) {
-                  setAnyMaster((prev) => !prev);
-                  setSelectedMaster(null);
-                }
-              }
-            }}
-            style={{
-              padding: '14px 16px',
-              borderRadius: 16,
-              border: anyMaster ? `1.5px solid ${GOLD}` : '1px solid rgba(28,20,9,.12)',
-              background: anyMaster ? 'rgba(154,114,48,.07)' : 'var(--bg-overlay)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              cursor: consultationMode ? 'default' : 'pointer',
-              transition: 'all .15s ease',
-              opacity: consultationMode ? 0.35 : 1,
-              pointerEvents: consultationMode ? 'none' : 'auto',
-            }}
-          >
-            <div
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: '50%',
-                flexShrink: 0,
-                border: anyMaster ? 'none' : '1.5px solid var(--border-strong)',
-                background: anyMaster ? `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})` : 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {anyMaster && (
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M5 13l4 4L19 7"
-                    stroke="white"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              )}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  fontFamily: SERIF,
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: NEAR_BLACK,
-                  lineHeight: 1.3,
-                }}
-              >
-                {t.bookCheckboxAnyMaster}
-              </div>
-              <div style={{ fontSize: 11, color: MUTED, marginTop: 3, lineHeight: 1.4 }}>
-                {t.bookCheckboxAnyMasterHint}
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* "или выберите мастера" divider */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
@@ -497,8 +399,8 @@ function BookContent() {
           <div style={{ flex: 1, height: 1, background: 'rgba(28,20,9,.08)' }}/>
         </div>
 
-        {/* Masters list — dimmed when consultation or any-master mode active */}
-        <div style={{ opacity: consultationMode || anyMaster ? 0.35 : 1, pointerEvents: consultationMode || anyMaster ? 'none' : 'auto', transition: 'opacity .2s ease' }}>
+        {/* Masters list — dimmed when consultation mode active */}
+        <div style={{ opacity: consultationMode ? 0.35 : 1, pointerEvents: consultationMode ? 'none' : 'auto', transition: 'opacity .2s ease' }}>
           {masters.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '24px', color: MUTED, fontFamily: SERIF, fontSize: 18 }}>
               {t.bookNoMasters}
@@ -514,7 +416,6 @@ function BookContent() {
                   <button
                     key={m.id}
                     onClick={() => {
-                      setAnyMaster(false);
                       setSelectedMaster(m);
                       setStep(2);
                     }}
@@ -561,43 +462,6 @@ function BookContent() {
           )}
         </div>
 
-        {/* CTA when any-master mode */}
-        {anyMaster && (
-          <div style={{ padding: '20px 16px 40px', position: 'sticky', bottom: 0 }}>
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedMaster(null);
-                setStep(2);
-              }}
-              style={{
-                width: '100%',
-                background: NEAR_BLACK,
-                border: 'none',
-                color: IVORY,
-                padding: '15px 22px',
-                borderRadius: 999,
-                fontSize: 12,
-                fontWeight: 600,
-                letterSpacing: '0.10em',
-                textTransform: 'uppercase',
-                fontFamily: BODY,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                boxShadow: '0 8px 24px rgba(28,20,9,.18)',
-                cursor: 'pointer',
-              }}
-            >
-              {t.continueBtn}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </button>
-          </div>
-        )}
-
         {/* CTA when consultation mode */}
         {consultationMode && (
           <div style={{ padding: '20px 16px 40px', position: 'sticky', bottom: 0 }}>
@@ -634,13 +498,7 @@ function BookContent() {
       <div style={pageBg}>
         <BackBar
           onBack={() => setStep(1)}
-          label={
-            anyMaster
-              ? t.bookCheckboxAnyMaster
-              : selectedMaster
-                ? getMasterName(selectedMaster)
-                : t.back
-          }
+          label={selectedMaster ? getMasterName(selectedMaster) : t.back}
         />
         <div style={{ padding: '20px 22px 10px' }}>
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookStep2}</div>
@@ -770,11 +628,7 @@ function BookContent() {
             )}
           </div>
 
-          {anyMaster ? (
-            <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13, fontFamily: SERIF }}>
-              {t.bookCheckboxAnyMasterHint}
-            </div>
-          ) : !selectedDate ? (
+          {!selectedDate ? (
             <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13 }}>{t.bookSelectDate}</div>
           ) : callForTime ? (
             <div style={{ textAlign: 'center', padding: '16px 0', color: MUTED, fontSize: 13, fontFamily: SERIF }}>
@@ -877,11 +731,7 @@ function BookContent() {
           () => t.bookConfirmDurationRangeNote,
         )
       : '';
-    const masterDisplay = anyMaster
-      ? t.bookConfirmAnyMasterDisplay
-      : selectedMaster
-        ? getMasterName(selectedMaster)
-        : '—';
+    const masterDisplay = selectedMaster ? getMasterName(selectedMaster) : '—';
     const timeDisplay = callForTime ? t.bookConfirmTimeByPhone : selectedTime ?? '—';
 
     const fieldBase: CSSProperties = {
@@ -965,7 +815,7 @@ function BookContent() {
                     flexShrink: 0,
                   }}
                 >
-                  {anyMaster ? '★' : selectedMaster ? getMasterInitials(getMasterName(selectedMaster)) : '?'}
+                  {selectedMaster ? getMasterInitials(getMasterName(selectedMaster)) : '?'}
                 </div>
                 <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 500, color: NEAR_BLACK }}>{masterDisplay}</div>
               </div>
