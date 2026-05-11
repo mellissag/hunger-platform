@@ -6,6 +6,7 @@ import { miniAppBookingDurationLabel } from '@/lib/booking-duration-label';
 import { useTelegram } from '../hooks/useTelegram';
 import {
   useServices,
+  useServiceCategories,
   useMastersByService,
   useAvailableSlots,
   useCreateBooking,
@@ -84,9 +85,9 @@ function BookContent() {
   const searchParams = useSearchParams();
   const { user } = useTelegram();
   const { data: clientProfile } = useClientProfile();
-  const { t } = useT();
+  const { t, lang } = useT();
   const [step, setStep] = useState<Step>(0);
-  const [activeCatKey, setActiveCatKey] = useState<'catAll'|'catHair'|'catNails'|'catFace'|'catBody'>('catAll');
+  const [activeCatId, setActiveCatId] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedMaster, setSelectedMaster] = useState<Master | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -107,6 +108,7 @@ function BookContent() {
   const qMasterId = searchParams.get('master_id');
 
   const { data: services = [] } = useServices();
+  const { data: categories = [] } = useServiceCategories(lang);
   const { data: masters = [] } = useMastersByService(selectedService?.id ?? null);
   const { data: slotsData } = useAvailableSlots(
     selectedMaster?.id ?? null,
@@ -251,39 +253,58 @@ function BookContent() {
     }
   }, [selectedService, user, clientProfile, createBooking, t]);
 
-  const CAT_KEYS: Array<'catAll'|'catHair'|'catNails'|'catFace'|'catBody'> = ['catAll','catHair','catNails','catFace','catBody'];
-  const CAT_KWMAP: Record<typeof CAT_KEYS[number], string[]> = {
-    catAll: [], catHair: ['волос','hair','коса'], catNails: ['ногт','nail','нокт'],
-    catFace: ['лиц','face','обличч'], catBody: ['тело','body','тіл'],
-  };
-
   // ── Step 0: Service catalog ──────────────────────────────────────────────
   if (step === 0) {
     const filtered = services.filter(s => {
-      if (activeCatKey === 'catAll') return true;
-      const catField = (s.category ?? '').toLowerCase();
-      return (CAT_KWMAP[activeCatKey] ?? []).some(kw => catField.includes(kw));
+      if (!activeCatId) return true;
+      return s.category_id === activeCatId;
     });
     return (
       <div style={pageBg}>
         <div style={{ padding: '18px 22px 12px' }}>
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookEyebrow}</div>
-          <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 10, letterSpacing: '-0.02em' }}>
+          <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.1, marginTop: 10, letterSpacing: '-0.02em' }}>
             {t.bookCatH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookCatHi}</span>.
           </div>
         </div>
 
-        {/* Category chips */}
+        {/* Category chips — dynamic from backend (same source as catalog) */}
         <div style={{ display: 'flex', gap: 8, padding: '0 16px 14px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {CAT_KEYS.map(catKey => (
-            <button key={catKey} onClick={() => setActiveCatKey(catKey)} style={{
+          {/* "All" chip */}
+          <button
+            onClick={() => setActiveCatId(null)}
+            style={{
               flexShrink: 0, padding: '7px 16px', borderRadius: 999,
-              border: `1px solid ${activeCatKey === catKey ? 'transparent' : 'var(--border-strong)'}`,
-              background: activeCatKey === catKey ? 'var(--chip-active-bg)' : 'transparent',
-              color: activeCatKey === catKey ? 'var(--chip-active-text)' : 'var(--chip-text)',
-              fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: BODY, cursor: 'pointer',
-            }}>{t[catKey]}</button>
-          ))}
+              border: `1px solid ${!activeCatId ? 'transparent' : 'var(--border-strong)'}`,
+              background: !activeCatId ? 'var(--chip-active-bg)' : 'transparent',
+              color: !activeCatId ? 'var(--chip-active-text)' : 'var(--chip-text)',
+              fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+              textTransform: 'uppercase', fontFamily: BODY, cursor: 'pointer',
+            }}
+          >
+            {t.catAll}
+          </button>
+          {categories.map(cat => {
+            const active = activeCatId === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCatId(active ? null : cat.id)}
+                style={{
+                  flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '7px 16px', borderRadius: 999,
+                  border: `1px solid ${active ? 'transparent' : 'var(--border-strong)'}`,
+                  background: active ? 'var(--chip-active-bg)' : 'transparent',
+                  color: active ? 'var(--chip-active-text)' : 'var(--chip-text)',
+                  fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+                  textTransform: 'uppercase', fontFamily: BODY, cursor: 'pointer',
+                }}
+              >
+                {cat.icon && <span style={{ textTransform: 'none' }}>{cat.icon}</span>}
+                {cat.name}
+              </button>
+            );
+          })}
         </div>
 
         {/* Service list */}

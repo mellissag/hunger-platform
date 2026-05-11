@@ -80,8 +80,8 @@ export default function CatalogPage() {
         <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>
           {t.catEyebrow}
         </div>
-        <div style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 10, letterSpacing: '-0.02em' }}>
-          {t.catH1}<br />
+        <div style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.1, marginTop: 10, letterSpacing: '-0.02em' }}>
+          {t.catH1}{' '}
           <span style={{ fontStyle: 'italic', color: GOLD }}>{t.catH1i}</span>.
         </div>
       </div>
