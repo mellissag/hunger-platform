@@ -26,7 +26,7 @@ ALL_PERMISSIONS: list[str] = [
     # Клиенты
     "clients_view",
     "clients_own_only",
-    "clients_phones",
+    "clients_view_phones",
     "clients_notes",
     "clients_edit",
     "clients_blacklist",
@@ -85,7 +85,7 @@ ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
     "admin": {
         "clients_view": True,
         "clients_own_only": False,
-        "clients_phones": True,
+        "clients_view_phones": True,
         "clients_notes": True,
         "clients_edit": True,
         "clients_blacklist": True,
@@ -133,7 +133,7 @@ ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
     "reception": {
         "clients_view": True,
         "clients_own_only": False,
-        "clients_phones": True,
+        "clients_view_phones": True,
         "clients_notes": True,
         "clients_edit": True,
         "clients_blacklist": False,
@@ -181,7 +181,7 @@ ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
     "master": {
         "clients_view": True,
         "clients_own_only": True,
-        "clients_phones": False,
+        "clients_view_phones": False,
         "clients_notes": True,
         "clients_edit": False,
         "clients_blacklist": False,

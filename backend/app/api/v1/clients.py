@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.permissions import has_permission
 from app.deps import get_db, get_telegram_bot, require_roles
 from app.models.enums import UserRole
 from app.models.client import Client as ClientModel
@@ -48,22 +49,44 @@ ADMINS = (UserRole.owner, UserRole.admin)
 _MISSING_LAST_VISIT = object()
 
 
+def _phone_for_user(c: ClientModel, user: User) -> str | None:
+    """Phone visibility gated by permission `clients_view_phones`.
+    When user lacks the permission and phone is present, return masked form."""
+    raw = c.phone
+    if not raw:
+        return raw
+    if has_permission(user, "clients_view_phones"):
+        return raw
+    # Mask: keep last 2 digits, prefix country if present.
+    digits = "".join(ch for ch in raw if ch.isdigit())
+    if not digits:
+        return None
+    last2 = digits[-2:]
+    prefix = ""
+    if raw.startswith("+"):
+        # keep up to 3 chars of country code
+        prefix = "+" + digits[: min(3, len(digits) - 2)] + " "
+    return f"{prefix}*** *** {last2}".strip() or None
+
+
 def _to_out(
     c: ClientModel,
     tb: int,
     tr: Decimal,
     *,
+    user: User | None = None,
     last_visit_at: datetime | None | object = _MISSING_LAST_VISIT,
 ) -> ClientOut:
     if last_visit_at is _MISSING_LAST_VISIT:
         eff_lv = c.last_visit_at
     else:
         eff_lv = last_visit_at  # type: ignore[assignment]
+    phone = _phone_for_user(c, user) if user is not None else c.phone
     return ClientOut(
         id=c.id,
         tg_user_id=c.tg_user_id,
         tg_username=c.tg_username,
-        phone=c.phone,
+        phone=phone,
         first_name=c.first_name,
         last_name=c.last_name,
         city=c.city,
@@ -97,7 +120,7 @@ async def client_stats(
 @router.get("/export")
 async def export_clients(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception))],
+    user: Annotated[User, Depends(require_roles(*STAFF))],
     search: str | None = Query(None),
     q: str | None = Query(None),
     tag: list[str] | None = Query(None),
@@ -106,6 +129,8 @@ async def export_clients(
     last_visit_days: str | None = Query(None),
     export_format: str = Query("csv", alias="format", description="csv"),
 ) -> Response:
+    if not has_permission(user, "clients_export"):
+        raise HTTPException(status_code=403, detail="clients_export permission required")
     eff = (search or q or "").strip() or None
     tag_params = client_service.normalize_client_tag_filters(tag, tags)
     body = await client_service.export_clients_csv_bytes(
@@ -148,7 +173,7 @@ async def list_clients(
         master_id=master_id,
         last_visit_days=last_visit_days,
     )
-    items = [_to_out(c, tb, tr, last_visit_at=lv) for c, tb, tr, lv in rows]
+    items = [_to_out(c, tb, tr, user=user, last_visit_at=lv) for c, tb, tr, lv in rows]
     return PaginatedResponse(items=items, total=total, page=page, page_size=page_size)
 
 
@@ -159,7 +184,7 @@ async def create_client(
     user: Annotated[User, Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception))],
 ) -> ClientOut:
     c = await client_service.create_client(db, user, body)
-    return _to_out(c, 0, Decimal(0))
+    return _to_out(c, 0, Decimal(0), user=user)
 
 
 @router.get("/{client_id}/detail", response_model=ClientDetailOut)
@@ -171,7 +196,7 @@ async def get_client_detail(
     c, tb, tr, lv, notes, bookings_raw, reviews_raw, be = await client_service.get_client_detail(
         db, user, client_id
     )
-    base = _to_out(c, tb, tr, last_visit_at=lv)
+    base = _to_out(c, tb, tr, user=user, last_visit_at=lv)
     bookings = [
         ClientBookingHistoryOut(
             id=b.id,
@@ -321,7 +346,7 @@ async def get_client(
     user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> ClientOut:
     c, tb, tr, lv = await client_service.get_client(db, user, client_id)
-    return _to_out(c, tb, tr, last_visit_at=lv)
+    return _to_out(c, tb, tr, user=user, last_visit_at=lv)
 
 
 @router.patch("/{client_id}", response_model=ClientOut)
@@ -334,7 +359,7 @@ async def update_client(
 ) -> ClientOut:
     await client_service.update_client(db, user, client_id, body)
     c, tb, tr, lv = await client_service.get_client(db, user, client_id)
-    return _to_out(c, tb, tr, last_visit_at=lv)
+    return _to_out(c, tb, tr, user=user, last_visit_at=lv)
 
 
 @router.delete("/{client_id}", status_code=204)

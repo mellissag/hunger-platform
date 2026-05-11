@@ -6,20 +6,34 @@ import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
+import { usePermissions } from "@/hooks/usePermissions";
 
 import { StatisticsPeriodBar } from "./statistics-period-bar";
 
-const LINKS = [
-  { href: "/statistics/overview", key: "navOverview" as const },
-  { href: "/statistics/bot", key: "navBot" as const },
-  { href: "/statistics/masters", key: "navMasters" as const },
-  { href: "/statistics/services", key: "navServices" as const },
-  { href: "/statistics/finance", key: "navFinance" as const },
+type StatLink = { href: string; key: "navOverview" | "navBot" | "navMasters" | "navServices" | "navFinance" };
+
+const ALL_LINKS: StatLink[] = [
+  { href: "/statistics/overview", key: "navOverview" },
+  { href: "/statistics/bot",      key: "navBot" },
+  { href: "/statistics/masters",  key: "navMasters" },
+  { href: "/statistics/services", key: "navServices" },
+  { href: "/statistics/finance",  key: "navFinance" },
 ];
 
 export function StatisticsChrome({ children }: { children: React.ReactNode }) {
   const t = useTranslations("pages.statistics");
   const pathname = usePathname();
+  const { me } = usePermissions();
+  const role = me?.role;
+
+  /** Master не видит «Бот» (общая бот-аналитика салона) и «Финансы» (выручка/зарплаты).
+   *  Для master backend всё равно вернёт 403 на этих эндпоинтах. */
+  const LINKS = ALL_LINKS.filter((l) => {
+    if (role === "master") {
+      if (l.key === "navBot" || l.key === "navFinance") return false;
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-6">

@@ -13,24 +13,29 @@ import type { Paginated, UserStaffOut } from "@/types/admin-api";
 
 // ── Permission definitions ─────────────────────────────────────────────────
 
-const PERM_GROUPS = [
+type PermDef = { key: string; label: string; hint?: string };
+type PermGroupDef = { key: string; roles: ReadonlyArray<"admin" | "reception" | "master">; perms: ReadonlyArray<PermDef> };
+
+/** Группы и пермишены, отображаемые на вкладке «Права доступа». Для каждой
+ *  роли (admin/reception/master) рендерится только релевантный поднабор. */
+const PERM_GROUPS: ReadonlyArray<PermGroupDef> = [
   {
     key: "catClients",
-    masterOnly: false,
+    roles: ["admin", "reception", "master"],
     perms: [
-      { key: "clients_view",      label: "pClientsView" },
-      { key: "clients_own_only",  label: "pClientsOwnOnly",   hint: "pClientsOwnOnlyHint" },
-      { key: "clients_phones",    label: "pClientsPhonesView" },
-      { key: "clients_notes",     label: "pClientsNotes" },
-      { key: "clients_edit",      label: "pClientsEdit" },
-      { key: "clients_blacklist", label: "pClientsBlacklist" },
-      { key: "clients_export",    label: "pClientsExport" },
-      { key: "clients_telegram",  label: "pClientsTelegram" },
+      { key: "clients_view",        label: "pClientsView" },
+      { key: "clients_own_only",    label: "pClientsOwnOnly",   hint: "pClientsOwnOnlyHint" },
+      { key: "clients_view_phones", label: "pClientsPhonesView" },
+      { key: "clients_notes",       label: "pClientsNotes" },
+      { key: "clients_edit",        label: "pClientsEdit" },
+      { key: "clients_blacklist",   label: "pClientsBlacklist" },
+      { key: "clients_export",      label: "pClientsExport" },
+      { key: "clients_telegram",    label: "pClientsTelegram" },
     ],
   },
   {
     key: "catMasters",
-    masterOnly: false,
+    roles: ["admin", "reception", "master"],
     perms: [
       { key: "masters_view_all", label: "pMastersViewAll" },
       { key: "masters_own_only", label: "pMastersOwnOnly", hint: "pMastersOwnOnlyHint" },
@@ -38,7 +43,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catBookings",
-    masterOnly: false,
+    roles: ["admin", "reception", "master"],
     perms: [
       { key: "bookings_view_all",      label: "pBookingsViewAll" },
       { key: "bookings_create",        label: "pBookingsCreate" },
@@ -49,7 +54,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catFinance",
-    masterOnly: false,
+    roles: ["admin"],
     perms: [
       { key: "finance_revenue",  label: "pFinanceRevenue" },
       { key: "finance_salaries", label: "pFinanceSalaries" },
@@ -59,7 +64,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catStats",
-    masterOnly: false,
+    roles: ["admin"],
     perms: [
       { key: "stats_salon",    label: "pStatsSalon" },
       { key: "stats_masters",  label: "pStatsMasters" },
@@ -68,7 +73,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catServices",
-    masterOnly: false,
+    roles: ["admin"],
     perms: [
       { key: "services_manage",  label: "pServicesManage" },
       { key: "masters_manage",   label: "pMastersManage" },
@@ -77,7 +82,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catMarketing",
-    masterOnly: false,
+    roles: ["admin"],
     perms: [
       { key: "broadcasts_view", label: "pBroadcastsView" },
       { key: "broadcasts_send", label: "pBroadcastsSend" },
@@ -85,7 +90,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catInventory",
-    masterOnly: false,
+    roles: ["admin"],
     perms: [
       { key: "inventory_view",  label: "pInventoryView" },
       { key: "inventory_edit",  label: "pInventoryEdit" },
@@ -95,7 +100,7 @@ const PERM_GROUPS = [
   },
   {
     key: "catSystem",
-    masterOnly: false,
+    roles: ["admin"],
     perms: [
       { key: "settings_edit",       label: "pSettingsEdit" },
       { key: "users_manage",        label: "pUsersManage" },
@@ -106,24 +111,21 @@ const PERM_GROUPS = [
   },
   {
     key: "catPageAccess",
-    masterOnly: true,
+    roles: ["master"],
     perms: [
       { key: "page_bookings",   label: "pPageBookings",   hint: "pPageBookingsHint" },
       { key: "page_clients",    label: "pPageClients",    hint: "pPageClientsHint" },
       { key: "page_schedule",   label: "pPageSchedule",   hint: "pPageScheduleHint" },
       { key: "page_statistics", label: "pPageStatistics", hint: "pPageStatisticsHint" },
       { key: "page_masters",    label: "pPageMasters",    hint: "pPageMastersHint" },
-      { key: "page_inventory",  label: "pPageInventory",  hint: "pPageInventoryHint" },
-      { key: "page_formulas",   label: "pPageFormulas",   hint: "pPageFormulasHint" },
-      { key: "page_chats",      label: "pPageChats",      hint: "pPageChatsHint" },
     ],
   },
-] as const;
+];
 
 const ROLE_DEFAULTS: Record<string, Record<string, boolean>> = {
   owner: {},
   admin: {
-    clients_view: true, clients_own_only: false, clients_phones: true, clients_notes: true,
+    clients_view: true, clients_own_only: false, clients_view_phones: true, clients_notes: true,
     clients_edit: true, clients_blacklist: true, clients_export: true, clients_telegram: true,
     masters_view_all: true, masters_own_only: false,
     bookings_view_all: true, bookings_create: true, bookings_edit_others: true,
@@ -136,7 +138,7 @@ const ROLE_DEFAULTS: Record<string, Record<string, boolean>> = {
     settings_edit: false, users_manage: false, audit_view: true, ai_manage: false, integrations_manage: false,
   },
   reception: {
-    clients_view: true, clients_own_only: false, clients_phones: true, clients_notes: true,
+    clients_view: true, clients_own_only: false, clients_view_phones: true, clients_notes: true,
     clients_edit: true, clients_blacklist: false, clients_export: false, clients_telegram: true,
     masters_view_all: true, masters_own_only: false,
     bookings_view_all: true, bookings_create: true, bookings_edit_others: true,
@@ -149,7 +151,7 @@ const ROLE_DEFAULTS: Record<string, Record<string, boolean>> = {
     settings_edit: false, users_manage: false, audit_view: false, ai_manage: false, integrations_manage: false,
   },
   master: {
-    clients_view: true, clients_own_only: true, clients_phones: false, clients_notes: true,
+    clients_view: true, clients_own_only: true, clients_view_phones: false, clients_notes: true,
     clients_edit: false, clients_blacklist: false, clients_export: false, clients_telegram: false,
     masters_view_all: false, masters_own_only: true,
     bookings_view_all: false, bookings_create: false, bookings_edit_others: false,
@@ -455,53 +457,57 @@ function UserDrawer({
 
           {tab === "perms" && (
             <div className="space-y-5">
-              {PERM_GROUPS.filter((group) => !group.masterOnly || user.role === "master").map((group) => (
-                <div key={group.key}>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                    {t(group.key as never)}
-                  </p>
-                  {"masterOnly" in group && group.masterOnly && (
-                    <p className="text-[11px] text-muted-foreground mb-2">
-                      {t("catPageAccessHint" as never)}
+              {PERM_GROUPS
+                .filter((group) =>
+                  (group.roles as ReadonlyArray<string>).includes(user.role),
+                )
+                .map((group) => (
+                  <div key={group.key}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                      {t(group.key as never)}
                     </p>
-                  )}
-                  <div className="space-y-1.5">
-                    {group.perms.map((perm) => {
-                      const value = perms[perm.key] ?? false;
-                      const defaultVal = defaults[perm.key] ?? false;
-                      const isOverride = value !== defaultVal;
-                      return (
-                        <div key={perm.key}>
-                          <label className="flex items-start gap-2.5 cursor-pointer group">
-                            <input
-                              type="checkbox"
-                              checked={value}
-                              disabled={!isOwner}
-                              onChange={(e) => togglePerm(perm.key, e.target.checked)}
-                              className="mt-0.5 h-4 w-4 rounded border-border accent-primary cursor-pointer"
-                            />
-                            <span className="flex-1 min-w-0">
-                              <span className="text-sm leading-snug">
-                                {t(perm.label as never)}
-                              </span>
-                              {isOverride && (
-                                <span className="ml-1.5 inline-block rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-1.5 py-0 text-[10px] font-medium">
-                                  {t("permOverride")}
+                    {group.key === "catPageAccess" && (
+                      <p className="text-[11px] text-muted-foreground mb-2">
+                        {t("catPageAccessHint" as never)}
+                      </p>
+                    )}
+                    <div className="space-y-1.5">
+                      {group.perms.map((perm) => {
+                        const value = perms[perm.key] ?? false;
+                        const defaultVal = defaults[perm.key] ?? false;
+                        const isOverride = value !== defaultVal;
+                        return (
+                          <div key={perm.key}>
+                            <label className="flex items-start gap-2.5 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                checked={value}
+                                disabled={!isOwner}
+                                onChange={(e) => togglePerm(perm.key, e.target.checked)}
+                                className="mt-0.5 h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                              />
+                              <span className="flex-1 min-w-0">
+                                <span className="text-sm leading-snug">
+                                  {t(perm.label as never)}
                                 </span>
-                              )}
-                            </span>
-                          </label>
-                          {"hint" in perm && perm.hint && (
-                            <p className="ml-6 text-[11px] text-muted-foreground mt-0.5">
-                              {t(perm.hint as never)}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
+                                {isOverride && (
+                                  <span className="ml-1.5 inline-block rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-1.5 py-0 text-[10px] font-medium">
+                                    {t("permOverride")}
+                                  </span>
+                                )}
+                              </span>
+                            </label>
+                            {perm.hint && (
+                              <p className="ml-6 text-[11px] text-muted-foreground mt-0.5">
+                                {t(perm.hint as never)}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
         </div>

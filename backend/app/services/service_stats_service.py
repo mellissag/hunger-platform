@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import Literal
+from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,11 +23,13 @@ async def top_services(
     dto: date,
     limit: int = 20,
     order_by: Literal["revenue", "popularity"] = "revenue",
+    master_id: UUID | None = None,
 ) -> list[dict]:
     start, end = period_utc_range(dfrom, dto)
     rev_sum = func.coalesce(func.sum(Booking.price), 0)
     cnt = func.count()
     order_col = rev_sum.desc() if order_by == "revenue" else cnt.desc()
+    extra_filters = [Booking.master_id == master_id] if master_id else []
     rows = (
         (
             await db.execute(
@@ -41,6 +44,7 @@ async def top_services(
                     Booking.status == BookingStatus.completed,
                     Booking.starts_at >= start,
                     Booking.starts_at < end,
+                    *extra_filters,
                 )
                 .group_by(Service.id)
                 .order_by(order_col)

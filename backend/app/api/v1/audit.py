@@ -19,13 +19,13 @@ from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 
-_OWNER = (UserRole.owner,)
+_AUDIT_ROLES = (UserRole.owner, UserRole.admin)
 
 
 @router.get("/log", response_model=PaginatedResponse[AuditLogOut])
 async def list_audit(
     db: Annotated[AsyncSession, Depends(get_db)],
-    _user: Annotated[User, Depends(require_roles(*_OWNER))],
+    _user: Annotated[User, Depends(require_roles(*_AUDIT_ROLES))],
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     action: str | None = None,

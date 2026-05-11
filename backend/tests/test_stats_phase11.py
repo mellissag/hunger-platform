@@ -152,7 +152,22 @@ async def test_bot_visit_stat_refresh_and_api(fake_now, client: AsyncClient, tes
 
 
 @pytest.mark.asyncio
-async def test_reception_forbidden_stats(client: AsyncClient, test_user_master) -> None:
+async def test_master_can_access_stats_overview_but_not_bot(
+    client: AsyncClient, test_user_master
+) -> None:
+    """Master видит обзор статистики (автоматически по своему master_id), но «Бот» вкладка скрыта."""
+    factory = get_async_session_factory()
+    # Привязать master профиль к user — без него /stats/overview вернёт 403
+    async with factory() as s:
+        m = Master(display_name="Master")
+        s.add(m)
+        await s.flush()
+        from app.models.user import User as UserModel
+        u = await s.get(UserModel, test_user_master)
+        assert u is not None
+        u.master_id = m.id
+        await s.commit()
+
     r = await client.post(
         "/api/v1/auth/login",
         json={"email": "master@example.com", "password": "secretpass12"},
@@ -160,8 +175,16 @@ async def test_reception_forbidden_stats(client: AsyncClient, test_user_master) 
     )
     assert r.status_code == 200
     h = {"Authorization": f"Bearer {r.json()['access_token']}"}
-    res = await client.get(
-        f"/api/v1/stats/overview?from={date.today().isoformat()}&to={date.today().isoformat()}",
+    d = date.today().isoformat()
+
+    res_overview = await client.get(
+        f"/api/v1/stats/overview?from={d}&to={d}",
         headers=h,
     )
-    assert res.status_code == 403
+    assert res_overview.status_code == 200
+
+    res_bot = await client.get(
+        f"/api/v1/stats/bot?from={d}&to={d}",
+        headers=h,
+    )
+    assert res_bot.status_code == 403

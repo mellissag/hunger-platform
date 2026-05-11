@@ -29,6 +29,18 @@ const MASTER_FORBIDDEN_PATHS = [
   "/blacklist",
 ];
 
+/** Reception видит только эти страницы. Всё остальное → /dashboard. */
+const RECEPTION_ALLOWED_PATHS = [
+  "/dashboard",
+  "/bookings",
+  "/clients",
+  "/schedule",
+  "/chats",
+];
+
+/** Admin видит всё кроме /users. */
+const ADMIN_FORBIDDEN_PATHS = ["/users"];
+
 function getJwtSecret(): Uint8Array | null {
   const s = process.env.JWT_SECRET;
   if (!s) return null;
@@ -138,24 +150,28 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/403", request.url));
     }
 
+    // Reception: разрешён короткий whitelist, всё остальное → /dashboard
     if (session.role === "reception") {
-      const receptionAllowed = ["/dashboard", "/bookings", "/clients", "/schedule", "/profile"];
-      const allowed = receptionAllowed.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+      const allowed = RECEPTION_ALLOWED_PATHS.some(
+        (p) => pathname === p || pathname.startsWith(`${p}/`),
+      );
       if (!allowed) {
-        return NextResponse.redirect(new URL("/403", request.url));
+        return NextResponse.redirect(new URL("/dashboard", request.url));
       }
+      return NextResponse.next();
     }
 
-    const ownerOnly =
-      pathname === "/users" ||
-      pathname.startsWith("/users/") ||
-      pathname === "/settings" ||
-      pathname.startsWith("/settings/") ||
-      pathname === "/audit" ||
-      pathname.startsWith("/audit/");
-    if (ownerOnly && session.role !== "owner") {
-      return NextResponse.redirect(new URL("/403", request.url));
+    // Admin: всё, кроме /users (→ /dashboard)
+    if (session.role === "admin") {
+      const adminForbidden = ADMIN_FORBIDDEN_PATHS.some(
+        (p) => pathname === p || pathname.startsWith(`${p}/`),
+      );
+      if (adminForbidden) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+      return NextResponse.next();
     }
+
     return NextResponse.next();
   }
 

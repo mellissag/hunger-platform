@@ -1088,6 +1088,23 @@
       "pPageChats": "Раздел Чатове",
       "pPageChatsHint": "Майсторът отваря /chats и вижда всички чатове на салона"
     },
+    "masterDashboard": {
+      "title": "Моят ден",
+      "kpiBookingsToday": "Записани днес",
+      "kpiPending": "Чакат потвърждение",
+      "kpiRevenueToday": "Приходи днес",
+      "sectionToday": "Днес",
+      "sectionUpcoming": "Предстоящи записи",
+      "emptyToday": "Няма записи за днес",
+      "loading": "Зареждане…",
+      "noClient": "—",
+      "noService": "—",
+      "statusConfirmed": "Потвърдена",
+      "statusPending": "Чака",
+      "statusCompleted": "Завършена",
+      "statusCancelledByClient": "Отменена от клиент",
+      "statusCancelledBySalon": "Отменена от салона"
+    },
     "audit": {
       "title": "Одит",
       "action": "Действие",

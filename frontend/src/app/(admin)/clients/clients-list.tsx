@@ -57,6 +57,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { TagMultiSelect } from "@/components/clients/tag-multi-select";
 import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const TAG_OPTIONS = ["VIP", "Постоянный", "Новый", "No-show"] as const;
 
@@ -122,6 +123,8 @@ export function ClientsList() {
   const locale = useLocale();
   const router = useRouter();
   const qc = useQueryClient();
+  const { can: hasPerm } = usePermissions();
+  const canExport = hasPerm("clients_export");
   const [filters, setFilters] = useState<ClientsFiltersState>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(filters.search, 400);
@@ -342,9 +345,11 @@ export function ClientsList() {
       {
         accessorKey: "phone",
         header: t("colPhone"),
-        cell: ({ row }) => (
-          <span className="text-[13px]">{row.original.phone?.trim() || "—"}</span>
-        ),
+        cell: ({ row }) => {
+          const raw = row.original.phone?.trim();
+          if (!raw) return <span className="text-[13px] text-muted-foreground">—</span>;
+          return <span className="text-[13px]">{raw}</span>;
+        },
       },
       {
         id: "lastVisit",
@@ -500,10 +505,12 @@ export function ClientsList() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="secondary" onClick={() => void onExport()}>
-            <Upload className="h-4 w-4" />
-            {t("exportCsv")}
-          </Button>
+          {canExport && (
+            <Button type="button" variant="secondary" onClick={() => void onExport()}>
+              <Upload className="h-4 w-4" />
+              {t("exportCsv")}
+            </Button>
+          )}
           {selectedIds.length > 0 ? (
             <Button
               type="button"

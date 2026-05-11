@@ -521,15 +521,23 @@ async def export_clients_csv_bytes(
             "joined_at",
         ]
     )
+    from app.core.permissions import has_permission as _has
+
+    show_phones = _has(user, "clients_view_phones")
     for row in rows:
         cl = row[0]
         lv_out = _merge_last_visit_dates(cl.last_visit_at, row.lv_bookings)
+        phone_cell = cl.phone or ""
+        if phone_cell and not show_phones:
+            digits = "".join(ch for ch in phone_cell if ch.isdigit())
+            last2 = digits[-2:] if digits else ""
+            phone_cell = f"*** *** {last2}".strip()
         w.writerow(
             [
                 str(cl.id),
                 cl.first_name or "",
                 cl.last_name or "",
-                cl.phone or "",
+                phone_cell,
                 cl.tg_username or "",
                 ",".join(cl.tags or []),
                 int(row.total_bookings or 0),

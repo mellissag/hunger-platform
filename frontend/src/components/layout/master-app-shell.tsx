@@ -18,11 +18,18 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
+import { apiJson } from "@/lib/api";
+import {
+  salonMediaSrcForAdmin,
+  type PublicSalonBranding,
+} from "@/lib/salon-branding";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -84,6 +91,7 @@ export function MasterAppShell({
 }) {
   const t = useTranslations("layout");
   const tc = useTranslations("common");
+  const activeLocale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -95,6 +103,18 @@ export function MasterAppShell({
     meWithPerms?.effective_permissions ??
     user.effective_permissions ??
     {};
+
+  // Динамическое название салона из настроек (тот же endpoint, что в admin/login)
+  const { data: publicBranding, isLoading: brandingLoading } = useQuery({
+    queryKey: ["public-salon-branding", activeLocale],
+    queryFn: () =>
+      apiJson<PublicSalonBranding>(
+        `/mini-app/salon?lang=${encodeURIComponent(activeLocale)}`,
+      ),
+    staleTime: 60_000,
+  });
+  const brandTitle = publicBranding?.name?.trim() || (brandingLoading ? "" : tc("brand"));
+  const logoHref = salonMediaSrcForAdmin(publicBranding?.logo_url) ?? undefined;
 
   const pageItems = NAV_PAGE.filter((item) =>
     item.permKey ? (effectivePerms[item.permKey] ?? false) : true,
@@ -117,9 +137,19 @@ export function MasterAppShell({
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <aside className="hidden w-56 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
-        <div className="flex h-14 items-center border-b border-sidebar-border px-4 font-semibold">
-          {tc("brand")}
-          <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
+        <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4 font-semibold">
+          {logoHref ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoHref}
+              alt=""
+              className="h-7 w-7 shrink-0 rounded-md object-cover"
+            />
+          ) : null}
+          <span className="min-w-0 flex-1 truncate text-sm">
+            {brandTitle || <Skeleton className="h-3.5 w-24" />}
+          </span>
+          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
             {t("panelMaster")}
           </span>
         </div>
@@ -157,7 +187,7 @@ export function MasterAppShell({
             </DrawerTrigger>
             <DrawerContent>
               <DrawerHeader>
-                <DrawerTitle>{tc("brand")}</DrawerTitle>
+                <DrawerTitle>{brandTitle || tc("brand")}</DrawerTitle>
               </DrawerHeader>
               <div className="grid gap-1 px-4 pb-6">
                 {items.map((item) => {

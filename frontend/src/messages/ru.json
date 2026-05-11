@@ -1088,6 +1088,23 @@
       "pPageChats": "Вкладка Чаты",
       "pPageChatsHint": "Мастер открывает /chats и видит все чаты салона"
     },
+    "masterDashboard": {
+      "title": "Мой день",
+      "kpiBookingsToday": "Записей сегодня",
+      "kpiPending": "Ожидают подтверждения",
+      "kpiRevenueToday": "Выручка сегодня",
+      "sectionToday": "Сегодня",
+      "sectionUpcoming": "Ближайшие записи",
+      "emptyToday": "Записей на сегодня нет",
+      "loading": "Загрузка…",
+      "noClient": "—",
+      "noService": "—",
+      "statusConfirmed": "Подтверждена",
+      "statusPending": "Ожидает",
+      "statusCompleted": "Завершена",
+      "statusCancelledByClient": "Отменена клиентом",
+      "statusCancelledBySalon": "Отменена салоном"
+    },
     "audit": {
       "title": "Аудит",
       "action": "Действие",

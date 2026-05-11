@@ -1088,6 +1088,23 @@
       "pPageChats": "Chats tab",
       "pPageChatsHint": "Master can open /chats and see all salon chats"
     },
+    "masterDashboard": {
+      "title": "My day",
+      "kpiBookingsToday": "Bookings today",
+      "kpiPending": "Pending confirmation",
+      "kpiRevenueToday": "Revenue today",
+      "sectionToday": "Today",
+      "sectionUpcoming": "Upcoming bookings",
+      "emptyToday": "No bookings today",
+      "loading": "Loading…",
+      "noClient": "—",
+      "noService": "—",
+      "statusConfirmed": "Confirmed",
+      "statusPending": "Pending",
+      "statusCompleted": "Completed",
+      "statusCancelledByClient": "Cancelled by client",
+      "statusCancelledBySalon": "Cancelled by salon"
+    },
     "audit": {
       "title": "Audit log",
       "action": "Action",

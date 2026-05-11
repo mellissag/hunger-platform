@@ -77,14 +77,15 @@ function allowedResources(role: UserRole): Set<Resource> {
     case "owner":
       return new Set<Resource>([...SALON_ADMIN, "users", "settings", "audit"]);
     case "admin":
-      return new Set<Resource>(SALON_ADMIN);
+      // Admin: всё кроме /users; settings/audit доступны
+      return new Set<Resource>([...SALON_ADMIN, "settings", "audit"]);
     case "reception":
       return new Set<Resource>([
         "dashboard",
         "bookings",
         "clients",
         "schedule",
-        "services",
+        "chats",
       ]);
     case "master":
       return new Set<Resource>([
@@ -111,8 +112,12 @@ export function can(
     );
   }
 
-  if (resource === "users" || resource === "settings" || resource === "audit") {
+  // /users — только owner. /settings и /audit — owner + admin.
+  if (resource === "users") {
     return user.role === "owner";
+  }
+  if (resource === "settings" || resource === "audit") {
+    return user.role === "owner" || user.role === "admin";
   }
 
   if (action === "delete" && user.role === "reception") {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiJson } from "@/lib/api";
 
 type BookingBrief = {
@@ -30,36 +30,61 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled_by_salon: "#ef4444",
 };
 
-function statusLabel(s: string) {
-  const map: Record<string, string> = {
-    confirmed: "Подтверждена",
-    pending: "Ожидает",
-    completed: "Завершена",
-    cancelled_by_client: "Отменена клиентом",
-    cancelled_by_salon: "Отменена салоном",
-  };
-  return map[s] ?? s;
+const STATUS_I18N_KEYS: Record<string, string> = {
+  confirmed: "statusConfirmed",
+  pending: "statusPending",
+  completed: "statusCompleted",
+  cancelled_by_client: "statusCancelledByClient",
+  cancelled_by_salon: "statusCancelledBySalon",
+};
+
+function localeForBcp47(locale: string): string {
+  switch (locale) {
+    case "ru":
+      return "ru-RU";
+    case "uk":
+      return "uk-UA";
+    case "bg":
+      return "bg-BG";
+    default:
+      return "en-US";
+  }
 }
 
-function formatTime(iso: string | null) {
+function formatTime(iso: string | null, locale: string) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString(localeForBcp47(locale), {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-function BookingRow({ b }: { b: BookingBrief }) {
+function BookingRow({
+  b,
+  locale,
+  statusLabel,
+  emptyClient,
+  emptyService,
+}: {
+  b: BookingBrief;
+  locale: string;
+  statusLabel: (s: string) => string;
+  emptyClient: string;
+  emptyService: string;
+}) {
   const color = STATUS_COLORS[b.status] ?? "#94a3b8";
   return (
     <div className="flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm">
       <div className="w-14 shrink-0 font-mono text-xs font-semibold text-muted-foreground">
-        {formatTime(b.starts_at)}
+        {formatTime(b.starts_at, locale)}
       </div>
       <div
         className="h-8 w-1 shrink-0 rounded-full"
         style={{ background: color }}
       />
       <div className="min-w-0 flex-1">
-        <p className="font-medium truncate">{b.client_name ?? "—"}</p>
-        <p className="text-xs text-muted-foreground truncate">{b.service_name ?? "—"}</p>
+        <p className="font-medium truncate">{b.client_name ?? emptyClient}</p>
+        <p className="text-xs text-muted-foreground truncate">{b.service_name ?? emptyService}</p>
       </div>
       <span
         className="shrink-0 rounded px-2 py-0.5 text-[11px] font-medium"
@@ -72,7 +97,8 @@ function BookingRow({ b }: { b: BookingBrief }) {
 }
 
 export default function MasterDashboardPage() {
-  const t = useTranslations("layout");
+  const t = useTranslations("pages.masterDashboard");
+  const locale = useLocale();
 
   const { data, isLoading } = useQuery({
     queryKey: ["master-dashboard"],
@@ -80,24 +106,31 @@ export default function MasterDashboardPage() {
     staleTime: 60_000,
   });
 
+  const statusLabel = (s: string) => {
+    const key = STATUS_I18N_KEYS[s];
+    return key ? t(key as never) : s;
+  };
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t("nav.masterDashboard")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Записей сегодня</p>
+          <p className="text-xs text-muted-foreground">{t("kpiBookingsToday")}</p>
           <p className="mt-1 text-2xl font-bold">{isLoading ? "…" : (data?.today_bookings.length ?? 0)}</p>
         </div>
         <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Ожидают подтверждения</p>
+          <p className="text-xs text-muted-foreground">{t("kpiPending")}</p>
           <p className="mt-1 text-2xl font-bold text-amber-500">{isLoading ? "…" : (data?.pending_count ?? 0)}</p>
         </div>
         <div className="rounded-xl border bg-card p-4 col-span-2 sm:col-span-1">
-          <p className="text-xs text-muted-foreground">Выручка сегодня</p>
+          <p className="text-xs text-muted-foreground">{t("kpiRevenueToday")}</p>
           <p className="mt-1 text-2xl font-bold text-green-600">
-            {isLoading ? "…" : `${(data?.today_revenue ?? 0).toLocaleString("ru-RU")} ₴`}
+            {isLoading
+              ? "…"
+              : `${(data?.today_revenue ?? 0).toLocaleString(localeForBcp47(locale))} ₴`}
           </p>
         </div>
       </div>
@@ -105,16 +138,25 @@ export default function MasterDashboardPage() {
       {/* Today's bookings */}
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Сегодня
+          {t("sectionToday")}
         </h2>
-        {isLoading && <p className="text-sm text-muted-foreground">Загрузка…</p>}
+        {isLoading && <p className="text-sm text-muted-foreground">{t("loading")}</p>}
         {!isLoading && (data?.today_bookings.length ?? 0) === 0 && (
           <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-            Записей на сегодня нет
+            {t("emptyToday")}
           </p>
         )}
         <div className="space-y-2">
-          {data?.today_bookings.map((b) => <BookingRow key={b.id} b={b} />)}
+          {data?.today_bookings.map((b) => (
+            <BookingRow
+              key={b.id}
+              b={b}
+              locale={locale}
+              statusLabel={statusLabel}
+              emptyClient={t("noClient")}
+              emptyService={t("noService")}
+            />
+          ))}
         </div>
       </div>
 
@@ -122,10 +164,19 @@ export default function MasterDashboardPage() {
       {(data?.upcoming_bookings.length ?? 0) > 0 && (
         <div>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Ближайшие записи
+            {t("sectionUpcoming")}
           </h2>
           <div className="space-y-2">
-            {data?.upcoming_bookings.map((b) => <BookingRow key={b.id} b={b} />)}
+            {data?.upcoming_bookings.map((b) => (
+              <BookingRow
+                key={b.id}
+                b={b}
+                locale={locale}
+                statusLabel={statusLabel}
+                emptyClient={t("noClient")}
+                emptyService={t("noService")}
+              />
+            ))}
           </div>
         </div>
       )}
