@@ -131,10 +131,13 @@ function TabBar() {
           height: 60,
           borderRadius: 28,
           background: 'var(--tabbar-bg)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          /* Softer blur reduces compositor ghosting in Telegram Desktop WebView */
+          backdropFilter: 'blur(16px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(160%)',
           border: '1px solid var(--tabbar-border)',
           boxShadow: 'var(--shadow-md)',
+          WebkitBackfaceVisibility: 'hidden',
+          backfaceVisibility: 'hidden',
         }}
       >
         {/* Начало */}
@@ -188,6 +191,17 @@ function MiniAppInner({ children }: { children: ReactNode }) {
     tg.ready();
     tg.expand();
 
+    const applyViewportHeight = () => {
+      const tw = tg as unknown as {
+        viewportStableHeight?: number;
+        viewportHeight?: number;
+      };
+      const h = tw.viewportStableHeight ?? tw.viewportHeight;
+      if (typeof h === 'number' && h > 0) {
+        document.documentElement.style.setProperty('--tg-viewport-height', `${h}px`);
+      }
+    };
+
     const applyInsets = () => {
       // contentSafeAreaInset.top = floating Telegram "×" button — must NOT pad content
       // Pages manage their own top spacing; only bottom inset is needed for the tab bar
@@ -195,12 +209,15 @@ function MiniAppInner({ children }: { children: ReactNode }) {
     };
 
     applyInsets();
-    (tg as any).onEvent?.('safeAreaChanged',        applyInsets);
+    applyViewportHeight();
+    (tg as any).onEvent?.('safeAreaChanged', applyInsets);
     (tg as any).onEvent?.('contentSafeAreaChanged', applyInsets);
+    (tg as any).onEvent?.('viewportChanged', applyViewportHeight);
 
     return () => {
-      (tg as any).offEvent?.('safeAreaChanged',        applyInsets);
+      (tg as any).offEvent?.('safeAreaChanged', applyInsets);
       (tg as any).offEvent?.('contentSafeAreaChanged', applyInsets);
+      (tg as any).offEvent?.('viewportChanged', applyViewportHeight);
     };
   }, []);
 
@@ -238,7 +255,6 @@ function MiniAppInner({ children }: { children: ReactNode }) {
       className="miniapp-root"
       style={{
         fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
-        minHeight: '100dvh',
         WebkitFontSmoothing: 'antialiased',
       }}
     >

@@ -12,10 +12,13 @@ body {
   font-family: var(--ff-body);
   background: var(--l-bg);
   color: var(--l-fg);
-  min-height: 100dvh;
+  /* Prefer Telegram stable viewport when set from layout (reduces jump/flicker on open). */
+  min-height: var(--tg-viewport-height, 100dvh);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   padding-top: 0;
+  /* Isolate stacking so fixed tab bar + backdrop-filter don’t ghost under WebKit/Electron WebViews */
+  isolation: isolate;
 }
 
 /* Magazine background — ivory + subtle gold radial glow */

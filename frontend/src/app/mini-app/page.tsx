@@ -97,7 +97,7 @@ export default function HomePage() {
 
   return (
     <div style={{
-      minHeight: '100dvh',
+      /* Height comes from .miniapp-root — avoid nested 100dvh (Telegram WebView repaint / ghost layers) */
       background: IVORY,
       fontFamily: BODY, color: NEAR_BLACK, overflowX: 'hidden',
     }}>
