@@ -185,17 +185,14 @@ function MiniAppInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp;
-    if (!tg) return;
+    // NOTE: ready() and expand() are called exactly once inside useTelegram.ts.
+    // Do NOT call them here — a second expand() triggers the Telegram re-expand
+    // animation and makes the view flash/switch back and forth.
 
-    tg.ready();
-    tg.expand();
+    const tg = window.Telegram?.WebApp;
 
     const applyViewportHeight = () => {
-      const tw = tg as unknown as {
-        viewportStableHeight?: number;
-        viewportHeight?: number;
-      };
+      const tw = (tg ?? {}) as { viewportStableHeight?: number; viewportHeight?: number };
       const h = tw.viewportStableHeight ?? tw.viewportHeight;
       if (typeof h === 'number' && h > 0) {
         document.documentElement.style.setProperty('--tg-viewport-height', `${h}px`);
@@ -203,21 +200,24 @@ function MiniAppInner({ children }: { children: ReactNode }) {
     };
 
     const applyInsets = () => {
-      // contentSafeAreaInset.top = floating Telegram "×" button — must NOT pad content
-      // Pages manage their own top spacing; only bottom inset is needed for the tab bar
       document.documentElement.style.setProperty('--tg-content-top', '0px');
     };
 
     applyInsets();
     applyViewportHeight();
-    (tg as any).onEvent?.('safeAreaChanged', applyInsets);
-    (tg as any).onEvent?.('contentSafeAreaChanged', applyInsets);
-    (tg as any).onEvent?.('viewportChanged', applyViewportHeight);
+
+    if (tg) {
+      (tg as any).onEvent?.('safeAreaChanged', applyInsets);
+      (tg as any).onEvent?.('contentSafeAreaChanged', applyInsets);
+      (tg as any).onEvent?.('viewportChanged', applyViewportHeight);
+    }
 
     return () => {
-      (tg as any).offEvent?.('safeAreaChanged', applyInsets);
-      (tg as any).offEvent?.('contentSafeAreaChanged', applyInsets);
-      (tg as any).offEvent?.('viewportChanged', applyViewportHeight);
+      if (tg) {
+        (tg as any).offEvent?.('safeAreaChanged', applyInsets);
+        (tg as any).offEvent?.('contentSafeAreaChanged', applyInsets);
+        (tg as any).offEvent?.('viewportChanged', applyViewportHeight);
+      }
     };
   }, []);
 

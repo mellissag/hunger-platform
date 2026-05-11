@@ -98,21 +98,26 @@ export function useTelegram() {
   useEffect(() => {
     let mounted = true;
     let attempts = 0;
+    // Guard: ready() + expand() must fire exactly once regardless of retries.
+    let initialized = false;
 
     function tryInit() {
       if (!mounted) return;
       const tg = window.Telegram?.WebApp;
       if (tg) {
-        tg.ready();
-        tg.expand();
+        if (!initialized) {
+          initialized = true;
+          tg.ready();
+          tg.expand();
 
-        // Prevent accidental close by swipe (Bot API 6.2+)
-        if (typeof tg.enableClosingConfirmation === 'function') {
-          tg.enableClosingConfirmation();
-        }
-        // Prevent vertical swipe-to-close (Bot API 7.7+)
-        if (typeof tg.disableVerticalSwipes === 'function') {
-          tg.disableVerticalSwipes();
+          // Prevent accidental close by swipe (Bot API 6.2+)
+          if (typeof tg.enableClosingConfirmation === 'function') {
+            tg.enableClosingConfirmation();
+          }
+          // Prevent vertical swipe-to-close (Bot API 7.7+)
+          if (typeof tg.disableVerticalSwipes === 'function') {
+            tg.disableVerticalSwipes();
+          }
         }
 
         setWebApp(tg);
