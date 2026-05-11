@@ -5,6 +5,9 @@ import { getSessionUser } from "@/lib/server-session";
 
 export default async function AuditLayout({ children }: { children: ReactNode }) {
   const user = await getSessionUser();
-  if (!user || user.role !== "owner") redirect("/403");
+  // Audit log доступен owner и admin (бэкенд тоже разрешает обе роли).
+  if (!user || (user.role !== "owner" && user.role !== "admin")) {
+    redirect("/403");
+  }
   return <>{children}</>;
 }

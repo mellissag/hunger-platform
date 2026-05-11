@@ -7,6 +7,9 @@ import { SettingsChrome } from "./settings-nav";
 
 export default async function SettingsLayout({ children }: { children: ReactNode }) {
   const user = await getSessionUser();
-  if (!user || user.role !== "owner") redirect("/403");
+  // Settings доступен owner и admin (для admin часть полей режется на бэкенде).
+  if (!user || (user.role !== "owner" && user.role !== "admin")) {
+    redirect("/403");
+  }
   return <SettingsChrome>{children}</SettingsChrome>;
 }
