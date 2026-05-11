@@ -4,7 +4,12 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo } from "react";
 
-import { addDaysLocal, durationMinutes, minutesInZone } from "@/lib/date-local";
+import {
+  addDaysLocal,
+  durationMinutes,
+  isoToTimeInZone,
+  minutesInZone,
+} from "@/lib/date-local";
 import type { BookingOut, CalendarSlotRow, MasterOut } from "@/types/admin-api";
 import { cn } from "@/lib/utils";
 
@@ -225,6 +230,16 @@ export function WeekCalendar({
                     const height = Math.max(dur * PX_PER_MIN, 18);
                     const col = masterColor(b.master_id ?? "");
                     const isPending = b.status === "pending";
+                    const timeRange = `${isoToTimeInZone(b.starts_at, timeZone)}–${isoToTimeInZone(b.ends_at, timeZone)}`;
+                    const clientName = nameClient(b.client_id);
+                    const serviceName = nameService(b.service_id);
+                    const isTiny = dur < 30;
+                    const compactName = (() => {
+                      const trimmed = clientName.trim();
+                      if (!trimmed) return "";
+                      const first = trimmed.charAt(0);
+                      return first ? `${first.toUpperCase()}.` : "";
+                    })();
                     return (
                       <button
                         key={b.id}
@@ -242,6 +257,7 @@ export function WeekCalendar({
                             : `none`,
                           borderLeft: isPending ? undefined : `3px solid ${col}`,
                         }}
+                        title={`${timeRange} · ${clientName} · ${serviceName}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           onSelectBooking(b.id);
@@ -258,9 +274,18 @@ export function WeekCalendar({
                             <polyline points="12 6 12 12 16 14"/>
                           </svg>
                         )}
-                        <span className="relative line-clamp-3">
-                          {nameClient(b.client_id)} · {nameService(b.service_id)}
+                        <span className="relative block whitespace-nowrap text-[10px] font-medium tabular-nums text-white/85">
+                          {timeRange}
                         </span>
+                        {isTiny ? (
+                          compactName ? (
+                            <span className="relative block truncate">{compactName}</span>
+                          ) : null
+                        ) : (
+                          <span className="relative line-clamp-2">
+                            {clientName} · {serviceName}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
