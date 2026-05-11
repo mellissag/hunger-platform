@@ -349,7 +349,42 @@
       "toastInvalidLink": "Некорректная ссылка",
       "toastNoTelegram": "У клиента не привязан Telegram",
       "toastBotBlocked": "Клиент заблокировал бота",
-      "toastClientNotFound": "Клиент не найден"
+      "toastClientNotFound": "Клиент не найден",
+      "rowMenuLabel": "Действия с чатом",
+      "menuAddTag": "Добавить тег",
+      "menuDelete": "Удалить чат",
+      "addTag": "Тег",
+      "confirmDeleteTitle": "Удалить этот чат?",
+      "confirmDeleteDescription": "Чат будет скрыт из списка. Восстановить его можно через базу данных.",
+      "confirmDeleteCancel": "Отмена",
+      "confirmDeleteConfirm": "Удалить",
+      "deletedToast": "Чат удалён",
+      "deleteError": "Не удалось удалить чат",
+      "note": {
+        "label": "Заметка",
+        "placeholder": "Добавить заметку по чату…",
+        "saving": "Сохраняем…",
+        "saved": "Сохранено"
+      },
+      "tags": {
+        "pickerTitle": "Теги",
+        "createTag": "Создать тег",
+        "create": "Создать",
+        "creating": "Создаём…",
+        "cancel": "Отмена",
+        "namePlaceholder": "Название тега",
+        "createError": "Не удалось создать тег",
+        "toggleError": "Не удалось обновить тег",
+        "settingsTitle": "Управление тегами",
+        "systemTagsLabel": "Системные теги",
+        "customTagsLabel": "Пользовательские теги",
+        "noCustomTags": "Пока нет своих тегов — создайте первый ниже.",
+        "deleteTag": "Удалить тег",
+        "confirmDelete": "Удалить тег «{name}»?",
+        "deletedToast": "Тег удалён",
+        "deleteError": "Не удалось удалить тег",
+        "emptyTags": "Тегов пока нет"
+      }
     },
     "clientDetail": {
       "notFound": "Клиент не найден",

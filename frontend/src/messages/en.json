@@ -349,7 +349,42 @@
       "toastInvalidLink": "Invalid link",
       "toastNoTelegram": "Client has no Telegram linked",
       "toastBotBlocked": "The client has blocked the bot",
-      "toastClientNotFound": "Client not found"
+      "toastClientNotFound": "Client not found",
+      "rowMenuLabel": "Chat actions",
+      "menuAddTag": "Add tag",
+      "menuDelete": "Delete chat",
+      "addTag": "Tag",
+      "confirmDeleteTitle": "Delete this chat?",
+      "confirmDeleteDescription": "The chat will be hidden from the list. You can restore it later from the database.",
+      "confirmDeleteCancel": "Cancel",
+      "confirmDeleteConfirm": "Delete",
+      "deletedToast": "Chat deleted",
+      "deleteError": "Could not delete the chat",
+      "note": {
+        "label": "Note",
+        "placeholder": "Add a note about this chat…",
+        "saving": "Saving…",
+        "saved": "Saved"
+      },
+      "tags": {
+        "pickerTitle": "Tags",
+        "createTag": "Create tag",
+        "create": "Create",
+        "creating": "Creating…",
+        "cancel": "Cancel",
+        "namePlaceholder": "Tag name",
+        "createError": "Could not create the tag",
+        "toggleError": "Could not update tag",
+        "settingsTitle": "Manage tags",
+        "systemTagsLabel": "System tags",
+        "customTagsLabel": "Custom tags",
+        "noCustomTags": "No custom tags yet — create your first one below.",
+        "deleteTag": "Delete tag",
+        "confirmDelete": "Delete tag “{name}”?",
+        "deletedToast": "Tag deleted",
+        "deleteError": "Could not delete the tag",
+        "emptyTags": "No tags yet"
+      }
     },
     "clientDetail": {
       "notFound": "Client not found",

@@ -2,7 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageSquare, Paperclip, Search, Send } from "lucide-react";
+import {
+  MessageSquare,
+  MoreHorizontal,
+  Paperclip,
+  Plus,
+  Search,
+  Send,
+  Tag as TagIcon,
+  Trash2,
+} from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -11,15 +20,40 @@ import { apiJson, HttpError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ChatNoteEditor,
+  ChatTagPicker,
+  ChatTagsSettingsDialog,
+  TagBadge,
+} from "@/components/chats/chat-tags";
+import {
   chatKeys,
   ChatListItem,
   ChatMessage,
   useChatList,
   useChatMessages,
   useChatWebSocket,
+  useDeleteChat,
   useMarkRead,
   useSendMedia,
   useSendText,
+  useUpdateChatNote,
   WsEvent,
 } from "@/hooks/useChatData";
 import type { ClientOut } from "@/types/admin-api";
@@ -149,24 +183,43 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 
 // ── Chat list item ────────────────────────────────────────────────────────────
 
+const MAX_VISIBLE_TAGS = 2;
+
 function ChatListRow({
   chat,
   active,
   onClick,
+  onAskDelete,
 }: {
   chat: ChatListItem;
   active: boolean;
   onClick: () => void;
+  onAskDelete: () => void;
 }) {
   const locale = useLocale();
+  const t = useTranslations("pages.chats");
   const initials = `${(chat.first_name ?? "?").charAt(0)}${(chat.last_name ?? "").charAt(0)}`.toUpperCase();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const visibleTags = chat.tags.slice(0, MAX_VISIBLE_TAGS);
+  const extraTagCount = chat.tags.length - visibleTags.length;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setMenuOpen(true);
+      }}
       className={cn(
-        "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40",
+        "group relative flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40 focus:outline-none focus-visible:bg-muted/40",
         active && "border-l-2 border-primary bg-primary/5 hover:bg-primary/5",
       )}
     >
@@ -196,8 +249,68 @@ function ChatListRow({
             </span>
           )}
         </div>
+        {chat.tags.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1">
+            {visibleTags.map((tag) => (
+              <TagBadge key={tag.id} tag={tag} />
+            ))}
+            {extraTagCount > 0 && (
+              <span className="text-[10px] text-muted-foreground">+{extraTagCount}</span>
+            )}
+          </div>
+        )}
+        {chat.note && (
+          <p className="mt-1 truncate text-[11px] italic text-muted-foreground">
+            {chat.note}
+          </p>
+        )}
       </div>
-    </button>
+
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen(true);
+            }}
+            className={cn(
+              "absolute right-2 top-2 rounded p-1 text-muted-foreground transition-opacity hover:bg-muted hover:text-foreground",
+              menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+            )}
+            aria-label={t("rowMenuLabel")}
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ChatTagPicker
+            clientId={chat.client_id}
+            currentTags={chat.tags}
+            trigger={
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <TagIcon className="mr-2 h-3.5 w-3.5" />
+                {t("menuAddTag")}
+              </DropdownMenuItem>
+            }
+          />
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={() => {
+              setMenuOpen(false);
+              onAskDelete();
+            }}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="mr-2 h-3.5 w-3.5" />
+            {t("menuDelete")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 
@@ -216,6 +329,7 @@ export default function ChatsPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [input, setInput] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   /** Chats with no messages yet — not returned by GET /admin/chats; pinned after opening from `/clients`. */
   const [pinnedExtras, setPinnedExtras] = useState<ChatListItem[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -223,6 +337,8 @@ export default function ChatsPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: chatList = [], isPending: chatListPending } = useChatList();
+  const updateNote = useUpdateChatNote();
+  const deleteChat = useDeleteChat();
 
   const hasChatRow = useCallback(
     (id: string) => chatList.some((c) => c.client_id === id),
@@ -301,6 +417,8 @@ export default function ChatsPage() {
       last_message: null,
       last_message_at: null,
       unread_count: 0,
+      note: null,
+      tags: [],
     };
     setPinnedExtras((prev) =>
       prev.some((p) => p.client_id === row.client_id) ? prev : [row, ...prev],
@@ -488,10 +606,11 @@ export default function ChatsPage() {
           <h1 className="font-playfair text-base font-semibold">{t("title")}</h1>
           <MasterDataBadge pagePermission="page_chats" />
           {totalUnread > 0 && (
-            <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
               {totalUnread > 99 ? "99+" : totalUnread}
             </span>
           )}
+          <ChatTagsSettingsDialog />
         </div>
 
         {/* Search */}
@@ -516,6 +635,7 @@ export default function ChatsPage() {
               chat={chat}
               active={activeId === chat.client_id}
               onClick={() => openChat(chat.client_id)}
+              onAskDelete={() => setConfirmDeleteId(chat.client_id)}
             />
           ))}
           {filteredChats.length === 0 && (
@@ -530,18 +650,58 @@ export default function ChatsPage() {
       {activeId ? (
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Header */}
-          <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-xs font-semibold text-primary-foreground">
-              {`${(activeClient?.first_name ?? "?").charAt(0)}${(activeClient?.last_name ?? "").charAt(0)}`.toUpperCase()}
+          <div className="flex flex-col gap-2 border-b border-border px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-xs font-semibold text-primary-foreground">
+                {`${(activeClient?.first_name ?? "?").charAt(0)}${(activeClient?.last_name ?? "").charAt(0)}`.toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
+                  {activeClient?.first_name} {activeClient?.last_name ?? ""}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t("telegramId")}: {activeClient?.tg_user_id ?? "—"}
+                </p>
+              </div>
+              {activeClient && (
+                <div className="flex flex-wrap items-center gap-1">
+                  {activeClient.tags.map((tag) => (
+                    <TagBadge
+                      key={tag.id}
+                      tag={tag}
+                      size="md"
+                    />
+                  ))}
+                  <ChatTagPicker
+                    clientId={activeClient.client_id}
+                    currentTags={activeClient.tags}
+                    align="end"
+                    trigger={
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-0.5 text-[10px] text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                        aria-label={t("menuAddTag")}
+                      >
+                        <Plus className="h-2.5 w-2.5" />
+                        {t("addTag")}
+                      </button>
+                    }
+                  />
+                </div>
+              )}
             </div>
-            <div>
-              <p className="text-sm font-medium">
-                {activeClient?.first_name} {activeClient?.last_name ?? ""}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {t("telegramId")}: {activeClient?.tg_user_id ?? "—"}
-              </p>
-            </div>
+            {activeClient && (
+              <ChatNoteEditor
+                clientId={activeClient.client_id}
+                initialNote={activeClient.note}
+                onSave={(note) =>
+                  updateNote.mutateAsync({
+                    clientId: activeClient.client_id,
+                    note,
+                  })
+                }
+              />
+            )}
           </div>
 
           {/* Messages */}
@@ -609,6 +769,46 @@ export default function ChatsPage() {
           <p className="text-sm">{t("selectConversation")}</p>
         </div>
       )}
+
+      <AlertDialog
+        open={confirmDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDeleteId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("confirmDeleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("confirmDeleteDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("confirmDeleteCancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!confirmDeleteId) return;
+                const id = confirmDeleteId;
+                setConfirmDeleteId(null);
+                try {
+                  await deleteChat.mutateAsync(id);
+                  if (activeId === id) setActiveId(null);
+                  toast.success(t("deletedToast"));
+                } catch (err) {
+                  toast.error(
+                    err instanceof HttpError
+                      ? err.message
+                      : t("deleteError"),
+                  );
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("confirmDeleteConfirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

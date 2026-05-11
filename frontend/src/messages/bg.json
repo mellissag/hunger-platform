@@ -349,7 +349,42 @@
       "toastInvalidLink": "Невалидна връзка",
       "toastNoTelegram": "Клиентът няма свързан Telegram",
       "toastBotBlocked": "Клиентът е блокирал бота",
-      "toastClientNotFound": "Клиентът не е намерен"
+      "toastClientNotFound": "Клиентът не е намерен",
+      "rowMenuLabel": "Действия за чат",
+      "menuAddTag": "Добави етикет",
+      "menuDelete": "Изтрий чата",
+      "addTag": "Етикет",
+      "confirmDeleteTitle": "Да изтрием ли този чат?",
+      "confirmDeleteDescription": "Чатът ще бъде скрит от списъка. Можете да го възстановите чрез базата данни.",
+      "confirmDeleteCancel": "Отказ",
+      "confirmDeleteConfirm": "Изтрий",
+      "deletedToast": "Чатът е изтрит",
+      "deleteError": "Чатът не може да бъде изтрит",
+      "note": {
+        "label": "Бележка",
+        "placeholder": "Добавете бележка за чата…",
+        "saving": "Запазваме…",
+        "saved": "Запазено"
+      },
+      "tags": {
+        "pickerTitle": "Етикети",
+        "createTag": "Създай етикет",
+        "create": "Създай",
+        "creating": "Създаваме…",
+        "cancel": "Отказ",
+        "namePlaceholder": "Име на етикета",
+        "createError": "Етикетът не може да бъде създаден",
+        "toggleError": "Етикетът не може да бъде обновен",
+        "settingsTitle": "Управление на етикети",
+        "systemTagsLabel": "Системни етикети",
+        "customTagsLabel": "Потребителски етикети",
+        "noCustomTags": "Все още няма потребителски етикети — създайте първия по-долу.",
+        "deleteTag": "Изтрий етикета",
+        "confirmDelete": "Да изтрием ли етикета „{name}“?",
+        "deletedToast": "Етикетът е изтрит",
+        "deleteError": "Етикетът не може да бъде изтрит",
+        "emptyTags": "Все още няма етикети"
+      }
     },
     "clientDetail": {
       "notFound": "Клиентът не е намерен",

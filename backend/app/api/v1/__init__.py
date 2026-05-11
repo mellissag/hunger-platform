@@ -35,6 +35,7 @@ from app.api.v1 import (
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth")
 api_router.include_router(admin_chat.router)
+api_router.include_router(admin_chat.tags_router)
 api_router.include_router(clients.router)
 api_router.include_router(masters.router)
 api_router.include_router(service_categories.router)

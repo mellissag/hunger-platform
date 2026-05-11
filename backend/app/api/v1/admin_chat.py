@@ -24,16 +24,26 @@ from fastapi import (
     status,
 )
 from pydantic import BaseModel
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_access_token, parse_access_payload
 from app.deps import get_db, get_redis, get_telegram_bot, require_roles
+from app.models.chat import Chat, ChatTag, ChatTagAssignment
 from app.models.chat_message import ChatMessage, MessageDirection, MessageType
 from app.models.client import Client
 from app.models.enums import UserRole
+from app.models.user import User
+from app.schemas.chat_admin import (
+    ChatNoteUpdate,
+    ChatTagAssign,
+    ChatTagCreate,
+    ChatTagOut,
+    ChatTagSummary,
+)
 
 router = APIRouter(prefix="/admin/chats", tags=["admin-chat"])
+tags_router = APIRouter(prefix="/admin/chat-tags", tags=["admin-chat-tags"])
 
 _UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "./data/uploads"))
 _CHAT_MEDIA_DIR = _UPLOAD_DIR / "chat"
@@ -65,6 +75,8 @@ class ChatListItem(BaseModel):
     last_message: str | None
     last_message_at: str | None
     unread_count: int
+    note: str | None = None
+    tags: list[ChatTagSummary] = []
 
     model_config = {"from_attributes": True}
 
@@ -112,6 +124,22 @@ async def _publish(redis, event: str, payload: dict) -> None:
 
 # ── List of chats ─────────────────────────────────────────────────────────────
 
+async def _get_or_create_chat(db: AsyncSession, client_id: UUID) -> Chat:
+    """Lazily create a ``chat`` row on first metadata mutation."""
+    existing = await db.execute(select(Chat).where(Chat.client_id == client_id))
+    chat = existing.scalar_one_or_none()
+    if chat is not None:
+        return chat
+    # Validate the client exists before creating the chat row.
+    client = await db.get(Client, client_id)
+    if client is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Client not found")
+    chat = Chat(client_id=client_id)
+    db.add(chat)
+    await db.flush()
+    return chat
+
+
 @router.get("", response_model=list[ChatListItem])
 async def list_chats(
     _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)),
@@ -140,14 +168,32 @@ async def list_chats(
     )
 
     rows = await db.execute(
-        select(Client, last_at_subq.c.last_at, unread_subq.c.unread)
+        select(Client, last_at_subq.c.last_at, unread_subq.c.unread, Chat)
         .join(last_at_subq, last_at_subq.c.client_id == Client.id)
         .outerjoin(unread_subq, unread_subq.c.client_id == Client.id)
+        .outerjoin(Chat, Chat.client_id == Client.id)
+        .where((Chat.is_deleted.is_(False)) | (Chat.id.is_(None)))
         .order_by(last_at_subq.c.last_at.desc())
     )
 
+    # Pre-fetch tag assignments in bulk to avoid N+1.
+    client_rows = list(rows)
+    chat_ids = [chat.id for _, _, _, chat in client_rows if chat is not None]
+    tags_by_chat: dict[UUID, list[ChatTagSummary]] = {}
+    if chat_ids:
+        tag_rows = await db.execute(
+            select(ChatTagAssignment.chat_id, ChatTag)
+            .join(ChatTag, ChatTag.id == ChatTagAssignment.tag_id)
+            .where(ChatTagAssignment.chat_id.in_(chat_ids))
+            .order_by(ChatTag.is_default.desc(), ChatTag.name.asc())
+        )
+        for chat_id, tag in tag_rows:
+            tags_by_chat.setdefault(chat_id, []).append(
+                ChatTagSummary.model_validate(tag)
+            )
+
     result: list[ChatListItem] = []
-    for client, last_at, unread in rows:
+    for client, last_at, unread, chat in client_rows:
         last_msg_row = await db.execute(
             select(ChatMessage)
             .where(ChatMessage.client_id == client.id)
@@ -165,6 +211,8 @@ async def list_chats(
                 last_message=preview,
                 last_message_at=last_at.isoformat() if last_at else None,
                 unread_count=unread or 0,
+                note=chat.note if chat else None,
+                tags=tags_by_chat.get(chat.id, []) if chat else [],
             )
         )
     return result
@@ -363,6 +411,156 @@ async def send_media(
         "created_at": msg.created_at.isoformat(),
     })
     return {"ok": True, "message_id": str(msg.id)}
+
+
+# ── Chat metadata: note + soft delete ─────────────────────────────────────────
+
+
+@router.patch("/{client_id}/note")
+async def update_chat_note(
+    client_id: UUID,
+    payload: ChatNoteUpdate,
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception)),
+    db: AsyncSession = Depends(get_db),
+):
+    chat = await _get_or_create_chat(db, client_id)
+    chat.note = payload.note
+    await db.commit()
+    return {"ok": True, "note": chat.note}
+
+
+@router.delete("/{client_id}")
+async def soft_delete_chat(
+    client_id: UUID,
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Soft delete — the chat row stays, just hidden from the admin list."""
+    chat = await _get_or_create_chat(db, client_id)
+    chat.is_deleted = True
+    await db.commit()
+    return {"ok": True}
+
+
+# ── Chat tag assignment (per chat) ────────────────────────────────────────────
+
+
+@router.post(
+    "/{client_id}/tags",
+    response_model=list[ChatTagSummary],
+)
+async def assign_tag_to_chat(
+    client_id: UUID,
+    payload: ChatTagAssign,
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception)),
+    db: AsyncSession = Depends(get_db),
+):
+    tag = await db.get(ChatTag, payload.tag_id)
+    if tag is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Tag not found")
+
+    chat = await _get_or_create_chat(db, client_id)
+    existing = await db.execute(
+        select(ChatTagAssignment).where(
+            ChatTagAssignment.chat_id == chat.id,
+            ChatTagAssignment.tag_id == tag.id,
+        )
+    )
+    if existing.scalar_one_or_none() is None:
+        db.add(ChatTagAssignment(chat_id=chat.id, tag_id=tag.id))
+        await db.commit()
+
+    return await _chat_tags_summary(db, chat.id)
+
+
+@router.delete(
+    "/{client_id}/tags/{tag_id}",
+    response_model=list[ChatTagSummary],
+)
+async def unassign_tag_from_chat(
+    client_id: UUID,
+    tag_id: UUID,
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception)),
+    db: AsyncSession = Depends(get_db),
+):
+    chat_q = await db.execute(select(Chat).where(Chat.client_id == client_id))
+    chat = chat_q.scalar_one_or_none()
+    if chat is None:
+        return []
+    await db.execute(
+        delete(ChatTagAssignment).where(
+            ChatTagAssignment.chat_id == chat.id,
+            ChatTagAssignment.tag_id == tag_id,
+        )
+    )
+    await db.commit()
+    return await _chat_tags_summary(db, chat.id)
+
+
+async def _chat_tags_summary(db: AsyncSession, chat_id: UUID) -> list[ChatTagSummary]:
+    rows = await db.execute(
+        select(ChatTag)
+        .join(ChatTagAssignment, ChatTagAssignment.tag_id == ChatTag.id)
+        .where(ChatTagAssignment.chat_id == chat_id)
+        .order_by(ChatTag.is_default.desc(), ChatTag.name.asc())
+    )
+    return [ChatTagSummary.model_validate(t) for t in rows.scalars().all()]
+
+
+# ── Global tag dictionary ─────────────────────────────────────────────────────
+
+
+@tags_router.get("", response_model=list[ChatTagOut])
+async def list_chat_tags(
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = await db.execute(
+        select(ChatTag).order_by(ChatTag.is_default.desc(), ChatTag.name.asc())
+    )
+    return [ChatTagOut.model_validate(t) for t in rows.scalars().all()]
+
+
+@tags_router.post("", response_model=ChatTagOut, status_code=status.HTTP_201_CREATED)
+async def create_chat_tag(
+    payload: ChatTagCreate,
+    user: Annotated[User, Depends(require_roles(UserRole.owner, UserRole.admin))],
+    db: AsyncSession = Depends(get_db),
+):
+    existing = await db.execute(
+        select(ChatTag).where(func.lower(ChatTag.name) == payload.name.lower())
+    )
+    if existing.scalar_one_or_none() is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Tag with this name already exists")
+
+    tag = ChatTag(
+        name=payload.name,
+        color=payload.color,
+        is_default=False,
+        created_by=user.id,
+    )
+    db.add(tag)
+    await db.commit()
+    await db.refresh(tag)
+    return ChatTagOut.model_validate(tag)
+
+
+@tags_router.delete("/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_chat_tag(
+    tag_id: UUID,
+    _user=Depends(require_roles(UserRole.owner, UserRole.admin)),
+    db: AsyncSession = Depends(get_db),
+):
+    tag = await db.get(ChatTag, tag_id)
+    if tag is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Tag not found")
+    if tag.is_default:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "System tags cannot be deleted"
+        )
+    await db.delete(tag)
+    await db.commit()
+    return None
 
 
 # ── WebSocket connection manager ──────────────────────────────────────────────

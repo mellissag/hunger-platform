@@ -8,6 +8,16 @@ import { getPublicApiBaseUrl } from "@/lib/env";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+export interface ChatTagSummary {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface ChatTag extends ChatTagSummary {
+  is_default: boolean;
+}
+
 export interface ChatListItem {
   client_id: string;
   tg_user_id: number | null;
@@ -16,6 +26,8 @@ export interface ChatListItem {
   last_message: string | null;
   last_message_at: string | null;
   unread_count: number;
+  note: string | null;
+  tags: ChatTagSummary[];
 }
 
 export interface ChatMessage {
@@ -39,6 +51,7 @@ export type WsEvent =
 export const chatKeys = {
   list: ["admin", "chats"] as const,
   messages: (clientId: string) => ["admin", "chats", clientId, "messages"] as const,
+  tags: ["admin", "chat-tags"] as const,
 };
 
 // ── Chat list ─────────────────────────────────────────────────────────────────
@@ -109,6 +122,114 @@ export function useSendMedia() {
       return apiFormData<{ ok: boolean; message_id: string }>(
         `/admin/chats/${clientId}/send/media`,
         fd,
+      );
+    },
+  });
+}
+
+// ── Chat tags (global dictionary) ─────────────────────────────────────────────
+
+export function useChatTags() {
+  return useQuery<ChatTag[]>({
+    queryKey: chatKeys.tags,
+    queryFn: () => apiJson<ChatTag[]>("/admin/chat-tags"),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useCreateChatTag() {
+  const qc = useQueryClient();
+  return useMutation<ChatTag, Error, { name: string; color: string }>({
+    mutationFn: (payload) =>
+      apiJson<ChatTag>("/admin/chat-tags", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: chatKeys.tags });
+    },
+  });
+}
+
+export function useDeleteChatTag() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: (tagId) =>
+      apiJson(`/admin/chat-tags/${tagId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: chatKeys.tags });
+      void qc.invalidateQueries({ queryKey: chatKeys.list });
+    },
+  });
+}
+
+// ── Chat tag assignment ───────────────────────────────────────────────────────
+
+export function useAssignChatTag() {
+  const qc = useQueryClient();
+  return useMutation<ChatTagSummary[], Error, { clientId: string; tagId: string }>({
+    mutationFn: ({ clientId, tagId }) =>
+      apiJson<ChatTagSummary[]>(`/admin/chats/${clientId}/tags`, {
+        method: "POST",
+        body: JSON.stringify({ tag_id: tagId }),
+      }),
+    onSuccess: (tags, { clientId }) => {
+      qc.setQueryData<ChatListItem[]>(chatKeys.list, (old = []) =>
+        old.map((c) => (c.client_id === clientId ? { ...c, tags } : c)),
+      );
+    },
+  });
+}
+
+export function useUnassignChatTag() {
+  const qc = useQueryClient();
+  return useMutation<ChatTagSummary[], Error, { clientId: string; tagId: string }>({
+    mutationFn: ({ clientId, tagId }) =>
+      apiJson<ChatTagSummary[]>(`/admin/chats/${clientId}/tags/${tagId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: (tags, { clientId }) => {
+      qc.setQueryData<ChatListItem[]>(chatKeys.list, (old = []) =>
+        old.map((c) => (c.client_id === clientId ? { ...c, tags } : c)),
+      );
+    },
+  });
+}
+
+// ── Chat note ─────────────────────────────────────────────────────────────────
+
+export function useUpdateChatNote() {
+  const qc = useQueryClient();
+  return useMutation<
+    { ok: boolean; note: string | null },
+    Error,
+    { clientId: string; note: string | null }
+  >({
+    mutationFn: ({ clientId, note }) =>
+      apiJson(`/admin/chats/${clientId}/note`, {
+        method: "PATCH",
+        body: JSON.stringify({ note }),
+      }),
+    onSuccess: (data, { clientId }) => {
+      qc.setQueryData<ChatListItem[]>(chatKeys.list, (old = []) =>
+        old.map((c) =>
+          c.client_id === clientId ? { ...c, note: data.note } : c,
+        ),
+      );
+    },
+  });
+}
+
+// ── Soft delete chat ──────────────────────────────────────────────────────────
+
+export function useDeleteChat() {
+  const qc = useQueryClient();
+  return useMutation<{ ok: boolean }, Error, string>({
+    mutationFn: (clientId) =>
+      apiJson(`/admin/chats/${clientId}`, { method: "DELETE" }),
+    onSuccess: (_data, clientId) => {
+      qc.setQueryData<ChatListItem[]>(chatKeys.list, (old = []) =>
+        old.filter((c) => c.client_id !== clientId),
       );
     },
   });
