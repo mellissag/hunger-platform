@@ -296,20 +296,6 @@ export default function OnboardingPage() {
   if (screen === -1) {
     return (
       <div style={{ ...pageBg, alignItems: 'center', justifyContent: 'center', textAlign: 'center', paddingLeft: 32, paddingRight: 32 }}>
-        <div style={{ marginBottom: 32 }}>
-          <div style={{
-            width: 88, height: 88, borderRadius: '50%',
-            background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HI})`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 24px', boxShadow: '0 12px 40px rgba(154,114,48,.3)',
-          }}>
-            <span style={{ fontFamily: SERIF, fontSize: 52, fontWeight: 500, color: '#fff', fontStyle: 'italic', lineHeight: 1 }}>{(salonBrand?.name || 'H').slice(0, 1).toUpperCase()}</span>
-          </div>
-          <div style={{ textAlign: 'center', color: GOLD, opacity: .5, letterSpacing: '0.6em', fontSize: 12, padding: '4px 0', fontFamily: SERIF }}>
-            ⸻ ✦ ⸻
-          </div>
-        </div>
-
         <div style={{ fontFamily: SERIF, fontSize: 44, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.0, letterSpacing: '-0.02em' }}>
           {welcomeParts.first}
           {welcomeParts.second ? (
@@ -321,16 +307,6 @@ export default function OnboardingPage() {
           .
         </div>
 
-        <div style={{ marginTop: 16, color: '#7A6E58', fontSize: 14, lineHeight: 1.6, maxWidth: 280 }}>
-          {t.welcomeSub}
-        </div>
-
-        <div style={{ width: 56, height: 1, background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`, margin: '28px auto' }} />
-
-        <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase', marginBottom: 24 }}>
-          {tagLine}
-        </div>
-
         <button
           onClick={() => setScreen(1)}
           style={{
@@ -339,10 +315,11 @@ export default function OnboardingPage() {
             padding: '16px 48px', borderRadius: 999, fontSize: 12, fontWeight: 600,
             letterSpacing: '0.10em', textTransform: 'uppercase', fontFamily: BODY,
             boxShadow: '0 8px 24px rgba(154,114,48,.35)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8, margin: '0 auto',
+            display: 'flex', alignItems: 'center', gap: 8, margin: '40px auto 0',
           }}
         >
-          {t.startBtn}
+          {/* Intentionally hardcoded English label across all locales (product decision). */}
+          GET STARTED
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M5 12h14M13 6l6 6-6 6"/>
           </svg>
