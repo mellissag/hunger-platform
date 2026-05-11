@@ -1,12 +1,26 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { translations, type Lang, type AppTranslations } from './translations';
 
 interface LangCtx {
   t: AppTranslations;
   lang: Lang;
   setLang: (l: Lang) => void;
+}
+
+const SUPPORTED: readonly Lang[] = ['bg', 'en', 'uk', 'ru'] as const;
+
+function isLang(v: unknown): v is Lang {
+  return typeof v === 'string' && (SUPPORTED as readonly string[]).includes(v);
 }
 
 const LanguageContext = createContext<LangCtx>({
@@ -20,8 +34,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('hunger_lang') as Lang | null;
-      if (saved && ['bg', 'en', 'uk', 'ru'].includes(saved)) {
+      const saved = localStorage.getItem('hunger_lang');
+      if (isLang(saved)) {
         setLangState(saved);
         return;
       }
@@ -29,18 +43,25 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     const tg = typeof window !== 'undefined'
       ? window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code?.slice(0, 2)
       : undefined;
-    if (tg && ['bg', 'en', 'uk', 'ru'].includes(tg)) {
-      setLangState(tg as Lang);
+    if (isLang(tg)) {
+      setLangState(tg);
     }
   }, []);
 
-  function setLang(l: Lang) {
+  // Stable identity so downstream consumers (effects, memos) don't churn
+  // and accidentally re-run bootstrap logic on every language change.
+  const setLang = useCallback((l: Lang) => {
     setLangState(l);
     try { localStorage.setItem('hunger_lang', l); } catch { /**/ }
-  }
+  }, []);
+
+  const value = useMemo<LangCtx>(
+    () => ({ t: translations[lang], lang, setLang }),
+    [lang, setLang],
+  );
 
   return (
-    <LanguageContext.Provider value={{ t: translations[lang], lang, setLang }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
 import { useT } from '../i18n/context';
@@ -118,7 +118,16 @@ export default function OnboardingPage() {
   const [screen, setScreen] = useState<Screen>(-1);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [lang, setLangState] = useState<Lang>('ru');
+  const [lang, setLangState] = useState<Lang>(() => {
+    if (typeof window === 'undefined') return 'ru';
+    try {
+      const saved = localStorage.getItem('hunger_lang');
+      if (saved === 'bg' || saved === 'en' || saved === 'uk' || saved === 'ru') {
+        return saved;
+      }
+    } catch { /**/ }
+    return 'ru';
+  });
   const [theme, setTheme] = useState<Theme>(() => {
     try {
       const saved = localStorage.getItem('miniapp_theme');
@@ -155,18 +164,33 @@ export default function OnboardingPage() {
     (l: Lang) => {
       setLangState(l);
       setContextLang(l);
+      // Persist immediately so it survives unmount/remount and is picked up
+      // by the global i18n provider on next render.
+      try { localStorage.setItem('hunger_lang', l); } catch { /**/ }
     },
     [setContextLang],
   );
 
+  // Bootstrap must run exactly once on mount. Telegram-language detection and
+  // the /me onboarding redirect should not re-fire when the user picks a
+  // different language (otherwise the effect would overwrite their choice).
+  const bootstrappedRef = useRef(false);
   useEffect(() => {
+    if (bootstrappedRef.current) return;
+    bootstrappedRef.current = true;
+
     setMounted(true);
 
-    // Try to detect user's Telegram language for default
-    const tgLang = (window as Window & { Telegram?: { WebApp?: { initDataUnsafe?: { user?: { language_code?: string } } } } })
-      .Telegram?.WebApp?.initDataUnsafe?.user?.language_code?.slice(0, 2) as Lang | undefined;
-    if (tgLang && ['bg', 'en', 'uk', 'ru'].includes(tgLang)) {
-      setLang(tgLang);
+    // Default the language from Telegram ONLY if the user has no saved
+    // preference yet. Never overwrite an explicit choice.
+    let savedLang: string | null = null;
+    try { savedLang = localStorage.getItem('hunger_lang'); } catch { /**/ }
+    if (savedLang !== 'bg' && savedLang !== 'en' && savedLang !== 'uk' && savedLang !== 'ru') {
+      const tgLang = (window as Window & { Telegram?: { WebApp?: { initDataUnsafe?: { user?: { language_code?: string } } } } })
+        .Telegram?.WebApp?.initDataUnsafe?.user?.language_code?.slice(0, 2) as Lang | undefined;
+      if (tgLang && (['bg', 'en', 'uk', 'ru'] as const).includes(tgLang)) {
+        setLang(tgLang);
+      }
     }
 
     // Check localStorage first (fast path to avoid flash)
