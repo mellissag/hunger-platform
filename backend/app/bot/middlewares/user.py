@@ -14,6 +14,16 @@ from app.models.client import Client
 from app.models.enums import ClientSource
 from app.services.client_bot_activity import touch_bot_activity
 
+# Synthetic labels assigned to Mini App users before they go through
+# onboarding. The bot must never treat them as "real" client names.
+_PLACEHOLDER_FIRST_NAMES = frozenset({"Guest", "Dev", "Test"})
+
+
+def _has_real_name(value: str | None) -> bool:
+    if not value:
+        return False
+    return value.strip() not in _PLACEHOLDER_FIRST_NAMES
+
 
 def _extract_tg_user(event: TelegramObject) -> TgUser | None:
     if isinstance(event, Update):
@@ -109,10 +119,15 @@ class TgUserMiddleware(BaseMiddleware):
             if tg.username and row.tg_username != tg.username:
                 row.tg_username = tg.username
                 changed = True
-            if tg.first_name and row.first_name != tg.first_name:
-                row.first_name = tg.first_name
-                changed = True
-            if tg.last_name and row.last_name != tg.last_name:
+            # Never overwrite a real saved first_name (chosen during Mini App
+            # onboarding or profile editing) with the Telegram display name.
+            # Only fill the slot when it is empty or still a placeholder.
+            if tg.first_name and not _has_real_name(row.first_name):
+                if tg.first_name != row.first_name:
+                    row.first_name = tg.first_name
+                    changed = True
+            # Same policy for last_name: fill once, then keep user data.
+            if tg.last_name and not (row.last_name or "").strip():
                 row.last_name = tg.last_name
                 changed = True
             if not row.lang and tg.language_code:

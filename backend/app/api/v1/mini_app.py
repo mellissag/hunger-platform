@@ -275,14 +275,19 @@ async def _get_or_create_client(payload: InitDataPayload, db: AsyncSession) -> C
     if payload.first_name:
         new_fn = payload.first_name.strip()
         cur = (client.first_name or "").strip()
-        if new_fn and new_fn != cur:
-            # Do not overwrite a saved real name with synthetic Guest/Dev from auth payload.
-            if _is_placeholder_mini_app_first_name(new_fn) and cur and not _is_placeholder_mini_app_first_name(cur):
-                pass
-            else:
+        cur_is_real = bool(cur) and not _is_placeholder_mini_app_first_name(cur)
+        if new_fn and new_fn != cur and not cur_is_real:
+            # Never overwrite a real saved name (onboarding/profile-edit) with
+            # whatever Telegram initData sends. Only auto-fill when the slot
+            # is empty or still holds a synthetic Guest/Dev/Test placeholder.
+            # And don't replace a placeholder with another placeholder.
+            new_is_placeholder = _is_placeholder_mini_app_first_name(new_fn)
+            if not new_is_placeholder or not cur:
                 client.first_name = new_fn
                 changed = True
-    if payload.last_name and client.last_name != payload.last_name:
+    if payload.last_name and not (client.last_name or "").strip():
+        # Same rule for last_name: fill once from Telegram, then keep
+        # whatever the user has on file (profile UI may add/edit it).
         client.last_name = payload.last_name
         changed = True
     if not client.lang and payload.language_code:
@@ -534,7 +539,16 @@ async def get_availability(
 
 def _apply_mini_booking_client_updates(client: Client, payload: MiniAppBookingCreate) -> None:
     if payload.client_name and payload.client_name.strip():
-        client.first_name = payload.client_name.strip()
+        new_fn = payload.client_name.strip()
+        cur = (client.first_name or "").strip()
+        cur_is_real = bool(cur) and not _is_placeholder_mini_app_first_name(cur)
+        # Don't silently clobber a real saved name (set during onboarding or
+        # profile editing) with whatever default the booking form sent — the
+        # form auto-prefills with Telegram's display name, which may not be
+        # the user's chosen client name. Only update when there's nothing
+        # real on file yet.
+        if not cur_is_real:
+            client.first_name = new_fn
     if payload.client_phone is not None:
         stripped = payload.client_phone.strip()
         client.phone = stripped or None

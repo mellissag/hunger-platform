@@ -91,6 +91,82 @@ async def test_mini_app_masters_public(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_or_create_client_preserves_real_first_name() -> None:
+    """Регрессия: повторные обращения /me не должны затирать имя,
+    сохранённое пользователем через онбординг или редактор профиля.
+
+    Раньше `_get_or_create_client` безусловно заменял `client.first_name`
+    значением из Telegram initData — из-за этого имя салона/Telegram-аккаунта
+    (например, «Synchro») всплывало в приветствии и на экране профиля
+    при каждом открытии Mini App, перетирая «Maria», введённую при онбординге.
+    """
+    from app.api.v1.mini_app import _get_or_create_client
+    from app.schemas.mini_app import InitDataPayload
+    from app.models.enums import ClientSource
+
+    payload = InitDataPayload(
+        tg_user_id=999_500,
+        first_name="Synchro",  # mimic Telegram display name that = salon name
+        last_name=None,
+        username=None,
+        photo_url=None,
+        language_code="ru",
+    )
+
+    async with get_async_session_factory()() as db:
+        existing = Client(
+            tg_user_id=999_500,
+            first_name="Maria",  # имя, выбранное пользователем при онбординге
+            lang="ru",
+            source=ClientSource.bot,
+        )
+        db.add(existing)
+        await db.commit()
+
+        returned = await _get_or_create_client(payload, db)
+        await db.commit()
+        await db.refresh(returned)
+
+        assert returned.first_name == "Maria", (
+            "Real saved name must survive a /me call even when Telegram payload "
+            "carries a different first_name"
+        )
+
+
+@pytest.mark.asyncio
+async def test_get_or_create_client_upgrades_placeholder_to_real_name() -> None:
+    """Placeholder Guest/Dev/Test → реальное имя из Telegram должно заполниться."""
+    from app.api.v1.mini_app import _get_or_create_client
+    from app.schemas.mini_app import InitDataPayload
+    from app.models.enums import ClientSource
+
+    payload = InitDataPayload(
+        tg_user_id=999_501,
+        first_name="Alice",
+        last_name=None,
+        username=None,
+        photo_url=None,
+        language_code="en",
+    )
+
+    async with get_async_session_factory()() as db:
+        existing = Client(
+            tg_user_id=999_501,
+            first_name="Guest",  # synthetic placeholder
+            lang="en",
+            source=ClientSource.bot,
+        )
+        db.add(existing)
+        await db.commit()
+
+        returned = await _get_or_create_client(payload, db)
+        await db.commit()
+        await db.refresh(returned)
+
+        assert returned.first_name == "Alice"
+
+
+@pytest.mark.asyncio
 async def test_mini_app_booking_without_init_data(client: AsyncClient) -> None:
     """POST /api/v1/mini-app/bookings — without initData uses anonymous/JWT fallback (not 401)."""
     r = await client.post(
