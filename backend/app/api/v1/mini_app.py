@@ -1044,6 +1044,7 @@ class MiniAppDailyPickOut(_BM):
     service_id: str | None = None
     button_text: str | None = None
     button_url: str | None = None
+    active: bool = True
 
 
 class DailyPickUpsert(_BM):
@@ -1111,6 +1112,7 @@ async def get_daily_pick(
             service_id=str(pick.service_id) if pick.service_id else None,
             button_text=button_text or None,
             button_url=pick.button_url or None,
+            active=True,
         ))
     return out
 
@@ -1136,6 +1138,9 @@ async def list_daily_picks_admin(
             tags=tags,
             price=float(p.price) if p.price is not None else None,
             service_id=str(p.service_id) if p.service_id else None,
+            button_text=p.button_text_ru or None,
+            button_url=p.button_url or None,
+            active=p.active,
         ))
     return out
 

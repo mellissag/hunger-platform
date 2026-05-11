@@ -70,7 +70,19 @@ export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<
     const msg = errorMessageFromBody(err, res.statusText);
     throw new HttpError(res.status, msg, err);
   }
-  return res.json() as Promise<T>;
+  // DELETE and some endpoints return 204 No Content without a JSON body.
+  if (res.status === 204 || res.status === 205) {
+    return undefined as T;
+  }
+  const text = await res.text();
+  if (!text.trim()) {
+    return undefined as T;
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new HttpError(res.status, "Invalid JSON response", text);
+  }
 }
 
 /** Multipart: do not set Content-Type (browser sets boundary). */
