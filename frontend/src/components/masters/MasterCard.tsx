@@ -93,7 +93,7 @@ export function MasterCard({
             e.stopPropagation();
             setConfirmOpen(true);
           }}
-          className="absolute right-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-background/80 text-destructive shadow-sm backdrop-blur transition hover:bg-destructive hover:text-destructive-foreground focus:outline-none focus:ring-2 focus:ring-destructive/40"
+          className="absolute left-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-background/80 text-destructive shadow-sm backdrop-blur transition hover:bg-destructive hover:text-destructive-foreground focus:outline-none focus:ring-2 focus:ring-destructive/40"
         >
           <Trash2 className="h-4 w-4" />
         </button>
