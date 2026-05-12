@@ -1,10 +1,21 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -545,14 +556,16 @@ export default function UsersPage() {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<UserStaffOut | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<UserStaffOut | null>(null);
 
   // Fetch current user to know if we're owner
   const meQuery = useQuery({
     queryKey: ["auth-me"],
-    queryFn: () => apiJson<{ role: string }>("/auth/me"),
+    queryFn: () => apiJson<{ id: string; role: string }>("/auth/me"),
     staleTime: 300_000,
   });
   const isOwner = meQuery.data?.role === "owner";
+  const myId = meQuery.data?.id;
 
   const list = useQuery({
     queryKey: ["staff-users"],
@@ -569,6 +582,20 @@ export default function UsersPage() {
       toast.success("OK");
     },
     onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: (id: string) =>
+      apiJson<undefined>(`/users/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["staff-users"] });
+      setPendingDelete(null);
+      if (selected && pendingDelete && selected.id === pendingDelete.id) {
+        setSelected(null);
+      }
+      toast.success(t("deleteSuccess"));
+    },
+    onError: (e: Error) => toast.error(e.message || t("deleteError")),
   });
 
   // Keep selected user in sync with list updates
@@ -621,14 +648,31 @@ export default function UsersPage() {
                   </span>
                 </td>
                 <td className="px-3 py-2.5 text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={(e) => { e.stopPropagation(); setSelected(u); }}
-                  >
-                    {t("edit")}
-                  </Button>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={(e) => { e.stopPropagation(); setSelected(u); }}
+                    >
+                      {t("edit")}
+                    </Button>
+                    {isOwner && u.role !== "owner" && u.id !== myId ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={t("deleteTooltip")}
+                        title={t("deleteTooltip")}
+                        className="h-7 w-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPendingDelete(u);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -644,6 +688,44 @@ export default function UsersPage() {
           isOwner={isOwner}
         />
       )}
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("deleteConfirmTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? t("deleteConfirmDesc", {
+                    name:
+                      [pendingDelete.first_name, pendingDelete.last_name]
+                        .filter(Boolean)
+                        .join(" ") || pendingDelete.email,
+                  })
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteUser.isPending}>
+              {t("deleteCancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteUser.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (pendingDelete) deleteUser.mutate(pendingDelete.id);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("deleteConfirmAction")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Create user modal */}
       {createOpen && (

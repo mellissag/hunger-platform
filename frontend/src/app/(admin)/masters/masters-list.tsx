@@ -15,12 +15,20 @@ import { apiJson } from "@/lib/api";
 import type { PublicSalonBranding } from "@/lib/salon-branding";
 import { useMastersList } from "@/hooks/useMasters";
 import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
+import type { UserMe } from "@/types/admin-api";
 
 export function MastersList() {
   const t = useTranslations("pages.masters");
   const locale = useLocale();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { data, isLoading } = useMastersList();
+
+  const { data: me } = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: () => apiJson<UserMe>("/auth/me"),
+    staleTime: 60_000,
+  });
+  const isOwner = me?.role === "owner";
 
   const { data: salonBranding } = useQuery({
     queryKey: ["public-salon-branding", locale],
@@ -69,7 +77,7 @@ export function MastersList() {
       ) : (
         <div className="masters-grid">
           {masters.map((m) => (
-            <MasterCard key={m.id} master={m} />
+            <MasterCard key={m.id} master={m} canDelete={isOwner} />
           ))}
           <button
             type="button"

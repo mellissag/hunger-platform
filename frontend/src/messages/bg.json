@@ -609,7 +609,15 @@
       "category": "Категория",
       "noCategory": "Без категория",
       "description": "Описание",
-      "createAndAssign": "Създай и назначи"
+      "createAndAssign": "Създай и назначи",
+      "delete": "Изтрий",
+      "deleteTooltip": "Изтрий майстора",
+      "deleteConfirmTitle": "Да изтрия ли майстора?",
+      "deleteConfirmDesc": "Майсторът {name} и неговият акаунт ще бъдат изтрити окончателно от системата. Той повече няма да може да влезе.",
+      "deleteConfirmAction": "Изтрий",
+      "deleteCancel": "Отказ",
+      "deleteSuccess": "Майсторът е изтрит",
+      "deleteError": "Неуспешно изтриване на майстора"
     },
     "masterDetail": {
       "back": "Майстори",
@@ -1086,7 +1094,15 @@
       "pPageFormulas": "Раздел Бои формули",
       "pPageFormulasHint": "Майсторът отваря /formulas",
       "pPageChats": "Раздел Чатове",
-      "pPageChatsHint": "Майсторът отваря /chats и вижда всички чатове на салона"
+      "pPageChatsHint": "Майсторът отваря /chats и вижда всички чатове на салона",
+      "delete": "Изтрий",
+      "deleteTooltip": "Изтрий служителя",
+      "deleteConfirmTitle": "Да изтрия ли служителя?",
+      "deleteConfirmDesc": "Служителят {name} ще бъде изтрит окончателно от системата. Той повече няма да може да влезе.",
+      "deleteConfirmAction": "Изтрий",
+      "deleteCancel": "Отказ",
+      "deleteSuccess": "Служителят е изтрит",
+      "deleteError": "Неуспешно изтриване на служителя"
     },
     "masterDashboard": {
       "title": "Моят ден",

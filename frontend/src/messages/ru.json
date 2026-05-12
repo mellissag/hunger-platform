@@ -609,7 +609,15 @@
       "category": "Категория",
       "noCategory": "Без категории",
       "description": "Описание",
-      "createAndAssign": "Создать и назначить"
+      "createAndAssign": "Создать и назначить",
+      "delete": "Удалить",
+      "deleteTooltip": "Удалить мастера",
+      "deleteConfirmTitle": "Удалить мастера?",
+      "deleteConfirmDesc": "Мастер {name} и его аккаунт будут удалены из системы безвозвратно. Он не сможет войти снова.",
+      "deleteConfirmAction": "Удалить",
+      "deleteCancel": "Отмена",
+      "deleteSuccess": "Мастер удалён",
+      "deleteError": "Не удалось удалить мастера"
     },
     "masterDetail": {
       "back": "Мастера",
@@ -1086,7 +1094,15 @@
       "pPageFormulas": "Вкладка Формулы красок",
       "pPageFormulasHint": "Мастер открывает /formulas",
       "pPageChats": "Вкладка Чаты",
-      "pPageChatsHint": "Мастер открывает /chats и видит все чаты салона"
+      "pPageChatsHint": "Мастер открывает /chats и видит все чаты салона",
+      "delete": "Удалить",
+      "deleteTooltip": "Удалить сотрудника",
+      "deleteConfirmTitle": "Удалить сотрудника?",
+      "deleteConfirmDesc": "Сотрудник {name} будет удалён из системы безвозвратно. Он не сможет войти снова.",
+      "deleteConfirmAction": "Удалить",
+      "deleteCancel": "Отмена",
+      "deleteSuccess": "Сотрудник удалён",
+      "deleteError": "Не удалось удалить сотрудника"
     },
     "masterDashboard": {
       "title": "Мой день",

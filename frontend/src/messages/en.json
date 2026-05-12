@@ -609,7 +609,15 @@
       "category": "Category",
       "noCategory": "No category",
       "description": "Description",
-      "createAndAssign": "Create and assign"
+      "createAndAssign": "Create and assign",
+      "delete": "Delete",
+      "deleteTooltip": "Delete master",
+      "deleteConfirmTitle": "Delete master?",
+      "deleteConfirmDesc": "Master {name} and their account will be permanently removed from the system. They will not be able to sign in again.",
+      "deleteConfirmAction": "Delete",
+      "deleteCancel": "Cancel",
+      "deleteSuccess": "Master deleted",
+      "deleteError": "Could not delete master"
     },
     "masterDetail": {
       "back": "Masters",
@@ -1086,7 +1094,15 @@
       "pPageFormulas": "Color formulas tab",
       "pPageFormulasHint": "Master can open /formulas (their formulas / linked clients)",
       "pPageChats": "Chats tab",
-      "pPageChatsHint": "Master can open /chats and see all salon chats"
+      "pPageChatsHint": "Master can open /chats and see all salon chats",
+      "delete": "Delete",
+      "deleteTooltip": "Delete user",
+      "deleteConfirmTitle": "Delete user?",
+      "deleteConfirmDesc": "User {name} will be permanently removed from the system. They will not be able to sign in again.",
+      "deleteConfirmAction": "Delete",
+      "deleteCancel": "Cancel",
+      "deleteSuccess": "User deleted",
+      "deleteError": "Could not delete user"
     },
     "masterDashboard": {
       "title": "My day",

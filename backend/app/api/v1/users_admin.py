@@ -9,13 +9,15 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
 from app.core.permissions import get_effective_permissions
 from app.core.security import hash_password, verify_password
 from app.deps import get_current_user, get_db, require_roles
+from app.models.broadcast import Broadcast
 from app.models.enums import UserRole
 from app.models.user import User
 from app.models.user_invite import UserInvite
@@ -197,19 +199,52 @@ async def delete_user(
     db: Annotated[AsyncSession, Depends(get_db)],
     actor: Annotated[User, Depends(require_roles(*_OWNER))],
 ) -> None:
+    """Hard-delete a staff member.
+
+    The user row is removed from the database so the account can no longer
+    sign in. Related rows are handled via FK constraints (cascade for
+    sessions, SET NULL for audit/booking/etc.). Broadcasts have a RESTRICT
+    FK and are re-assigned to the actor to preserve history.
+    """
     if user_id == actor.id:
-        raise HTTPException(status_code=400, detail="Cannot deactivate yourself")
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
     u = await db.get(User, user_id)
     if u is None:
         raise NotFoundError("User not found")
-    u.is_active = False
+    if u.role == UserRole.owner:
+        raise HTTPException(status_code=400, detail="Cannot delete an owner account")
+
+    snapshot = {
+        "email": u.email,
+        "role": u.role.value,
+        "first_name": u.first_name,
+        "last_name": u.last_name,
+        "master_id": str(u.master_id) if u.master_id else None,
+    }
+
+    await db.execute(
+        update(Broadcast)
+        .where(Broadcast.created_by_user_id == user_id)
+        .values(created_by_user_id=actor.id)
+    )
+
+    try:
+        await db.delete(u)
+        await db.flush()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="User has related records that prevent deletion",
+        ) from exc
+
     await record_event(
         db,
         user_id=actor.id,
-        action="user.deactivated",
+        action="user.deleted",
         entity_type="user",
-        entity_id=u.id,
-        payload={},
+        entity_id=user_id,
+        payload=snapshot,
     )
 
 

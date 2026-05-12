@@ -609,7 +609,15 @@
       "category": "Категорія",
       "noCategory": "Без категорії",
       "description": "Опис",
-      "createAndAssign": "Створити та призначити"
+      "createAndAssign": "Створити та призначити",
+      "delete": "Видалити",
+      "deleteTooltip": "Видалити майстра",
+      "deleteConfirmTitle": "Видалити майстра?",
+      "deleteConfirmDesc": "Майстра {name} та його обліковий запис буде остаточно видалено. Увійти знову буде неможливо.",
+      "deleteConfirmAction": "Видалити",
+      "deleteCancel": "Скасувати",
+      "deleteSuccess": "Майстра видалено",
+      "deleteError": "Не вдалося видалити майстра"
     },
     "masterDetail": {
       "back": "Майстри",
@@ -1086,7 +1094,15 @@
       "pPageFormulas": "Вкладка Формули фарб",
       "pPageFormulasHint": "Майстер відкриває /formulas",
       "pPageChats": "Вкладка Чати",
-      "pPageChatsHint": "Майстер відкриває /chats і бачить усі чати салону"
+      "pPageChatsHint": "Майстер відкриває /chats і бачить усі чати салону",
+      "delete": "Видалити",
+      "deleteTooltip": "Видалити співробітника",
+      "deleteConfirmTitle": "Видалити співробітника?",
+      "deleteConfirmDesc": "Співробітника {name} буде остаточно видалено. Увійти знову буде неможливо.",
+      "deleteConfirmAction": "Видалити",
+      "deleteCancel": "Скасувати",
+      "deleteSuccess": "Співробітника видалено",
+      "deleteError": "Не вдалося видалити співробітника"
     },
     "masterDashboard": {
       "title": "Мій день",
