@@ -6,6 +6,7 @@ from uuid import UUID
 
 from sqlalchemy import ColumnElement, false, literal, select
 
+from app.core.user_page_permissions import page_perm
 from app.models.booking import Booking
 from app.models.client import Client
 from app.models.enums import UserRole
@@ -14,22 +15,26 @@ from app.models.user import User
 
 
 def booking_scope_filter(user: User) -> ColumnElement[bool]:
-    """Фильтр по бронированиям: мастер видит только свои строки."""
+    """Мастер: все брони салона или только свои — по праву bookings.view_all."""
     if user.role != UserRole.master:
         return literal(True)
     mid = user.master_id
     if mid is None:
         return false()
+    if page_perm(user, "bookings", "view_all"):
+        return literal(True)
     return Booking.master_id == mid
 
 
 def client_scope_filter(user: User) -> ColumnElement[bool]:
-    """Клиенты, с которыми мастер имел записи; остальные роли — без ограничения."""
+    """Мастер: все клиенты или только со своими записями — по праву clients.view_all."""
     if user.role != UserRole.master:
         return literal(True)
     mid = user.master_id
     if mid is None:
         return false()
+    if page_perm(user, "clients", "view_all"):
+        return literal(True)
     return Client.id.in_(select(Booking.client_id).where(Booking.master_id == mid).distinct())
 
 

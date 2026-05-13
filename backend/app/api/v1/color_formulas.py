@@ -14,11 +14,14 @@ from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.upload import ALLOWED_TYPES, UPLOAD_ROOT
+from app.core.user_page_permissions import page_perm
 from app.deps import get_db, require_roles
+from app.models.booking import Booking
 from app.models.client import Client
 from app.models.color_formula import ColorFormula
 from app.models.enums import UserRole
 from app.models.master import Master
+from app.models.user import User
 from app.services.formula_stock import (
     apply_formula_consumption,
     load_product_lookup,
@@ -103,13 +106,16 @@ async def list_formulas(
     search: Optional[str] = None,
     limit: int = Query(50, le=200),
     db: AsyncSession = Depends(get_db),
-    _: None = Depends(require_roles(*STAFF)),
+    user: User = Depends(require_roles(*STAFF)),
 ) -> list[FormulaOut]:
     q = select(ColorFormula).order_by(desc(ColorFormula.applied_at)).limit(limit)
     if client_id:
         q = q.where(ColorFormula.client_id == client_id)
     if master_id:
         q = q.where(ColorFormula.master_id == master_id)
+    if user.role == UserRole.master and user.master_id and not page_perm(user, "formulas", "view_all"):
+        own_clients = select(Booking.client_id).where(Booking.master_id == user.master_id).distinct()
+        q = q.where(ColorFormula.client_id.in_(own_clients))
     result = await db.execute(q)
     formulas = result.scalars().all()
 

@@ -1,4 +1,4 @@
-import type { SalonRolePermissions } from "@/lib/permissions";
+import type { PagePermissions } from "@/lib/permissions";
 
 export type UserRole = "owner" | "admin" | "master" | "reception";
 
@@ -11,5 +11,5 @@ export type SessionUser = {
   lang: string;
   master_id: string | null;
   effective_permissions?: Record<string, boolean> | null;
-  salon_role_permissions?: SalonRolePermissions | null;
+  page_permissions?: PagePermissions;
 };

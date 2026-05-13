@@ -15,6 +15,7 @@ export type UserMe = {
   is_active: boolean;
   master_id: string | null;
   effective_permissions: Record<string, boolean> | null;
+  page_permissions?: Record<string, Record<string, boolean>> | null;
   salon_role_permissions?: Record<string, unknown> | null;
 };
 
@@ -587,8 +588,9 @@ export type UserStaffOut = {
   master_id: string | null;
   last_login_at: string | null;
   created_at: string;
-  permissions: Record<string, boolean> | null;
+  permissions: Record<string, unknown> | null;
   effective_permissions: Record<string, boolean> | null;
+  page_permissions?: Record<string, Record<string, boolean>> | null;
 };
 
 export type AuditLogOut = {

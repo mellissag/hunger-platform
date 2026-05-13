@@ -28,7 +28,9 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_access_token, parse_access_payload
+from app.core.user_page_permissions import page_perm
 from app.deps import get_db, get_redis, get_telegram_bot, require_roles
+from app.models.booking import Booking
 from app.models.chat import Chat, ChatTag, ChatTagAssignment
 from app.models.chat_message import ChatMessage, MessageDirection, MessageType
 from app.models.client import Client
@@ -142,7 +144,7 @@ async def _get_or_create_chat(db: AsyncSession, client_id: UUID) -> Chat:
 
 @router.get("", response_model=list[ChatListItem])
 async def list_chats(
-    _user=Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)),
+    user: User = Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)),
     db: AsyncSession = Depends(get_db),
 ):
     """Список клиентов с диалогами, сортированных по последнему сообщению."""
@@ -167,14 +169,19 @@ async def list_chats(
         .subquery()
     )
 
-    rows = await db.execute(
+    stmt = (
         select(Client, last_at_subq.c.last_at, unread_subq.c.unread, Chat)
         .join(last_at_subq, last_at_subq.c.client_id == Client.id)
         .outerjoin(unread_subq, unread_subq.c.client_id == Client.id)
         .outerjoin(Chat, Chat.client_id == Client.id)
         .where((Chat.is_deleted.is_(False)) | (Chat.id.is_(None)))
-        .order_by(last_at_subq.c.last_at.desc())
     )
+    if user.role == UserRole.master and user.master_id and not page_perm(user, "chats", "view_all"):
+        own_clients = select(Booking.client_id).where(Booking.master_id == user.master_id).distinct()
+        stmt = stmt.where(Client.id.in_(own_clients))
+    stmt = stmt.order_by(last_at_subq.c.last_at.desc())
+
+    rows = await db.execute(stmt)
 
     # Pre-fetch tag assignments in bulk to avoid N+1.
     client_rows = list(rows)

@@ -228,22 +228,75 @@ ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
 }
 
 
+def _tree_perm(m: dict, section: str, key: str) -> bool:
+    """Чтение булева из дерева; при enabled=false вторичные ключи — false."""
+    block = m.get(section)
+    if not isinstance(block, dict):
+        return False
+    if key != "enabled" and not bool(block.get("enabled", False)):
+        return False
+    return bool(block.get(key, False))
+
+
+def _flat_from_nested(m: dict) -> dict[str, bool]:
+    """Плоский словарь для обратной совместимости API и старых вызовов has_permission."""
+    mv_all = _tree_perm(m, "specialists", "enabled") and not _tree_perm(m, "specialists", "view_only")
+    return {
+        "clients_view": _tree_perm(m, "clients", "enabled"),
+        "clients_own_only": _tree_perm(m, "clients", "enabled") and not _tree_perm(m, "clients", "view_all"),
+        "clients_view_phones": _tree_perm(m, "clients", "view_phones"),
+        "clients_notes": _tree_perm(m, "clients", "view_history"),
+        "clients_edit": _tree_perm(m, "clients", "edit"),
+        "clients_blacklist": _tree_perm(m, "blacklist", "add"),
+        "clients_export": _tree_perm(m, "clients", "export"),
+        "clients_telegram": _tree_perm(m, "chats", "reply"),
+        "masters_view_all": mv_all,
+        "masters_own_only": not mv_all,
+        "bookings_view_all": _tree_perm(m, "bookings", "view_all"),
+        "bookings_create": _tree_perm(m, "bookings", "create"),
+        "bookings_edit_others": _tree_perm(m, "bookings", "edit") and _tree_perm(m, "bookings", "view_all"),
+        "bookings_cancel_others": _tree_perm(m, "bookings", "cancel") and _tree_perm(m, "bookings", "view_all"),
+        "bookings_status": _tree_perm(m, "bookings", "edit"),
+        "finance_revenue": _tree_perm(m, "analytics", "view_financial"),
+        "finance_salaries": _tree_perm(m, "analytics", "view_financial"),
+        "finance_stats": _tree_perm(m, "analytics", "enabled"),
+        "finance_export": _tree_perm(m, "analytics", "view_all"),
+        "stats_salon": _tree_perm(m, "analytics", "enabled"),
+        "stats_masters": _tree_perm(m, "analytics", "view_all"),
+        "stats_services": _tree_perm(m, "analytics", "view_all"),
+        "services_manage": _tree_perm(m, "services", "enabled") and _tree_perm(m, "services", "create_edit"),
+        "masters_manage": _tree_perm(m, "specialists", "edit_profiles"),
+        "schedule_others": _tree_perm(m, "schedule", "edit_others"),
+        "broadcasts_view": _tree_perm(m, "broadcasts", "enabled"),
+        "broadcasts_send": _tree_perm(m, "broadcasts", "send"),
+        "inventory_view": _tree_perm(m, "inventory", "enabled"),
+        "inventory_edit": _tree_perm(m, "inventory", "edit_stock") or _tree_perm(m, "inventory", "manage_items"),
+        "formulas_view": _tree_perm(m, "formulas", "enabled"),
+        "formulas_edit": _tree_perm(m, "formulas", "create") or _tree_perm(m, "formulas", "edit"),
+        "settings_edit": _tree_perm(m, "settings", "edit"),
+        "users_manage": _tree_perm(m, "staff", "create"),
+        "audit_view": _tree_perm(m, "audit_log", "enabled"),
+        "ai_manage": _tree_perm(m, "ai", "manage_settings"),
+        "integrations_manage": _tree_perm(m, "settings", "edit"),
+        "page_bookings": _tree_perm(m, "bookings", "enabled"),
+        "page_clients": _tree_perm(m, "clients", "enabled"),
+        "page_schedule": _tree_perm(m, "schedule", "enabled"),
+        "page_statistics": _tree_perm(m, "analytics", "enabled"),
+        "page_masters": _tree_perm(m, "specialists", "enabled"),
+        "page_inventory": _tree_perm(m, "inventory", "enabled"),
+        "page_formulas": _tree_perm(m, "formulas", "enabled"),
+        "page_chats": _tree_perm(m, "chats", "enabled"),
+    }
+
+
 def get_effective_permissions(user: "User") -> dict[str, bool]:
-    """Итоговые права: дефолт роли + индивидуальные переопределения.
-    owner всегда получает все права, невзирая на поле permissions."""
+    """Плоские права, выведенные из JSON-дерева страниц (для совместимости)."""
     if user.role.value == "owner":
         return {p: True for p in ALL_PERMISSIONS}
 
-    defaults = ROLE_DEFAULTS.get(user.role.value, {p: False for p in ALL_PERMISSIONS})
+    from app.core.user_page_permissions import merged_permissions
 
-    if not user.permissions:
-        return defaults.copy()
-
-    result = defaults.copy()
-    for key, value in user.permissions.items():
-        if key in ALL_PERMISSIONS:
-            result[key] = bool(value)
-    return result
+    return _flat_from_nested(merged_permissions(user))
 
 
 def has_permission(user: "User", permission: str) -> bool:

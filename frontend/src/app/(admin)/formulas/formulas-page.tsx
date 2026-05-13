@@ -41,6 +41,7 @@ import { tc } from "@/lib/theme-inline";
 import { FormulaCard } from "@/components/formulas/FormulaCard";
 import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
 import { useDebounce } from "@/hooks/useDebounce";
+import { usePermissions } from "@/hooks/usePermissions";
 import { buildClientsListUrl, useCreateClient, type ClientsFiltersState } from "@/hooks/useClients";
 import type { ClientOut, MasterOut, Paginated, UserMe } from "@/types/admin-api";
 
@@ -171,6 +172,7 @@ function phoneValid(phone: string): boolean {
 export function FormulasPage() {
   const t = useTranslations("pages.formulas");
   const locale = useLocale();
+  const { me } = usePermissions();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [masterFilter, setMasterFilter] = useState("");
@@ -234,6 +236,9 @@ export function FormulasPage() {
   const uniqueClients = new Set(formulas.map((f) => f.client_id)).size;
   const photoPct = formulas.length ? Math.round((withPhotos / formulas.length) * 100) : 0;
 
+  const showMyFormulasTitle =
+    me?.role === "master" && me.page_permissions?.formulas?.view_all === false;
+
   return (
     <div style={{ padding: "24px 28px", maxWidth: "1280px" }}>
       {/* Header */}
@@ -241,7 +246,7 @@ export function FormulasPage() {
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
             <h1 style={{ fontFamily: "Playfair Display, serif", fontSize: "28px", fontWeight: 700, margin: 0 }}>
-              {t("title")}
+              {showMyFormulasTitle ? t("my_formulas_title") : t("title")}
             </h1>
             <MasterDataBadge pagePermission="page_formulas" />
           </div>

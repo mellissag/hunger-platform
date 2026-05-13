@@ -527,11 +527,7 @@ async def export_clients_csv_bytes(
     for row in rows:
         cl = row[0]
         lv_out = _merge_last_visit_dates(cl.last_visit_at, row.lv_bookings)
-        phone_cell = cl.phone or ""
-        if phone_cell and not show_phones:
-            digits = "".join(ch for ch in phone_cell if ch.isdigit())
-            last2 = digits[-2:] if digits else ""
-            phone_cell = f"*** *** {last2}".strip()
+        phone_cell = (cl.phone or "") if show_phones else ""
         w.writerow(
             [
                 str(cl.id),
@@ -564,7 +560,9 @@ async def get_client(
     if row is None:
         from app.core.permissions import has_permission
 
-        if user.role == UserRole.master and user.master_id is not None and has_permission(user, "page_clients"):
+        if user.role == UserRole.master and user.master_id is not None and has_permission(
+            user, "page_clients"
+        ):
             exists_any = await db.scalar(select(func.count()).select_from(Client).where(Client.id == client_id))
             if exists_any:
                 raise ForbiddenScopeError("You do not have access to this client")

@@ -71,23 +71,13 @@ _MISSING_LAST_VISIT = object()
 
 
 def _phone_for_user(c: ClientModel, user: User) -> str | None:
-    """Phone visibility gated by permission `clients_view_phones`.
-    When user lacks the permission and phone is present, return masked form."""
+    """Телефон: без права clients.view_phones — не отдаём (null)."""
     raw = c.phone
     if not raw:
         return raw
     if has_permission(user, "clients_view_phones"):
         return raw
-    # Mask: keep last 2 digits, prefix country if present.
-    digits = "".join(ch for ch in raw if ch.isdigit())
-    if not digits:
-        return None
-    last2 = digits[-2:]
-    prefix = ""
-    if raw.startswith("+"):
-        # keep up to 3 chars of country code
-        prefix = "+" + digits[: min(3, len(digits) - 2)] + " "
-    return f"{prefix}*** *** {last2}".strip() or None
+    return None
 
 
 def _to_out(

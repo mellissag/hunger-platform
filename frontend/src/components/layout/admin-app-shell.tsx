@@ -118,7 +118,7 @@ export function AdminAppShell({
     ? {
         ...user,
         effective_permissions: meWithPerms.effective_permissions,
-        salon_role_permissions: meWithPerms.salon_role_permissions,
+        page_permissions: meWithPerms.page_permissions,
       }
     : user;
   const { data: salonBundle } = useQuery({
@@ -144,7 +144,7 @@ export function AdminAppShell({
     const u = {
       ...user,
       effective_permissions: meWithPerms.effective_permissions,
-      salon_role_permissions: meWithPerms.salon_role_permissions,
+      page_permissions: meWithPerms.page_permissions,
     };
     const guards: [string, Resource][] = [
       ["/bookings", "bookings"],

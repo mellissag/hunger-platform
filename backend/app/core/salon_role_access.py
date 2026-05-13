@@ -1,4 +1,4 @@
-"""Salon-level tab access (reception pages, admin clients tab) + master page_*."""
+"""Доступ к вкладкам CRM по дереву прав пользователя (не глобальные role_permissions)."""
 
 from __future__ import annotations
 
@@ -8,42 +8,41 @@ from fastapi import Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.permissions import has_permission
+from app.core.user_page_permissions import page_perm
 from app.deps import get_current_user, get_db, get_redis, require_roles
 from app.models.enums import UserRole
 from app.models.user import User
-from app.services import role_permissions_service
 
 STAFF_ALL = (UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)
 STAFF_READ_ROLES = (UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)
 
 PageKey = Literal["bookings", "clients", "schedule", "analytics"]
 
-MASTER_PAGE_PERM: dict[PageKey, str] = {
-    "bookings": "page_bookings",
-    "clients": "page_clients",
-    "schedule": "page_schedule",
-    "analytics": "page_statistics",
+MASTER_PAGE_SECTION: dict[PageKey, tuple[str, str]] = {
+    "bookings": ("bookings", "enabled"),
+    "clients": ("clients", "enabled"),
+    "schedule": ("schedule", "enabled"),
+    "analytics": ("analytics", "enabled"),
 }
 
 
 async def assert_salon_clients_tab_access(
     user: User,
-    db: AsyncSession,
-    redis: Redis | None,
+    _db: AsyncSession,
+    _redis: Redis | None,
 ) -> None:
     if user.role == UserRole.owner:
         return
     if user.role == UserRole.admin:
-        if not await role_permissions_service.admin_clients_access_allowed(db, redis):
+        if not page_perm(user, "clients", "enabled"):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="no_clients_access")
         return
     if user.role == UserRole.reception:
-        if not await role_permissions_service.reception_page_allowed(db, redis, "clients"):
+        if not page_perm(user, "clients", "enabled"):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="no_page_access")
         return
     if user.role == UserRole.master:
-        if not has_permission(user, "page_clients"):
+        if not page_perm(user, "clients", "enabled"):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="no_page_access")
         return
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="no_page_access")
@@ -51,8 +50,8 @@ async def assert_salon_clients_tab_access(
 
 async def assert_salon_page_tab_access(
     user: User,
-    db: AsyncSession,
-    redis: Redis | None,
+    _db: AsyncSession,
+    _redis: Redis | None,
     page: PageKey,
 ) -> None:
     if user.role == UserRole.owner:
@@ -60,12 +59,18 @@ async def assert_salon_page_tab_access(
     if user.role == UserRole.admin:
         return
     if user.role == UserRole.reception:
-        if not await role_permissions_service.reception_page_allowed(db, redis, page):
+        sec, key = {
+            "bookings": ("bookings", "enabled"),
+            "clients": ("clients", "enabled"),
+            "schedule": ("schedule", "enabled"),
+            "analytics": ("analytics", "enabled"),
+        }[page]
+        if not page_perm(user, sec, key):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="no_page_access")
         return
     if user.role == UserRole.master:
-        pk = MASTER_PAGE_PERM[page]
-        if not has_permission(user, pk):
+        sec, key = MASTER_PAGE_SECTION[page]
+        if not page_perm(user, sec, key):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="no_page_access")
         return
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="no_page_access")
@@ -109,16 +114,15 @@ def staff_with_salon_page(page: PageKey, *staff_roles: UserRole):
     return _dep
 
 
-async def assert_stats_tab_access(user: User, db: AsyncSession, redis: Redis | None) -> None:
-    """Statistics: owner/admin; master needs page_statistics; reception needs reception.pages.analytics."""
+async def assert_stats_tab_access(user: User, _db: AsyncSession, _redis: Redis | None) -> None:
     if user.role in (UserRole.owner, UserRole.admin):
         return
     if user.role == UserRole.master:
-        if not has_permission(user, "page_statistics"):
+        if not page_perm(user, "analytics", "enabled"):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="no_page_access")
         return
     if user.role == UserRole.reception:
-        if not await role_permissions_service.reception_page_allowed(db, redis, "analytics"):
+        if not page_perm(user, "analytics", "enabled"):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="no_page_access")
         return
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="no_page_access")

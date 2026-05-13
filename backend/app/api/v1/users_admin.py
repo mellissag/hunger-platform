@@ -5,10 +5,11 @@ from __future__ import annotations
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from redis.asyncio import Redis
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +17,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import NotFoundError
 from app.core.permissions import get_effective_permissions
 from app.core.security import hash_password, verify_password
-from app.deps import get_current_user, get_db, require_roles
+from app.core.user_page_permissions import (
+    default_permissions_for_role,
+    get_merged_permissions_cached,
+    invalidate_user_permissions_cache,
+    merged_permissions,
+    sanitize_permissions_payload,
+)
+from app.deps import get_current_user, get_db, get_redis, require_roles
 from app.models.broadcast import Broadcast
 from app.models.enums import UserRole
 from app.models.user import User
@@ -45,6 +53,7 @@ def _hash_invite(raw: str) -> str:
 def _to_out(u: User) -> UserStaffOut:
     out = UserStaffOut.model_validate(u)
     out.effective_permissions = get_effective_permissions(u)
+    out.page_permissions = merged_permissions(u)
     return out
 
 
@@ -63,6 +72,39 @@ async def list_users(
     rows = list(res.scalars().all())
     items = [_to_out(u) for u in rows]
     return PaginatedResponse(items=items, total=int(total or 0), page=page, page_size=page_size)
+
+
+@router.get("/{user_id}/permissions", response_model=dict[str, Any])
+async def get_user_permissions(
+    user_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    redis: Annotated[Redis | None, Depends(get_redis)],
+    _actor: Annotated[User, Depends(require_roles(*_OWNER))],
+) -> dict[str, Any]:
+    u = await db.get(User, user_id)
+    if u is None:
+        raise NotFoundError("User not found")
+    return await get_merged_permissions_cached(u, redis)
+
+
+@router.patch("/{user_id}/permissions", response_model=dict[str, Any])
+async def patch_user_permissions(
+    user_id: UUID,
+    body: Annotated[dict[str, Any], Body()],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    redis: Annotated[Redis | None, Depends(get_redis)],
+    _actor: Annotated[User, Depends(require_roles(*_OWNER))],
+) -> dict[str, Any]:
+    u = await db.get(User, user_id)
+    if u is None:
+        raise NotFoundError("User not found")
+    if u.role == UserRole.owner:
+        raise HTTPException(status_code=400, detail="Owner permissions are not editable")
+    merged = sanitize_permissions_payload(body, role=u.role)
+    u.permissions = merged
+    await db.flush()
+    await invalidate_user_permissions_cache(redis, u.id)
+    return merged
 
 
 @router.post("", response_model=UserStaffOut)
@@ -86,6 +128,7 @@ async def create_user(
         lang=body.lang,
         master_id=body.master_id,
         is_active=True,
+        permissions=default_permissions_for_role(body.role.value),
     )
     db.add(u)
     await db.flush()
@@ -105,6 +148,7 @@ async def patch_user(
     user_id: UUID,
     body: UserStaffPatch,
     db: Annotated[AsyncSession, Depends(get_db)],
+    redis: Annotated[Redis | None, Depends(get_redis)],
     actor: Annotated[User, Depends(require_roles(*_OWNER))],
 ) -> UserStaffOut:
     u = await db.get(User, user_id)
@@ -123,14 +167,12 @@ async def patch_user(
             raise HTTPException(status_code=409, detail="Email already in use")
         u.email = email_norm
         del data["email"]
-    if "permissions" in data:
-        existing = dict(u.permissions or {})
-        existing.update(data.pop("permissions") or {})
-        u.permissions = existing
     for k, v in data.items():
         setattr(u, k, v)
     await db.flush()
     if "role" in data and old_role != u.role:
+        u.permissions = default_permissions_for_role(u.role.value)
+        await invalidate_user_permissions_cache(redis, u.id)
         await record_role_change(
             db,
             actor_user_id=actor.id,
@@ -183,13 +225,17 @@ async def change_password(
 async def reset_permissions(
     user_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
+    redis: Annotated[Redis | None, Depends(get_redis)],
     _actor: Annotated[User, Depends(require_roles(*_OWNER))],
 ) -> dict:
     u = await db.get(User, user_id)
     if u is None:
         raise NotFoundError("User not found")
-    u.permissions = None
+    if u.role == UserRole.owner:
+        raise HTTPException(status_code=400, detail="Cannot reset owner permissions")
+    u.permissions = default_permissions_for_role(u.role.value)
     await db.flush()
+    await invalidate_user_permissions_cache(redis, u.id)
     return {"ok": True, "effective_permissions": get_effective_permissions(u)}
 
 

@@ -7,14 +7,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 import hashlib
-import json
 import logging
 from redis.asyncio import Redis
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import get_settings
+from app.core.user_page_permissions import default_permissions_for_role
 from app.core.permissions import RolesRequired
 from app.core.security import (
     create_access_token,
@@ -95,6 +94,7 @@ async def accept_invite(
         last_name=inv.last_name,
         lang="en",
         is_active=True,
+        permissions=default_permissions_for_role(inv.role.value),
     )
     db.add(u)
     await db.flush()
@@ -275,16 +275,23 @@ async def read_me(
     redis: Annotated[Redis | None, Depends(get_redis)],
 ) -> UserMeResponse:
     from app.core.permissions import get_effective_permissions
-    from app.services import role_permissions_service
+    from app.core.user_page_permissions import get_merged_permissions_cached
 
     data = UserMeResponse.model_validate(user)
     data.effective_permissions = get_effective_permissions(user)
-    try:
-        data.salon_role_permissions = await role_permissions_service.get_merged_role_permissions(db, redis)
-    except Exception:  # noqa: BLE001 — missing column / DB drift until alembic catches up
-        logger.warning("auth/me: role_permissions unavailable, using defaults", exc_info=True)
-        data.salon_role_permissions = json.loads(json.dumps(role_permissions_service.DEFAULT_ROLE_PERMISSIONS))
+    data.page_permissions = await get_merged_permissions_cached(user, redis)
+    data.salon_role_permissions = None
     return data
+
+
+@router.get("/me/permissions", response_model=dict)
+async def read_me_permissions(
+    user: Annotated[User, Depends(get_current_user)],
+    redis: Annotated[Redis | None, Depends(get_redis)],
+) -> dict:
+    from app.core.user_page_permissions import get_merged_permissions_cached
+
+    return await get_merged_permissions_cached(user, redis)
 
 
 @router.get(

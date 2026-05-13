@@ -123,8 +123,8 @@ export function ClientsList() {
   const locale = useLocale();
   const router = useRouter();
   const qc = useQueryClient();
-  const { can: hasPerm, me } = usePermissions();
-  const canExport = hasPerm("clients_export");
+  const { canExportClients, me } = usePermissions();
+  const canExport = canExportClients;
   const [filters, setFilters] = useState<ClientsFiltersState>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(filters.search, 400);
@@ -247,6 +247,10 @@ export function ClientsList() {
     [router],
   );
 
+  const canSeePhones = me?.role === "owner" || Boolean(me?.page_permissions?.clients?.view_phones);
+  const showMyClientsTitle =
+    me?.role === "master" && me.page_permissions?.clients?.view_all === false;
+
   const columns = useMemo<ColumnDef<ClientOut>[]>(
     () => [
       {
@@ -342,15 +346,19 @@ export function ClientsList() {
           );
         },
       },
-      {
-        accessorKey: "phone",
-        header: t("colPhone"),
-        cell: ({ row }) => {
-          const raw = row.original.phone?.trim();
-          if (!raw) return <span className="text-[13px] text-muted-foreground">—</span>;
-          return <span className="text-[13px]">{raw}</span>;
-        },
-      },
+      ...(canSeePhones
+        ? [
+            {
+              accessorKey: "phone",
+              header: t("colPhone"),
+              cell: ({ row }: { row: { original: ClientOut } }) => {
+                const raw = row.original.phone?.trim();
+                if (!raw) return <span className="text-[13px] text-muted-foreground">—</span>;
+                return <span className="text-[13px]">{raw}</span>;
+              },
+            } satisfies ColumnDef<ClientOut>,
+          ]
+        : []),
       {
         id: "lastVisit",
         header: t("colLastVisit"),
@@ -455,6 +463,7 @@ export function ClientsList() {
       toggleSelected,
       deleteMut.isPending,
       handleDeleteOne,
+      canSeePhones,
     ],
   );
 
@@ -498,7 +507,7 @@ export function ClientsList() {
             <MasterDataBadge pagePermission="page_clients" />
           </div>
           <h1 className="font-playfair mt-1 text-[32px] font-medium leading-tight tracking-tight">
-            {me?.role === "master" ? t("my_clients_title") : t("pageTitle")}
+            {showMyClientsTitle ? t("my_clients_title") : t("pageTitle")}
           </h1>
           <p className="mt-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
             {t("ornament")}
