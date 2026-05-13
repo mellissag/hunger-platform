@@ -3,9 +3,37 @@
 export type SectionPerms = Record<string, boolean>;
 export type PagePermissions = Record<string, SectionPerms>;
 
+function masterDashboardDisabled(): SectionPerms {
+  return {
+    enabled: false,
+    show_kpi_bookings_today: false,
+    show_kpi_pending: false,
+    show_kpi_revenue_today: false,
+    show_kpi_total_clients: false,
+    show_section_today: false,
+    show_section_upcoming: false,
+    show_client_names: false,
+    own_clients_only: true,
+  };
+}
+
+function masterDashboardMasterDefaults(): SectionPerms {
+  return {
+    enabled: true,
+    show_kpi_bookings_today: true,
+    show_kpi_pending: true,
+    show_kpi_revenue_today: true,
+    show_kpi_total_clients: true,
+    show_section_today: true,
+    show_section_upcoming: true,
+    show_client_names: true,
+    own_clients_only: true,
+  };
+}
+
 function admin(): PagePermissions {
   return {
-    my_day: { enabled: false },
+    master_dashboard: masterDashboardDisabled(),
     bookings: {
       enabled: true,
       view_all: true,
@@ -43,7 +71,7 @@ function admin(): PagePermissions {
 
 function master(): PagePermissions {
   return {
-    my_day: { enabled: true },
+    master_dashboard: masterDashboardMasterDefaults(),
     bookings: {
       enabled: true,
       view_all: false,
@@ -81,7 +109,7 @@ function master(): PagePermissions {
 
 function reception(): PagePermissions {
   return {
-    my_day: { enabled: false },
+    master_dashboard: masterDashboardDisabled(),
     bookings: {
       enabled: true,
       view_all: true,

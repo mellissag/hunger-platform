@@ -121,7 +121,9 @@ export function MasterAppShell({
   const pageItems = NAV_PAGE.filter((item) =>
     item.permKey ? (effectivePerms[item.permKey] ?? false) : true,
   );
-  const items: NavItem[] = [...NAV_ALWAYS, ...pageItems];
+  const showMasterDashboard = Boolean(effectivePerms.page_master_dashboard);
+  const dayItems = showMasterDashboard ? NAV_ALWAYS : [];
+  const items: NavItem[] = [...dayItems, ...pageItems];
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });

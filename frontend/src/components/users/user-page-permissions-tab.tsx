@@ -20,7 +20,21 @@ type BlockDef = {
 };
 
 const BLOCKS: ReadonlyArray<BlockDef> = [
-  { section: "my_day", titleKey: "perm_my_day", keys: [{ key: "enabled", labelKey: "perm_block_enabled" }] },
+  {
+    section: "master_dashboard",
+    titleKey: "perm_master_dashboard",
+    keys: [
+      { key: "enabled", labelKey: "perm_block_enabled" },
+      { key: "show_kpi_bookings_today", labelKey: "perm_dash_kpi_today" },
+      { key: "show_kpi_pending", labelKey: "perm_dash_kpi_pending" },
+      { key: "show_kpi_revenue_today", labelKey: "perm_dash_kpi_revenue" },
+      { key: "show_kpi_total_clients", labelKey: "perm_dash_kpi_clients" },
+      { key: "show_section_today", labelKey: "perm_dash_section_today" },
+      { key: "show_section_upcoming", labelKey: "perm_dash_section_upcoming" },
+      { key: "show_client_names", labelKey: "perm_dash_show_client_names" },
+      { key: "own_clients_only", labelKey: "perm_dash_own_clients_only" },
+    ],
+  },
   {
     section: "bookings",
     titleKey: "perm_bookings",
@@ -286,7 +300,7 @@ export function UserPagePermissionsTab({
   }
 
   const visibleBlocks = BLOCKS.filter((b) => {
-    if (b.section === "my_day" && userRole !== "master") return false;
+    if (b.section === "master_dashboard" && userRole !== "master") return false;
     return true;
   });
 

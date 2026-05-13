@@ -78,6 +78,7 @@ ALL_PERMISSIONS: list[str] = [
     "page_formulas",
     "page_chats",
     "page_blacklist",
+    "page_master_dashboard",
 ]
 
 ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
@@ -130,6 +131,7 @@ ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
         "page_formulas": True,
         "page_chats": True,
         "page_blacklist": True,
+        "page_master_dashboard": False,
     },
 
     "reception": {
@@ -179,6 +181,7 @@ ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
         "page_formulas": False,
         "page_chats": True,
         "page_blacklist": True,
+        "page_master_dashboard": False,
     },
 
     "master": {
@@ -228,6 +231,7 @@ ROLE_DEFAULTS: dict[str, dict[str, bool]] = {
         "page_formulas": False,
         "page_chats": False,
         "page_blacklist": False,
+        "page_master_dashboard": False,
     },
 }
 
@@ -291,6 +295,7 @@ def _flat_from_nested(m: dict) -> dict[str, bool]:
         "page_formulas": _tree_perm(m, "formulas", "enabled"),
         "page_chats": _tree_perm(m, "chats", "enabled"),
         "page_blacklist": _tree_perm(m, "blacklist", "enabled"),
+        "page_master_dashboard": _tree_perm(m, "master_dashboard", "enabled"),
     }
 
 

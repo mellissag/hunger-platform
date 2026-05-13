@@ -70,9 +70,52 @@ _LEGACY_FLAT_KEYS: frozenset[str] = frozenset(
 )
 
 
+def _master_dashboard_disabled() -> dict[str, Any]:
+    """Дефолт для ролей без мастер-дешборда (admin / reception)."""
+    return {
+        "enabled": False,
+        "show_kpi_bookings_today": False,
+        "show_kpi_pending": False,
+        "show_kpi_revenue_today": False,
+        "show_kpi_total_clients": False,
+        "show_section_today": False,
+        "show_section_upcoming": False,
+        "show_client_names": False,
+        "own_clients_only": True,
+    }
+
+
+def _master_dashboard_master_defaults() -> dict[str, Any]:
+    """Дефолт для мастера: все блоки дешборда включены, «только свои» — строго по master_id."""
+    return {
+        "enabled": True,
+        "show_kpi_bookings_today": True,
+        "show_kpi_pending": True,
+        "show_kpi_revenue_today": True,
+        "show_kpi_total_clients": True,
+        "show_section_today": True,
+        "show_section_upcoming": True,
+        "show_client_names": True,
+        "own_clients_only": True,
+    }
+
+
+def _migrate_my_day_to_master_dashboard(tree: dict[str, Any]) -> None:
+    """Секция my_day заменена на master_dashboard — поднимаем enabled из старых данных."""
+    if "my_day" not in tree:
+        return
+    legacy = tree.pop("my_day")
+    md = tree.setdefault("master_dashboard", {})
+    if not isinstance(md, dict):
+        md = {}
+        tree["master_dashboard"] = md
+    if isinstance(legacy, dict) and "enabled" in legacy:
+        md["enabled"] = bool(legacy.get("enabled"))
+
+
 def _admin_template() -> dict[str, Any]:
     return {
-        "my_day": {"enabled": False},
+        "master_dashboard": _master_dashboard_disabled(),
         "bookings": {
             "enabled": True,
             "view_all": True,
@@ -116,7 +159,7 @@ def _admin_template() -> dict[str, Any]:
 
 def _master_template() -> dict[str, Any]:
     return {
-        "my_day": {"enabled": True},
+        "master_dashboard": _master_dashboard_master_defaults(),
         "bookings": {
             "enabled": True,
             "view_all": False,
@@ -160,7 +203,7 @@ def _master_template() -> dict[str, Any]:
 
 def _reception_template() -> dict[str, Any]:
     return {
-        "my_day": {"enabled": False},
+        "master_dashboard": _master_dashboard_disabled(),
         "bookings": {
             "enabled": True,
             "view_all": True,
@@ -251,7 +294,9 @@ def merged_permissions(user: User) -> dict[str, Any]:
         return copy.deepcopy(base)
     if is_legacy_flat_permissions(stored):
         return copy.deepcopy(base)
-    return deep_merge_permissions(base, stored)
+    merged = deep_merge_permissions(base, stored)
+    _migrate_my_day_to_master_dashboard(merged)
+    return merged
 
 
 def page_perm(user: User, section: str, key: str) -> bool:

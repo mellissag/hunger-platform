@@ -48,7 +48,7 @@ const SECTION: Partial<Record<Resource, string>> = {
   audit: "audit_log",
   inventory: "inventory",
   formulas: "formulas",
-  master_dashboard: "my_day",
+  master_dashboard: "master_dashboard",
 };
 
 export type PermUser = {
@@ -74,7 +74,7 @@ export function can(user: PermUser, action: Action, resource: Resource): boolean
   }
 
   if (resource === "master_dashboard") {
-    return user.role === "master" && pget(p, "my_day", "enabled");
+    return user.role === "master" && pget(p, "master_dashboard", "enabled");
   }
 
   const sec = SECTION[resource];
