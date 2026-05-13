@@ -7,6 +7,7 @@ import { useMyBookings, useMeProfile, useSalonInfo, useDailyPick, pickI18n } fro
 import { isoToTimeInZone } from '@/lib/date-local';
 import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
 import { useT } from './i18n/context';
+import { miniAppBookingPriceDurationLine } from './lib/booking-price-duration';
 
 const GOLD = 'var(--gold-deep)';
 const GOLD_HI = 'var(--gold)';
@@ -79,6 +80,7 @@ export default function HomePage() {
 
   const upcoming = bookings.filter(b => ['confirmed', 'pending'].includes(b.status));
   const nextBooking = upcoming.find(b => b.starts_at != null) ?? null;
+  const homeLivePriceDuration = nextBooking ? miniAppBookingPriceDurationLine(nextBooking, t.bookDurLabel) : '';
 
   // Real API name → onboarding/local name → Telegram WebApp user (when API still has Guest/Dev placeholder)
   const storedName = typeof window !== 'undefined' ? localStorage.getItem('hunger_profile_name') : null;
@@ -202,6 +204,11 @@ export default function HomePage() {
                 <div style={{ fontSize: 12, color: SOFT, marginTop: 5 }}>
                   {nextBooking.master_name}{nextBooking.starts_at ? ` · ${formatLocalDate(nextBooking.starts_at, t.daysShort, t.monthsGen)}` : ''}
                 </div>
+                {homeLivePriceDuration ? (
+                  <div style={{ fontSize: 11, color: MUTED, marginTop: 5, letterSpacing: '0.02em' }}>
+                    {homeLivePriceDuration}
+                  </div>
+                ) : null}
               </div>
               {nextBooking.starts_at && (
                 <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: GOLD, lineHeight: 1, letterSpacing: '-0.02em', flexShrink: 0 }}>

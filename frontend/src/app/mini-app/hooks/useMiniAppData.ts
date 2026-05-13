@@ -97,8 +97,10 @@ export interface Booking {
   starts_at: string | null;
   ends_at?: string | null;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
-  price?: number;
-  duration_minutes?: number;
+  /** From booking row (admin may override catalogue). */
+  price: number;
+  /** From booking.ends_at − starts_at (same source admin edits via ends_at). */
+  duration_minutes?: number | null;
   needs_consultation?: boolean;
 }
 

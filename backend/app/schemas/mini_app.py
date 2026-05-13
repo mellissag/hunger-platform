@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class InitDataPayload(BaseModel):
@@ -69,4 +69,8 @@ class MiniAppBookingOut(BaseModel):
     starts_at: str | None
     ends_at: str | None
     price: float
+    duration_minutes: int | None = Field(
+        default=None,
+        description="Visit length from booking row (ends_at - starts_at), minutes.",
+    )
     needs_consultation: bool = False

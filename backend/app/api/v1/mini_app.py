@@ -47,6 +47,16 @@ from app.utils.datetime_utils import ensure_aware
 router = APIRouter(prefix="/mini-app", tags=["mini-app"])
 
 
+def _mini_booking_duration_minutes(booking: Booking) -> int | None:
+    """Actual visit length stored on the booking row (ends_at - starts_at)."""
+    if booking.starts_at is None or booking.ends_at is None:
+        return None
+    total_seconds = int((booking.ends_at - booking.starts_at).total_seconds())
+    if total_seconds <= 0:
+        return None
+    return total_seconds // 60
+
+
 def _public_origin_for_media(request: Request) -> str:
     """Public origin for /media — align with upload.py (BASE_URL) so files resolve on the real API host."""
     explicit = (os.environ.get("BASE_URL") or "").strip().rstrip("/")
@@ -661,6 +671,7 @@ async def create_booking(
             starts_at=None,
             ends_at=None,
             price=float(booking.price),
+            duration_minutes=None,
             needs_consultation=True,
         )
 
@@ -750,6 +761,7 @@ async def create_booking(
             starts_at=booking.starts_at.isoformat() if booking.starts_at else None,
             ends_at=booking.ends_at.isoformat() if booking.ends_at else None,
             price=float(booking.price),
+            duration_minutes=_mini_booking_duration_minutes(booking),
             needs_consultation=False,
         )
 
@@ -809,6 +821,7 @@ async def create_booking(
         starts_at=booking.starts_at.isoformat() if booking.starts_at else None,
         ends_at=booking.ends_at.isoformat() if booking.ends_at else None,
         price=float(booking.price),
+        duration_minutes=_mini_booking_duration_minutes(booking),
         needs_consultation=False,
     )
 
@@ -864,6 +877,7 @@ async def list_my_bookings(
                 starts_at=b.starts_at.isoformat() if b.starts_at else None,
                 ends_at=b.ends_at.isoformat() if b.ends_at else None,
                 price=float(b.price),
+                duration_minutes=_mini_booking_duration_minutes(b),
                 needs_consultation=b.needs_consultation,
                 service_name=svc_name,
                 master_name=master_name,
@@ -1594,9 +1608,11 @@ async def cancel_booking(
     return MiniAppMyBookingOut(
         id=str(booking.id),
         status=booking.status.value,
-        starts_at=booking.starts_at.isoformat(),
-        ends_at=booking.ends_at.isoformat(),
+        starts_at=booking.starts_at.isoformat() if booking.starts_at else None,
+        ends_at=booking.ends_at.isoformat() if booking.ends_at else None,
         price=float(booking.price),
+        duration_minutes=_mini_booking_duration_minutes(booking),
+        needs_consultation=booking.needs_consultation,
         service_name=svc_name,
         master_name=master_name,
     )

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useMyBookings, useCancelBooking, type Booking } from '../hooks/useMiniAppData';
 import { isoToTimeInZone, isoToDateInZone } from '@/lib/date-local';
 import { useT } from '../i18n/context';
+import { miniAppBookingPriceDurationLine } from '../lib/booking-price-duration';
 
 const GOLD = 'var(--gold-deep)';
 const GOLD_HI = 'var(--gold)';
@@ -50,6 +51,7 @@ export default function BookingsPage() {
     });
   const history = bookings.filter(b => !['confirmed', 'pending'].includes(b.status));
   const nextBooking = upcoming.find(b => b.starts_at != null) ?? null;
+  const livePriceDuration = nextBooking ? miniAppBookingPriceDurationLine(nextBooking, t.bookDurLabel) : '';
   const shown = activeTab === 'upcoming' ? upcoming : history;
 
   function formatDateLabel(iso: string): string {
@@ -133,6 +135,11 @@ export default function BookingsPage() {
                 <div style={{ fontSize: 13, color: SOFT, marginTop: 5 }}>
                   {nextBooking.master_name}{nextBooking.starts_at ? ` · ${formatDateLabel(nextBooking.starts_at)}` : ''}
                 </div>
+                {livePriceDuration ? (
+                  <div style={{ fontSize: 12, color: MUTED, marginTop: 6, letterSpacing: '0.02em' }}>
+                    {livePriceDuration}
+                  </div>
+                ) : null}
               </div>
               {nextBooking.starts_at && (
                 <div style={{ fontFamily: SERIF, fontSize: 34, fontWeight: 600, color: GOLD, lineHeight: 1, letterSpacing: '-0.02em', marginLeft: 12 }}>
@@ -206,6 +213,7 @@ export default function BookingsPage() {
             const sc = statusColors(kind);
             const isUpcoming = ['confirmed', 'pending'].includes(b.status);
             const cancelling = cancellingId === b.id;
+            const priceDurLine = miniAppBookingPriceDurationLine(b, t.bookDurLabel);
 
             return (
               <div
@@ -236,7 +244,12 @@ export default function BookingsPage() {
 
                 {/* Master + status row */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: 12, color: MUTED }}>{b.master_name}</div>
+                  <div style={{ fontSize: 12, color: MUTED }}>
+                    <div>{b.master_name}</div>
+                    {priceDurLine ? (
+                      <div style={{ fontSize: 11, color: SOFT, marginTop: 4 }}>{priceDurLine}</div>
+                    ) : null}
+                  </div>
                   <span style={{
                     fontSize: 10, fontWeight: 600, letterSpacing: '0.08em',
                     padding: '3px 9px', borderRadius: 6,
