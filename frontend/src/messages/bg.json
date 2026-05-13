@@ -54,6 +54,7 @@
       "logout": "Изход"
     },
     "panelAdmin": "Админ",
+    "panelOwner": "Собственик",
     "panelMaster": "Майстор"
   },
   "dashboard": {
@@ -254,7 +255,11 @@
       "durationRangeNote": "Продължителността се уточнява по телефон според сложността",
       "detailClientComment": "Коментар на клиента",
       "badgeAnyMaster": "Всеки майстор",
-      "badgeCallForTime": "Час по телефон"
+      "badgeCallForTime": "Час по телефон",
+      "consultationAwaitingClarification": "Очакват уточнение",
+      "consultationCallNeeded": "Необходим е разговор",
+      "consultationDetails": "Подробности →",
+      "consultationEmpty": "Няма заявки за уточнение"
     },
     "clients": {
       "title": "Клиенти",

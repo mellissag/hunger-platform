@@ -54,6 +54,7 @@
       "logout": "Выйти"
     },
     "panelAdmin": "Админ",
+    "panelOwner": "Владелец",
     "panelMaster": "Мастер"
   },
   "dashboard": {
@@ -254,7 +255,11 @@
       "durationRangeNote": "Длительность уточняется по телефону в зависимости от сложности",
       "detailClientComment": "Комментарий клиента",
       "badgeAnyMaster": "Любой мастер",
-      "badgeCallForTime": "Время по звонку"
+      "badgeCallForTime": "Время по звонку",
+      "consultationAwaitingClarification": "Ожидают уточнения",
+      "consultationCallNeeded": "Нужен созвон",
+      "consultationDetails": "Подробнее →",
+      "consultationEmpty": "Заявок на уточнение нет"
     },
     "clients": {
       "title": "Клиенты",

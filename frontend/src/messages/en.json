@@ -54,6 +54,7 @@
       "logout": "Log out"
     },
     "panelAdmin": "Admin",
+    "panelOwner": "Owner",
     "panelMaster": "Master"
   },
   "dashboard": {
@@ -254,7 +255,11 @@
       "durationRangeNote": "Duration will be confirmed by phone depending on complexity",
       "detailClientComment": "Client comment",
       "badgeAnyMaster": "Any master",
-      "badgeCallForTime": "Time by phone"
+      "badgeCallForTime": "Time by phone",
+      "consultationAwaitingClarification": "Awaiting clarification",
+      "consultationCallNeeded": "Call required",
+      "consultationDetails": "Details →",
+      "consultationEmpty": "No clarification requests"
     },
     "clients": {
       "title": "Clients",

@@ -209,7 +209,11 @@ export function AdminAppShell({
           <div className="ml-2 min-w-0 flex flex-col">
             <span className="truncate text-sm font-semibold leading-none">{brandTitle}</span>
             <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider">
-              {user.role === "master" ? t("panelMaster") : t("panelAdmin")}
+              {user.role === "master"
+                ? t("panelMaster")
+                : user.role === "owner"
+                  ? t("panelOwner")
+                  : t("panelAdmin")}
             </span>
           </div>
         </div>

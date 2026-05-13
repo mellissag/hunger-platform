@@ -54,6 +54,7 @@
       "logout": "Вийти"
     },
     "panelAdmin": "Адмін",
+    "panelOwner": "Власник",
     "panelMaster": "Майстер"
   },
   "dashboard": {
@@ -254,7 +255,11 @@
       "durationRangeNote": "Тривалість уточнюється по телефону залежно від складності",
       "detailClientComment": "Коментар клієнта",
       "badgeAnyMaster": "Будь-який майстер",
-      "badgeCallForTime": "Час по телефону"
+      "badgeCallForTime": "Час по телефону",
+      "consultationAwaitingClarification": "Очікують уточнення",
+      "consultationCallNeeded": "Потрібен дзвінок",
+      "consultationDetails": "Докладніше →",
+      "consultationEmpty": "Немає заявок на уточнення"
     },
     "clients": {
       "title": "Клієнти",

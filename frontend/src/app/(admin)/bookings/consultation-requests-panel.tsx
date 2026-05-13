@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { useConsultationBookings } from "@/hooks/useBookings";
 import { useServices } from "@/hooks/useServices";
@@ -10,9 +11,9 @@ const GOLD = "#9A7230";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatCreatedAt(iso?: string): string {
+function formatCreatedAt(iso: string | undefined, locale: string): string {
   if (!iso) return "—";
-  return new Intl.DateTimeFormat("ru-RU", {
+  return new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "long",
     hour: "2-digit",
@@ -23,6 +24,8 @@ function formatCreatedAt(iso?: string): string {
 // ── Panel ─────────────────────────────────────────────────────────────────────
 
 export function ConsultationRequestsPanel({ salonTz = "Europe/Sofia" }: { salonTz?: string }) {
+  const t = useTranslations("pages.bookings");
+  const locale = useLocale();
   const { data: raw = [] } = useConsultationBookings();
   // The hook returns Paginated<BookingOut> but we mapped it to items below
   const requests: BookingOut[] = (raw as unknown as { items?: BookingOut[] }).items ?? (Array.isArray(raw) ? (raw as BookingOut[]) : []);
@@ -60,7 +63,7 @@ export function ConsultationRequestsPanel({ salonTz = "Europe/Sofia" }: { salonT
             className="text-xs font-semibold tracking-[0.18em] uppercase"
             style={{ color: GOLD }}
           >
-            Ожидают уточнения
+            {t("consultationAwaitingClarification")}
           </span>
           {requests.length > 0 && (
             <span
@@ -100,7 +103,7 @@ export function ConsultationRequestsPanel({ salonTz = "Europe/Sofia" }: { salonT
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 8v4M12 16h.01" />
               </svg>
-              <span className="text-sm">Заявок на уточнение нет</span>
+              <span className="text-sm">{t("consultationEmpty")}</span>
             </div>
           ) : (
             <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
@@ -109,6 +112,7 @@ export function ConsultationRequestsPanel({ salonTz = "Europe/Sofia" }: { salonT
                   key={req.id}
                   booking={req}
                   serviceName={servicesMap[req.service_id] ?? "—"}
+                  locale={locale}
                   onView={() => setOpenBookingId(req.id)}
                 />
               ))}
@@ -133,12 +137,15 @@ export function ConsultationRequestsPanel({ salonTz = "Europe/Sofia" }: { salonT
 function ConsultationCard({
   booking,
   serviceName,
+  locale,
   onView,
 }: {
   booking: BookingOut;
   serviceName: string;
+  locale: string;
   onView: () => void;
 }) {
+  const t = useTranslations("pages.bookings");
   return (
     <div
       className="flex-shrink-0 w-[220px] rounded-sm p-4 relative overflow-hidden"
@@ -157,7 +164,7 @@ function ConsultationCard({
 
       {/* Date */}
       <div className="text-[10px] text-muted-foreground mb-2">
-        {formatCreatedAt(booking.created_at)}
+        {formatCreatedAt(booking.created_at, locale)}
       </div>
 
       {/* Service */}
@@ -175,7 +182,7 @@ function ConsultationCard({
           className="text-[10px] font-semibold tracking-wide uppercase"
           style={{ color: GOLD }}
         >
-          Нужен созвон
+          {t("consultationCallNeeded")}
         </span>
       </div>
 
@@ -195,7 +202,7 @@ function ConsultationCard({
           e.currentTarget.style.background = "transparent";
         }}
       >
-        Подробнее →
+        {t("consultationDetails")}
       </button>
     </div>
   );
