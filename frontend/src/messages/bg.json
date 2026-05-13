@@ -40,7 +40,8 @@
       "masterProfile": "Моят профил",
       "inventory": "Склад",
       "formulas": "Формули",
-      "chatsBadge": "Скоро"
+      "chatsBadge": "Скоро",
+      "noSectionAccess": "Няма достъп до този раздел."
     },
     "topbar": {
       "search": "Търсене",
@@ -297,6 +298,7 @@
       "subtitle": "Справочник и бележки",
       "pageEyebrow": "· База клиенти ·",
       "pageTitle": "Клиенти Synchro",
+      "my_clients_title": "Моите клиенти",
       "ornament": "— ✦ —",
       "exportCsv": "Експорт CSV",
       "create": "Добави клиент",
@@ -859,7 +861,15 @@
         "button_type_mini_app_hint": "Отваря се в Telegram",
         "button_url_label": "Връзка на бутона (URL)",
         "button_url_hint_url": "Връзката ще се отвори в браузъра.",
-        "button_url_hint_mini_app": "Връзката ще се отвори като Telegram Mini App."
+        "button_url_hint_mini_app": "Връзката ще се отвори като Telegram Mini App.",
+        "pick_list_error": "Неуспешно зареждане на дневните подборки.",
+        "pick_list_error_hint": "Ако се появи след актуализация, изпълнете миграциите на БД на API сървъра (напр.: docker compose exec api alembic upgrade head). Редовете обикновено не са изтрити — отново се показват, когато схемата съвпада с приложението.",
+        "pick_retry": "Опитай отново",
+        "pick_save_error": "Запазването не бе успешно",
+        "pick_delete_error": "Изтриването не бе успешно",
+        "pick_created": "Подборката е създадена",
+        "pick_updated": "Подборката е обновена",
+        "pick_deleted": "Изтрито"
       }
     },
     "schedule": {
@@ -1161,7 +1171,21 @@
       "deleteConfirmAction": "Изтрий",
       "deleteCancel": "Отказ",
       "deleteSuccess": "Служителят е изтрит",
-      "deleteError": "Неуспешно изтриване на служителя"
+      "deleteError": "Неуспешно изтриване на служителя",
+      "permissions_loading": "Зареждане…",
+      "permissions_title": "Права за достъп",
+      "permissions_clients_section": "Достъп до клиенти",
+      "permission_all_clients": "Всички клиенти на салона",
+      "permission_own_clients": "Само собствени клиенти",
+      "permission_no_access": "Няма достъп",
+      "permissions_saved": "Правата са запазени",
+      "permissions_reception_title": "ДОСТЪП ДО СТРАНИЦИ (РЕЦЕПЦИЯ)",
+      "permissions_reception_subtitle": "Рецепцията вижда страницата и всички данни на салона",
+      "permission_page_bookings": "Раздел Резервации",
+      "permission_page_clients": "Раздел Клиенти",
+      "permission_page_schedule": "Раздел Разписание",
+      "permission_page_analytics": "Раздел Статистика",
+      "permission_reception_all_data": "Рецепцията вижда всички данни на салона"
     },
     "masterDashboard": {
       "title": "Моят ден",

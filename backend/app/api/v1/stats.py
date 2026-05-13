@@ -11,6 +11,7 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.salon_role_access import StatsTabUser
 from app.deps import get_db, require_roles
 from app.models.enums import UserRole
 from app.models.master import Master
@@ -24,9 +25,6 @@ from app.services import (
 )
 
 router = APIRouter(prefix="/stats", tags=["stats"])
-
-# owner/admin — полный доступ; master — только свои данные (master_id принудительно подставляется)
-STATS_ROLES = (UserRole.owner, UserRole.admin, UserRole.master)
 
 
 def parse_period(
@@ -52,7 +50,7 @@ def _scoped_master_id(user: User, requested: UUID | None) -> UUID | None:
 @router.get("/overview")
 async def stats_overview(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STATS_ROLES))],
+    user: StatsTabUser,
     period: Annotated[tuple[date, date], Depends(parse_period)],
     master_id: UUID | None = Query(None),
     group_by: Literal["day", "week", "month"] = Query("day"),
@@ -103,7 +101,7 @@ async def stats_overview(
 @router.get("/masters-list")
 async def stats_masters_list(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STATS_ROLES))],
+    user: StatsTabUser,
 ) -> dict:
     """Лёгкий список мастеров (для дропдауна-фильтра).
     Master видит только себя — фильтр для других мастеров недоступен."""
@@ -141,7 +139,7 @@ async def stats_bot(
 @router.get("/bookings")
 async def stats_bookings(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STATS_ROLES))],
+    user: StatsTabUser,
     period: Annotated[tuple[date, date], Depends(parse_period)],
 ) -> dict:
     dfrom, dto = period
@@ -164,7 +162,7 @@ async def stats_bookings(
 @router.get("/masters")
 async def stats_masters(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STATS_ROLES))],
+    user: StatsTabUser,
     period: Annotated[tuple[date, date], Depends(parse_period)],
 ) -> dict:
     dfrom, dto = period
@@ -184,7 +182,7 @@ async def stats_masters(
 async def stats_master_detail(
     master_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STATS_ROLES))],
+    user: StatsTabUser,
     period: Annotated[tuple[date, date], Depends(parse_period)],
 ) -> dict:
     dfrom, dto = period
@@ -203,7 +201,7 @@ async def stats_master_detail(
 @router.get("/services/top")
 async def stats_services_top(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STATS_ROLES))],
+    user: StatsTabUser,
     period: Annotated[tuple[date, date], Depends(parse_period)],
     limit: int = Query(20, ge=1, le=100),
     order_by: Literal["revenue", "popularity"] = Query("revenue"),
@@ -281,7 +279,7 @@ async def stats_finance_export(
 @router.get("/export")
 async def stats_full_export(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STATS_ROLES))],
+    user: StatsTabUser,
     period: Annotated[tuple[date, date], Depends(parse_period)],
     export_format: Literal["csv", "pdf"] = Query("csv", alias="format"),
     master_id: UUID | None = Query(None),

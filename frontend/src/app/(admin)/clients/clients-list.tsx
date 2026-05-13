@@ -123,7 +123,7 @@ export function ClientsList() {
   const locale = useLocale();
   const router = useRouter();
   const qc = useQueryClient();
-  const { can: hasPerm } = usePermissions();
+  const { can: hasPerm, me } = usePermissions();
   const canExport = hasPerm("clients_export");
   const [filters, setFilters] = useState<ClientsFiltersState>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
@@ -498,7 +498,7 @@ export function ClientsList() {
             <MasterDataBadge pagePermission="page_clients" />
           </div>
           <h1 className="font-playfair mt-1 text-[32px] font-medium leading-tight tracking-tight">
-            {t("pageTitle")}
+            {me?.role === "master" ? t("my_clients_title") : t("pageTitle")}
           </h1>
           <p className="mt-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
             {t("ornament")}

@@ -562,6 +562,12 @@ async def get_client(
     )
     row = (await db.execute(stmt)).one_or_none()
     if row is None:
+        from app.core.permissions import has_permission
+
+        if user.role == UserRole.master and user.master_id is not None and has_permission(user, "page_clients"):
+            exists_any = await db.scalar(select(func.count()).select_from(Client).where(Client.id == client_id))
+            if exists_any:
+                raise ForbiddenScopeError("You do not have access to this client")
         raise NotFoundError("Client not found")
     c = row[0]
     lv_merged = _merge_last_visit_dates(c.last_visit_at, row.lv_bookings)

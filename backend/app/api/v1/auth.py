@@ -7,6 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 import hashlib
+from redis.asyncio import Redis
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +21,7 @@ from app.core.security import (
     hash_refresh_token,
     verify_password,
 )
-from app.deps import get_current_user, get_db, require_roles
+from app.deps import get_current_user, get_db, get_redis, require_roles
 from app.limiter import limiter
 from app.models.user import AuthSession, User
 from app.models.user_invite import UserInvite
@@ -267,10 +268,15 @@ async def logout(
 @router.get("/me", response_model=UserMeResponse)
 async def read_me(
     user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    redis: Annotated[Redis | None, Depends(get_redis)],
 ) -> UserMeResponse:
     from app.core.permissions import get_effective_permissions
+    from app.services import role_permissions_service
+
     data = UserMeResponse.model_validate(user)
     data.effective_permissions = get_effective_permissions(user)
+    data.salon_role_permissions = await role_permissions_service.get_merged_role_permissions(db, redis)
     return data
 
 

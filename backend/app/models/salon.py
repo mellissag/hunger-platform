@@ -132,6 +132,11 @@ class Settings(UUIDPrimaryKeyMixin, Base):
     admin_notify_chat_id: Mapped[str | None] = mapped_column(Text, nullable=True)
     mini_app_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
+    # Salon-wide UI/API gates: admin.clients_access, reception.pages.{bookings,clients,schedule,analytics}
+    role_permissions: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

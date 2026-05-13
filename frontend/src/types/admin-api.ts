@@ -15,6 +15,7 @@ export type UserMe = {
   is_active: boolean;
   master_id: string | null;
   effective_permissions: Record<string, boolean> | null;
+  salon_role_permissions?: Record<string, unknown> | null;
 };
 
 export type CalendarBooking = {

@@ -40,7 +40,8 @@
       "masterProfile": "My profile",
       "inventory": "Warehouse",
       "formulas": "Formulas",
-      "chatsBadge": "Soon"
+      "chatsBadge": "Soon",
+      "noSectionAccess": "No access to this section."
     },
     "topbar": {
       "search": "Search",
@@ -296,6 +297,7 @@
       "subtitle": "Directory and notes",
       "pageEyebrow": "· Client base ·",
       "pageTitle": "Synchro Clients",
+      "my_clients_title": "My clients",
       "ornament": "— ✦ —",
       "exportCsv": "Export CSV",
       "create": "Add client",
@@ -858,7 +860,15 @@
         "button_type_mini_app_hint": "Opens in Telegram",
         "button_url_label": "Button link (URL)",
         "button_url_hint_url": "The link will open in the browser.",
-        "button_url_hint_mini_app": "The link will open as a Telegram Mini App."
+        "button_url_hint_mini_app": "The link will open as a Telegram Mini App.",
+        "pick_list_error": "Could not load daily picks.",
+        "pick_list_error_hint": "If this started after a deploy, run database migrations on the API host (for example: docker compose exec api alembic upgrade head). Rows are usually still in the database; they show again once the schema matches the app.",
+        "pick_retry": "Try again",
+        "pick_save_error": "Could not save",
+        "pick_delete_error": "Could not delete",
+        "pick_created": "Daily pick created",
+        "pick_updated": "Daily pick updated",
+        "pick_deleted": "Deleted"
       }
     },
     "schedule": {
@@ -1160,7 +1170,21 @@
       "deleteConfirmAction": "Delete",
       "deleteCancel": "Cancel",
       "deleteSuccess": "User deleted",
-      "deleteError": "Could not delete user"
+      "deleteError": "Could not delete user",
+      "permissions_loading": "Loading…",
+      "permissions_title": "Access permissions",
+      "permissions_clients_section": "Client access",
+      "permission_all_clients": "All salon clients",
+      "permission_own_clients": "Own clients only",
+      "permission_no_access": "No access",
+      "permissions_saved": "Permissions saved",
+      "permissions_reception_title": "PAGE ACCESS (RECEPTION)",
+      "permissions_reception_subtitle": "Reception sees the page and all salon data",
+      "permission_page_bookings": "Bookings tab",
+      "permission_page_clients": "Clients tab",
+      "permission_page_schedule": "Schedule tab",
+      "permission_page_analytics": "Statistics tab",
+      "permission_reception_all_data": "Reception sees all salon data"
     },
     "masterDashboard": {
       "title": "My day",

@@ -23,8 +23,9 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { useTheme } from "@/providers/ThemeProvider";
 import { NotificationsBell } from "@/components/layout/NotificationsBell";
@@ -114,7 +115,11 @@ export function AdminAppShell({
   const canReadSalon = user.role === "owner" || user.role === "admin";
   // Use granular permissions from /auth/me once available; fall back to role-based
   const userWithPerms = meWithPerms
-    ? { ...user, effective_permissions: meWithPerms.effective_permissions }
+    ? {
+        ...user,
+        effective_permissions: meWithPerms.effective_permissions,
+        salon_role_permissions: meWithPerms.salon_role_permissions,
+      }
     : user;
   const { data: salonBundle } = useQuery({
     queryKey: ["salon-bundle"],
@@ -133,6 +138,30 @@ export function AdminAppShell({
     initialData: initialPublicBranding ?? undefined,
     staleTime: 60_000,
   });
+
+  useEffect(() => {
+    if (!meWithPerms) return;
+    const u = {
+      ...user,
+      effective_permissions: meWithPerms.effective_permissions,
+      salon_role_permissions: meWithPerms.salon_role_permissions,
+    };
+    const guards: [string, Resource][] = [
+      ["/bookings", "bookings"],
+      ["/clients", "clients"],
+      ["/schedule", "schedule"],
+      ["/statistics", "statistics"],
+    ];
+    for (const [prefix, res] of guards) {
+      if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
+        if (!can(u, "read", res)) {
+          toast.error(t("nav.noSectionAccess"));
+          router.replace("/dashboard");
+        }
+        return;
+      }
+    }
+  }, [pathname, meWithPerms, user, router, t]);
 
   // For master: always prepend "Мой день" → /m/dashboard
   const masterDayItem: NavItem | null =
@@ -183,7 +212,7 @@ export function AdminAppShell({
   const favHref = salonBundle?.salon?.favicon_url || publicBranding?.favicon_url || undefined;
 
   // Live unread chat count for sidebar badge
-  const canReadChats = can(user, "read", "chats");
+  const canReadChats = can(userWithPerms, "read", "chats");
   const { data: chatList = [] } = useChatList();
   const totalUnreadChats = canReadChats
     ? chatList.reduce((s, c) => s + c.unread_count, 0)

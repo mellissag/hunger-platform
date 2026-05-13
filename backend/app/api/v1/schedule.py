@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
 from app.core.scope import ensure_master_own_master_id
+from app.core.salon_role_access import ScheduleReadUser
 from app.deps import get_db, require_roles
 from app.models.booking import Booking
 from app.models.catalog import MasterService, Service
@@ -35,7 +36,6 @@ from app.services import schedule_service
 
 router = APIRouter(prefix="/schedule", tags=["schedule"])
 
-STAFF_READ = (UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)
 STAFF_WRITE = (UserRole.owner, UserRole.admin, UserRole.master)
 
 
@@ -93,7 +93,7 @@ async def get_slots(
 @router.get("/calendar", response_model=CalendarResponse)
 async def get_calendar(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF_READ))],
+    user: ScheduleReadUser,
     utc_from: datetime = Query(..., alias="from"),
     utc_to: datetime = Query(..., alias="to"),
     master_id: UUID | None = None,
@@ -225,7 +225,7 @@ class WeekScheduleResponse(BaseModel):
 @router.get("/week", response_model=WeekScheduleResponse)
 async def get_week_schedule(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF_READ))],
+    user: ScheduleReadUser,
     date: date = Query(..., description="ISO date — Monday of the desired week"),
     master_id: UUID | None = Query(None),
 ) -> WeekScheduleResponse:

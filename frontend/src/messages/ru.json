@@ -40,7 +40,8 @@
       "masterProfile": "Мой профиль",
       "inventory": "Склад",
       "formulas": "Формулы",
-      "chatsBadge": "Скоро"
+      "chatsBadge": "Скоро",
+      "noSectionAccess": "Нет доступа к этому разделу."
     },
     "topbar": {
       "search": "Поиск",
@@ -297,6 +298,7 @@
       "subtitle": "Справочник и заметки",
       "pageEyebrow": "· База клиентов ·",
       "pageTitle": "Клиенты Synchro",
+      "my_clients_title": "Мои клиенты",
       "ornament": "— ✦ —",
       "exportCsv": "Экспорт CSV",
       "create": "Добавить клиента",
@@ -859,7 +861,15 @@
         "button_type_mini_app_hint": "Откроется в Telegram",
         "button_url_label": "Ссылка кнопки (URL)",
         "button_url_hint_url": "Ссылка откроется в браузере.",
-        "button_url_hint_mini_app": "Ссылка откроется как Telegram Mini App."
+        "button_url_hint_mini_app": "Ссылка откроется как Telegram Mini App.",
+        "pick_list_error": "Не удалось загрузить подборки.",
+        "pick_list_error_hint": "Если так стало после обновления, выполните миграции БД на сервере API (например: docker compose exec api alembic upgrade head). Записи обычно не удалялись — они снова появятся, когда схема БД совпадёт с версией приложения.",
+        "pick_retry": "Повторить",
+        "pick_save_error": "Не удалось сохранить",
+        "pick_delete_error": "Не удалось удалить",
+        "pick_created": "Подборка создана",
+        "pick_updated": "Подборка обновлена",
+        "pick_deleted": "Удалено"
       }
     },
     "schedule": {
@@ -1161,7 +1171,21 @@
       "deleteConfirmAction": "Удалить",
       "deleteCancel": "Отмена",
       "deleteSuccess": "Сотрудник удалён",
-      "deleteError": "Не удалось удалить сотрудника"
+      "deleteError": "Не удалось удалить сотрудника",
+      "permissions_loading": "Загрузка…",
+      "permissions_title": "Права доступа",
+      "permissions_clients_section": "Доступ к клиентам",
+      "permission_all_clients": "Все клиенты салона",
+      "permission_own_clients": "Только свои клиенты",
+      "permission_no_access": "Нет доступа",
+      "permissions_saved": "Права сохранены",
+      "permissions_reception_title": "ДОСТУП К СТРАНИЦАМ (РЕЦЕПЦИЯ)",
+      "permissions_reception_subtitle": "Рецепция видит страницу и все данные салона",
+      "permission_page_bookings": "Вкладка Бронирования",
+      "permission_page_clients": "Вкладка Клиенты",
+      "permission_page_schedule": "Вкладка Расписание",
+      "permission_page_analytics": "Вкладка Статистика",
+      "permission_reception_all_data": "Рецепция видит все данные салона"
     },
     "masterDashboard": {
       "title": "Мой день",

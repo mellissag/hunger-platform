@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.catalog import Service
 
 
 class DailyPick(Base):
@@ -55,6 +59,6 @@ class DailyPick(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    service: Mapped["DailyPick | None"] = relationship(
+    service: Mapped["Service | None"] = relationship(
         "Service", foreign_keys=[service_id], lazy="joined"
     )

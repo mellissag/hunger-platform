@@ -65,6 +65,13 @@ function pickShowsInMiniApp(p: DailyPickFull): boolean {
   return p.active;
 }
 
+function dailyPickMutationToastMessage(error: unknown, fallback: string): string {
+  if (error instanceof HttpError && error.message.trim()) {
+    return `${fallback}: ${error.message}`;
+  }
+  return fallback;
+}
+
 // ── DailyPickBlock ────────────────────────────────────────────────────────────
 
 function DailyPickBlock() {
@@ -84,10 +91,15 @@ function DailyPickBlock() {
   });
   const translateReady = useMemo(() => aiTranslateReadyFromSalon(salonBundle), [salonBundle]);
 
-  const { data: picks = [], isLoading } = useQuery<DailyPickFull[]>({
+  const { data: picks = [], isLoading, isError, error: picksError, refetch: refetchPicks } = useQuery<
+    DailyPickFull[]
+  >({
     queryKey: ["daily-picks-admin"],
     queryFn: () => apiJson<DailyPickFull[]>(PICK_API),
   });
+
+  const picksListErrorDetail =
+    isError && picksError instanceof HttpError ? picksError.message.trim() : "";
 
   const createMut = useMutation({
     mutationFn: (body: Omit<DailyPickFull, "id">) =>
@@ -95,9 +107,9 @@ function DailyPickBlock() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["daily-picks-admin"] });
       closeDrawer();
-      toast.success("Подборка создана");
+      toast.success(tc("pick_created"));
     },
-    onError: () => toast.error("Ошибка сохранения"),
+    onError: (e) => toast.error(dailyPickMutationToastMessage(e, tc("pick_save_error"))),
   });
 
   const updateMut = useMutation({
@@ -106,9 +118,9 @@ function DailyPickBlock() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["daily-picks-admin"] });
       closeDrawer();
-      toast.success("Подборка обновлена");
+      toast.success(tc("pick_updated"));
     },
-    onError: () => toast.error("Ошибка сохранения"),
+    onError: (e) => toast.error(dailyPickMutationToastMessage(e, tc("pick_save_error"))),
   });
 
   const deleteMut = useMutation({
@@ -116,9 +128,9 @@ function DailyPickBlock() {
       apiJson<void>(`${PICK_API}/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["daily-picks-admin"] });
-      toast.success("Удалено");
+      toast.success(tc("pick_deleted"));
     },
-    onError: () => toast.error("Ошибка удаления"),
+    onError: (e) => toast.error(dailyPickMutationToastMessage(e, tc("pick_delete_error"))),
   });
 
   function openCreate() {
@@ -225,6 +237,23 @@ function DailyPickBlock() {
           {isLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
               <Loader2 className="h-4 w-4 animate-spin" /> Загрузка...
+            </div>
+          ) : isError ? (
+            <div className="rounded border border-destructive/25 bg-destructive/5 p-6 text-left">
+              <p className="font-medium text-sm text-destructive">{tc("pick_list_error")}</p>
+              {picksListErrorDetail ? (
+                <p className="mt-2 text-xs text-muted-foreground font-mono break-all">{picksListErrorDetail}</p>
+              ) : null}
+              <p className="mt-3 text-xs text-muted-foreground leading-relaxed">{tc("pick_list_error_hint")}</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={() => void refetchPicks()}
+              >
+                {tc("pick_retry")}
+              </Button>
             </div>
           ) : picks.length === 0 ? (
             <div className="rounded border border-dashed border-border bg-muted/30 p-8 text-center">

@@ -54,3 +54,4 @@ class UserMeResponse(BaseModel):
     is_active: bool
     master_id: UUID | None
     effective_permissions: dict | None = None
+    salon_role_permissions: dict | None = None

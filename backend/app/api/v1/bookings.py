@@ -10,8 +10,8 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.deps import get_db, require_roles
-from app.models.enums import UserRole
+from app.core.salon_role_access import BookingsTabUser
+from app.deps import get_db
 from app.models.salon import Salon
 from app.models.user import User
 from app.schemas.booking import (
@@ -44,9 +44,6 @@ from app.services.notifications import (
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
-STAFF = (UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)
-
-
 async def _salon_timezone(db: AsyncSession) -> str:
     row = (await db.execute(select(Salon).limit(1))).scalar_one_or_none()
     return row.timezone if row is not None else "Europe/Sofia"
@@ -55,7 +52,7 @@ async def _salon_timezone(db: AsyncSession) -> str:
 @router.get("/stats", response_model=BookingStatsOut)
 async def booking_stats(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: BookingsTabUser,
 ) -> BookingStatsOut:
     tz = await _salon_timezone(db)
     return await booking_service.booking_stats(db, user, timezone_name=tz)
@@ -64,7 +61,7 @@ async def booking_stats(
 @router.get("", response_model=PaginatedResponse[BookingOut])
 async def list_bookings(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: BookingsTabUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100, alias="limit"),
     q: str | None = None,
@@ -102,7 +99,7 @@ async def cancel_booking(
     body: BookingCancel,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: BookingsTabUser,
 ) -> BookingOut:
     b = await booking_service.cancel_booking(
         db, user, booking_id, actor=body.actor, reason=body.reason
@@ -117,7 +114,7 @@ async def reschedule_booking(
     body: BookingReschedule,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: BookingsTabUser,
 ) -> BookingOut:
     b = await booking_service.reschedule_booking(db, user, booking_id, body.starts_at)
     await notify_master_booking_updated(booking_id, getattr(request.app.state, "bot", None), db)
@@ -129,7 +126,7 @@ async def complete_booking(
     booking_id: UUID,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: BookingsTabUser,
 ) -> BookingOut:
     b = await booking_service.mark_completed(db, user, booking_id)
     trigger = await get_active_post_visit_trigger(db, b.master_id)
@@ -149,7 +146,7 @@ async def no_show_booking(
     booking_id: UUID,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: BookingsTabUser,
 ) -> BookingOut:
     b = await booking_service.mark_no_show(db, user, booking_id)
     await notify_master_booking_status_changed(
@@ -166,7 +163,7 @@ async def confirm_booking_endpoint(
     booking_id: UUID,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: BookingsTabUser,
 ) -> BookingOut:
     from app.core.exceptions import InvalidBookingStateError, NotFoundError
 
@@ -188,7 +185,7 @@ async def reject_booking_endpoint(
     body: BookingRejectBody,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: BookingsTabUser,
 ) -> BookingOut:
     from app.core.exceptions import InvalidBookingStateError, NotFoundError
 
@@ -208,7 +205,7 @@ async def reject_booking_endpoint(
 async def get_booking(
     booking_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: BookingsTabUser,
 ) -> BookingDetailOut:
     return await booking_service.get_booking_detail(db, user, booking_id)
 
@@ -218,7 +215,7 @@ async def create_booking(
     body: BookingCreate,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: BookingsTabUser,
 ) -> BookingOut:
     b = await booking_service.create_booking(db, user, body)
     bot = getattr(request.app.state, "bot", None)
@@ -250,7 +247,7 @@ async def update_booking(
     body: BookingUpdate,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: BookingsTabUser,
 ) -> BookingOut:
     b = await booking_service.update_booking(db, user, booking_id, body)
     # Уведомление только при изменении времени записи
@@ -263,6 +260,6 @@ async def update_booking(
 async def delete_booking(
     booking_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: BookingsTabUser,
 ) -> None:
     await booking_service.delete_booking(db, user, booking_id)

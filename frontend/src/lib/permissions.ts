@@ -22,6 +22,13 @@ export type Resource =
 
 export type Action = "read" | "create" | "update" | "delete" | "manage";
 
+export type SalonRolePermissions = {
+  admin?: { clients_access?: boolean };
+  reception?: {
+    pages?: Partial<Record<"bookings" | "clients" | "schedule" | "analytics", boolean>>;
+  };
+};
+
 const SALON_ADMIN: Resource[] = [
   "dashboard",
   "bookings",
@@ -72,6 +79,27 @@ const RESOURCE_PERM_MAP: Partial<Record<Resource, string>> = {
   ai: "ai_manage",
 };
 
+const RECEPTION_PAGE_BY_RESOURCE: Partial<Record<Resource, "bookings" | "clients" | "schedule" | "analytics">> = {
+  bookings: "bookings",
+  clients: "clients",
+  schedule: "schedule",
+  statistics: "analytics",
+};
+
+export type PermUser = {
+  role: UserRole;
+  effective_permissions?: Record<string, boolean> | null;
+  salon_role_permissions?: SalonRolePermissions | null;
+};
+
+function adminClientsAllowed(user: PermUser): boolean {
+  return user.salon_role_permissions?.admin?.clients_access !== false;
+}
+
+function receptionPageAllowed(user: PermUser, page: "bookings" | "clients" | "schedule" | "analytics"): boolean {
+  return user.salon_role_permissions?.reception?.pages?.[page] !== false;
+}
+
 function allowedResources(role: UserRole): Set<Resource> {
   switch (role) {
     case "owner":
@@ -85,6 +113,7 @@ function allowedResources(role: UserRole): Set<Resource> {
         "bookings",
         "clients",
         "schedule",
+        "statistics",
         "chats",
       ]);
     case "master":
@@ -97,11 +126,7 @@ function allowedResources(role: UserRole): Set<Resource> {
   }
 }
 
-export function can(
-  user: { role: UserRole; effective_permissions?: Record<string, boolean> | null },
-  action: Action,
-  resource: Resource,
-): boolean {
+export function can(user: PermUser, action: Action, resource: Resource): boolean {
   const set = allowedResources(user.role);
   if (!set.has(resource)) return false;
 
@@ -125,7 +150,6 @@ export function can(
   }
 
   // Master: page-level resources are gated by page_* permissions set by the owner.
-  // Default to false so no flash of hidden items before permissions load.
   if (user.role === "master") {
     const pagePermKey = MASTER_PAGE_PERM_MAP[resource];
     if (pagePermKey !== undefined) {
@@ -135,10 +159,21 @@ export function can(
     return true;
   }
 
+  if (user.role === "admin" && resource === "clients") {
+    if (!adminClientsAllowed(user)) return false;
+  }
+
+  if (user.role === "reception") {
+    const pageKey = RECEPTION_PAGE_BY_RESOURCE[resource];
+    if (pageKey) {
+      if (!receptionPageAllowed(user, pageKey)) return false;
+    }
+  }
+
   // Non-master: check granular permission if available and mapped
   if (user.effective_permissions) {
     const permKey = RESOURCE_PERM_MAP[resource];
-    if (permKey !== undefined) {
+    if (permKey !== undefined && !(user.role === "reception" && resource === "statistics")) {
       return user.effective_permissions[permKey] ?? false;
     }
   }

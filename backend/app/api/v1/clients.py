@@ -11,10 +11,12 @@ from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import has_permission
-from app.deps import get_db, get_telegram_bot, require_roles
+from app.core.salon_role_access import ClientsTabUser, staff_with_clients_tab
+from app.deps import get_db, get_redis, get_telegram_bot, require_roles
 from app.models.enums import UserRole
 from app.models.client import Client as ClientModel
 from app.models.user import User
@@ -45,6 +47,25 @@ router = APIRouter(prefix="/clients", tags=["clients"])
 
 STAFF = (UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)
 ADMINS = (UserRole.owner, UserRole.admin)
+
+ClientsCRMUser = Annotated[
+    User,
+    Depends(staff_with_clients_tab(UserRole.owner, UserRole.admin, UserRole.reception)),
+]
+
+
+async def _admins_clients_dep(
+    user: Annotated[User, Depends(require_roles(UserRole.owner, UserRole.admin))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    redis: Annotated[Redis | None, Depends(get_redis)],
+) -> User:
+    from app.core.salon_role_access import assert_salon_clients_tab_access
+
+    await assert_salon_clients_tab_access(user, db, redis)
+    return user
+
+
+AdminsClientsUser = Annotated[User, Depends(_admins_clients_dep)]
 
 _MISSING_LAST_VISIT = object()
 
@@ -111,7 +132,7 @@ def _to_out(
 @router.get("/stats", response_model=ClientStatsOut)
 async def client_stats(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: ClientsTabUser,
 ) -> ClientStatsOut:
     total, new_month, avg_ltv = await client_service.client_stats(db, user)
     return ClientStatsOut(total=total, new_month=new_month, avg_ltv=avg_ltv)
@@ -120,7 +141,7 @@ async def client_stats(
 @router.get("/export")
 async def export_clients(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: ClientsTabUser,
     search: str | None = Query(None),
     q: str | None = Query(None),
     tag: list[str] | None = Query(None),
@@ -151,7 +172,7 @@ async def export_clients(
 @router.get("", response_model=PaginatedResponse[ClientOut])
 async def list_clients(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: ClientsTabUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=500, alias="limit"),
     search: str | None = Query(None),
@@ -181,7 +202,7 @@ async def list_clients(
 async def create_client(
     body: ClientCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception))],
+    user: ClientsCRMUser,
 ) -> ClientOut:
     c = await client_service.create_client(db, user, body)
     return _to_out(c, 0, Decimal(0), user=user)
@@ -191,7 +212,7 @@ async def create_client(
 async def get_client_detail(
     client_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: ClientsTabUser,
 ) -> ClientDetailOut:
     c, tb, tr, lv, notes, bookings_raw, reviews_raw, be = await client_service.get_client_detail(
         db, user, client_id
@@ -245,7 +266,7 @@ async def get_client_detail(
 async def list_client_broadcasts(
     client_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: ClientsTabUser,
 ) -> list[ClientBroadcastHistoryOut]:
     rows = await client_service.list_client_broadcast_history(db, user, client_id)
     return [ClientBroadcastHistoryOut.model_validate(x) for x in rows]
@@ -257,7 +278,7 @@ async def send_message_to_client(
     data: SendMessageRequest,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*ADMINS))],
+    user: AdminsClientsUser,
     bot: Annotated[Bot, Depends(get_telegram_bot)],
 ) -> SendMessageResponse:
     c, _tb, _tr, _lv = await client_service.get_client(db, user, client_id)
@@ -310,7 +331,7 @@ async def send_message_to_client(
 async def resolve_telegram(
     client_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*ADMINS))],
+    user: AdminsClientsUser,
     bot: Annotated[Bot, Depends(get_telegram_bot)],
 ) -> ResolveTelegramResponse:
     c, _tb, _tr, _lv = await client_service.get_client(db, user, client_id)
@@ -343,7 +364,7 @@ async def resolve_telegram(
 async def get_client(
     client_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: ClientsTabUser,
 ) -> ClientOut:
     c, tb, tr, lv = await client_service.get_client(db, user, client_id)
     return _to_out(c, tb, tr, user=user, last_visit_at=lv)
@@ -355,7 +376,7 @@ async def update_client(
     client_id: UUID,
     body: ClientUpdate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: ClientsTabUser,
 ) -> ClientOut:
     await client_service.update_client(db, user, client_id, body)
     c, tb, tr, lv = await client_service.get_client(db, user, client_id)
@@ -366,7 +387,7 @@ async def update_client(
 async def delete_client(
     client_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception))],
+    user: ClientsCRMUser,
 ) -> None:
     await client_service.delete_client(db, user, client_id)
 
@@ -375,7 +396,7 @@ async def delete_client(
 async def list_client_notes(
     client_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: ClientsTabUser,
 ) -> list[ClientNoteOut]:
     return await client_note_service.list_notes(db, user, client_id)
 
@@ -385,7 +406,7 @@ async def create_client_note(
     client_id: UUID,
     body: ClientNoteCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: ClientsTabUser,
 ) -> ClientNoteOut:
     return await client_note_service.create_note(
         db, user, client_id, body.content, pinned=body.pinned
@@ -398,7 +419,7 @@ async def update_client_note(
     note_id: UUID,
     body: ClientNoteUpdate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: ClientsTabUser,
 ) -> ClientNoteOut:
     return await client_note_service.update_note(db, user, client_id, note_id, body.content)
 
@@ -408,7 +429,7 @@ async def delete_client_note(
     client_id: UUID,
     note_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*STAFF))],
+    user: ClientsTabUser,
 ) -> None:
     await client_note_service.delete_note(db, user, client_id, note_id)
 
@@ -419,6 +440,6 @@ async def pin_client_note(
     note_id: UUID,
     body: ClientNotePinBody,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(UserRole.owner, UserRole.admin, UserRole.reception))],
+    user: ClientsCRMUser,
 ) -> ClientNoteOut:
     return await client_note_service.set_pinned(db, user, client_id, note_id, body.pinned)

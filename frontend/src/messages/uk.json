@@ -40,7 +40,8 @@
       "masterProfile": "Мій профіль",
       "inventory": "Склад",
       "formulas": "Формули",
-      "chatsBadge": "Скоро"
+      "chatsBadge": "Скоро",
+      "noSectionAccess": "Немає доступу до цього розділу."
     },
     "topbar": {
       "search": "Пошук",
@@ -297,6 +298,7 @@
       "subtitle": "Довідник і нотатки",
       "pageEyebrow": "· База клієнтів ·",
       "pageTitle": "Клієнти Synchro",
+      "my_clients_title": "Мої клієнти",
       "ornament": "— ✦ —",
       "exportCsv": "Експорт CSV",
       "create": "Додати клієнта",
@@ -859,7 +861,15 @@
         "button_type_mini_app_hint": "Відкриється в Telegram",
         "button_url_label": "Посилання кнопки (URL)",
         "button_url_hint_url": "Посилання відкриється в браузері.",
-        "button_url_hint_mini_app": "Посилання відкриється як Telegram Mini App."
+        "button_url_hint_mini_app": "Посилання відкриється як Telegram Mini App.",
+        "pick_list_error": "Не вдалося завантажити добірки.",
+        "pick_list_error_hint": "Якщо так сталося після оновлення, виконайте міграції БД на сервері API (наприклад: docker compose exec api alembic upgrade head). Записи зазвичай не видалялися — вони знову з’являться, коли схема БД відповідатиме версії застосунку.",
+        "pick_retry": "Спробувати ще",
+        "pick_save_error": "Не вдалося зберегти",
+        "pick_delete_error": "Не вдалося видалити",
+        "pick_created": "Добірку створено",
+        "pick_updated": "Добірку оновлено",
+        "pick_deleted": "Видалено"
       }
     },
     "schedule": {
@@ -1161,7 +1171,21 @@
       "deleteConfirmAction": "Видалити",
       "deleteCancel": "Скасувати",
       "deleteSuccess": "Співробітника видалено",
-      "deleteError": "Не вдалося видалити співробітника"
+      "deleteError": "Не вдалося видалити співробітника",
+      "permissions_loading": "Завантаження…",
+      "permissions_title": "Права доступу",
+      "permissions_clients_section": "Доступ до клієнтів",
+      "permission_all_clients": "Всі клієнти салону",
+      "permission_own_clients": "Тільки свої клієнти",
+      "permission_no_access": "Немає доступу",
+      "permissions_saved": "Права збережено",
+      "permissions_reception_title": "ДОСТУП ДО СТОРІНОК (РЕЦЕПЦІЯ)",
+      "permissions_reception_subtitle": "Рецепція бачить сторінку та всі дані салону",
+      "permission_page_bookings": "Вкладка Бронювання",
+      "permission_page_clients": "Вкладка Клієнти",
+      "permission_page_schedule": "Вкладка Розклад",
+      "permission_page_analytics": "Вкладка Статистика",
+      "permission_reception_all_data": "Рецепція бачить усі дані салону"
     },
     "masterDashboard": {
       "title": "Мій день",

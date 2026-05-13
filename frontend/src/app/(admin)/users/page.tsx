@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiJson } from "@/lib/api";
+import { SalonRolePermissionsPanel } from "@/components/users/salon-role-permissions-panel";
 import type { Paginated, UserStaffOut } from "@/types/admin-api";
 
 // ── Permission definitions ─────────────────────────────────────────────────
@@ -608,6 +609,8 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-4">
+      <SalonRolePermissionsPanel />
+
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-semibold">{t("title")}</h1>
         {isOwner && (
