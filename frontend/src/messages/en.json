@@ -243,6 +243,7 @@
       "editServiceMasterHint": "Only specialists linked to the selected service are listed. Price and visit length update from the price list unless the slot is busy.",
       "noMastersForService": "No specialist offers this service",
       "unnamedClient": "Client",
+      "contactsHiddenByPermissions": "Contact details are hidden by your access settings.",
       "changeStatus": "Status",
       "reschedule": "Reschedule",
       "cancelBooking": "Cancel booking",
@@ -1231,7 +1232,8 @@
       "perm_manage_permissions": "Manage permissions",
       "perm_edit_settings": "Edit settings",
       "perm_cancel": "Cancel bookings",
-      "perm_view_client_contacts": "View client contacts in booking"
+      "perm_view_client_contacts": "View client contacts in booking",
+      "perm_view_calendar_booking_phones": "See client phone in calendar booking details"
     },
     "masterDashboard": {
       "title": "My day",

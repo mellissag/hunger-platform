@@ -244,6 +244,7 @@
       "noMastersForService": "Жоден спеціаліст не надає цю послугу",
       "writeTg": "Написати в Telegram",
       "unnamedClient": "Клієнт",
+      "contactsHiddenByPermissions": "Контакти приховано налаштуваннями доступу.",
       "changeStatus": "Статус",
       "reschedule": "Перенести запис",
       "cancelBooking": "Скасувати",
@@ -1232,7 +1233,8 @@
       "perm_manage_permissions": "Змінювати права доступу",
       "perm_edit_settings": "Редагувати налаштування",
       "perm_cancel": "Скасовувати записи",
-      "perm_view_client_contacts": "Бачити контакти клієнта в записі"
+      "perm_view_client_contacts": "Бачити контакти клієнта в записі",
+      "perm_view_calendar_booking_phones": "Бачити телефон клієнта в деталях запису з календаря"
     },
     "masterDashboard": {
       "title": "Мій день",

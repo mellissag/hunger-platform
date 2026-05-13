@@ -31,6 +31,7 @@ const BLOCKS: ReadonlyArray<BlockDef> = [
       { key: "edit", labelKey: "perm_edit" },
       { key: "cancel", labelKey: "perm_cancel" },
       { key: "view_client_contacts", labelKey: "perm_view_client_contacts" },
+      { key: "view_calendar_booking_phones", labelKey: "perm_view_calendar_booking_phones" },
     ],
   },
   {

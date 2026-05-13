@@ -13,6 +13,7 @@ import {
   Package,
   Scissors,
   Search,
+  Shield,
   Sun,
   Users,
 } from "lucide-react";
@@ -63,14 +64,15 @@ const NAV_ALWAYS: NavItem[] = [
 
 /** Page-level items shown only when owner has enabled the matching page_* permission */
 const NAV_PAGE: NavItem[] = [
-  { href: "/bookings",   labelKey: "bookings",   icon: CalendarDays, permKey: "page_bookings" },
-  { href: "/clients",    labelKey: "clients",    icon: Users,         permKey: "page_clients" },
-  { href: "/schedule",   labelKey: "schedule",   icon: CalendarDays,  permKey: "page_schedule" },
+  { href: "/bookings", labelKey: "bookings", icon: CalendarDays, permKey: "page_bookings" },
+  { href: "/clients", labelKey: "clients", icon: Users, permKey: "page_clients" },
+  { href: "/schedule", labelKey: "schedule", icon: CalendarDays, permKey: "page_schedule" },
   { href: "/statistics", labelKey: "statistics", icon: LayoutDashboard, permKey: "page_statistics" },
-  { href: "/masters",    labelKey: "masters",    icon: Scissors,      permKey: "page_masters" },
-  { href: "/inventory",  labelKey: "inventory",  icon: Package,       permKey: "page_inventory" },
-  { href: "/formulas",   labelKey: "formulas",   icon: FlaskConical,  permKey: "page_formulas" },
-  { href: "/chats",      labelKey: "chats",      icon: MessageSquare, permKey: "page_chats" },
+  { href: "/masters", labelKey: "masters", icon: Scissors, permKey: "page_masters" },
+  { href: "/inventory", labelKey: "inventory", icon: Package, permKey: "page_inventory" },
+  { href: "/formulas", labelKey: "formulas", icon: FlaskConical, permKey: "page_formulas" },
+  { href: "/chats", labelKey: "chats", icon: MessageSquare, permKey: "page_chats" },
+  { href: "/blacklist", labelKey: "blacklist", icon: Shield, permKey: "page_blacklist" },
 ];
 
 const LOCALES = [
@@ -148,9 +150,6 @@ export function MasterAppShell({
           ) : null}
           <span className="min-w-0 flex-1 truncate text-sm">
             {brandTitle || <Skeleton className="h-3.5 w-24" />}
-          </span>
-          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
-            {t("panelMaster")}
           </span>
         </div>
         <nav className="flex-1 space-y-0.5 p-2">
@@ -264,9 +263,7 @@ export function MasterAppShell({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {isDark
-                  ? "Переключить на светлую тему"
-                  : "Переключить на тёмную тему"}
+                {isDark ? tc("switchToLight") : tc("switchToDark")}
               </TooltipContent>
             </Tooltip>
 

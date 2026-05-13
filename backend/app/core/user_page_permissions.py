@@ -80,6 +80,7 @@ def _admin_template() -> dict[str, Any]:
             "edit": True,
             "cancel": True,
             "view_client_contacts": True,
+            "view_calendar_booking_phones": True,
         },
         "clients": {
             "enabled": True,
@@ -123,6 +124,7 @@ def _master_template() -> dict[str, Any]:
             "edit": True,
             "cancel": True,
             "view_client_contacts": True,
+            "view_calendar_booking_phones": False,
         },
         "clients": {
             "enabled": True,
@@ -166,6 +168,7 @@ def _reception_template() -> dict[str, Any]:
             "edit": True,
             "cancel": True,
             "view_client_contacts": True,
+            "view_calendar_booking_phones": True,
         },
         "clients": {
             "enabled": True,

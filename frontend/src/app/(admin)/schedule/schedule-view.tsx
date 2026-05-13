@@ -225,6 +225,7 @@ export function ScheduleView() {
           if (!v) setSelectedBookingId(null);
         }}
         salonTz={salonTz}
+        contactContext="schedule"
       />
     </div>
   );

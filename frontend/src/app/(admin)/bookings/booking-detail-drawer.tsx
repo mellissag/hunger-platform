@@ -27,12 +27,25 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useBooking, useCancelBooking, useConfirmBooking, usePatchBooking } from "@/hooks/useBookings";
 import { useDebounce } from "@/hooks/useDebounce";
+import { usePermissions } from "@/hooks/usePermissions";
 import { apiJson } from "@/lib/api";
 import { adminBookingDurationLabel } from "@/lib/booking-duration-label";
 import { durationMinutes, isoToDateInZone, isoToTimeInZone, zonedToUtcIso } from "@/lib/date-local";
 import type { BookingDetailOut, MasterOut, Paginated, ServiceOut, UserMe } from "@/types/admin-api";
 import { cn } from "@/lib/utils";
+import type { PermUser } from "@/lib/permissions";
 import { ConsultationScheduleModal } from "./consultation-schedule-modal";
+
+type ContactContext = "bookings" | "schedule";
+
+function showBookingClientContacts(user: PermUser | null, context: ContactContext): boolean {
+  if (!user) return true;
+  if (user.role === "owner" || user.role === "admin") return true;
+  const b = user.page_permissions?.bookings;
+  if (!b?.enabled) return false;
+  if (context === "schedule") return Boolean(b.view_calendar_booking_phones);
+  return Boolean(b.view_client_contacts);
+}
 
 function formatTimeInput(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 4);
@@ -54,6 +67,8 @@ type Props = {
   onOpenChange: (v: boolean) => void;
   salonTz: string;
   onEdit?: (id: string) => void;
+  /** Где открыт детальный просмотр: влияет на отдельные флаги прав «Бронирования». */
+  contactContext?: ContactContext;
 };
 
 export function BookingDetailDrawer({
@@ -62,10 +77,13 @@ export function BookingDetailDrawer({
   onOpenChange,
   salonTz,
   onEdit,
+  contactContext = "bookings",
 }: Props) {
   const locale = useLocale();
   const t = useTranslations("pages.bookings");
   const qc = useQueryClient();
+  const { permUser } = usePermissions();
+  const showContacts = showBookingClientContacts(permUser, contactContext);
   const { data, isLoading, isError, error, refetch } = useBooking(bookingId);
   const patch = usePatchBooking();
   const cancel = useCancelBooking();
@@ -365,21 +383,25 @@ export function BookingDetailDrawer({
                         t("unnamedClient")}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {data.client.phone ? (
-                        <a
-                          href={`tel:${data.client.phone.replace(/\s/g, "")}`}
-                          className="font-medium text-primary underline"
-                        >
-                          {data.client.phone}
-                        </a>
+                      {showContacts ? (
+                        data.client.phone ? (
+                          <a
+                            href={`tel:${data.client.phone.replace(/\s/g, "")}`}
+                            className="font-medium text-primary underline"
+                          >
+                            {data.client.phone}
+                          </a>
+                        ) : (
+                          "—"
+                        )
                       ) : (
-                        "—"
+                        <span className="italic">{t("contactsHiddenByPermissions")}</span>
                       )}
                     </p>
-                    {data.client.tg_username && (
+                    {showContacts && data.client.tg_username && (
                       <p className="text-xs text-muted-foreground">@{data.client.tg_username}</p>
                     )}
-                    {tgDomain && (
+                    {showContacts && tgDomain && (
                       <a
                         className="mt-1 inline-flex text-xs font-medium text-primary underline"
                         href={`tg://resolve?domain=${encodeURIComponent(tgDomain)}`}

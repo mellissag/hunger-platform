@@ -17,11 +17,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch, apiJson } from "@/lib/api";
+import { can } from "@/lib/permissions";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { BlacklistEntryOut, ClientOut, Paginated } from "@/types/admin-api";
 
 export default function BlacklistPage() {
   const t = useTranslations("pages.blacklist");
   const qc = useQueryClient();
+  const { permUser, me } = usePermissions();
+  const canAdd = me?.role === "owner" || (permUser ? can(permUser, "create", "blacklist") : false);
+  const canRemove = me?.role === "owner" || (permUser ? can(permUser, "delete", "blacklist") : false);
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
 
@@ -72,7 +77,7 @@ export default function BlacklistPage() {
         <h1 className="text-xl font-semibold">{t("title")}</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>{t("add")}</Button>
+            <Button disabled={!canAdd}>{t("add")}</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -128,6 +133,7 @@ export default function BlacklistPage() {
                     type="button"
                     variant="ghost"
                     size="sm"
+                    disabled={!canRemove}
                     onClick={() => remove.mutate(r.id)}
                   >
                     {t("remove")}

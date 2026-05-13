@@ -151,12 +151,18 @@ export function AdminAppShell({
       ["/clients", "clients"],
       ["/schedule", "schedule"],
       ["/statistics", "statistics"],
+      ["/blacklist", "blacklist"],
+      ["/formulas", "formulas"],
+      ["/chats", "chats"],
+      ["/masters", "masters"],
+      ["/inventory", "inventory"],
     ];
     for (const [prefix, res] of guards) {
       if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
         if (!can(u, "read", res)) {
           toast.error(t("nav.noSectionAccess"));
-          router.replace("/dashboard");
+          const dest = user.role === "master" ? "/m/dashboard" : "/dashboard";
+          router.replace(dest);
         }
         return;
       }

@@ -15,6 +15,7 @@ const MASTER_ALLOWED_ADMIN_PATHS = [
   "/inventory",
   "/formulas",
   "/chats",
+  "/blacklist",
 ];
 
 /** Pages that are always forbidden for master (redirect to /m/dashboard). */
@@ -26,7 +27,6 @@ const MASTER_FORBIDDEN_PATHS = [
   "/ai",
   "/broadcasts",
   "/services",
-  "/blacklist",
 ];
 
 /** Reception видит только эти страницы. Всё остальное → /dashboard. */
@@ -36,6 +36,7 @@ const RECEPTION_ALLOWED_PATHS = [
   "/clients",
   "/schedule",
   "/chats",
+  "/blacklist",
 ];
 
 /** Admin видит всё кроме /users. */

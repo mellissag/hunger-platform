@@ -13,6 +13,7 @@ function admin(): PagePermissions {
       edit: true,
       cancel: true,
       view_client_contacts: true,
+      view_calendar_booking_phones: true,
     },
     clients: {
       enabled: true,
@@ -50,6 +51,7 @@ function master(): PagePermissions {
       edit: true,
       cancel: true,
       view_client_contacts: true,
+      view_calendar_booking_phones: false,
     },
     clients: {
       enabled: true,
@@ -87,6 +89,7 @@ function reception(): PagePermissions {
       edit: true,
       cancel: true,
       view_client_contacts: true,
+      view_calendar_booking_phones: true,
     },
     clients: {
       enabled: true,

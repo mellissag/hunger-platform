@@ -1,18 +1,17 @@
-"""Чёрный список (admin)."""
+"""Чёрный список (admin + мастер/ресепшн по page_permissions)."""
 
 from __future__ import annotations
 
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi import APIRouter, HTTPException
-
 from app.core.exceptions import NotFoundError
-from app.deps import get_db, require_roles
+from app.core.user_page_permissions import page_perm
+from app.deps import get_current_user, get_db
 from app.models.booking import BlacklistEntry
 from app.models.client import Client
 from app.models.enums import UserRole
@@ -22,7 +21,42 @@ from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/blacklist", tags=["blacklist"])
 
-_STAFF = (UserRole.owner, UserRole.admin)
+
+def _is_privileged(user: User) -> bool:
+    return user.role in (UserRole.owner, UserRole.admin)
+
+
+async def require_blacklist_read(user: Annotated[User, Depends(get_current_user)]) -> User:
+    if _is_privileged(user):
+        return user
+    if user.role in (UserRole.master, UserRole.reception) and page_perm(user, "blacklist", "enabled"):
+        return user
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+
+
+async def require_blacklist_add(user: Annotated[User, Depends(get_current_user)]) -> User:
+    if _is_privileged(user):
+        return user
+    if user.role in (UserRole.master, UserRole.reception) and page_perm(user, "blacklist", "add"):
+        return user
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+
+
+async def require_blacklist_patch(user: Annotated[User, Depends(get_current_user)]) -> User:
+    if _is_privileged(user):
+        return user
+    if user.role in (UserRole.master, UserRole.reception):
+        if page_perm(user, "blacklist", "enabled") and not page_perm(user, "blacklist", "view_only"):
+            return user
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+
+
+async def require_blacklist_remove(user: Annotated[User, Depends(get_current_user)]) -> User:
+    if _is_privileged(user):
+        return user
+    if user.role in (UserRole.master, UserRole.reception) and page_perm(user, "blacklist", "remove"):
+        return user
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
 
 
 def _name(c: Client) -> str | None:
@@ -34,7 +68,7 @@ def _name(c: Client) -> str | None:
 @router.get("", response_model=PaginatedResponse[BlacklistEntryOut])
 async def list_blacklist(
     db: Annotated[AsyncSession, Depends(get_db)],
-    _user: Annotated[User, Depends(require_roles(*_STAFF))],
+    _user: Annotated[User, Depends(require_blacklist_read)],
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=500),
 ) -> PaginatedResponse[BlacklistEntryOut]:
@@ -70,7 +104,7 @@ async def list_blacklist(
 async def add_blacklist(
     body: BlacklistCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(require_roles(*_STAFF))],
+    user: Annotated[User, Depends(require_blacklist_add)],
 ) -> BlacklistEntryOut:
     cl = await db.get(Client, body.client_id)
     if cl is None:
@@ -103,7 +137,7 @@ async def patch_blacklist(
     entry_id: UUID,
     body: BlacklistPatch,
     db: Annotated[AsyncSession, Depends(get_db)],
-    _user: Annotated[User, Depends(require_roles(*_STAFF))],
+    _user: Annotated[User, Depends(require_blacklist_patch)],
 ) -> BlacklistEntryOut:
     be = await db.get(BlacklistEntry, entry_id)
     if be is None:
@@ -129,7 +163,7 @@ async def patch_blacklist(
 async def delete_blacklist(
     entry_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    _user: Annotated[User, Depends(require_roles(*_STAFF))],
+    _user: Annotated[User, Depends(require_blacklist_remove)],
 ) -> None:
     be = await db.get(BlacklistEntry, entry_id)
     if be is None:

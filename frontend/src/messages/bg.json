@@ -244,6 +244,7 @@
       "noMastersForService": "Няма специалист за тази услуга",
       "writeTg": "Съобщение в Telegram",
       "unnamedClient": "Клиент",
+      "contactsHiddenByPermissions": "Контактите са скрити от настройките за достъп.",
       "changeStatus": "Статус",
       "reschedule": "Пренеси запис",
       "cancelBooking": "Отмени",
@@ -1232,7 +1233,8 @@
       "perm_manage_permissions": "Управлява правата за достъп",
       "perm_edit_settings": "Редактира настройките",
       "perm_cancel": "Отказва резервации",
-      "perm_view_client_contacts": "Вижда контакти на клиента в резервацията"
+      "perm_view_client_contacts": "Вижда контакти на клиента в резервацията",
+      "perm_view_calendar_booking_phones": "Вижда телефона на клиента в детайлите на резервацията от календара"
     },
     "masterDashboard": {
       "title": "Моят ден",
