@@ -64,7 +64,7 @@ export interface AppTranslations {
   masterProfileShowAllReviews: string;
   masterProfileAnonymous: string;
   masterProfileNoData: string;
-  masterRowSelectBook: string;
+  masterRowDetails: string;
   bookPickServiceForMaster: string;
   // Booking step 0 when pre-selected master
   bookMasterPreHint: string;
@@ -159,7 +159,7 @@ const RU: AppTranslations = {
   masterProfileReadMore: 'Читать далее', masterProfileReadLess: 'Свернуть',
   masterProfileSectionServices: 'Услуги', masterProfileSectionPortfolio: 'Портфолио', masterProfileSectionCertificates: 'Сертификаты', masterProfileSectionReviews: 'Отзывы',
   masterProfileShowAllReviews: 'Показать все', masterProfileAnonymous: 'Анонимно', masterProfileNoData: 'Пока нет данных',
-  masterRowSelectBook: 'Записаться', bookPickServiceForMaster: 'Выберите услугу', bookMasterPreHint: 'Сначала выберите услугу — затем дату и время.',
+  masterRowDetails: 'Подробнее', bookPickServiceForMaster: 'Выберите услугу', bookMasterPreHint: 'Сначала выберите услугу — затем дату и время.',
   listEyebrow: 'Личное', listH: 'Мои', listHi: 'записи',
   listTabUpcoming: 'Предстоящие', listTabHistory: 'Прошедшие',
   listEmpty: 'Пока записей нет', listBtnNew: 'Записаться',
@@ -245,7 +245,7 @@ const EN: AppTranslations = {
   masterProfileReadMore: 'Read more', masterProfileReadLess: 'Show less',
   masterProfileSectionServices: 'Services', masterProfileSectionPortfolio: 'Portfolio', masterProfileSectionCertificates: 'Certificates', masterProfileSectionReviews: 'Reviews',
   masterProfileShowAllReviews: 'Show all', masterProfileAnonymous: 'Anonymous', masterProfileNoData: 'Nothing here yet',
-  masterRowSelectBook: 'Book', bookPickServiceForMaster: 'Choose a service', bookMasterPreHint: 'Pick a service, then date and time.',
+  masterRowDetails: 'Details', bookPickServiceForMaster: 'Choose a service', bookMasterPreHint: 'Pick a service, then date and time.',
   listEyebrow: 'Personal', listH: 'My', listHi: 'bookings',
   listTabUpcoming: 'Upcoming', listTabHistory: 'History',
   listEmpty: 'No bookings yet', listBtnNew: 'Book',
@@ -331,7 +331,7 @@ const UK: AppTranslations = {
   masterProfileReadMore: 'Читати далі', masterProfileReadLess: 'Згорнути',
   masterProfileSectionServices: 'Послуги', masterProfileSectionPortfolio: 'Портфоліо', masterProfileSectionCertificates: 'Сертифікати', masterProfileSectionReviews: 'Відгуки',
   masterProfileShowAllReviews: 'Показати всі', masterProfileAnonymous: 'Анонімно', masterProfileNoData: 'Поки немає даних',
-  masterRowSelectBook: 'Записатися', bookPickServiceForMaster: 'Оберіть послугу', bookMasterPreHint: 'Спочатку послугу — потім дату й час.',
+  masterRowDetails: 'Детальніше', bookPickServiceForMaster: 'Оберіть послугу', bookMasterPreHint: 'Спочатку послугу — потім дату й час.',
   listEyebrow: 'Особисте', listH: 'Мої', listHi: 'записи',
   listTabUpcoming: 'Майбутні', listTabHistory: 'Минулі',
   listEmpty: 'Поки немає записів', listBtnNew: 'Записатись',
@@ -417,7 +417,7 @@ const BG: AppTranslations = {
   masterProfileReadMore: 'Още', masterProfileReadLess: 'По-малко',
   masterProfileSectionServices: 'Услуги', masterProfileSectionPortfolio: 'Портфолио', masterProfileSectionCertificates: 'Сертификати', masterProfileSectionReviews: 'Отзиви',
   masterProfileShowAllReviews: 'Всички', masterProfileAnonymous: 'Анонимно', masterProfileNoData: 'Все още няма данни',
-  masterRowSelectBook: 'Запиши се', bookPickServiceForMaster: 'Изберете услуга', bookMasterPreHint: 'Първо услуга — после дата и час.',
+  masterRowDetails: 'Детайли', bookPickServiceForMaster: 'Изберете услуга', bookMasterPreHint: 'Първо услуга — после дата и час.',
   listEyebrow: 'Лично', listH: 'Моите', listHi: 'записи',
   listTabUpcoming: 'Предстоящи', listTabHistory: 'Минали',
   listEmpty: 'Засега няма записи', listBtnNew: 'Запиши се',

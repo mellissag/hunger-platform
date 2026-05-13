@@ -497,7 +497,7 @@ export default function ServiceDetailPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => router.push(`/mini-app/book?service_id=${id}&master_id=${master.id}`)}
+                    onClick={() => router.push(`/mini-app/master/${master.id}`)}
                     style={{
                       flexShrink: 0,
                       borderRadius: 999,
@@ -513,7 +513,7 @@ export default function ServiceDetailPage() {
                       fontFamily: BODY,
                     }}
                   >
-                    {t.masterRowSelectBook}
+                    {t.masterRowDetails}
                   </button>
                 </div>
               );
