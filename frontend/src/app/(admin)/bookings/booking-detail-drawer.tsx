@@ -1,6 +1,6 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Pencil, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -27,9 +27,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useBooking, useCancelBooking, useConfirmBooking, usePatchBooking } from "@/hooks/useBookings";
 import { useDebounce } from "@/hooks/useDebounce";
+import { apiJson } from "@/lib/api";
 import { adminBookingDurationLabel } from "@/lib/booking-duration-label";
 import { durationMinutes, isoToDateInZone, isoToTimeInZone, zonedToUtcIso } from "@/lib/date-local";
-import type { BookingDetailOut } from "@/types/admin-api";
+import type { BookingDetailOut, MasterOut, Paginated, ServiceOut, UserMe } from "@/types/admin-api";
 import { cn } from "@/lib/utils";
 import { ConsultationScheduleModal } from "./consultation-schedule-modal";
 
@@ -82,6 +83,43 @@ export function BookingDetailDrawer({
   const [draftDurationMin, setDraftDurationMin] = useState("");
   const [draftDate, setDraftDate] = useState("");
   const [draftTime, setDraftTime] = useState("");
+  const [assignEditOpen, setAssignEditOpen] = useState(false);
+  const [draftAssignServiceId, setDraftAssignServiceId] = useState("");
+  const [draftAssignMasterId, setDraftAssignMasterId] = useState("");
+
+  const { data: me } = useQuery({
+    queryKey: ["auth", "me", "booking-detail-drawer"],
+    queryFn: () => apiJson<UserMe>("/auth/me"),
+    staleTime: 60_000,
+  });
+
+  const { data: mastersPg } = useQuery({
+    queryKey: ["masters", "all-for-detail-drawer"],
+    queryFn: () => apiJson<Paginated<MasterOut>>("/masters?page=1&page_size=500"),
+  });
+  const { data: servicesPg } = useQuery({
+    queryKey: ["services", "all-for-detail-drawer"],
+    queryFn: () => apiJson<Paginated<ServiceOut>>("/services?page=1&page_size=200"),
+  });
+
+  const mastersList = mastersPg?.items ?? [];
+  const servicesList = servicesPg?.items ?? [];
+
+  const canEditServiceAndMaster = useMemo(
+    () => me?.role === "owner" || me?.role === "admin" || me?.role === "reception",
+    [me?.role],
+  );
+
+  const mastersForDraftService = useMemo(
+    () => mastersList.filter((m) => (m.services ?? []).some((s) => s.id === draftAssignServiceId)),
+    [mastersList, draftAssignServiceId],
+  );
+
+  useEffect(() => {
+    if (!assignEditOpen || !draftAssignServiceId) return;
+    if (draftAssignMasterId && mastersForDraftService.some((m) => m.id === draftAssignMasterId)) return;
+    setDraftAssignMasterId(mastersForDraftService[0]?.id ?? "");
+  }, [assignEditOpen, draftAssignServiceId, mastersForDraftService, draftAssignMasterId]);
 
   // Stable ref to always-current patch.mutate — prevents it from being a dep
   const patchMutateRef = useRef(patch.mutate);
@@ -163,6 +201,50 @@ export function BookingDetailDrawer({
 
   const tgDomain = data?.client.tg_username?.replace(/^@/, "") ?? "";
   const isPending = data?.status === "pending";
+  const bookingCancelled = Boolean(data?.status?.includes("cancel"));
+  const showReassignServiceMaster =
+    canEditServiceAndMaster && Boolean(data) && !bookingCancelled;
+
+  const sortedServices = useMemo(() => {
+    const curId = data?.service_id;
+    return [...servicesList]
+      .filter((s) => s.is_active !== false || s.id === curId)
+      .sort((a, b) =>
+        (pickName(a.name_i18n, locale) || "").localeCompare(
+          pickName(b.name_i18n, locale) || "",
+          undefined,
+          { sensitivity: "base" },
+        ),
+      );
+  }, [servicesList, locale, data?.service_id]);
+
+  const openAssignDialog = () => {
+    if (!data) return;
+    setDraftAssignServiceId(data.service_id);
+    setDraftAssignMasterId(data.master_id ?? "");
+    setAssignEditOpen(true);
+  };
+
+  const saveAssignEdit = () => {
+    if (!bookingId || !data) return;
+    if (!draftAssignServiceId || !draftAssignMasterId) {
+      toast.error(t("validationRequired"));
+      return;
+    }
+    patch.mutate(
+      {
+        id: bookingId,
+        body: { master_id: draftAssignMasterId, service_id: draftAssignServiceId },
+      },
+      {
+        onSuccess: () => {
+          setAssignEditOpen(false);
+          toast.success(t("toastUpdated"));
+        },
+        onError: () => toast.error(t("notesSaveError")),
+      },
+    );
+  };
 
   const savePriceEdit = () => {
     if (!bookingId || !data) return;
@@ -336,10 +418,23 @@ export function BookingDetailDrawer({
                   {isPending ? (
                     <p className="text-[11px] leading-snug text-muted-foreground">{t("pendingSlotEditHint")}</p>
                   ) : null}
-                  <Row label={t("detailService")} value={pickName(data.service.name_i18n, locale)} />
+                  <Row
+                    label={t("detailService")}
+                    value={pickName(data.service.name_i18n, locale)}
+                    edit={
+                      showReassignServiceMaster
+                        ? { ariaLabel: t("editServiceAria"), onClick: openAssignDialog }
+                        : undefined
+                    }
+                  />
                   <Row
                     label={t("detailMaster")}
                     value={data.any_master ? t("badgeAnyMaster") : data.master?.display_name ?? "—"}
+                    edit={
+                      showReassignServiceMaster
+                        ? { ariaLabel: t("editMasterAria"), onClick: openAssignDialog }
+                        : undefined
+                    }
                   />
                   <Row
                     label={t("detailWhen")}
@@ -616,6 +711,68 @@ export function BookingDetailDrawer({
               {t("close")}
             </Button>
             <Button type="button" onClick={() => void saveDatetimeEdit()} disabled={patch.isPending}>
+              {t("saveChanges")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={assignEditOpen} onOpenChange={setAssignEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("editServiceMasterTitle")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="booking-assign-service">{t("fieldService")}</Label>
+              <select
+                id="booking-assign-service"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={draftAssignServiceId}
+                onChange={(e) => setDraftAssignServiceId(e.target.value)}
+              >
+                {sortedServices.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {pickName(s.name_i18n, locale)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="booking-assign-master">{t("fieldMaster")}</Label>
+              <select
+                id="booking-assign-master"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={draftAssignMasterId}
+                onChange={(e) => setDraftAssignMasterId(e.target.value)}
+                disabled={mastersForDraftService.length === 0}
+              >
+                {mastersForDraftService.length === 0 ? (
+                  <option value="">{t("noMastersForService")}</option>
+                ) : (
+                  mastersForDraftService.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.display_name}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+            <p className="text-xs text-muted-foreground">{t("editServiceMasterHint")}</p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setAssignEditOpen(false)}>
+              {t("close")}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void saveAssignEdit()}
+              disabled={
+                patch.isPending ||
+                !draftAssignMasterId ||
+                mastersForDraftService.length === 0
+              }
+            >
               {t("saveChanges")}
             </Button>
           </DialogFooter>

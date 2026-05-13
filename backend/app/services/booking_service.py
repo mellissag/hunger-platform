@@ -390,14 +390,22 @@ async def update_booking(
     b = await get_booking(db, user, booking_id)
     payload = data.model_dump(exclude_unset=True)
 
+    reassignment = "master_id" in payload or "service_id" in payload
+    if user.role == UserRole.master and reassignment:
+        raise ForbiddenScopeError("Masters cannot change service or master for a booking")
+
+    effective_master_id = payload.get("master_id", b.master_id)
+    effective_service_id = payload.get("service_id", b.service_id)
+
     changing_time = "starts_at" in payload or "ends_at" in payload
     if changing_time:
         new_start = ensure_aware(payload.get("starts_at", b.starts_at))
-        effective_master_id = payload.get("master_id", b.master_id)
         # Compute ends_at from duration when only starts_at is provided
         # (covers consultation bookings where b.ends_at is NULL)
         if "starts_at" in payload and "ends_at" not in payload:
-            _, duration_min = await _resolve_pricing(db, effective_master_id, b.service_id)
+            if effective_master_id is None or effective_service_id is None:
+                raise InvalidScheduleError("master_id and service_id are required to compute visit length")
+            _, duration_min = await _resolve_pricing(db, effective_master_id, effective_service_id)
             new_end = new_start + timedelta(minutes=duration_min) if new_start else None
         else:
             new_end = ensure_aware(payload.get("ends_at", b.ends_at))
@@ -413,6 +421,30 @@ async def update_booking(
             )
         if "ends_at" not in payload and "starts_at" in payload:
             payload["ends_at"] = new_end
+    elif reassignment:
+        if effective_master_id is None:
+            raise InvalidScheduleError("master_id is required when changing service or master")
+        price, duration_min = await _resolve_pricing(db, effective_master_id, effective_service_id)
+        new_start = ensure_aware(payload.get("starts_at", b.starts_at))
+        if new_start is not None:
+            if "ends_at" not in payload:
+                new_end = new_start + timedelta(minutes=duration_min)
+                payload["ends_at"] = new_end
+            else:
+                new_end = ensure_aware(payload.get("ends_at"))
+            if new_end is None:
+                raise InvalidScheduleError("ends_at is required")
+            if "price" not in payload:
+                payload["price"] = price
+            await _assert_slot_free(
+                db,
+                master_id=effective_master_id,
+                starts_at=new_start,
+                ends_at=new_end,
+                exclude_booking_id=b.id,
+            )
+        elif "price" not in payload:
+            payload["price"] = price
 
     for k, v in payload.items():
         setattr(b, k, v)

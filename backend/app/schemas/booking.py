@@ -27,6 +27,7 @@ class BookingUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     master_id: UUID | None = None
+    service_id: UUID | None = None
     starts_at: datetime | None = None
     ends_at: datetime | None = None
     status: BookingStatus | None = None

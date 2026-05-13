@@ -181,6 +181,7 @@ export function usePatchBooking() {
         starts_at: string;
         ends_at: string | null;
         master_id: string;
+        service_id: string;
         needs_consultation: boolean;
         price: number | string;
       }>;
