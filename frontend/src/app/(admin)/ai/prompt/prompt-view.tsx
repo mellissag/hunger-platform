@@ -15,6 +15,9 @@ import type { SalonBundle } from "@/types/admin-api";
 
 const LANGS = ["en", "ru", "uk", "bg"] as const;
 
+/** Default when `ai_model` is unset in DB; matches former UI default. */
+const DEFAULT_AI_MODEL_ID = "gemini-2.5-flash-lite";
+
 export function PromptView() {
   const t = useTranslations("pages.ai");
   const qc = useQueryClient();
@@ -229,14 +232,6 @@ export function PromptView() {
           <CardTitle>Model & toggles</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label>Model id</Label>
-            <Input
-              id="ai-model"
-              defaultValue={settings.ai_model ?? ""}
-              className="mt-1 font-mono text-sm"
-            />
-          </div>
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -272,7 +267,7 @@ export function PromptView() {
             onClick={() => {
               patch.mutate({
                 settings: {
-                  ai_model: (document.getElementById("ai-model") as HTMLInputElement).value || null,
+                  ai_model: (settings.ai_model ?? "").trim() || DEFAULT_AI_MODEL_ID,
                   ai_enabled: (document.getElementById("ai-on") as HTMLInputElement).checked,
                   ai_allow_booking: (document.getElementById("ai-book") as HTMLInputElement)
                     .checked,

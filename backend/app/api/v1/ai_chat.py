@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+import httpx
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from redis.asyncio import Redis
@@ -23,6 +24,8 @@ from app.schemas.ai_api import (
     FlagMessageResponse,
     TestChatRequest,
     TestChatResponse,
+    TranslateRequest,
+    TranslateResponse,
 )
 from app.schemas.common import PaginatedResponse
 from google.genai.errors import ClientError as GenAIClientError
@@ -65,6 +68,46 @@ async def post_test_chat(
         raise HTTPException(status_code=int(status), detail=msg) from e
     except AIUnavailableError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
+
+
+@router.post("/translate", response_model=TranslateResponse)
+async def post_translate(
+    body: TranslateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _user: Annotated[User, Depends(require_roles(*_AI_STAFF))],
+    redis: Annotated[Redis | None, Depends(get_redis_optional)],
+) -> TranslateResponse:
+    svc = AIService(db, redis)
+    try:
+        out = await svc.translate_admin(
+            text=body.text,
+            source_lang=body.source_lang,
+            target_langs=body.target_langs,
+        )
+        return TranslateResponse(
+            en=out.get("en", ""),
+            ru=out.get("ru", ""),
+            uk=out.get("uk", ""),
+            bg=out.get("bg", ""),
+        )
+    except GenAIClientError as e:
+        status = getattr(e, "status_code", None) or 500
+        msg = str(e)
+        if "RESOURCE_EXHAUSTED" in msg or "429" in msg:
+            raise HTTPException(
+                status_code=429,
+                detail="Превышен лимит запросов к Gemini API. Подождите немного и попробуйте снова.",
+            ) from e
+        raise HTTPException(status_code=int(status), detail=msg) from e
+    except AIUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            status_code=502,
+            detail=str(e.response.text or e.response.reason_phrase or "Upstream AI error"),
+        ) from e
 
 
 @router.get("/conversations", response_model=PaginatedResponse[AIConversationOut])

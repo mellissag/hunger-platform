@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
-import { Mic, MicOff, Trash2, Upload } from "lucide-react";
+import { Mic, MicOff, Trash2, Upload, Loader2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -16,12 +16,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { apiFetch, apiJson } from "@/lib/api";
+import { apiFetch, apiJson, HttpError } from "@/lib/api";
+import { aiTranslateReadyFromSalon } from "@/lib/aiTranslateReady";
 import { cn } from "@/lib/utils";
 import type {
   BroadcastOut,
   MasterOut,
   Paginated,
+  SalonBundle,
   SegmentPreviewResponse,
   ServiceOut,
 } from "@/types/admin-api";
@@ -138,6 +140,8 @@ export function BroadcastWizard({
   const [minNoShow, setMinNoShow] = useState(1);
 
   const [msg, setMsg] = useState(emptyI18n);
+  const [messageLang, setMessageLang] = useState<(typeof LANGS)[number]>("en");
+  const [messageTranslating, setMessageTranslating] = useState(false);
   const [mediaUrl, setMediaUrl] = useState("");
   const [mediaType, setMediaType] = useState<"photo" | "animation" | "video" | "video_note" | "voice" | "">("photo");
   const [isUploading, setIsUploading] = useState(false);
@@ -156,6 +160,20 @@ export function BroadcastWizard({
     queryFn: () => apiJson<BroadcastOut>(`/broadcasts/${sourceId}`),
     enabled: Boolean(sourceId) && !initialized,
   });
+
+  const { data: salonBundle } = useQuery({
+    queryKey: ["salon"],
+    queryFn: () => apiJson<SalonBundle>("/salon"),
+    staleTime: 60_000,
+  });
+  const translateReady = useMemo(() => aiTranslateReadyFromSalon(salonBundle), [salonBundle]);
+
+  useEffect(() => {
+    const short = (locale.split("-")[0] ?? "en").toLowerCase();
+    if (LANGS.includes(short as (typeof LANGS)[number])) {
+      setMessageLang(short as (typeof LANGS)[number]);
+    }
+  }, [locale]);
 
   useEffect(() => {
     if (!sourceBc || initialized) return;
@@ -210,6 +228,33 @@ export function BroadcastWizard({
       minNoShow,
     ],
   );
+
+  async function handleBroadcastMessageTranslate() {
+    const source = (msg[messageLang] ?? "").trim();
+    if (!source) {
+      toast.error(t("translateEmpty"));
+      return;
+    }
+    setMessageTranslating(true);
+    try {
+      const res = await apiJson<Record<string, string>>("/ai/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: source, source_lang: messageLang }),
+      });
+      setMsg({
+        en: res.en ?? "",
+        ru: res.ru ?? "",
+        uk: res.uk ?? "",
+        bg: res.bg ?? "",
+      });
+      toast.success(t("translateSuccess"));
+    } catch (e) {
+      toast.error(e instanceof HttpError ? e.message : t("translateError"));
+    } finally {
+      setMessageTranslating(false);
+    }
+  }
 
   const previewEnabled = step === 1 && canPreview(segmentKind, { serviceId, masterId, tag, lang });
 
@@ -620,7 +665,7 @@ export function BroadcastWizard({
             <CardDescription>{t("messageTab")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Tabs defaultValue="en">
+            <Tabs value={messageLang} onValueChange={(v) => setMessageLang(v as (typeof LANGS)[number])}>
               <TabsList>
                 {LANGS.map((l) => (
                   <TabsTrigger key={l} value={l}>
@@ -643,8 +688,11 @@ export function BroadcastWizard({
               type="button"
               variant="secondary"
               size="sm"
-              onClick={() => toast.message(t("translateSoon"))}
+              disabled={!translateReady || messageTranslating}
+              title={translateReady ? undefined : t("translateAiDisabledHint")}
+              onClick={() => void handleBroadcastMessageTranslate()}
             >
+              {messageTranslating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {t("translateAuto")}
             </Button>
             {/* ── Media picker ── */}

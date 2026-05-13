@@ -20,6 +20,23 @@ class TestChatResponse(BaseModel):
     cited_chunk_ids: list[UUID]
 
 
+class TranslateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(..., min_length=1, max_length=12000)
+    source_lang: str = Field(default="en", pattern="^(en|ru|uk|bg)$")
+    """Язык вкладки, с которой взят текст (исходный)."""
+    target_langs: list[str] | None = None
+    """Если null — заполняются все четыре языка (черновики). Иначе только перечисленные коды."""
+
+
+class TranslateResponse(BaseModel):
+    en: str = ""
+    ru: str = ""
+    uk: str = ""
+    bg: str = ""
+
+
 class AIConversationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

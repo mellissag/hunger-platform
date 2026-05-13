@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { apiJson, uploadImageFile } from "@/lib/api";
+import { apiJson, HttpError, uploadImageFile } from "@/lib/api";
+import { aiTranslateReadyFromSalon } from "@/lib/aiTranslateReady";
 import { useQuery } from "@tanstack/react-query";
 import {
   useCreateService,
@@ -21,7 +22,7 @@ import {
   useServiceMasters,
   useSetServiceMasters,
 } from "@/hooks/useServices";
-import type { MasterOut, Paginated, ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
+import type { MasterOut, Paginated, ServiceCategoryOut, ServiceOut, SalonBundle } from "@/types/admin-api";
 
 const LANGS = ["ru", "en", "uk", "bg"] as const;
 type Lang = (typeof LANGS)[number];
@@ -53,9 +54,13 @@ interface ServiceDrawerProps {
 }
 
 export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDrawerProps) {
-  const locale = useLocale() as Lang;
+  const localeRaw = useLocale();
+  const preferredLang = useMemo(() => {
+    const short = (localeRaw.split("-")[0] ?? "ru").toLowerCase();
+    return (LANGS.includes(short as Lang) ? short : "ru") as Lang;
+  }, [localeRaw]);
   const t = useTranslations("pages.services");
-  const [activeLang, setActiveLang] = useState<Lang>(locale === "en" ? "en" : "ru");
+  const [activeLang, setActiveLang] = useState<Lang>("ru");
   const [translating, setTranslating] = useState(false);
   const [selectedMasters, setSelectedMasters] = useState<string[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -69,6 +74,12 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
     queryFn: () => apiJson<Paginated<MasterOut>>("/masters?page=1&page_size=100"),
   });
   const { data: linkedMasters } = useServiceMasters(serviceId);
+  const { data: salonBundle } = useQuery({
+    queryKey: ["salon"],
+    queryFn: () => apiJson<SalonBundle>("/salon"),
+    staleTime: 60_000,
+  });
+  const translateReady = useMemo(() => aiTranslateReadyFromSalon(salonBundle), [salonBundle]);
   const createSvc = useCreateService();
   const updateSvc = useUpdateService();
   const setMasters = useSetServiceMasters();
@@ -157,6 +168,10 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
     }
   }, [linkedMasters]);
 
+  useEffect(() => {
+    if (open) setActiveLang(preferredLang);
+  }, [open, preferredLang]);
+
   function toggleMaster(masterId: string) {
     setSelectedMasters((prev) =>
       prev.includes(masterId) ? prev.filter((id) => id !== masterId) : [...prev, masterId],
@@ -164,25 +179,40 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
   }
 
   async function handleAutoTranslate() {
-    const sourceText = watch(`name_${activeLang}` as keyof ServiceForm) as string;
-    if (!sourceText?.trim()) {
+    const sourceName = watch(`name_${activeLang}` as keyof ServiceForm) as string;
+    if (!sourceName?.trim()) {
       toast.error(t("drawerTranslateEmpty"));
       return;
     }
+    const sourceDesc = ((watch(`desc_${activeLang}` as keyof ServiceForm) as string) ?? "").trim();
+
     setTranslating(true);
     try {
-      const targetLangs = LANGS.filter((l) => l !== activeLang);
-      const res = await apiJson<Record<string, string>>("/ai/translate", {
+      const resNames = await apiJson<Record<string, string>>("/ai/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: sourceText, source_lang: activeLang, target_langs: targetLangs }),
+        body: JSON.stringify({ text: sourceName, source_lang: activeLang }),
       });
-      for (const lang of targetLangs) {
-        if (res[lang]) setValue(`name_${lang}` as keyof ServiceForm, res[lang]);
+      setValue("name_ru", resNames.ru ?? "");
+      setValue("name_en", resNames.en ?? "");
+      setValue("name_uk", resNames.uk ?? "");
+      setValue("name_bg", resNames.bg ?? "");
+
+      if (sourceDesc) {
+        const resDesc = await apiJson<Record<string, string>>("/ai/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: sourceDesc, source_lang: activeLang }),
+        });
+        setValue("desc_ru", resDesc.ru ?? "");
+        setValue("desc_en", resDesc.en ?? "");
+        setValue("desc_uk", resDesc.uk ?? "");
+        setValue("desc_bg", resDesc.bg ?? "");
       }
+
       toast.success(t("drawerTranslateSuccess"));
-    } catch {
-      toast.error(t("drawerTranslateError"));
+    } catch (e) {
+      toast.error(e instanceof HttpError ? e.message : t("drawerTranslateError"));
     } finally {
       setTranslating(false);
     }
@@ -317,8 +347,9 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleAutoTranslate}
-                disabled={translating}
+                onClick={() => void handleAutoTranslate()}
+                disabled={!translateReady || translating}
+                title={translateReady ? undefined : t("drawerTranslateNoAiKey")}
                 className="gap-1.5 text-[11px] uppercase tracking-wider text-primary hover:text-primary"
               >
                 {translating ? (
@@ -424,7 +455,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
               {(catData?.items ?? []).map((c: ServiceCategoryOut) => {
                 const checked = selectedCategoryIds.includes(c.id);
                 const label =
-                  c.name_i18n[locale] ?? c.name_i18n.ru ?? c.name_i18n.en ?? c.id;
+                  c.name_i18n[preferredLang] ?? c.name_i18n.ru ?? c.name_i18n.en ?? c.id;
                 return (
                   <label
                     key={c.id}

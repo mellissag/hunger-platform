@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import json
+import re
 import uuid
 from collections.abc import Awaitable, Callable
 
@@ -88,6 +90,51 @@ def _make_client(api_key: str) -> genai.Client:
     return genai.Client(api_key=api_key)
 
 
+_LANGS = ("en", "ru", "uk", "bg")
+
+
+def _strip_json_fence(raw: str) -> str:
+    t = raw.strip()
+    if t.startswith("```"):
+        t = re.sub(r"^```(?:json)?\s*", "", t, flags=re.IGNORECASE)
+        t = re.sub(r"\s*```$", "", t)
+    return t.strip()
+
+
+def _parse_translation_json(raw: str) -> dict[str, str]:
+    cleaned = _strip_json_fence(raw)
+    data = json.loads(cleaned)
+    if not isinstance(data, dict):
+        raise ValueError("translation response is not a JSON object")
+    out: dict[str, str] = {}
+    for k in _LANGS:
+        v = data.get(k)
+        out[k] = str(v).strip() if v is not None else ""
+    return out
+
+
+async def _gemini_generate_plain(
+    *,
+    client: genai.Client,
+    model_name: str,
+    system: str,
+    user_prompt: str,
+    temperature: float,
+) -> str:
+    def _sync() -> str:
+        response = client.models.generate_content(
+            model=model_name,
+            contents=user_prompt,
+            config=genai_types.GenerateContentConfig(
+                system_instruction=system,
+                temperature=temperature,
+            ),
+        )
+        return response.text or ""
+
+    return await asyncio.to_thread(_sync)
+
+
 async def _call_groq(
     *,
     api_key: str,
@@ -95,6 +142,7 @@ async def _call_groq(
     user_prompt: str,
     model: str = _DEFAULT_GROQ_MODEL,
     temperature: float = 0.7,
+    max_tokens: int = 1024,
 ) -> str:
     """Call Groq's OpenAI-compatible API via httpx."""
     payload = {
@@ -104,7 +152,7 @@ async def _call_groq(
             {"role": "user", "content": user_prompt},
         ],
         "temperature": temperature,
-        "max_tokens": 1024,
+        "max_tokens": max_tokens,
     }
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -342,6 +390,82 @@ class AIService:
         await self.db.refresh(asst)
 
         return answer, cited_ids, asst.id
+
+    async def translate_admin(
+        self,
+        *,
+        text: str,
+        source_lang: str = "en",
+        target_langs: list[str] | None = None,
+    ) -> dict[str, str]:
+        """Админ: перевод i18n тем же провайдером/ключом, что и AI-чат (без RAG, без rate limit)."""
+        raw = text.strip()
+        if not raw:
+            raise ValueError("empty text")
+        sl = source_lang.lower()
+        if sl not in _LANGS:
+            raise ValueError("invalid source_lang")
+
+        salon_row = await self.db.execute(
+            select(Salon, Settings).join(Settings, Settings.salon_id == Salon.id).limit(1)
+        )
+        first = salon_row.first()
+        if not first:
+            raise AIUnavailableError("Salon is not configured.")
+        _salon, salon_settings = first
+        if not salon_settings.ai_enabled:
+            raise AIUnavailableError("AI assistant is disabled in salon settings.")
+
+        provider = _get_provider(salon_settings)
+        raw_model = (salon_settings.ai_model or "").strip()
+        temperature = min(0.9, max(0.1, float(salon_settings.ai_temperature or 0.35)))
+
+        system = (
+            'You are a professional translator for a beauty salon admin UI. '
+            'Return ONLY a raw JSON object with exactly these keys: "en", "ru", "uk", "bg". '
+            "Each value is a string: natural translation or adaptation of the source for that language. "
+            "No markdown code fences, no explanations, no extra keys."
+        )
+        user_prompt = f'The source text is in language code "{sl}".\n\nSOURCE:\n{raw}\n'
+
+        if provider == "groq":
+            groq_key = _get_groq_key(salon_settings)
+            groq_model = (
+                raw_model
+                if raw_model and "gemini" not in raw_model.lower() and "models/" not in raw_model
+                else _DEFAULT_GROQ_MODEL
+            )
+            raw_out = await _call_groq(
+                api_key=groq_key,
+                system=system,
+                user_prompt=user_prompt,
+                model=groq_model,
+                temperature=temperature,
+                max_tokens=8192,
+            )
+        else:
+            gemini_key = _get_gemini_key(salon_settings)
+            gemini_client = _make_client(gemini_key)
+            model_name = (raw_model or _DEFAULT_GEN_MODEL).removeprefix("models/")
+            raw_out = await _gemini_generate_plain(
+                client=gemini_client,
+                model_name=model_name,
+                system=system,
+                user_prompt=user_prompt,
+                temperature=temperature,
+            )
+
+        try:
+            parsed = _parse_translation_json(raw_out)
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            raise AIUnavailableError(
+                "Could not parse AI translation. Try again or shorten the text."
+            ) from e
+        if target_langs:
+            allowed = {str(x).lower() for x in target_langs if str(x).lower() in _LANGS}
+            if allowed:
+                return {k: parsed.get(k, "") for k in _LANGS if k in allowed}
+        return parsed
 
     async def test_ask_admin(
         self,
