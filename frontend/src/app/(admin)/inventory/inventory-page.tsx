@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { apiJson } from "@/lib/api";
+import { apiJson, HttpError } from "@/lib/api";
 import { tc } from "@/lib/theme-inline";
 import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
 
@@ -301,6 +301,45 @@ export function InventoryPage() {
     return true;
   });
 
+  async function deleteProductRow(p: Product) {
+    if (!window.confirm(t("deleteProductConfirm", { name: p.name }))) return;
+    try {
+      await apiJson(`/inventory/products/${p.id}`, { method: "DELETE" });
+      toast.success(t("deleted"));
+      if (stockAdjustProduct?.id === p.id) setStockAdjustProduct(null);
+      void qc.invalidateQueries({ queryKey: ["products"] });
+      void qc.invalidateQueries({ queryKey: ["inventory-stats"] });
+      void qc.invalidateQueries({ queryKey: ["product-categories"] });
+    } catch (e) {
+      toast.error(e instanceof HttpError ? e.message : t("deleteError"));
+    }
+  }
+
+  async function deleteInvoiceRow(inv: Invoice) {
+    const label = inv.invoice_number || t("invoiceDefault", { id: inv.id });
+    if (!window.confirm(t("deleteInvoiceConfirm", { label }))) return;
+    try {
+      await apiJson(`/inventory/invoices/${inv.id}`, { method: "DELETE" });
+      toast.success(t("deleted"));
+      if (expandedInvoice === inv.id) setExpandedInvoice(null);
+      void qc.invalidateQueries({ queryKey: ["invoices"] });
+      void qc.invalidateQueries({ queryKey: ["inventory-stats"] });
+    } catch (e) {
+      toast.error(e instanceof HttpError ? e.message : t("deleteError"));
+    }
+  }
+
+  const btnIcon = {
+    ...s.btnOutline,
+    padding: "6px 10px",
+    minWidth: "auto",
+  } as React.CSSProperties;
+  const btnIconDanger: React.CSSProperties = {
+    ...btnIcon,
+    borderColor: "rgba(192, 57, 43, 0.35)",
+    color: "#c0392b",
+  };
+
   return (
     <div style={s.page}>
       {/* Header */}
@@ -439,19 +478,25 @@ export function InventoryPage() {
                       <td style={{ ...s.td, fontWeight: 500 }}>
                         {p.cost_price ? `€ ${Number(p.cost_price).toFixed(2)}` : "—"}
                       </td>
-                      <td style={{ ...s.td, width: "52px", textAlign: "right" }}>
-                        <button
-                          type="button"
-                          title={t("stockAdjustTitle")}
-                          onClick={() => setStockAdjustProduct(p)}
-                          style={{
-                            ...s.btnOutline,
-                            padding: "6px 10px",
-                            minWidth: "auto",
-                          }}
-                        >
-                          <Pencil size={16} strokeWidth={2} />
-                        </button>
+                      <td style={{ ...s.td, width: "100px", textAlign: "right" }}>
+                        <div style={{ display: "inline-flex", gap: "6px", justifyContent: "flex-end" }}>
+                          <button
+                            type="button"
+                            title={t("stockAdjustTitle")}
+                            onClick={() => setStockAdjustProduct(p)}
+                            style={btnIcon}
+                          >
+                            <Pencil size={16} strokeWidth={2} />
+                          </button>
+                          <button
+                            type="button"
+                            title={t("deleteButton")}
+                            onClick={() => void deleteProductRow(p)}
+                            style={btnIconDanger}
+                          >
+                            <Trash2 size={16} strokeWidth={2} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -499,6 +544,17 @@ export function InventoryPage() {
                     {inv.total_cost ? `€ ${Number(inv.total_cost).toFixed(2)}` : "—"}
                   </div>
                 </div>
+                <button
+                  type="button"
+                  title={t("deleteButton")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void deleteInvoiceRow(inv);
+                  }}
+                  style={btnIconDanger}
+                >
+                  <Trash2 size={16} strokeWidth={2} />
+                </button>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                   style={{ color: tc.mutedFg, transform: expandedInvoice === inv.id ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>
                   <polyline points="9 18 15 12 9 6" />
