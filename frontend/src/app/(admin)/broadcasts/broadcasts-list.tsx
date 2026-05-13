@@ -168,7 +168,7 @@ export function BroadcastsList() {
               const when = row.sent_at ?? row.scheduled_at ?? row.created_at;
               const sent = Number(row.stats?.sent ?? 0);
               const delivered = Number(row.stats?.delivered ?? 0);
-              const totalRecipients = Number(row.stats?.total ?? 0);
+              const totalRecipients = Number(row.stats?.total_targeted ?? row.stats?.total ?? 0);
               const progress = totalRecipients > 0 ? Math.round((delivered / totalRecipients) * 100) : 0;
               const cfg = statusConfig[row.status] ?? statusConfig["draft"]!;
               return (

@@ -15,6 +15,7 @@ from app.models.booking import Booking
 from app.models.catalog import Service
 from app.models.client import Client
 from app.models.master import Master
+from app.services.broadcast_analytics import record_client_blocked_after_delivered_broadcast
 from app.utils.datetime_utils import format_booking_datetime
 
 logger = logging.getLogger(__name__)
@@ -164,6 +165,10 @@ async def notify_client_booking_confirmed(booking_id: UUID, bot: Bot | None, db:
         await bot.send_message(chat_id=int(client.tg_user_id), text=text, parse_mode="HTML")
     except TelegramForbiddenError:
         logger.info("client tg forbidden chat_id=%s", client.tg_user_id)
+        try:
+            await record_client_blocked_after_delivered_broadcast(db, client.id)
+        except Exception:  # noqa: BLE001
+            logger.exception("broadcast unsubscribed bump failed booking_id=%s", booking_id)
     except Exception:  # noqa: BLE001
         logger.exception("notify_client_booking_confirmed failed booking_id=%s", booking_id)
 
@@ -194,6 +199,10 @@ async def notify_client_booking_rejected(
         await bot.send_message(chat_id=int(client.tg_user_id), text=text, parse_mode="HTML")
     except TelegramForbiddenError:
         logger.info("client tg forbidden chat_id=%s", client.tg_user_id)
+        try:
+            await record_client_blocked_after_delivered_broadcast(db, client.id)
+        except Exception:  # noqa: BLE001
+            logger.exception("broadcast unsubscribed bump failed booking_id=%s", booking_id)
     except Exception:  # noqa: BLE001
         logger.exception("notify_client_booking_rejected failed booking_id=%s", booking_id)
 
@@ -221,5 +230,9 @@ async def notify_client_booking_rescheduled(booking_id: UUID, bot: "Bot | None",
         await bot.send_message(chat_id=int(client.tg_user_id), text=text, parse_mode="HTML")
     except TelegramForbiddenError:
         logger.info("client tg forbidden chat_id=%s", client.tg_user_id)
+        try:
+            await record_client_blocked_after_delivered_broadcast(db, client.id)
+        except Exception:  # noqa: BLE001
+            logger.exception("broadcast unsubscribed bump failed booking_id=%s", booking_id)
     except Exception:  # noqa: BLE001
         logger.exception("notify_client_booking_rescheduled failed booking_id=%s", booking_id)

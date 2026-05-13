@@ -21,6 +21,7 @@ from app.models.user import User
 from app.schemas.broadcast import BroadcastCreate, BroadcastSendBody, BroadcastUpdate
 from app.schemas.segment import SegmentCriteria
 from app.services import segment_service
+from app.services.broadcast_analytics import fresh_stats_for_send
 
 
 def _nonempty_message_i18n(m: dict[str, Any]) -> bool:
@@ -188,7 +189,7 @@ async def prepare_send(
     if when is None:
         when = clock.utc_now()
     bc.scheduled_at = when
-    bc.stats = {"total": total, "sent": 0, "delivered": 0, "failed": 0}
+    bc.stats = fresh_stats_for_send(total)
     bc.status = BroadcastStatus.scheduled
     await db.flush()
     await db.refresh(bc)

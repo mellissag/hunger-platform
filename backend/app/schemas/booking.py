@@ -74,6 +74,7 @@ class BookingOut(BaseModel):
     any_master: bool = False
     call_for_time: bool = False
     created_via: BookingCreatedVia
+    broadcast_id: UUID | None = None
     created_at: datetime
     cancelled_at: datetime | None
     cancellation_reason: str | None

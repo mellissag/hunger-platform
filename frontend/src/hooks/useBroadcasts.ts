@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch, apiJson } from "@/lib/api";
+import type { BroadcastOut } from "@/types/admin-api";
 
 export type BroadcastCreatePayload = {
   title: string;
@@ -41,7 +42,25 @@ export type BroadcastRecipient = {
   status: string;
   error_reason: string | null;
   sent_at: string | null;
+  clicked_at?: string | null;
+  bot_opened_at?: string | null;
+  booking_id?: string | null;
+  error_type?: string | null;
 };
+
+export type BroadcastStatsPayload = {
+  broadcast: BroadcastOut;
+  stats: Record<string, unknown>;
+  recipients: BroadcastRecipient[];
+};
+
+export const useBroadcastStats = (id: string | null) =>
+  useQuery({
+    queryKey: ["broadcast-stats", id],
+    queryFn: () => apiJson<BroadcastStatsPayload>(`/broadcasts/${id}/stats`),
+    enabled: Boolean(id),
+    refetchInterval: 5000,
+  });
 
 export const useBroadcasts = (page = 1, pageSize = 20) =>
   useQuery({

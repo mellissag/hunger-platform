@@ -7,6 +7,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
 
 from app.bot.middlewares import (
+    BroadcastTrackerMiddleware,
     DatabaseMiddleware,
     LocaleMiddleware,
     ThrottleMiddleware,
@@ -46,6 +47,7 @@ def build_dispatcher(settings: Settings) -> Dispatcher:
     dp.update.middleware(ThrottleMiddleware())
     dp.update.middleware(DatabaseMiddleware())
     dp.update.middleware(TgUserMiddleware())
+    dp.update.middleware(BroadcastTrackerMiddleware())
     dp.update.middleware(LocaleMiddleware())
 
     dp.include_router(start.router)

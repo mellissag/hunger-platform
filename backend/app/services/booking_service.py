@@ -48,6 +48,7 @@ from app.schemas.booking import (
     BookingUpdate,
 )
 from app.services import schedule_service
+from app.services.broadcast_analytics import try_attribute_booking_to_broadcast
 from app.utils.datetime_utils import ensure_aware
 
 _ACTIVE = (BookingStatus.pending, BookingStatus.confirmed)
@@ -190,6 +191,7 @@ async def create_booking(db: AsyncSession, user: User, data: BookingCreate) -> B
         await db.flush()
     except IntegrityError as e:
         raise MasterDoesNotOfferServiceError("Invalid booking data") from e
+    await try_attribute_booking_to_broadcast(db, b)
     await db.refresh(b)
     return b
 

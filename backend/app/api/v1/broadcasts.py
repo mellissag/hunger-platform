@@ -8,13 +8,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.deps import get_db, require_roles
 from app.models.auto_trigger import AutoTrigger
 from app.models.broadcast import Broadcast, BroadcastRecipient
-from app.models.client import Client
 from app.models.enums import UserRole
 from app.models.user import User
 from app.schemas.broadcast import (
@@ -28,15 +28,34 @@ from app.schemas.broadcasts import (
     AutoTriggerOut,
     AutoTriggerUpdate,
     BroadcastRecipientOut,
+    BroadcastStatsResponse,
 )
 from app.schemas.common import PaginatedResponse
 from app.services import broadcast_service
+from app.services.broadcast_analytics import merge_stats_defaults
 
 router = APIRouter(prefix="/broadcasts", tags=["broadcasts"])
 triggers_router = APIRouter(prefix="/auto-triggers", tags=["auto-triggers"])
 
 STAFF = (UserRole.owner, UserRole.admin)
 OWNER = (UserRole.owner,)
+
+
+def _recipient_orm_to_out(rec: BroadcastRecipient) -> BroadcastRecipientOut:
+    c = rec.client
+    name = " ".join(filter(None, [c.first_name, c.last_name])) if c else None
+    st = rec.status.value if hasattr(rec.status, "value") else str(rec.status)
+    return BroadcastRecipientOut(
+        client_id=rec.client_id,
+        client_name=name or None,
+        status=st,
+        error_reason=rec.error,
+        sent_at=rec.sent_at,
+        clicked_at=rec.clicked_at,
+        bot_opened_at=rec.bot_opened_at,
+        booking_id=rec.booking_id,
+        error_type=rec.error_type,
+    )
 
 
 def _to_out(bc: Broadcast) -> BroadcastOut:
@@ -51,7 +70,7 @@ def _to_out(bc: Broadcast) -> BroadcastOut:
         status=bc.status,
         scheduled_at=bc.scheduled_at,
         sent_at=bc.sent_at,
-        stats=dict(bc.stats or {}),
+        stats=merge_stats_defaults(dict(bc.stats or {})),
         created_by_user_id=bc.created_by_user_id,
         created_at=bc.created_at,
         updated_at=bc.updated_at,
@@ -85,6 +104,32 @@ async def create_broadcast(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     return _to_out(bc)
+
+
+@router.get("/{broadcast_id}/stats", response_model=BroadcastStatsResponse)
+async def get_broadcast_stats(
+    broadcast_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _user: Annotated[User, Depends(require_roles(*STAFF))],
+) -> BroadcastStatsResponse:
+    from app.core.exceptions import NotFoundError
+
+    try:
+        bc = await broadcast_service.get_broadcast(db, broadcast_id)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=e.message) from e
+    res = await db.execute(
+        select(BroadcastRecipient)
+        .options(selectinload(BroadcastRecipient.client))
+        .where(BroadcastRecipient.broadcast_id == broadcast_id)
+        .order_by(BroadcastRecipient.sent_at.desc().nulls_last())
+    )
+    recs = list(res.scalars().all())
+    return BroadcastStatsResponse(
+        broadcast=_to_out(bc),
+        stats=merge_stats_defaults(dict(bc.stats or {})),
+        recipients=[_recipient_orm_to_out(r) for r in recs],
+    )
 
 
 @router.get("/{broadcast_id}", response_model=BroadcastOut)
@@ -170,31 +215,13 @@ async def broadcast_recipients(
     db: Annotated[AsyncSession, Depends(get_db)],
     _user: Annotated[User, Depends(require_roles(*STAFF))],
 ) -> list[BroadcastRecipientOut]:
-    rows = (
-        await db.execute(
-            select(
-                BroadcastRecipient.client_id,
-                BroadcastRecipient.status,
-                BroadcastRecipient.error,
-                BroadcastRecipient.sent_at,
-                Client.first_name,
-                Client.last_name,
-            )
-            .join(Client, Client.id == BroadcastRecipient.client_id)
-            .where(BroadcastRecipient.broadcast_id == broadcast_id)
-            .order_by(BroadcastRecipient.sent_at.desc().nulls_last())
-        )
-    ).all()
-    return [
-        BroadcastRecipientOut(
-            client_id=client_id,
-            client_name=" ".join(filter(None, [first_name, last_name])) or None,
-            status=str(status.value if hasattr(status, "value") else status),
-            error_reason=error,
-            sent_at=sent_at,
-        )
-        for client_id, status, error, sent_at, first_name, last_name in rows
-    ]
+    res = await db.execute(
+        select(BroadcastRecipient)
+        .options(selectinload(BroadcastRecipient.client))
+        .where(BroadcastRecipient.broadcast_id == broadcast_id)
+        .order_by(BroadcastRecipient.sent_at.desc().nulls_last())
+    )
+    return [_recipient_orm_to_out(r) for r in res.scalars().all()]
 
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
@@ -236,6 +263,14 @@ def _int_stat(stats: dict[str, Any], key: str) -> int:
         return 0
 
 
+def _int_targeted(stats: dict[str, Any]) -> int:
+    v = stats.get("total_targeted", stats.get("total", 0))
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return 0
+
+
 @router.get("/stats/summary", response_model=BroadcastStatsSummaryOut)
 async def broadcasts_stats_summary(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -260,7 +295,7 @@ async def broadcasts_stats_summary(
             pass
     broadcasts: list[Broadcast] = list((await db.execute(stmt.order_by(Broadcast.created_at.desc()))).scalars().all())
 
-    total_recipients = sum(_int_stat(b.stats, "total") for b in broadcasts)
+    total_recipients = sum(_int_targeted(b.stats) for b in broadcasts)
     total_sent = sum(_int_stat(b.stats, "sent") for b in broadcasts)
     total_delivered = sum(_int_stat(b.stats, "delivered") for b in broadcasts)
     total_failed = sum(_int_stat(b.stats, "failed") for b in broadcasts)
@@ -283,7 +318,7 @@ async def broadcasts_stats_summary(
             title=b.title,
             status=b.status.value if hasattr(b.status, "value") else str(b.status),
             sent_at=b.sent_at,
-            total=_int_stat(b.stats, "total"),
+            total=_int_targeted(b.stats),
             sent=_int_stat(b.stats, "sent"),
             delivered=_int_stat(b.stats, "delivered"),
             failed=_int_stat(b.stats, "failed"),

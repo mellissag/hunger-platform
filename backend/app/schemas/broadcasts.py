@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.schemas.broadcast import BroadcastOut
 
 
 class InlineButton(BaseModel):
@@ -20,6 +22,16 @@ class BroadcastRecipientOut(BaseModel):
     status: str
     error_reason: Optional[str] = None
     sent_at: Optional[datetime] = None
+    clicked_at: Optional[datetime] = None
+    bot_opened_at: Optional[datetime] = None
+    booking_id: Optional[UUID] = None
+    error_type: Optional[str] = None
+
+
+class BroadcastStatsResponse(BaseModel):
+    broadcast: BroadcastOut
+    stats: dict[str, Any]
+    recipients: list[BroadcastRecipientOut]
 
 
 class AutoTriggerCreate(BaseModel):

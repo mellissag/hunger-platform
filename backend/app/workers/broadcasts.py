@@ -7,11 +7,10 @@ from typing import Any
 from uuid import UUID
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramRetryAfter
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramRetryAfter
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from loguru import logger
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 import app.core.clock as clock
@@ -23,6 +22,13 @@ from app.models.broadcast import Broadcast, BroadcastRecipient
 from app.models.catalog import Service
 from app.models.client import Client
 from app.models.enums import BroadcastRecipientStatus, BroadcastStatus
+from app.services.broadcast_analytics import (
+    bump_broadcast_stats,
+    classify_broadcast_send_error,
+    finalize_broadcast_send_stats,
+    inject_broadcast_into_inline_keyboard,
+    mark_send_started,
+)
 
 # Лимит Telegram ~30 msg/s; держим 25/s
 _MSG_INTERVAL = 1.0 / 25.0
@@ -159,11 +165,13 @@ async def send_broadcast(ctx: dict[str, Any], broadcast_id: str) -> None:
         msg_i18n: dict[str, Any] = dict(bc.message_i18n or {})
         media_url: str | None = bc.media_url
         media_type: str | None = bc.media_type
-        inline_raw: dict[str, Any] | None = (
-            dict(bc.inline_keyboard) if bc.inline_keyboard else None
+        inline_raw: dict[str, Any] | None = inject_broadcast_into_inline_keyboard(
+            dict(bc.inline_keyboard) if bc.inline_keyboard else None,
+            bid,
         )
         markup = _reply_markup(inline_raw)
         bc.status = BroadcastStatus.sending
+        await mark_send_started(session, bid)
         await session.commit()
 
     bot = Bot(token=app_settings.telegram_bot_token)
@@ -187,6 +195,7 @@ async def send_broadcast(ctx: dict[str, Any], broadcast_id: str) -> None:
                     if fin:
                         fin.status = BroadcastStatus.sent
                         fin.sent_at = clock.utc_now()
+                        await finalize_broadcast_send_stats(session, bid)
                     await session.commit()
                     break
 
@@ -214,13 +223,19 @@ async def send_broadcast(ctx: dict[str, Any], broadcast_id: str) -> None:
                         if rec and rec.sent_at is None:
                             rec.status = BroadcastRecipientStatus.failed
                             rec.error = fail_reason
+                            rec.error_type = "other"
                             rec.sent_at = clock.utc_now()
-                            await _bump_stats_locked(session, b_id, failed_delta=1)
+                            await bump_broadcast_stats(
+                                session, b_id, failed_delta=1, error_type="other"
+                            )
                             await session.commit()
                     await asyncio.sleep(_MSG_INTERVAL)
                     continue
 
                 assert tg_id is not None
+                async with factory() as session:
+                    await bump_broadcast_stats(session, b_id, sent_delta=1)
+                    await session.commit()
                 try:
                     await _send_with_retry(
                         bot,
@@ -230,6 +245,20 @@ async def send_broadcast(ctx: dict[str, Any], broadcast_id: str) -> None:
                         media_type=media_type,
                         reply_markup=markup,
                     )
+                except (TelegramForbiddenError, TelegramBadRequest) as exc:
+                    logger.warning("broadcast to client {} telegram error: {}", c_id, exc)
+                    et = classify_broadcast_send_error(exc)
+                    async with factory() as session:
+                        rec = await session.get(BroadcastRecipient, (b_id, c_id))
+                        if rec and rec.sent_at is None:
+                            rec.status = BroadcastRecipientStatus.failed
+                            rec.error = str(exc)[:500]
+                            rec.error_type = et
+                            rec.sent_at = clock.utc_now()
+                            await bump_broadcast_stats(
+                                session, b_id, failed_delta=1, error_type=et
+                            )
+                            await session.commit()
                 except Exception as exc:
                     logger.exception("broadcast to client {} failed: {}", c_id, exc)
                     async with factory() as session:
@@ -237,8 +266,11 @@ async def send_broadcast(ctx: dict[str, Any], broadcast_id: str) -> None:
                         if rec and rec.sent_at is None:
                             rec.status = BroadcastRecipientStatus.failed
                             rec.error = str(exc)[:500]
+                            rec.error_type = "other"
                             rec.sent_at = clock.utc_now()
-                            await _bump_stats_locked(session, b_id, failed_delta=1)
+                            await bump_broadcast_stats(
+                                session, b_id, failed_delta=1, error_type="other"
+                            )
                             await session.commit()
                 else:
                     async with factory() as session:
@@ -246,36 +278,14 @@ async def send_broadcast(ctx: dict[str, Any], broadcast_id: str) -> None:
                         if rec and rec.sent_at is None:
                             rec.status = BroadcastRecipientStatus.delivered
                             rec.error = None
+                            rec.error_type = None
                             rec.sent_at = clock.utc_now()
-                            await _bump_stats_locked(
-                                session, b_id, sent_delta=1, delivered_delta=1
-                            )
+                            await bump_broadcast_stats(session, b_id, delivered_delta=1)
                             await session.commit()
                 await asyncio.sleep(_MSG_INTERVAL)
 
     finally:
         await bot.session.close()
-
-
-async def _bump_stats_locked(
-    session: AsyncSession,
-    broadcast_id: UUID,
-    *,
-    sent_delta: int = 0,
-    delivered_delta: int = 0,
-    failed_delta: int = 0,
-) -> None:
-    bc = await session.get(Broadcast, broadcast_id, with_for_update=True)
-    if bc is None:
-        return
-    stats = dict(bc.stats or {})
-    if sent_delta:
-        stats["sent"] = int(stats.get("sent", 0)) + sent_delta
-    if delivered_delta:
-        stats["delivered"] = int(stats.get("delivered", 0)) + delivered_delta
-    if failed_delta:
-        stats["failed"] = int(stats.get("failed", 0)) + failed_delta
-    bc.stats = stats
 
 
 def _render_trigger_text(

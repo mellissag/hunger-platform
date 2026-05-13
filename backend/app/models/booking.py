@@ -27,6 +27,7 @@ from app.models.enums import BookingCreatedVia, BookingStatus, PrepaymentStatus
 from app.models.mixins import CreatedAtMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.broadcast import Broadcast
     from app.models.catalog import Service
     from app.models.client import Client
     from app.models.master import Master
@@ -101,6 +102,11 @@ class Booking(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         nullable=False,
         default=BookingCreatedVia.bot,
     )
+    broadcast_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("broadcast.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancellation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -118,6 +124,7 @@ class Booking(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     service: Mapped["Service | None"] = relationship("Service", foreign_keys=[service_id])
     master: Mapped["Master | None"] = relationship("Master", foreign_keys=[master_id])
     client: Mapped["Client"] = relationship("Client", foreign_keys=[client_id])
+    broadcast: Mapped["Broadcast | None"] = relationship("Broadcast", foreign_keys=[broadcast_id])
 
 
 class Review(UUIDPrimaryKeyMixin, Base):

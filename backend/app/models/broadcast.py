@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import DateTime, ForeignKey, Text, Uuid, func, text
+from sqlalchemy import DateTime, ForeignKey, String, Text, Uuid, func, text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -14,6 +14,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from app.models.enums import BroadcastRecipientStatus, BroadcastStatus
 from app.models.mixins import UUIDPrimaryKeyMixin
+
+if TYPE_CHECKING:
+    from app.models.client import Client
 
 
 class Broadcast(UUIDPrimaryKeyMixin, Base):
@@ -87,5 +90,15 @@ class BroadcastRecipient(Base):
     )
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    clicked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    bot_opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    booking_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("booking.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    error_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    unsubscribed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     broadcast: Mapped[Broadcast] = relationship("Broadcast", back_populates="recipients")
+    client: Mapped["Client"] = relationship("Client", foreign_keys=[client_id])

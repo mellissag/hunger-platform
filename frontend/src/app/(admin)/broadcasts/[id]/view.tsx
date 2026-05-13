@@ -1,50 +1,59 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
+import { BroadcastConversion } from "@/features/broadcasts/BroadcastConversion";
+import { BroadcastEngagement } from "@/features/broadcasts/BroadcastEngagement";
+import { BroadcastErrors } from "@/features/broadcasts/BroadcastErrors";
+import { BroadcastFunnel } from "@/features/broadcasts/BroadcastFunnel";
+import { BroadcastRecipientsTable } from "@/features/broadcasts/BroadcastRecipientsTable";
+import { BroadcastSpeed } from "@/features/broadcasts/BroadcastSpeed";
+import { useBroadcastStats } from "@/hooks/useBroadcasts";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useBroadcastRecipients } from "@/hooks/useBroadcasts";
-import { apiJson } from "@/lib/api";
-import type { BroadcastOut } from "@/types/admin-api";
-import { useQuery } from "@tanstack/react-query";
+
+const STATUS_I18N: Record<string, string> = {
+  draft: "statusDraft",
+  scheduled: "statusScheduled",
+  sending: "statusSending",
+  sent: "statusSent",
+  failed: "statusFailed",
+};
 
 export function BroadcastAnalytics({ id }: { id: string }) {
   const t = useTranslations("pages.broadcasts");
+  const ts = useTranslations("pages.broadcasts.stats");
   const locale = useLocale();
-  const [filter, setFilter] = useState<"all" | "delivered" | "error">("all");
-  const { data: broadcast, isLoading: bLoading } = useQuery({
-    queryKey: ["broadcast", id],
-    queryFn: () => apiJson<BroadcastOut>(`/broadcasts/${id}`),
-  });
-  const { data: recipients, isLoading: rLoading } = useBroadcastRecipients(id);
+  const { data, isLoading, isError, error } = useBroadcastStats(id);
 
-  const rows = useMemo(() => {
-    const all = recipients ?? [];
-    if (filter === "delivered") return all.filter((x) => x.status === "delivered" || x.status === "sent");
-    if (filter === "error") return all.filter((x) => x.status === "failed");
-    return all;
-  }, [filter, recipients]);
-
-  if (bLoading || rLoading || !broadcast) {
+  if (isLoading || !data) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 p-6">
         <Skeleton className="h-10 w-60" />
         <Skeleton className="h-48 w-full" />
       </div>
     );
   }
 
-  const total = Number(broadcast.stats?.total ?? 0);
-  const delivered = Number(broadcast.stats?.delivered ?? 0);
-  const sent = Number(broadcast.stats?.sent ?? 0);
-  const failed = Number(broadcast.stats?.failed ?? 0);
+  if (isError) {
+    return (
+      <div className="space-y-4 p-6">
+        <p className="text-destructive">{error instanceof Error ? error.message : "Error"}</p>
+        <Button variant="outline" asChild>
+          <Link href="/broadcasts">{t("back")}</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const { broadcast, stats, recipients } = data;
+  const st = broadcast.status;
+  const statusLabelKey = STATUS_I18N[st] ?? "statusDraft";
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-6">
+      <div className="flex flex-col gap-4 border-b border-border pb-4 md:flex-row md:items-start md:justify-between">
         <div>
           <Button variant="ghost" size="sm" asChild>
             <Link href="/broadcasts">← {t("back")}</Link>
@@ -56,56 +65,27 @@ export function BroadcastAnalytics({ id }: { id: string }) {
             )}
           </p>
         </div>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-4">
-        <StatCard title={t("kpiSent")} value={String(sent)} />
-        <StatCard title={t("kpiDelivered")} value={`${delivered} (${pct(delivered, total)}%)`} />
-        <StatCard title={t("kpiRead")} value={`${Math.max(0, delivered - failed)} (${pct(Math.max(0, delivered - failed), total)}%)`} />
-        <StatCard title={t("kpiErrors")} value={`${failed} (${pct(failed, total)}%)`} />
-      </div>
-
-      <div className="flex gap-2">
-        <Button variant={filter === "all" ? "default" : "secondary"} size="sm" onClick={() => setFilter("all")}>
-          {t("all")} ({total})
-        </Button>
-        <Button variant={filter === "delivered" ? "default" : "secondary"} size="sm" onClick={() => setFilter("delivered")}>
-          {t("statusSent")} ({delivered})
-        </Button>
-        <Button variant={filter === "error" ? "default" : "secondary"} size="sm" onClick={() => setFilter("error")}>
-          {t("statusFailed")} ({failed})
-        </Button>
-      </div>
-
-      <div className="rounded-xl border border-border bg-card">
-        <div className="divide-y">
-          {rows.map((r) => (
-            <div key={r.client_id} className="flex items-center justify-between px-4 py-3 text-sm">
-              <span>{r.client_name ?? "—"}</span>
-              <span className="text-muted-foreground">
-                {r.status} ·{" "}
-                {r.sent_at
-                  ? new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(new Date(r.sent_at))
-                  : "—"}
-              </span>
-            </div>
-          ))}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">{ts("header_status")}</span>
+          <span className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium uppercase tracking-wide">
+            {t(statusLabelKey)}
+          </span>
         </div>
       </div>
+
+      <BroadcastFunnel stats={stats} />
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <BroadcastEngagement stats={stats} />
+        <BroadcastConversion stats={stats} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <BroadcastErrors stats={stats} />
+        <BroadcastSpeed stats={stats} />
+      </div>
+
+      <BroadcastRecipientsTable recipients={recipients} />
     </div>
   );
-}
-
-function StatCard({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-      <p className="text-xs uppercase tracking-[0.08em] text-primary">{title}</p>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
-    </div>
-  );
-}
-
-function pct(a: number, b: number) {
-  if (!b) return 0;
-  return Math.round((a / b) * 100);
 }
