@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, X } from "lucide-react";
+import { CheckCircle2, Pencil, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -21,16 +21,23 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useBooking, useCancelBooking, useConfirmBooking, usePatchBooking } from "@/hooks/useBookings";
 import { useDebounce } from "@/hooks/useDebounce";
 import { adminBookingDurationLabel } from "@/lib/booking-duration-label";
-import { durationMinutes } from "@/lib/date-local";
+import { durationMinutes, isoToDateInZone, isoToTimeInZone, zonedToUtcIso } from "@/lib/date-local";
 import type { BookingDetailOut } from "@/types/admin-api";
 import { cn } from "@/lib/utils";
 import { ConsultationScheduleModal } from "./consultation-schedule-modal";
+
+function formatTimeInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
 
 function initials(c: { first_name: string | null; last_name: string | null }): string {
   const a = c.first_name?.[0] ?? "";
@@ -68,6 +75,13 @@ export function BookingDetailDrawer({
   const lastSaved = useRef<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [priceEditOpen, setPriceEditOpen] = useState(false);
+  const [durationEditOpen, setDurationEditOpen] = useState(false);
+  const [datetimeEditOpen, setDatetimeEditOpen] = useState(false);
+  const [draftPrice, setDraftPrice] = useState("");
+  const [draftDurationMin, setDraftDurationMin] = useState("");
+  const [draftDate, setDraftDate] = useState("");
+  const [draftTime, setDraftTime] = useState("");
 
   // Stable ref to always-current patch.mutate — prevents it from being a dep
   const patchMutateRef = useRef(patch.mutate);
@@ -131,7 +145,12 @@ export function BookingDetailDrawer({
     }).format(new Date(data.starts_at));
   }, [data, locale, salonTz, t]);
 
-  const dur = data?.starts_at && data?.ends_at ? durationMinutes(data.starts_at, data.ends_at) : 0;
+  const dur =
+    data?.starts_at && data?.ends_at
+      ? durationMinutes(data.starts_at, data.ends_at)
+      : data?.starts_at && data?.service
+        ? data.service.duration_minutes
+        : 0;
 
   const durDisplay = useMemo(() => {
     if (!data?.service) return "";
@@ -143,6 +162,74 @@ export function BookingDetailDrawer({
   }, [data?.service, t]);
 
   const tgDomain = data?.client.tg_username?.replace(/^@/, "") ?? "";
+  const isPending = data?.status === "pending";
+
+  const savePriceEdit = () => {
+    if (!bookingId || !data) return;
+    const n = Number(draftPrice.replace(",", "."));
+    if (Number.isNaN(n) || n < 0) {
+      toast.error(t("validationRequired"));
+      return;
+    }
+    patch.mutate(
+      { id: bookingId, body: { price: n } },
+      {
+        onSuccess: () => {
+          setPriceEditOpen(false);
+          toast.success(t("toastUpdated"));
+        },
+        onError: () => toast.error(t("notesSaveError")),
+      },
+    );
+  };
+
+  const saveDurationEdit = () => {
+    if (!bookingId || !data?.starts_at) return;
+    const mins = Number.parseInt(draftDurationMin, 10);
+    if (!Number.isFinite(mins) || mins < 1 || mins > 24 * 60) {
+      toast.error(t("validationRequired"));
+      return;
+    }
+    const endsAt = new Date(new Date(data.starts_at).getTime() + mins * 60_000).toISOString();
+    patch.mutate(
+      { id: bookingId, body: { ends_at: endsAt } },
+      {
+        onSuccess: () => {
+          setDurationEditOpen(false);
+          toast.success(t("toastUpdated"));
+        },
+        onError: () => toast.error(t("notesSaveError")),
+      },
+    );
+  };
+
+  const saveDatetimeEdit = () => {
+    if (!bookingId || !data?.starts_at) return;
+    if (!/^\d{2}:\d{2}$/.test(draftTime)) {
+      toast.error(t("validationRequired"));
+      return;
+    }
+    if (!draftDate || draftDate.length < 10) {
+      toast.error(t("validationRequired"));
+      return;
+    }
+    const startsIso = zonedToUtcIso(draftDate, draftTime, salonTz);
+    const mins =
+      data.ends_at && data.starts_at
+        ? durationMinutes(data.starts_at, data.ends_at)
+        : data.service?.duration_minutes ?? 60;
+    const endsIso = new Date(new Date(startsIso).getTime() + mins * 60_000).toISOString();
+    patch.mutate(
+      { id: bookingId, body: { starts_at: startsIso, ends_at: endsIso } },
+      {
+        onSuccess: () => {
+          setDatetimeEditOpen(false);
+          toast.success(t("toastUpdated"));
+        },
+        onError: () => toast.error(t("notesSaveError")),
+      },
+    );
+  };
 
   return (
     <>
@@ -246,17 +333,64 @@ export function BookingDetailDrawer({
                 ) : null}
 
                 <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                  {isPending ? (
+                    <p className="text-[11px] leading-snug text-muted-foreground">{t("pendingSlotEditHint")}</p>
+                  ) : null}
                   <Row label={t("detailService")} value={pickName(data.service.name_i18n, locale)} />
                   <Row
                     label={t("detailMaster")}
                     value={data.any_master ? t("badgeAnyMaster") : data.master?.display_name ?? "—"}
                   />
-                  <Row label={t("detailWhen")} value={fmtWhen} />
+                  <Row
+                    label={t("detailWhen")}
+                    value={fmtWhen}
+                    edit={
+                      isPending && data.starts_at
+                        ? {
+                            ariaLabel: t("editDateTimeAria"),
+                            onClick: () => {
+                              setDraftDate(isoToDateInZone(data.starts_at!, salonTz));
+                              setDraftTime(isoToTimeInZone(data.starts_at!, salonTz));
+                              setDatetimeEditOpen(true);
+                            },
+                          }
+                        : undefined
+                    }
+                  />
                   <Row
                     label={t("detailDuration")}
                     value={durDisplay || (dur > 0 ? t("durationMin", { n: dur }) : "—")}
+                    edit={
+                      isPending && data.starts_at
+                        ? {
+                            ariaLabel: t("editDurationAria"),
+                            onClick: () => {
+                              const dm =
+                                data.starts_at && data.ends_at
+                                  ? durationMinutes(data.starts_at, data.ends_at)
+                                  : (data.service?.duration_minutes ?? 60);
+                              setDraftDurationMin(String(dm));
+                              setDurationEditOpen(true);
+                            },
+                          }
+                        : undefined
+                    }
                   />
-                  <Row label={t("detailPrice")} value={`€${data.price}`} />
+                  <Row
+                    label={t("detailPrice")}
+                    value={`€${data.price}`}
+                    edit={
+                      isPending
+                        ? {
+                            ariaLabel: t("editPriceAria"),
+                            onClick: () => {
+                              setDraftPrice(String(data.price ?? ""));
+                              setPriceEditOpen(true);
+                            },
+                          }
+                        : undefined
+                    }
+                  />
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -295,9 +429,7 @@ export function BookingDetailDrawer({
 
                 {data.status === "pending" && (
                   <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3">
-                    <p className="mb-2 text-xs font-medium text-amber-700">
-                      ⏳ Запись ожидает подтверждения
-                    </p>
+                    <p className="mb-2 text-xs font-medium text-amber-700">{t("pendingAwaitingTitle")}</p>
                     {data.needs_consultation ? (
                       <Button
                         type="button"
@@ -305,7 +437,7 @@ export function BookingDetailDrawer({
                         onClick={() => setScheduleOpen(true)}
                       >
                         <CheckCircle2 className="h-4 w-4" />
-                        Назначить время и подтвердить
+                        {t("scheduleAndConfirm")}
                       </Button>
                     ) : (
                       <Button
@@ -315,14 +447,14 @@ export function BookingDetailDrawer({
                         onClick={() =>
                           confirm.mutate(data.id, {
                             onSuccess: () => {
-                              toast.success("Запись подтверждена ✓");
+                              toast.success(t("bookingConfirmedToast"));
                               void qc.invalidateQueries({ queryKey: ["bookings", "detail", data.id] });
                             },
                           })
                         }
                       >
                         <CheckCircle2 className="h-4 w-4" />
-                        Подтвердить запись
+                        {t("confirmBookingFull")}
                       </Button>
                     )}
                   </div>
@@ -393,15 +525,133 @@ export function BookingDetailDrawer({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={priceEditOpen} onOpenChange={setPriceEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("editPriceTitle")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="booking-edit-price">{t("detailPrice")}</Label>
+            <Input
+              id="booking-edit-price"
+              type="text"
+              inputMode="decimal"
+              value={draftPrice}
+              onChange={(e) => setDraftPrice(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">{t("editPriceHint")}</p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPriceEditOpen(false)}>
+              {t("close")}
+            </Button>
+            <Button type="button" onClick={() => void savePriceEdit()} disabled={patch.isPending}>
+              {t("saveChanges")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={durationEditOpen} onOpenChange={setDurationEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("editDurationTitle")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="booking-edit-duration">{t("editDurationLabel")}</Label>
+            <Input
+              id="booking-edit-duration"
+              type="number"
+              min={1}
+              max={1440}
+              value={draftDurationMin}
+              onChange={(e) => setDraftDurationMin(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDurationEditOpen(false)}>
+              {t("close")}
+            </Button>
+            <Button type="button" onClick={() => void saveDurationEdit()} disabled={patch.isPending}>
+              {t("saveChanges")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={datetimeEditOpen} onOpenChange={setDatetimeEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("editDateTimeTitle")}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="booking-edit-detail-date">{t("fieldDate")}</Label>
+              <Input
+                id="booking-edit-detail-date"
+                type="date"
+                value={draftDate}
+                onChange={(e) => setDraftDate(e.target.value)}
+                onFocus={(e) => e.currentTarget.showPicker?.()}
+                onClick={(e) => e.currentTarget.showPicker?.()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="booking-edit-detail-time">{t("fieldTime")}</Label>
+              <Input
+                id="booking-edit-detail-time"
+                type="text"
+                inputMode="numeric"
+                placeholder="HH:MM"
+                maxLength={5}
+                value={draftTime}
+                onChange={(e) => setDraftTime(formatTimeInput(e.target.value))}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">{t("editDateTimeHint")}</p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDatetimeEditOpen(false)}>
+              {t("close")}
+            </Button>
+            <Button type="button" onClick={() => void saveDatetimeEdit()} disabled={patch.isPending}>
+              {t("saveChanges")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({
+  label,
+  value,
+  edit,
+}: {
+  label: string;
+  value: string;
+  edit?: { ariaLabel: string; onClick: () => void };
+}) {
   return (
     <div className="flex justify-between gap-3">
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium">{value}</span>
+      <div className="flex min-w-0 max-w-[65%] items-center justify-end gap-1">
+        <span className="text-right font-medium">{value}</span>
+        {edit ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-7 w-7 shrink-0"
+            aria-label={edit.ariaLabel}
+            onClick={edit.onClick}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }

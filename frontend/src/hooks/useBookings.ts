@@ -179,8 +179,10 @@ export function usePatchBooking() {
         notes: string | null;
         status: string;
         starts_at: string;
+        ends_at: string | null;
         master_id: string;
         needs_consultation: boolean;
+        price: number | string;
       }>;
     }) =>
       apiJson<BookingOut>(`/bookings/${id}`, {
@@ -188,9 +190,10 @@ export function usePatchBooking() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       }),
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
       await qc.invalidateQueries({ queryKey: ["bookings"] });
       await qc.invalidateQueries({ queryKey: ["schedule"] });
+      await qc.invalidateQueries({ queryKey: ["bookings", "detail", variables.id] });
     },
     onError: (e: Error) => toast.error(e.message),
   });

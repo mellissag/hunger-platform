@@ -29,7 +29,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useBooking, useCreateBooking, usePatchBooking, useScheduleSlots } from "@/hooks/useBookings";
 import { useCreateClient } from "@/hooks/useClients";
 import { apiJson } from "@/lib/api";
-import { isoToDateInZone, isoToTimeInZone, zonedToUtcIso } from "@/lib/date-local";
+import { isoToDateInZone, isoToTimeInZone, zonedToUtcIso, durationMinutes } from "@/lib/date-local";
 import type { ClientOut, MasterOut, Paginated, ServiceOut } from "@/types/admin-api";
 import { toast } from "sonner";
 
@@ -102,6 +102,8 @@ export function BookingCreateDrawer({
   const [clientLabel, setClientLabel] = useState("");
   const [showNewClientModal, setShowNewClientModal] = useState(false);
   const [newClientError, setNewClientError] = useState("");
+  const [editPriceStr, setEditPriceStr] = useState("");
+  const [editDurationMinStr, setEditDurationMinStr] = useState("");
   const [newClientForm, setNewClientForm] = useState({
     first_name: "",
     last_name: "",
@@ -165,6 +167,12 @@ export function BookingCreateDrawer({
 
   useEffect(() => {
     if (!editDetail || !editBookingId) return;
+    setEditPriceStr(String(editDetail.price ?? ""));
+    if (editDetail.starts_at && editDetail.ends_at) {
+      setEditDurationMinStr(String(durationMinutes(editDetail.starts_at, editDetail.ends_at)));
+    } else {
+      setEditDurationMinStr("");
+    }
     form.reset({
       client_id: editDetail.client.id,
       service_id: editDetail.service_id,
@@ -186,6 +194,8 @@ export function BookingCreateDrawer({
       setClientLabel("");
       setShowNewClientModal(false);
       setNewClientError("");
+      setEditPriceStr("");
+      setEditDurationMinStr("");
       form.reset();
     }
   }, [open, form]);
@@ -232,12 +242,26 @@ export function BookingCreateDrawer({
     // which may differ from the salon's timezone and causes hour offset bugs.
     const startsAtUtc = zonedToUtcIso(values.date, values.time, salonTz);
     if (editBookingId) {
+      const patchBody: {
+        starts_at: string;
+        notes: string | null;
+        price?: number;
+        ends_at?: string;
+      } = {
+        starts_at: startsAtUtc,
+        notes: values.notes?.trim() || null,
+      };
+      const p = Number(editPriceStr.replace(",", "."));
+      if (!Number.isNaN(p) && p >= 0) {
+        patchBody.price = p;
+      }
+      const dm = Number.parseInt(editDurationMinStr, 10);
+      if (Number.isFinite(dm) && dm >= 1 && dm <= 24 * 60) {
+        patchBody.ends_at = new Date(new Date(startsAtUtc).getTime() + dm * 60_000).toISOString();
+      }
       await patch.mutateAsync({
         id: editBookingId,
-        body: {
-          starts_at: startsAtUtc,
-          notes: values.notes?.trim() || null,
-        },
+        body: patchBody,
       });
       toast.success(t("toastUpdated"));
     } else {
@@ -423,6 +447,32 @@ export function BookingCreateDrawer({
                 )}
               </div>
             </div>
+
+            {editBookingId ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>{t("detailPrice")} (€)</Label>
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={editPriceStr}
+                    onChange={(e) => setEditPriceStr(e.target.value)}
+                  />
+                  <p className="text-[11px] text-muted-foreground">{t("editPriceHint")}</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("editDurationLabel")}</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={1440}
+                    disabled={!editDetail?.starts_at || !editDetail?.ends_at}
+                    value={editDurationMinStr}
+                    onChange={(e) => setEditDurationMinStr(e.target.value)}
+                  />
+                </div>
+              </div>
+            ) : null}
 
             <div className="space-y-1.5">
               <Label>{t("fieldNotes")}</Label>
