@@ -13,6 +13,7 @@ from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.core.user_page_permissions import default_permissions_for_role
 from app.core.permissions import RolesRequired
 from app.core.security import (
