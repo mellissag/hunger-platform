@@ -82,11 +82,23 @@ def _master_dashboard_disabled() -> dict[str, Any]:
         "show_section_upcoming": False,
         "show_client_names": False,
         "own_clients_only": True,
+        "show_header_actions": False,
+        "show_broadcast_banner": False,
+        "show_bot_banner": False,
+        "show_kpi_revenue_month": False,
+        "show_kpi_new_clients_week": False,
+        "show_kpi_retention": False,
+        "show_revenue_chart": False,
+        "show_services_chart": False,
+        "show_activity_today": False,
+        "show_pending_confirmations": False,
+        "show_quick_actions": False,
+        "show_footer_top_master": False,
     }
 
 
 def _master_dashboard_master_defaults() -> dict[str, Any]:
-    """Дефолт для мастера: все блоки дешборда включены, «только свои» — строго по master_id."""
+    """Дефолт для мастера: полный дешборд как у салона; баннеры бота/рассылок по умолчанию выкл."""
     return {
         "enabled": True,
         "show_kpi_bookings_today": True,
@@ -97,6 +109,39 @@ def _master_dashboard_master_defaults() -> dict[str, Any]:
         "show_section_upcoming": True,
         "show_client_names": True,
         "own_clients_only": True,
+        "show_header_actions": True,
+        "show_broadcast_banner": False,
+        "show_bot_banner": False,
+        "show_kpi_revenue_month": True,
+        "show_kpi_new_clients_week": True,
+        "show_kpi_retention": True,
+        "show_revenue_chart": True,
+        "show_services_chart": True,
+        "show_activity_today": True,
+        "show_pending_confirmations": True,
+        "show_quick_actions": True,
+        "show_footer_top_master": True,
+    }
+
+
+def _salon_dashboard_defaults(*, full: bool) -> dict[str, Any]:
+    """Дешборд салона (/dashboard): admin — все блоки; reception — без баннеров бота/рассылок и «топ мастер»."""
+    return {
+        "enabled": True,
+        "show_header_actions": True,
+        "show_broadcast_banner": full,
+        "show_bot_banner": full,
+        "show_kpi_bookings_today": True,
+        "show_kpi_revenue_month": True,
+        "show_kpi_new_clients_week": True,
+        "show_kpi_retention": True,
+        "show_revenue_chart": True,
+        "show_services_chart": True,
+        "show_activity_today": True,
+        "show_pending_confirmations": True,
+        "show_quick_actions": True,
+        "show_footer_top_master": full,
+        "own_clients_only": False,
     }
 
 
@@ -113,8 +158,24 @@ def _migrate_my_day_to_master_dashboard(tree: dict[str, Any]) -> None:
         md["enabled"] = bool(legacy.get("enabled"))
 
 
+def _migrate_master_dashboard_rich_keys(tree: dict[str, Any]) -> None:
+    """Дополняем master_dashboard новыми ключами из legacy-флагов (если новых ещё нет в сохранённых данных)."""
+    md = tree.get("master_dashboard")
+    if not isinstance(md, dict):
+        return
+    if "show_kpi_revenue_month" not in md and "show_kpi_revenue_today" in md:
+        md["show_kpi_revenue_month"] = bool(md.get("show_kpi_revenue_today"))
+    if "show_kpi_new_clients_week" not in md and "show_kpi_total_clients" in md:
+        md["show_kpi_new_clients_week"] = bool(md.get("show_kpi_total_clients"))
+    if "show_activity_today" not in md and "show_section_today" in md:
+        md["show_activity_today"] = bool(md.get("show_section_today"))
+    if "show_pending_confirmations" not in md and "show_kpi_pending" in md:
+        md["show_pending_confirmations"] = bool(md.get("show_kpi_pending"))
+
+
 def _admin_template() -> dict[str, Any]:
     return {
+        "salon_dashboard": _salon_dashboard_defaults(full=True),
         "master_dashboard": _master_dashboard_disabled(),
         "bookings": {
             "enabled": True,
@@ -203,6 +264,7 @@ def _master_template() -> dict[str, Any]:
 
 def _reception_template() -> dict[str, Any]:
     return {
+        "salon_dashboard": _salon_dashboard_defaults(full=False),
         "master_dashboard": _master_dashboard_disabled(),
         "bookings": {
             "enabled": True,
@@ -296,6 +358,7 @@ def merged_permissions(user: User) -> dict[str, Any]:
         return copy.deepcopy(base)
     merged = deep_merge_permissions(base, stored)
     _migrate_my_day_to_master_dashboard(merged)
+    _migrate_master_dashboard_rich_keys(merged)
     return merged
 
 

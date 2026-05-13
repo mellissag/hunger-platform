@@ -19,21 +19,37 @@ type BlockDef = {
   keys: ReadonlyArray<{ key: string; labelKey: string }>;
 };
 
+const DASHBOARD_KEYS: ReadonlyArray<{ key: string; labelKey: string }> = [
+  { key: "enabled", labelKey: "perm_block_enabled" },
+  { key: "show_header_actions", labelKey: "perm_dash_header_actions" },
+  { key: "show_broadcast_banner", labelKey: "perm_dash_broadcast_banner" },
+  { key: "show_bot_banner", labelKey: "perm_dash_bot_banner" },
+  { key: "show_kpi_bookings_today", labelKey: "perm_dash_kpi_today" },
+  { key: "show_kpi_revenue_month", labelKey: "perm_dash_kpi_revenue_month" },
+  { key: "show_kpi_new_clients_week", labelKey: "perm_dash_kpi_new_clients_week" },
+  { key: "show_kpi_retention", labelKey: "perm_dash_kpi_retention" },
+  { key: "show_revenue_chart", labelKey: "perm_dash_revenue_chart" },
+  { key: "show_services_chart", labelKey: "perm_dash_services_chart" },
+  { key: "show_activity_today", labelKey: "perm_dash_activity_today" },
+  { key: "show_pending_confirmations", labelKey: "perm_dash_pending_confirmations" },
+  { key: "show_quick_actions", labelKey: "perm_dash_quick_actions" },
+  { key: "show_footer_top_master", labelKey: "perm_dash_footer_top_master" },
+];
+
 const BLOCKS: ReadonlyArray<BlockDef> = [
   {
     section: "master_dashboard",
     titleKey: "perm_master_dashboard",
     keys: [
-      { key: "enabled", labelKey: "perm_block_enabled" },
-      { key: "show_kpi_bookings_today", labelKey: "perm_dash_kpi_today" },
-      { key: "show_kpi_pending", labelKey: "perm_dash_kpi_pending" },
-      { key: "show_kpi_revenue_today", labelKey: "perm_dash_kpi_revenue" },
-      { key: "show_kpi_total_clients", labelKey: "perm_dash_kpi_clients" },
-      { key: "show_section_today", labelKey: "perm_dash_section_today" },
-      { key: "show_section_upcoming", labelKey: "perm_dash_section_upcoming" },
+      ...DASHBOARD_KEYS,
       { key: "show_client_names", labelKey: "perm_dash_show_client_names" },
       { key: "own_clients_only", labelKey: "perm_dash_own_clients_only" },
     ],
+  },
+  {
+    section: "salon_dashboard",
+    titleKey: "perm_salon_dashboard",
+    keys: [...DASHBOARD_KEYS, { key: "own_clients_only", labelKey: "perm_dash_own_clients_only_salon" }],
   },
   {
     section: "bookings",
@@ -301,6 +317,7 @@ export function UserPagePermissionsTab({
 
   const visibleBlocks = BLOCKS.filter((b) => {
     if (b.section === "master_dashboard" && userRole !== "master") return false;
+    if (b.section === "salon_dashboard" && userRole !== "admin" && userRole !== "reception") return false;
     return true;
   });
 

@@ -9,7 +9,7 @@ import { apiJson } from "@/lib/api";
 import type { UserMe } from "@/types/admin-api";
 
 export function usePermissions() {
-  const { data: me } = useQuery({
+  const { data: me, isLoading: isMeLoading } = useQuery({
     queryKey: ["auth-me"],
     queryFn: () => apiJson<UserMe>("/auth/me"),
     staleTime: 5 * 60 * 1000,
@@ -37,6 +37,7 @@ export function usePermissions() {
     canExportClients: exportClientsAllowed,
     isOwner: me?.role === "owner",
     isAdmin: me?.role === "owner" || me?.role === "admin",
+    isMeLoading,
     me,
     permUser,
   };

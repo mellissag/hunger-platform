@@ -1,11 +1,10 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   BarChart2,
   Calendar,
-  CalendarDays,
   Check,
   CheckCheck,
   CheckCircle2,
@@ -46,7 +45,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiJson } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { defaultPermissionsForRole } from "@/lib/page-permissions-defaults";
+import { can } from "@/lib/permissions";
 import { useConfirmBooking } from "@/hooks/useBookings";
+import { usePermissions } from "@/hooks/usePermissions";
 import { utcAddDays, utcStartOfDay, toIsoParam } from "@/lib/date-utc";
 import type {
   BookingOut,
@@ -58,7 +60,6 @@ import type {
   Paginated,
   ServiceOut,
   StatsBotResponse,
-  UserMe,
 } from "@/types/admin-api";
 
 const CHART_COLORS = ["#9A7230", "#C9A96E", "#B8A888", "#C8BFA8", "#E4DDD0"];
@@ -77,6 +78,19 @@ const STATUS_STYLES: Record<string, string> = {
   completed:
     "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800",
 };
+
+export type AdminDashboardMode = "admin" | "master";
+
+function mergeDashSection(
+  mode: AdminDashboardMode,
+  role: string,
+  pp: Record<string, Record<string, boolean> | undefined> | null | undefined,
+): Record<string, boolean> | null {
+  const defs = defaultPermissionsForRole(role);
+  const base = mode === "master" ? defs.master_dashboard : defs.salon_dashboard;
+  const over = mode === "master" ? pp?.master_dashboard : pp?.salon_dashboard;
+  return { ...base, ...over };
+}
 
 function sameUtcDay(iso: string, day: Date): boolean {
   const d = new Date(iso);
@@ -123,10 +137,32 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
-export function AdminDashboard() {
+export function AdminDashboard({ mode = "admin" }: { mode?: AdminDashboardMode } = {}) {
   const t = useTranslations("pages.dashboard");
   const locale = useLocale();
   const now = useMemo(() => new Date(), []);
+  const isMaster = mode === "master";
+  const { me, permUser, isMeLoading: meLoading } = usePermissions();
+
+  const fullSalonDash = Boolean(me?.role === "owner" && !isMaster);
+
+  const mergedDash = useMemo(() => {
+    if (!me || fullSalonDash) return null;
+    return mergeDashSection(mode, me.role, permUser?.page_permissions ?? null);
+  }, [me, fullSalonDash, mode, permUser?.page_permissions]);
+
+  const show = (key: string) => fullSalonDash || Boolean(mergedDash?.enabled && mergedDash[key]);
+
+  const canSched = permUser ? can(permUser, "read", "schedule") : false;
+  const canClients = permUser ? can(permUser, "read", "clients") : false;
+  const canBookings = permUser ? can(permUser, "read", "bookings") : false;
+  const canStats = permUser ? can(permUser, "read", "statistics") : false;
+  const canBroadcasts = permUser ? can(permUser, "read", "broadcasts") : false;
+  const canBotStats = me?.role === "owner" || me?.role === "admin";
+  const canMastersFetch = Boolean(permUser?.page_permissions?.specialists?.enabled);
+  const canServicesFetch = Boolean(permUser?.page_permissions?.services?.enabled);
+
+  const maskClientNames = isMaster && !show("show_client_names");
 
   const range30 = useMemo(() => {
     const from = utcStartOfDay(utcAddDays(now, -29));
@@ -134,32 +170,38 @@ export function AdminDashboard() {
     return { from, to };
   }, [now]);
 
-  const { data: me, isLoading: meLoading } = useQuery({
-    queryKey: ["auth", "me"],
-    queryFn: () => apiJson<UserMe>("/auth/me"),
-  });
-
   const { data: cal30, isLoading: calLoading } = useQuery({
-    queryKey: ["schedule", "calendar", range30.from.toISOString(), range30.to.toISOString()],
+    queryKey: ["schedule", "calendar", range30.from.toISOString(), range30.to.toISOString(), mode],
     queryFn: () =>
       apiJson<CalendarResponse>(
         `/schedule/calendar?from=${encodeURIComponent(toIsoParam(range30.from))}&to=${encodeURIComponent(toIsoParam(range30.to))}`,
       ),
+    enabled: Boolean(me) && canSched,
   });
 
+  const needClients =
+    canClients &&
+    (show("show_kpi_new_clients_week") ||
+      show("show_kpi_retention") ||
+      show("show_activity_today") ||
+      show("show_pending_confirmations"));
+
   const { data: clientsPage } = useQuery({
-    queryKey: ["clients", "dash"],
+    queryKey: ["clients", "dash", mode],
     queryFn: () => apiJson<Paginated<ClientOut>>("/clients?page=1&page_size=100"),
+    enabled: Boolean(me) && needClients,
   });
 
   const { data: mastersPage } = useQuery({
-    queryKey: ["masters", "dash"],
+    queryKey: ["masters", "dash", mode],
     queryFn: () => apiJson<Paginated<MasterOut>>("/masters?page=1&page_size=100"),
+    enabled: Boolean(me) && canMastersFetch,
   });
 
   const { data: servicesPage } = useQuery({
-    queryKey: ["services", "dash"],
+    queryKey: ["services", "dash", mode],
     queryFn: () => apiJson<Paginated<ServiceOut>>("/services?page=1&page_size=200"),
+    enabled: Boolean(me) && canServicesFetch && show("show_services_chart"),
   });
 
   const today = useMemo(() => {
@@ -168,19 +210,22 @@ export function AdminDashboard() {
   }, []);
 
   const { data: broadcastsPage } = useQuery({
-    queryKey: ["broadcasts", "dash"],
+    queryKey: ["broadcasts", "dash", mode],
     queryFn: () => apiJson<Paginated<BroadcastOut>>("/broadcasts?page=1&page_size=100"),
+    enabled: Boolean(me) && !isMaster && canBroadcasts && show("show_broadcast_banner"),
   });
 
   const { data: botStatsData, dataUpdatedAt: botStatsUpdatedAt } = useQuery({
-    queryKey: ["stats", "bot", "dash", today],
+    queryKey: ["stats", "bot", "dash", today, mode],
     queryFn: () => apiJson<StatsBotResponse>(`/stats/bot?from=${today}&to=${today}`),
+    enabled: Boolean(me) && !isMaster && canBotStats && show("show_bot_banner"),
   });
 
   const { data: pendingPage, isLoading: pendingLoading } = useQuery({
-    queryKey: ["bookings", "pending", "dash"],
+    queryKey: ["bookings", "pending", "dash", mode],
     queryFn: () => apiJson<Paginated<BookingOut>>("/bookings?page=1&limit=10&status=pending"),
     refetchInterval: 30_000,
+    enabled: Boolean(me) && canBookings && show("show_pending_confirmations"),
   });
 
   const kpis = useMemo(() => {
@@ -243,9 +288,9 @@ export function AdminDashboard() {
     }
     const masters = mastersPage?.items ?? [];
     const topMasterName =
-      topMasterId && masters.length
-        ? (masters.find((m) => m.id === topMasterId)?.display_name ?? null)
-        : null;
+      isMaster || !topMasterId || !masters.length
+        ? null
+        : (masters.find((m) => m.id === topMasterId)?.display_name ?? null);
 
     return {
       todayCount: todayB.length,
@@ -257,7 +302,7 @@ export function AdminDashboard() {
       topMasterName,
       topCount,
     };
-  }, [cal30?.bookings, clientsPage?.items, mastersPage?.items, now]);
+  }, [cal30?.bookings, clientsPage?.items, mastersPage?.items, now, isMaster]);
 
   const pendingBroadcastCount = useMemo(
     () =>
@@ -318,12 +363,12 @@ export function AdminDashboard() {
         const name =
           services.find((s) => s.id === id)?.name_i18n[locale] ??
           services.find((s) => s.id === id)?.name_i18n.en ??
-          id.slice(0, 8);
+          t("serviceUnknown", { id: id.slice(0, 8) });
         return { name, value };
       })
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
-  }, [cal30?.bookings, locale, servicesPage?.items]);
+  }, [cal30?.bookings, locale, servicesPage?.items, t]);
 
   const todayBookings = useMemo(() => {
     const bookings = cal30?.bookings ?? [];
@@ -342,7 +387,8 @@ export function AdminDashboard() {
       .slice(0, 10)
       .map((b) => {
         const client = clients.find((c) => c.id === b.client_id);
-        const cn = [client?.first_name, client?.last_name].filter(Boolean).join(" ") || "—";
+        const rawCn = [client?.first_name, client?.last_name].filter(Boolean).join(" ") || "—";
+        const cn = !canClients || maskClientNames ? "—" : rawCn;
         const mn = masters.find((m) => m.id === b.master_id)?.display_name ?? "—";
         const sn =
           services.find((s) => s.id === b.service_id)?.name_i18n[locale] ??
@@ -350,7 +396,7 @@ export function AdminDashboard() {
           "—";
         return { ...b, cn, mn, sn };
       });
-  }, [cal30?.bookings, clientsPage?.items, locale, mastersPage?.items, now, servicesPage?.items]);
+  }, [cal30?.bookings, clientsPage?.items, locale, mastersPage?.items, now, servicesPage?.items, maskClientNames, canClients]);
 
   const activity = useMemo(() => {
     const bookings = cal30?.bookings ?? [];
@@ -360,10 +406,11 @@ export function AdminDashboard() {
       .slice(0, 6)
       .map((b) => {
         const client = clients.find((c) => c.id === b.client_id);
-        const cn = [client?.first_name, client?.last_name].filter(Boolean).join(" ") || "—";
+        const rawCn = [client?.first_name, client?.last_name].filter(Boolean).join(" ") || "—";
+        const cn = !canClients || maskClientNames ? "—" : rawCn;
         return { ...b, cn };
       });
-  }, [cal30?.bookings, clientsPage?.items]);
+  }, [cal30?.bookings, clientsPage?.items, maskClientNames, canClients]);
 
   const pendingTodayCount = useMemo(
     () => todayBookings.filter((b) => b.status === "pending").length,
@@ -376,7 +423,8 @@ export function AdminDashboard() {
     const services = servicesPage?.items ?? [];
     return (pendingPage?.items ?? []).map((b) => {
       const client = clients.find((c) => c.id === b.client_id);
-      const cn = [client?.first_name, client?.last_name].filter(Boolean).join(" ") || "—";
+      const rawCn = [client?.first_name, client?.last_name].filter(Boolean).join(" ") || "—";
+      const cn = !canClients || maskClientNames ? "—" : rawCn;
       const mn = masters.find((m) => m.id === b.master_id)?.display_name ?? "—";
       const sn =
         services.find((s) => s.id === b.service_id)?.name_i18n[locale] ??
@@ -384,13 +432,56 @@ export function AdminDashboard() {
         "—";
       return { ...b, cn, mn, sn };
     });
-  }, [pendingPage?.items, clientsPage?.items, mastersPage?.items, servicesPage?.items, locale]);
+  }, [pendingPage?.items, clientsPage?.items, mastersPage?.items, servicesPage?.items, locale, maskClientNames, canClients]);
+
+  type QuickItem = { href: string; icon: typeof Plus; label: string; sub: string };
+
+  const quickActionItems = useMemo((): QuickItem[] => {
+    const out: QuickItem[] = [];
+    if (canBookings && permUser && can(permUser, "create", "bookings")) {
+      out.push({
+        href: "/bookings/new",
+        icon: Plus,
+        label: t("qaNewBooking"),
+        sub: t("qaNewBookingSub"),
+      });
+    }
+    if (!isMaster && permUser && can(permUser, "create", "clients")) {
+      out.push({
+        href: "/clients/new",
+        icon: UserPlus,
+        label: t("qaAddClient"),
+        sub: t("qaAddClientSub"),
+      });
+    }
+    if (!isMaster && canBroadcasts) {
+      out.push({
+        href: "/broadcasts",
+        icon: Send,
+        label: t("qaBroadcast"),
+        sub: t("qaBroadcastSub"),
+      });
+    }
+    if (canStats) {
+      out.push({
+        href: "/statistics",
+        icon: BarChart2,
+        label: t("qaReport"),
+        sub: t("qaReportSub"),
+      });
+    }
+    return out;
+  }, [canBookings, permUser, isMaster, canBroadcasts, canStats, t]);
 
   const salonName = me?.email?.split("@")[1]?.split(".")[0] ?? "Salon";
   const displayName = [me?.first_name, me?.last_name].filter(Boolean).join(" ") || me?.email || "";
 
-  if (meLoading || calLoading) {
+  if (meLoading || (canSched && calLoading)) {
     return <DashboardSkeleton />;
+  }
+
+  if (isMaster && mergedDash && !mergedDash.enabled) {
+    return <p className="text-sm text-muted-foreground">{t("masterDashDisabled")}</p>;
   }
 
   const dayLabel = new Intl.DateTimeFormat(locale, {
@@ -418,280 +509,298 @@ export function AdminDashboard() {
           <p className="text-xs text-muted-foreground">{dayLabel}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            href="/bookings"
-            className="inline-flex items-center gap-2 rounded border border-border px-4 py-2 text-xs font-medium uppercase tracking-wider transition-colors hover:border-primary hover:text-primary"
-          >
-            <BarChart2 className="h-3.5 w-3.5" />
-            {t("exportReport")}
-          </Link>
-          <Link
-            href="/bookings/new"
-            className="inline-flex items-center gap-2 rounded bg-primary px-4 py-2 text-xs font-medium uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {t("newBooking")}
-          </Link>
+          {show("show_header_actions") ? (
+            <>
+              <Link
+                href="/bookings"
+                className="inline-flex items-center gap-2 rounded border border-border px-4 py-2 text-xs font-medium uppercase tracking-wider transition-colors hover:border-primary hover:text-primary"
+              >
+                <BarChart2 className="h-3.5 w-3.5" />
+                {t("exportReport")}
+              </Link>
+              <Link
+                href="/bookings/new"
+                className="inline-flex items-center gap-2 rounded bg-primary px-4 py-2 text-xs font-medium uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {t("newBooking")}
+              </Link>
+            </>
+          ) : null}
         </div>
       </div>
 
       {/* ── Alerts ── */}
-      <div className="space-y-2">
-        {pendingBroadcastCount > 0 && (
-          <div className="flex items-start gap-3 rounded border border-amber-200/60 bg-amber-50/60 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/20">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-            <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
-              <strong className="font-semibold text-foreground">
-                {t("alertBroadcastTitle", { count: pendingBroadcastCount })}
-              </strong>{" "}
-              {t("alertBroadcastBody")}
-            </p>
-          </div>
-        )}
-        <div className="flex items-start gap-3 rounded border border-primary/20 bg-primary/5 px-4 py-3">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            {t("alertBotStatus", { bookings: todayBotBookings, syncTime: botSyncTime })}
-          </p>
+      {(show("show_broadcast_banner") || show("show_bot_banner")) && (
+        <div className="space-y-2">
+          {show("show_broadcast_banner") && pendingBroadcastCount > 0 && (
+            <div className="flex items-start gap-3 rounded border border-amber-200/60 bg-amber-50/60 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/20">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                <strong className="font-semibold text-foreground">
+                  {t("alertBroadcastTitle", { count: pendingBroadcastCount })}
+                </strong>{" "}
+                {t("alertBroadcastBody")}
+              </p>
+            </div>
+          )}
+          {show("show_bot_banner") && (
+            <div className="flex items-start gap-3 rounded border border-primary/20 bg-primary/5 px-4 py-3">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {t("alertBotStatus", { bookings: todayBotBookings, syncTime: botSyncTime })}
+              </p>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* ── KPI grid ── */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard
-          testId="dashboard-kpi-today-bookings"
-          icon={Calendar}
-          label={t("kpiBookingsToday")}
-          value={String(kpis.todayCount)}
-          trend={
-            kpis.deltaBookings >= 0
-              ? `↗ +${kpis.deltaBookings} ${t("kpiVsYesterday")}`
-              : `↘ ${kpis.deltaBookings} ${t("kpiVsYesterday")}`
-          }
-          trendUp={kpis.deltaBookings >= 0}
-        />
-        <KpiCard
-          testId="dashboard-kpi-revenue-month"
-          icon={TrendingUp}
-          label={t("kpiRevenueMonth")}
-          value={formatMoney(kpis.revMonth, locale)}
-          trend={
-            kpis.deltaRevPct >= 0
-              ? `↗ +${kpis.deltaRevPct}% ${t("kpiVsPrev")}`
-              : `↘ ${kpis.deltaRevPct}% ${t("kpiVsPrev")}`
-          }
-          trendUp={kpis.deltaRevPct >= 0}
-        />
-        <KpiCard
-          testId="dashboard-kpi-new-clients"
-          icon={Users}
-          label={t("kpiNewClientsWeek")}
-          value={String(kpis.newWeek)}
-          trend={t("kpiWindow7d")}
-          neutral
-        />
-        <KpiCard
-          testId="dashboard-kpi-retention"
-          icon={Star}
-          label={t("kpiRetention")}
-          value={`${kpis.retention}%`}
-          trend={t("kpiRetentionDesc")}
-          neutral
-        />
+        {show("show_kpi_bookings_today") ? (
+          <KpiCard
+            testId="dashboard-kpi-today-bookings"
+            icon={Calendar}
+            label={t("kpiBookingsToday")}
+            value={String(kpis.todayCount)}
+            trend={
+              kpis.deltaBookings >= 0
+                ? `↗ +${kpis.deltaBookings} ${t("kpiVsYesterday")}`
+                : `↘ ${kpis.deltaBookings} ${t("kpiVsYesterday")}`
+            }
+            trendUp={kpis.deltaBookings >= 0}
+          />
+        ) : null}
+        {show("show_kpi_revenue_month") ? (
+          <KpiCard
+            testId="dashboard-kpi-revenue-month"
+            icon={TrendingUp}
+            label={t("kpiRevenueMonth")}
+            value={formatMoney(kpis.revMonth, locale)}
+            trend={
+              kpis.deltaRevPct >= 0
+                ? `↗ +${kpis.deltaRevPct}% ${t("kpiVsPrev")}`
+                : `↘ ${kpis.deltaRevPct}% ${t("kpiVsPrev")}`
+            }
+            trendUp={kpis.deltaRevPct >= 0}
+          />
+        ) : null}
+        {show("show_kpi_new_clients_week") ? (
+          <KpiCard
+            testId="dashboard-kpi-new-clients"
+            icon={Users}
+            label={t("kpiNewClientsWeek")}
+            value={String(kpis.newWeek)}
+            trend={t("kpiWindow7d")}
+            neutral
+          />
+        ) : null}
+        {show("show_kpi_retention") ? (
+          <KpiCard
+            testId="dashboard-kpi-retention"
+            icon={Star}
+            label={t("kpiRetention")}
+            value={`${kpis.retention}%`}
+            trend={t("kpiRetentionDesc")}
+            neutral
+          />
+        ) : null}
       </div>
 
       {/* ── Chart + Pie ── */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>{t("chartRevenueTitle")}</CardTitle>
-              <CardDescription>{t("chartRevenueDesc")}</CardDescription>
-            </div>
-            <Link
-              href="/statistics"
-              className="text-[11px] uppercase tracking-wider text-primary hover:underline"
-            >
-              {t("fullStats")} →
-            </Link>
-          </CardHeader>
-          <CardContent className="h-[220px]">
-            {lineData.every((d) => d.revenue === 0 && d.bookings === 0) ? (
-              <AdminEmptyState title={t("emptyChart")} description={t("emptyChartDesc")} />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={lineData}>
-                  <CartesianGrid strokeDasharray="2 4" className="stroke-border" />
-                  <XAxis dataKey="day" tick={{ fontSize: 10 }} tickLine={false} />
-                  <YAxis allowDecimals={false} width={36} tick={{ fontSize: 10 }} />
-                  <Tooltip />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                  <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    name={t("legendRevenue")}
-                    stroke="#9A7230"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, fill: "#9A7230" }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="bookings"
-                    name={t("legendBookings")}
-                    stroke="#C9A96E"
-                    strokeWidth={1.5}
-                    dot={false}
-                    activeDot={{ r: 3, fill: "#C9A96E" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("chartServicesTitle")}</CardTitle>
-            <CardDescription>{t("chartServicesDesc")}</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[220px]">
-            {pieData.length === 0 ? (
-              <AdminEmptyState title={t("emptyPie")} description={t("emptyPieDesc")} />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={44}
-                    outerRadius={72}
+      {(show("show_revenue_chart") || show("show_services_chart")) && (
+        <div
+          className={`grid gap-4 ${show("show_revenue_chart") && show("show_services_chart") ? "lg:grid-cols-3" : ""}`}
+        >
+          {show("show_revenue_chart") ? (
+            <Card className={show("show_services_chart") ? "lg:col-span-2" : ""}>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>{t("chartRevenueTitle")}</CardTitle>
+                  <CardDescription>{t("chartRevenueDesc")}</CardDescription>
+                </div>
+                {canStats ? (
+                  <Link
+                    href="/statistics"
+                    className="text-[11px] uppercase tracking-wider text-primary hover:underline"
                   >
-                    {pieData.map((row, i) => (
-                      <Cell key={`${row.name}-${i}`} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                    {t("fullStats")} →
+                  </Link>
+                ) : null}
+              </CardHeader>
+              <CardContent className="h-[220px]">
+                {lineData.every((d) => d.revenue === 0 && d.bookings === 0) ? (
+                  <AdminEmptyState title={t("emptyChart")} description={t("emptyChartDesc")} />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={lineData}>
+                      <CartesianGrid strokeDasharray="2 4" className="stroke-border" />
+                      <XAxis dataKey="day" tick={{ fontSize: 10 }} tickLine={false} />
+                      <YAxis allowDecimals={false} width={36} tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                      <Line
+                        type="monotone"
+                        dataKey="revenue"
+                        name={t("legendRevenue")}
+                        stroke="#9A7230"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 4, fill: "#9A7230" }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="bookings"
+                        name={t("legendBookings")}
+                        stroke="#C9A96E"
+                        strokeWidth={1.5}
+                        dot={false}
+                        activeDot={{ r: 3, fill: "#C9A96E" }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {show("show_services_chart") ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("chartServicesTitle")}</CardTitle>
+                <CardDescription>{t("chartServicesDesc")}</CardDescription>
+              </CardHeader>
+              <CardContent className="h-[220px]">
+                {pieData.length === 0 ? (
+                  <AdminEmptyState title={t("emptyPie")} description={t("emptyPieDesc")} />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={44}
+                        outerRadius={72}
+                      >
+                        {pieData.map((row, i) => (
+                          <Cell key={`${row.name}-${i}`} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+      )}
 
       {/* ── Activity today + Right column ── */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>{t("activityTodayTitle")}</CardTitle>
-              <CardDescription>
-                {new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(now)} ·{" "}
-                {todayBookings.length} {t("bookingsCount")}
-                {pendingTodayCount > 0 && (
-                  <span className="ml-2 font-semibold text-amber-600">
-                    · {pendingTodayCount} {t("pendingCountLabel")}
-                  </span>
-                )}
-              </CardDescription>
-            </div>
-            <Link
-              href="/bookings"
-              className="text-[11px] uppercase tracking-wider text-primary hover:underline"
-            >
-              {t("allBookings")} →
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {todayBookings.length === 0 ? (
-              <AdminEmptyState title={t("emptyUpcoming")} description={t("emptyUpcomingDesc")} />
-            ) : (
-              <div className="space-y-0 divide-y divide-border/60">
-                {todayBookings.map((r) => (
-                  <ActivityRow key={r.id} booking={r} locale={locale} />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Right column */}
-        <div className="flex flex-col gap-4">
-          {/* Pending bookings widget */}
-          <PendingBookingsWidget bookings={pendingBookings} total={pendingPage?.total ?? 0} isLoading={pendingLoading} />
-
-          {/* Quick actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("quickActionsTitle")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  {
-                    href: "/bookings/new",
-                    icon: Plus,
-                    label: t("qaNewBooking"),
-                    sub: t("qaNewBookingSub"),
-                  },
-                  {
-                    href: "/clients/new",
-                    icon: UserPlus,
-                    label: t("qaAddClient"),
-                    sub: t("qaAddClientSub"),
-                  },
-                  {
-                    href: "/broadcasts",
-                    icon: Send,
-                    label: t("qaBroadcast"),
-                    sub: t("qaBroadcastSub"),
-                  },
-                  {
-                    href: "/statistics",
-                    icon: BarChart2,
-                    label: t("qaReport"),
-                    sub: t("qaReportSub"),
-                  },
-                ].map(({ href, icon: Icon, label, sub }) => (
+      {(show("show_activity_today") || show("show_pending_confirmations") || show("show_quick_actions")) && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          {show("show_activity_today") ? (
+            <Card className="lg:col-span-2">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>{t("activityTodayTitle")}</CardTitle>
+                  <CardDescription>
+                    {new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(now)} ·{" "}
+                    {todayBookings.length} {t("bookingsCount")}
+                    {pendingTodayCount > 0 && (
+                      <span className="ml-2 font-semibold text-amber-600">
+                        · {pendingTodayCount} {t("pendingCountLabel")}
+                      </span>
+                    )}
+                  </CardDescription>
+                </div>
+                {canBookings ? (
                   <Link
-                    key={href}
-                    href={href}
-                    className="flex flex-col gap-1.5 rounded border border-border bg-muted/40 p-3 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
+                    href="/bookings"
+                    className="text-[11px] uppercase tracking-wider text-primary hover:underline"
                   >
-                    <Icon className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-medium leading-tight">{label}</span>
-                    <span className="text-[10px] text-muted-foreground">{sub}</span>
+                    {t("allBookings")} →
                   </Link>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                ) : null}
+              </CardHeader>
+              <CardContent>
+                {todayBookings.length === 0 ? (
+                  <AdminEmptyState title={t("emptyUpcoming")} description={t("emptyUpcomingDesc")} />
+                ) : (
+                  <div className="space-y-0 divide-y divide-border/60">
+                    {todayBookings.map((r) => (
+                      <ActivityRow key={r.id} booking={r} locale={locale} />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
 
-          {/* Activity feed */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>{t("activityTitle")}</CardTitle>
-                <CardDescription>{t("activityDesc")}</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-0">
-              {activity.length === 0 ? (
-                <AdminEmptyState title={t("emptyActivity")} description={t("emptyActivityDesc")} />
-              ) : (
-                activity.map((b) => <FeedItem key={b.id} booking={b} locale={locale} t={t} />)
-              )}
-            </CardContent>
-          </Card>
+          <div
+            className={`flex flex-col gap-4 ${!show("show_activity_today") ? "lg:col-span-3" : ""}`}
+          >
+            {show("show_pending_confirmations") ? (
+              <PendingBookingsWidget
+                bookings={pendingBookings}
+                total={pendingPage?.total ?? 0}
+                isLoading={pendingLoading}
+              />
+            ) : null}
+
+            {show("show_quick_actions") && quickActionItems.length > 0 ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t("quickActionsTitle")}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-2">
+                    {quickActionItems.map((it) => {
+                      const Icon = it.icon;
+                      return (
+                        <Link
+                          key={it.href}
+                          href={it.href}
+                          className="flex flex-col gap-1.5 rounded border border-border bg-muted/40 p-3 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
+                        >
+                          <Icon className="h-4 w-4 text-primary" />
+                          <span className="text-xs font-medium leading-tight">{it.label}</span>
+                          <span className="text-[10px] text-muted-foreground">{it.sub}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {show("show_activity_today") ? (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>{t("activityTitle")}</CardTitle>
+                    <CardDescription>{t("activityDesc")}</CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-0">
+                  {activity.length === 0 ? (
+                    <AdminEmptyState title={t("emptyActivity")} description={t("emptyActivityDesc")} />
+                  ) : (
+                    activity.map((b) => <FeedItem key={b.id} booking={b} locale={locale} t={t} />)
+                  )}
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Bottom insights ── */}
-      {kpis.topMasterName && (
+      {show("show_footer_top_master") && kpis.topMasterName && (
         <Card>
           <CardHeader>
             <CardTitle>{t("footerTopMaster")}</CardTitle>

@@ -14,6 +14,18 @@ function masterDashboardDisabled(): SectionPerms {
     show_section_upcoming: false,
     show_client_names: false,
     own_clients_only: true,
+    show_header_actions: false,
+    show_broadcast_banner: false,
+    show_bot_banner: false,
+    show_kpi_revenue_month: false,
+    show_kpi_new_clients_week: false,
+    show_kpi_retention: false,
+    show_revenue_chart: false,
+    show_services_chart: false,
+    show_activity_today: false,
+    show_pending_confirmations: false,
+    show_quick_actions: false,
+    show_footer_top_master: false,
   };
 }
 
@@ -28,11 +40,62 @@ function masterDashboardMasterDefaults(): SectionPerms {
     show_section_upcoming: true,
     show_client_names: true,
     own_clients_only: true,
+    show_header_actions: true,
+    show_broadcast_banner: false,
+    show_bot_banner: false,
+    show_kpi_revenue_month: true,
+    show_kpi_new_clients_week: true,
+    show_kpi_retention: true,
+    show_revenue_chart: true,
+    show_services_chart: true,
+    show_activity_today: true,
+    show_pending_confirmations: true,
+    show_quick_actions: true,
+    show_footer_top_master: true,
   };
+}
+
+function salonDashboardFull(): SectionPerms {
+  return {
+    enabled: true,
+    show_header_actions: true,
+    show_broadcast_banner: true,
+    show_bot_banner: true,
+    show_kpi_bookings_today: true,
+    show_kpi_revenue_month: true,
+    show_kpi_new_clients_week: true,
+    show_kpi_retention: true,
+    show_revenue_chart: true,
+    show_services_chart: true,
+    show_activity_today: true,
+    show_pending_confirmations: true,
+    show_quick_actions: true,
+    show_footer_top_master: true,
+    own_clients_only: false,
+  };
+}
+
+function salonDashboardReception(): SectionPerms {
+  return {
+    ...salonDashboardFull(),
+    show_broadcast_banner: false,
+    show_bot_banner: false,
+    show_footer_top_master: false,
+  };
+}
+
+function salonDashboardAllOff(): SectionPerms {
+  const keys = Object.keys(salonDashboardFull()) as (keyof SectionPerms)[];
+  const o: SectionPerms = {};
+  for (const k of keys) {
+    o[k] = false;
+  }
+  return o;
 }
 
 function admin(): PagePermissions {
   return {
+    salon_dashboard: salonDashboardFull(),
     master_dashboard: masterDashboardDisabled(),
     bookings: {
       enabled: true,
@@ -71,6 +134,7 @@ function admin(): PagePermissions {
 
 function master(): PagePermissions {
   return {
+    salon_dashboard: salonDashboardAllOff(),
     master_dashboard: masterDashboardMasterDefaults(),
     bookings: {
       enabled: true,
@@ -109,6 +173,7 @@ function master(): PagePermissions {
 
 function reception(): PagePermissions {
   return {
+    salon_dashboard: salonDashboardReception(),
     master_dashboard: masterDashboardDisabled(),
     bookings: {
       enabled: true,
