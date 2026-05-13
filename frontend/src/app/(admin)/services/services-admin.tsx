@@ -21,13 +21,14 @@ import {
 import { useHealth } from "@/hooks/useServiceStats";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiJson } from "@/lib/api";
+import { apiJson, HttpError } from "@/lib/api";
+import { aiTranslateReadyFromSalon } from "@/lib/aiTranslateReady";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import type { Paginated, ServiceCategoryOut, ServiceOut } from "@/types/admin-api";
+import type { Paginated, ServiceCategoryOut, ServiceOut, SalonBundle } from "@/types/admin-api";
 
 // ── Daily Pick types & helpers ───────────────────────────────────────────────
 
@@ -66,10 +67,19 @@ function pickShowsInMiniApp(p: DailyPickFull): boolean {
 
 function DailyPickBlock() {
   const qc = useQueryClient();
+  const t = useTranslations("pages.services");
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Omit<DailyPickFull, "id">>(emptyPickForm());
   const [activeLang, setActiveLang] = useState<PickLang>("ru");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [pickTranslating, setPickTranslating] = useState(false);
+
+  const { data: salonBundle } = useQuery({
+    queryKey: ["salon"],
+    queryFn: () => apiJson<SalonBundle>("/salon"),
+    staleTime: 60_000,
+  });
+  const translateReady = useMemo(() => aiTranslateReadyFromSalon(salonBundle), [salonBundle]);
 
   const { data: picks = [], isLoading } = useQuery<DailyPickFull[]>({
     queryKey: ["daily-picks-admin"],
@@ -132,6 +142,53 @@ function DailyPickBlock() {
 
   function setField<K extends keyof Omit<DailyPickFull, "id">>(k: K, v: Omit<DailyPickFull, "id">[K]) {
     setForm(f => ({ ...f, [k]: v }));
+  }
+
+  async function handleDailyPickTranslate() {
+    const title = String(form[`title_${activeLang}` as keyof typeof form] ?? "").trim();
+    const tags = String(form[`tags_${activeLang}` as keyof typeof form] ?? "").trim();
+    const buttonText = String(form[`button_text_${activeLang}` as keyof typeof form] ?? "").trim();
+    if (!title && !tags && !buttonText) {
+      toast.error(t("collection.auto_translate_empty"));
+      return;
+    }
+    setPickTranslating(true);
+    try {
+      type Coll = { title: string; tags: string; button_text: string };
+      type TranslatePickRes = {
+        collection: Record<string, Coll> | null;
+      };
+      const res = await apiJson<TranslatePickRes>("/ai/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content_type: "collection",
+          source_lang: activeLang,
+          title,
+          tags,
+          button_text: buttonText,
+        }),
+      });
+      if (!res.collection) {
+        toast.error(t("drawerTranslateError"));
+        return;
+      }
+      const patch: Partial<Omit<DailyPickFull, "id">> = {};
+      for (const lang of PICK_LANGS) {
+        if (lang === activeLang) continue;
+        const c = res.collection[lang];
+        if (!c) continue;
+        (patch as Record<string, string>)[`title_${lang}`] = c.title ?? "";
+        (patch as Record<string, string>)[`tags_${lang}`] = c.tags ?? "";
+        (patch as Record<string, string>)[`button_text_${lang}`] = c.button_text ?? "";
+      }
+      setForm((f) => ({ ...f, ...patch }));
+      toast.success(t("collection.auto_translate_success"));
+    } catch (e) {
+      toast.error(e instanceof HttpError ? e.message : t("drawerTranslateError"));
+    } finally {
+      setPickTranslating(false);
+    }
   }
 
   const isPending = createMut.isPending || updateMut.isPending;
@@ -254,6 +311,18 @@ function DailyPickBlock() {
                 </button>
               ))}
             </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="mb-3"
+              disabled={!translateReady || pickTranslating}
+              title={translateReady ? undefined : t("collection.auto_translate_no_key")}
+              onClick={() => void handleDailyPickTranslate()}
+            >
+              {pickTranslating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {pickTranslating ? t("collection.auto_translate_loading") : t("collection.auto_translate_btn")}
+            </Button>
 
             {PICK_LANGS.map(l => (
               <div key={l} className={cn("space-y-3", activeLang !== l && "hidden")}>

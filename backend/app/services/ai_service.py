@@ -113,6 +113,25 @@ def _parse_translation_json(raw: str) -> dict[str, str]:
     return out
 
 
+def _parse_collection_translation_json(raw: str) -> dict[str, dict[str, str]]:
+    cleaned = _strip_json_fence(raw)
+    data = json.loads(cleaned)
+    if not isinstance(data, dict):
+        raise ValueError("collection translation response is not a JSON object")
+    out: dict[str, dict[str, str]] = {}
+    for k in _LANGS:
+        block = data.get(k)
+        if isinstance(block, dict):
+            out[k] = {
+                "title": str(block.get("title", "") or "").strip(),
+                "tags": str(block.get("tags", "") or "").strip(),
+                "button_text": str(block.get("button_text", "") or "").strip(),
+            }
+        else:
+            out[k] = {"title": "", "tags": "", "button_text": ""}
+    return out
+
+
 async def _gemini_generate_plain(
     *,
     client: genai.Client,
@@ -466,6 +485,86 @@ class AIService:
             if allowed:
                 return {k: parsed.get(k, "") for k in _LANGS if k in allowed}
         return parsed
+
+    async def translate_collection_admin(
+        self,
+        *,
+        source_lang: str,
+        title: str,
+        tags: str,
+        button_text: str,
+    ) -> dict[str, dict[str, str]]:
+        """Перевод блока «подборка дня»: title, tags (через запятую), button_text → JSON по локалям."""
+        sl = source_lang.lower()
+        if sl not in _LANGS:
+            raise ValueError("invalid source_lang")
+
+        salon_row = await self.db.execute(
+            select(Salon, Settings).join(Settings, Settings.salon_id == Salon.id).limit(1)
+        )
+        first = salon_row.first()
+        if not first:
+            raise AIUnavailableError("Salon is not configured.")
+        _salon, salon_settings = first
+        if not salon_settings.ai_enabled:
+            raise AIUnavailableError("AI assistant is disabled in salon settings.")
+
+        provider = _get_provider(salon_settings)
+        raw_model = (salon_settings.ai_model or "").strip()
+        temperature = min(0.9, max(0.1, float(salon_settings.ai_temperature or 0.35)))
+
+        system = (
+            "You are a professional translator for a beauty salon admin UI. "
+            'Context: "daily pick" marketing hero in a client Mini App — short lines only. '
+            'Return ONLY a raw JSON object with exactly these top-level keys: "en", "ru", "uk", "bg". '
+            'Each value must be a JSON object with exactly these string keys: "title", "tags", "button_text". '
+            'For "tags": the input is comma-separated labels — output must remain comma-separated with the same '
+            "number of segments in the same order (translate each segment; use comma+space if natural for that locale). "
+            'Keep "button_text" very short (typical booking CTA). '
+            "If a source field is empty, keep that field empty for every language. "
+            "No markdown code fences, no explanations, no extra keys."
+        )
+        user_prompt = (
+            f'Source language code: "{sl}".\n\n'
+            f"title:\n{title}\n\n"
+            f"tags (comma-separated):\n{tags}\n\n"
+            f"button_text:\n{button_text}\n"
+        )
+
+        if provider == "groq":
+            groq_key = _get_groq_key(salon_settings)
+            groq_model = (
+                raw_model
+                if raw_model and "gemini" not in raw_model.lower() and "models/" not in raw_model
+                else _DEFAULT_GROQ_MODEL
+            )
+            raw_out = await _call_groq(
+                api_key=groq_key,
+                system=system,
+                user_prompt=user_prompt,
+                model=groq_model,
+                temperature=temperature,
+                max_tokens=8192,
+            )
+        else:
+            gemini_key = _get_gemini_key(salon_settings)
+            gemini_client = _make_client(gemini_key)
+            model_name = (raw_model or _DEFAULT_GEN_MODEL).removeprefix("models/")
+            raw_out = await _gemini_generate_plain(
+                client=gemini_client,
+                model_name=model_name,
+                system=system,
+                user_prompt=user_prompt,
+                temperature=temperature,
+            )
+
+        try:
+            parsed = _parse_collection_translation_json(raw_out)
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            raise AIUnavailableError(
+                "Could not parse AI translation. Try again or shorten the text."
+            ) from e
+        return {lang: parsed.get(lang, {"title": "", "tags": "", "button_text": ""}) for lang in _LANGS}
 
     async def test_ask_admin(
         self,

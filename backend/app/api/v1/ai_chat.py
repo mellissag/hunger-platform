@@ -24,13 +24,14 @@ from app.schemas.ai_api import (
     FlagMessageResponse,
     TestChatRequest,
     TestChatResponse,
+    TranslateCollectionLocale,
     TranslateRequest,
     TranslateResponse,
 )
 from app.schemas.common import PaginatedResponse
 from google.genai.errors import ClientError as GenAIClientError
 
-from app.services.ai_service import AIService, gemini_configured
+from app.services.ai_service import AIService
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -79,8 +80,18 @@ async def post_translate(
 ) -> TranslateResponse:
     svc = AIService(db, redis)
     try:
+        if (body.content_type or "plain") == "collection":
+            out_blocks = await svc.translate_collection_admin(
+                source_lang=body.source_lang,
+                title=body.title or "",
+                tags=body.tags or "",
+                button_text=body.button_text or "",
+            )
+            return TranslateResponse(
+                collection={k: TranslateCollectionLocale(**v) for k, v in out_blocks.items()},
+            )
         out = await svc.translate_admin(
-            text=body.text,
+            text=(body.text or "").strip(),
             source_lang=body.source_lang,
             target_langs=body.target_langs,
         )
@@ -89,6 +100,7 @@ async def post_translate(
             ru=out.get("ru", ""),
             uk=out.get("uk", ""),
             bg=out.get("bg", ""),
+            collection=None,
         )
     except GenAIClientError as e:
         status = getattr(e, "status_code", None) or 500

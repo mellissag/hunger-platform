@@ -19,6 +19,11 @@ from app.models.client import Client
 from app.models.color_formula import ColorFormula
 from app.models.enums import UserRole
 from app.models.master import Master
+from app.services.formula_stock import (
+    apply_formula_consumption,
+    load_product_lookup,
+    restore_formula_consumption,
+)
 
 router = APIRouter(prefix="/color-formulas", tags=["color-formulas"])
 client_router = APIRouter(prefix="/clients", tags=["color-formulas"])
@@ -134,6 +139,9 @@ async def create_formula(
     dump["components"] = [c.model_dump() for c in data.components]
     formula = ColorFormula(**dump)
     db.add(formula)
+    await db.flush()
+    lookup = await load_product_lookup(db)
+    await apply_formula_consumption(db, list(formula.components or []), lookup=lookup)
     await db.commit()
     await db.refresh(formula)
     return await _enrich(formula, db)
@@ -188,8 +196,14 @@ async def update_formula(
     dump = data.model_dump(exclude_unset=True)
     if "components" in dump:
         dump["components"] = [c.model_dump() if hasattr(c, "model_dump") else c for c in dump["components"]]
+    lookup = await load_product_lookup(db)
+    if "components" in dump:
+        old_components = list(formula.components or [])
+        await restore_formula_consumption(db, old_components, lookup=lookup)
     for k, v in dump.items():
         setattr(formula, k, v)
+    if "components" in dump:
+        await apply_formula_consumption(db, list(formula.components or []), lookup=lookup)
     await db.commit()
     await db.refresh(formula)
     return await _enrich(formula, db)
@@ -204,6 +218,8 @@ async def delete_formula(
     formula = await db.get(ColorFormula, formula_id)
     if not formula:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
+    lookup = await load_product_lookup(db)
+    await restore_formula_consumption(db, list(formula.components or []), lookup=lookup)
     await db.delete(formula)
     await db.commit()
     return {"ok": True}

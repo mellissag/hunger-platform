@@ -39,7 +39,7 @@
       "masterStats": "My statistics",
       "masterProfile": "My profile",
       "inventory": "Warehouse",
-      "formulas": "Color Formulas",
+      "formulas": "Formulas",
       "chatsBadge": "Soon"
     },
     "topbar": {
@@ -844,7 +844,14 @@
       "colActive": "Active",
       "yes": "Yes",
       "no": "No",
-      "toastSaved": "Saved"
+      "toastSaved": "Saved",
+      "collection": {
+        "auto_translate_btn": "Auto-translate",
+        "auto_translate_loading": "Translating...",
+        "auto_translate_success": "Translated. Please review before saving",
+        "auto_translate_no_key": "Configure AI key in the AI section",
+        "auto_translate_empty": "Enter at least the title, tags, or button text on the active tab"
+      }
     },
     "schedule": {
       "title": "Schedule",
@@ -1553,6 +1560,17 @@
       "minStockField": "Min stock",
       "costPrice": "Price (€)",
       "addProductBtn": "Add item",
+      "stockAdjustTitle": "Edit stock",
+      "stockAdjustDirectionLabel": "Operation type",
+      "stockAdjustTypeAdd": "Add stock",
+      "stockAdjustTypeSubtract": "Write-off",
+      "stockAdjustQuantity": "Quantity",
+      "stockAdjustComment": "Comment (optional)",
+      "stockAdjustSave": "Save",
+      "stockAdjustSuccess": "Stock updated",
+      "stockAdjustProductLabel": "Product",
+      "stockAdjustCurrentLabel": "Current stock",
+      "stockAdjustErrQty": "Enter a quantity greater than zero",
       "statusStockDanger": "Out of stock",
       "statusStockLow": "Low",
       "statusStockModerate": "Moderate",

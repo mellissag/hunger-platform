@@ -845,7 +845,14 @@
       "deleteAreYouSure": "Това действие е необратимо. Сигурни ли сте?",
       "activeInBot": "Активна в бота",
       "hiddenInBot": "Скрита в бота",
-      "syncError": "Грешка при синхронизация"
+      "syncError": "Грешка при синхронизация",
+      "collection": {
+        "auto_translate_btn": "Преведи автоматично",
+        "auto_translate_loading": "Превеждаме...",
+        "auto_translate_success": "Преведено. Прегледайте преди запазване",
+        "auto_translate_no_key": "Конфигурирайте AI ключа в раздел AI",
+        "auto_translate_empty": "Попълнете поне заглавие, тагове или текст на бутона на активния език"
+      }
     },
     "schedule": {
       "title": "График",
@@ -1554,6 +1561,17 @@
       "minStockField": "Мин. наличност",
       "costPrice": "Цена (€)",
       "addProductBtn": "Добави стока",
+      "stockAdjustTitle": "Промяна на наличност",
+      "stockAdjustDirectionLabel": "Тип операция",
+      "stockAdjustTypeAdd": "Приход",
+      "stockAdjustTypeSubtract": "Отписване",
+      "stockAdjustQuantity": "Количество",
+      "stockAdjustComment": "Коментар (по избор)",
+      "stockAdjustSave": "Запази",
+      "stockAdjustSuccess": "Наличността е обновена",
+      "stockAdjustProductLabel": "Артикул",
+      "stockAdjustCurrentLabel": "Текуща наличност",
+      "stockAdjustErrQty": "Въведете количество по-голямо от нула",
       "statusStockDanger": "Няма в наличност",
       "statusStockLow": "Малко",
       "statusStockModerate": "Умерено",

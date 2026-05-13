@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class TestChatRequest(BaseModel):
@@ -23,11 +24,42 @@ class TestChatResponse(BaseModel):
 class TranslateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    text: str = Field(..., min_length=1, max_length=12000)
     source_lang: str = Field(default="en", pattern="^(en|ru|uk|bg)$")
-    """Язык вкладки, с которой взят текст (исходный)."""
+    """Язык вкладки-источника."""
     target_langs: list[str] | None = None
-    """Если null — заполняются все четыре языка (черновики). Иначе только перечисленные коды."""
+    """Если null — все четыре языка. Иначе только перечисленные коды."""
+    content_type: Literal["plain", "collection"] | None = None
+    # ── plain mode
+    text: str | None = Field(default=None, max_length=12000)
+    # ── collection mode (Mini App daily pick)
+    title: str | None = None
+    tags: str | None = None
+    button_text: str | None = None
+
+    @model_validator(mode="after")
+    def _validate_mode(self) -> "TranslateRequest":
+        ct = (self.content_type or "plain").lower()
+        if ct == "collection":
+            if not any(
+                [
+                    (self.title or "").strip(),
+                    (self.tags or "").strip(),
+                    (self.button_text or "").strip(),
+                ],
+            ):
+                raise ValueError("collection: at least one of title, tags, button_text must be non-empty")
+        else:
+            if not (self.text or "").strip():
+                raise ValueError("plain: text is required")
+        return self
+
+
+class TranslateCollectionLocale(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = ""
+    tags: str = ""
+    button_text: str = ""
 
 
 class TranslateResponse(BaseModel):
@@ -35,6 +67,7 @@ class TranslateResponse(BaseModel):
     ru: str = ""
     uk: str = ""
     bg: str = ""
+    collection: dict[str, TranslateCollectionLocale] | None = None
 
 
 class AIConversationOut(BaseModel):

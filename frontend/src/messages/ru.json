@@ -39,7 +39,7 @@
       "masterStats": "Моя статистика",
       "masterProfile": "Мой профиль",
       "inventory": "Склад",
-      "formulas": "Формулы красок",
+      "formulas": "Формулы",
       "chatsBadge": "Скоро"
     },
     "topbar": {
@@ -845,7 +845,14 @@
       "deleteAreYouSure": "Это действие необратимо. Вы уверены?",
       "activeInBot": "Активна в боте",
       "hiddenInBot": "Скрыта в боте",
-      "syncError": "Ошибка синхронизации"
+      "syncError": "Ошибка синхронизации",
+      "collection": {
+        "auto_translate_btn": "Перевести автоматически",
+        "auto_translate_loading": "Переводим...",
+        "auto_translate_success": "Переведено. Проверьте перед сохранением",
+        "auto_translate_no_key": "Настройте AI-ключ в разделе AI",
+        "auto_translate_empty": "Заполните на активной вкладке хотя бы заголовок, теги или текст кнопки"
+      }
     },
     "schedule": {
       "title": "Расписание",
@@ -1554,6 +1561,17 @@
       "minStockField": "Мин. остаток",
       "costPrice": "Цена (€)",
       "addProductBtn": "Добавить товар",
+      "stockAdjustTitle": "Изменить остаток",
+      "stockAdjustDirectionLabel": "Тип операции",
+      "stockAdjustTypeAdd": "Приход",
+      "stockAdjustTypeSubtract": "Списание",
+      "stockAdjustQuantity": "Количество",
+      "stockAdjustComment": "Комментарий (необязательно)",
+      "stockAdjustSave": "Сохранить",
+      "stockAdjustSuccess": "Остаток обновлён",
+      "stockAdjustProductLabel": "Товар",
+      "stockAdjustCurrentLabel": "Текущий остаток",
+      "stockAdjustErrQty": "Укажите количество больше нуля",
       "statusStockDanger": "Нет в наличии",
       "statusStockLow": "Мало",
       "statusStockModerate": "Умеренно",

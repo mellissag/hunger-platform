@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Pencil } from "lucide-react";
+import { toast } from "sonner";
 import { apiJson } from "@/lib/api";
 import { tc } from "@/lib/theme-inline";
 import { MasterDataBadge } from "@/components/layout/MasterDataBadge";
@@ -268,6 +270,7 @@ export function InventoryPage() {
   const [showInvoiceDrawer, setShowInvoiceDrawer] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [expandedInvoice, setExpandedInvoice] = useState<number | null>(null);
+  const [stockAdjustProduct, setStockAdjustProduct] = useState<Product | null>(null);
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["products"],
@@ -391,15 +394,15 @@ export function InventoryPage() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  {[t("colName"), t("colCategory"), t("colUnit"), t("colStatus"), t("colStock"), t("colPrice")].map((h) => (
-                    <th key={h} style={s.th}>{h}</th>
+                  {[t("colName"), t("colCategory"), t("colUnit"), t("colStatus"), t("colStock"), t("colPrice"), ""].map((h, i) => (
+                    <th key={i} style={s.th}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: "center", padding: "60px", color: tc.mutedFg }}>
+                    <td colSpan={7} style={{ textAlign: "center", padding: "60px", color: tc.mutedFg }}>
                       <div style={{ fontSize: "40px", marginBottom: "12px" }}>📦</div>
                       <p>{t("noItems")} {t("noItemsHint")}</p>
                     </td>
@@ -435,6 +438,20 @@ export function InventoryPage() {
                       </td>
                       <td style={{ ...s.td, fontWeight: 500 }}>
                         {p.cost_price ? `€ ${Number(p.cost_price).toFixed(2)}` : "—"}
+                      </td>
+                      <td style={{ ...s.td, width: "52px", textAlign: "right" }}>
+                        <button
+                          type="button"
+                          title={t("stockAdjustTitle")}
+                          onClick={() => setStockAdjustProduct(p)}
+                          style={{
+                            ...s.btnOutline,
+                            padding: "6px 10px",
+                            minWidth: "auto",
+                          }}
+                        >
+                          <Pencil size={16} strokeWidth={2} />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -537,13 +554,156 @@ export function InventoryPage() {
           categories={categories}
           onClose={() => setShowProductModal(false)}
           onSaved={() => {
-            qc.invalidateQueries({ queryKey: ["products"] });
-            qc.invalidateQueries({ queryKey: ["product-categories"] });
-            qc.invalidateQueries({ queryKey: ["inventory-stats"] });
+            void qc.invalidateQueries({ queryKey: ["products"] });
+            void qc.invalidateQueries({ queryKey: ["product-categories"] });
+            void qc.invalidateQueries({ queryKey: ["inventory-stats"] });
             setShowProductModal(false);
           }}
         />
       )}
+      {stockAdjustProduct && (
+        <StockAdjustModal
+          product={stockAdjustProduct}
+          onClose={() => setStockAdjustProduct(null)}
+          onSaved={() => {
+            void qc.invalidateQueries({ queryKey: ["products"] });
+            void qc.invalidateQueries({ queryKey: ["inventory-stats"] });
+            setStockAdjustProduct(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function StockAdjustModal({
+  product,
+  onClose,
+  onSaved,
+}: {
+  product: Product;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const t = useTranslations("pages.inventory");
+  const [direction, setDirection] = useState<"add" | "subtract">("add");
+  const [quantity, setQuantity] = useState("");
+  const [comment, setComment] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setError("");
+    const q = Number.parseFloat(quantity.replace(",", "."));
+    if (!Number.isFinite(q) || q <= 0) {
+      setError(t("stockAdjustErrQty"));
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiJson<Product>(`/inventory/products/${product.id}/adjust-stock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          direction,
+          quantity: q,
+          comment: comment.trim() || null,
+        }),
+      });
+      toast.success(t("stockAdjustSuccess"));
+      onSaved();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : t("errSaveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const overlay: React.CSSProperties = {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.4)",
+    zIndex: 60,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "16px",
+  };
+  const panel: React.CSSProperties = {
+    background: tc.card,
+    border: `1px solid ${tc.border}`,
+    borderRadius: "12px",
+    maxWidth: "420px",
+    width: "100%",
+    padding: "22px 24px",
+    boxShadow: "0 16px 48px rgba(0,0,0,0.15)",
+  };
+
+  return (
+    <div style={overlay} role="presentation" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-labelledby="stock-adjust-title"
+        style={panel}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="stock-adjust-title" style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", margin: "0 0 16px" }}>
+          {t("stockAdjustTitle")}
+        </h2>
+        <div style={{ marginBottom: "12px" }}>
+          <div style={s.label}>{t("stockAdjustProductLabel")}</div>
+          <div style={{ fontSize: "14px", fontWeight: 500 }}>{product.name}</div>
+          {product.sku && <div style={{ fontSize: "12px", color: tc.mutedFg }}>SKU: {product.sku}</div>}
+        </div>
+        <div style={{ marginBottom: "12px" }}>
+          <div style={s.label}>{t("stockAdjustCurrentLabel")}</div>
+          <div style={{ fontSize: "14px" }}>
+            {Number(product.current_stock)} {product.unit}
+          </div>
+        </div>
+        <div style={{ marginBottom: "14px" }}>
+          <div style={s.label}>{t("stockAdjustDirectionLabel")}</div>
+          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginTop: "6px" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "13px" }}>
+              <input type="radio" name="stock-dir" checked={direction === "add"} onChange={() => setDirection("add")} />
+              {t("stockAdjustTypeAdd")}
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "13px" }}>
+              <input type="radio" name="stock-dir" checked={direction === "subtract"} onChange={() => setDirection("subtract")} />
+              {t("stockAdjustTypeSubtract")}
+            </label>
+          </div>
+        </div>
+        <div style={{ marginBottom: "12px" }}>
+          <div style={s.label}>{t("stockAdjustQuantity")}</div>
+          <input
+            type="number"
+            min={0.01}
+            step="any"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            style={{ ...s.input, marginTop: "6px" }}
+          />
+        </div>
+        <div style={{ marginBottom: "16px" }}>
+          <div style={s.label}>{t("stockAdjustComment")}</div>
+          <input
+            type="text"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            style={{ ...s.input, marginTop: "6px" }}
+          />
+        </div>
+        {error && <p style={{ color: "#c0392b", fontSize: "12px", marginBottom: "10px" }}>{error}</p>}
+        <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+          <button type="button" style={s.btnOutline} onClick={onClose} disabled={saving}>
+            {t("cancel")}
+          </button>
+          <button type="button" style={s.btnPrimary} onClick={() => void handleSave()} disabled={saving}>
+            {saving ? t("saving") : t("stockAdjustSave")}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

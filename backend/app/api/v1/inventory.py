@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import desc, distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -16,6 +16,7 @@ from sqlalchemy.orm import selectinload
 from app.deps import get_db, require_roles
 from app.models.enums import UserRole
 from app.models.inventory import Product, ProductWriteOff, SupplyInvoice, SupplyInvoiceItem
+from app.models.user import User
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 
@@ -122,6 +123,12 @@ class WriteOffOut(WriteOffCreate):
     created_at: datetime
 
 
+class StockAdjustRequest(BaseModel):
+    direction: Literal["add", "subtract"]
+    quantity: Decimal = Field(gt=0)
+    comment: Optional[str] = None
+
+
 # ── Products ──────────────────────────────────────────────────────────────────
 
 
@@ -155,7 +162,7 @@ async def list_categories(
 ) -> list[str]:
     result = await db.execute(
         select(distinct(Product.category))
-        .where(Product.is_active == True, Product.category != None)  # noqa: E712
+        .where(Product.is_active == True, Product.category.is_not(None))  # noqa: E712
     )
     db_cats = [r[0] for r in result.fetchall() if r[0]]
     defaults = ["Краски для волос", "Уходовая косметика", "Расходники", "Инструменты"]
@@ -205,6 +212,37 @@ async def delete_product(
     product.is_active = False
     await db.commit()
     return {"ok": True}
+
+
+@router.post("/products/{product_id}/adjust-stock", response_model=ProductOut)
+async def adjust_product_stock(
+    product_id: int,
+    body: StockAdjustRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_roles(*ADMINS)),
+) -> ProductOut:
+    """Ручная корректировка остатка (приход / списание). Допускает отрицательный остаток."""
+    product = await db.get(Product, product_id)
+    if not product:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Товар не найден")
+    q = body.quantity
+    base = product.current_stock or Decimal("0")
+    if body.direction == "add":
+        product.current_stock = base + q
+    else:
+        product.current_stock = base - q
+        db.add(
+            ProductWriteOff(
+                product_id=product_id,
+                quantity=q,
+                reason="manual_adjust",
+                notes=body.comment,
+                written_off_at=datetime.now(timezone.utc),
+            )
+        )
+    await db.commit()
+    await db.refresh(product)
+    return _product_out(product)
 
 
 # ── Supply invoices ────────────────────────────────────────────────────────────

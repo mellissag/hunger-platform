@@ -39,7 +39,7 @@
       "masterStats": "Моя статистика",
       "masterProfile": "Мій профіль",
       "inventory": "Склад",
-      "formulas": "Формули фарб",
+      "formulas": "Формули",
       "chatsBadge": "Скоро"
     },
     "topbar": {
@@ -845,7 +845,14 @@
       "deleteAreYouSure": "Цю дію неможливо скасувати. Ви впевнені?",
       "activeInBot": "Активна в боті",
       "hiddenInBot": "Прихована в боті",
-      "syncError": "Помилка синхронізації"
+      "syncError": "Помилка синхронізації",
+      "collection": {
+        "auto_translate_btn": "Автоперекласти",
+        "auto_translate_loading": "Перекладаємо...",
+        "auto_translate_success": "Перекладено. Перевірте перед збереженням",
+        "auto_translate_no_key": "Налаштуйте AI-ключ у розділі AI",
+        "auto_translate_empty": "На активній вкладці введіть хоча б заголовок, теги або текст кнопки"
+      }
     },
     "schedule": {
       "title": "Розклад",
@@ -1554,6 +1561,17 @@
       "minStockField": "Мін. залишок",
       "costPrice": "Ціна (€)",
       "addProductBtn": "Додати товар",
+      "stockAdjustTitle": "Змінити залишок",
+      "stockAdjustDirectionLabel": "Тип операції",
+      "stockAdjustTypeAdd": "Надходження",
+      "stockAdjustTypeSubtract": "Списання",
+      "stockAdjustQuantity": "Кількість",
+      "stockAdjustComment": "Коментар (необов'язково)",
+      "stockAdjustSave": "Зберегти",
+      "stockAdjustSuccess": "Залишок оновлено",
+      "stockAdjustProductLabel": "Товар",
+      "stockAdjustCurrentLabel": "Поточний залишок",
+      "stockAdjustErrQty": "Вкажіть кількість більше нуля",
       "statusStockDanger": "Немає в наявності",
       "statusStockLow": "Мало",
       "statusStockModerate": "Помірно",

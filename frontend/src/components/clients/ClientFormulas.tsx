@@ -49,6 +49,7 @@ export default function ClientFormulas({ clientId }: { clientId: string }) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["client-formulas", clientId] });
       void qc.invalidateQueries({ queryKey: ["all-formulas"] });
+      void qc.invalidateQueries({ queryKey: ["products"] });
     },
   });
 
@@ -124,6 +125,7 @@ export default function ClientFormulas({ clientId }: { clientId: string }) {
           onSaved={(result) => {
             void qc.invalidateQueries({ queryKey: ["client-formulas", clientId] });
             void qc.invalidateQueries({ queryKey: ["all-formulas"] });
+            void qc.invalidateQueries({ queryKey: ["products"] });
             if (result.isCreate) {
               setEditFormula(result.saved);
               return;
