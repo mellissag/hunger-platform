@@ -25,6 +25,18 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+/** Разбор `detail` из ответа BFF (`{ detail: upstreamJson }`). */
+function extractLoginDetail(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== "object") return undefined;
+  const wrap = (payload as { detail?: unknown }).detail;
+  if (typeof wrap === "string") return wrap;
+  if (wrap && typeof wrap === "object" && "detail" in wrap) {
+    const inner = (wrap as { detail: unknown }).detail;
+    if (typeof inner === "string") return inner;
+  }
+  return undefined;
+}
+
 export default function LoginPage() {
   const t = useTranslations("login");
   const tc = useTranslations("common");
@@ -115,9 +127,23 @@ export default function LoginPage() {
       ok?: boolean;
       redirect?: string;
       error?: string;
+      detail?: unknown;
     };
 
     if (!res.ok) {
+      if (res.status === 429) {
+        setSubmitError(t("errorRateLimit"));
+        return;
+      }
+      if (res.status >= 500) {
+        setSubmitError(t("errorServer"));
+        return;
+      }
+      const apiDetail = extractLoginDetail(data);
+      if (apiDetail === "account_inactive") {
+        setSubmitError(t("errorInactive"));
+        return;
+      }
       setSubmitError(t("error"));
       return;
     }

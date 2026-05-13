@@ -14,7 +14,10 @@
     "email": "Email",
     "password": "Password",
     "submit": "Sign in",
-    "error": "Invalid email or password"
+    "error": "Invalid email or password",
+    "errorInactive": "This account is disabled. Ask the salon administrator to restore access.",
+    "errorRateLimit": "Too many sign-in attempts. Please wait and try again.",
+    "errorServer": "The server is temporarily unavailable. Please try again in a moment."
   },
   "layout": {
     "nav": {

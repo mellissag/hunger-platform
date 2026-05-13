@@ -45,6 +45,26 @@ async def test_login_wrong_password(test_user_owner, client: AsyncClient, rate_b
 
 
 @pytest.mark.asyncio
+async def test_login_inactive_account_correct_password(
+    test_user_owner, client: AsyncClient, rate_bucket
+) -> None:
+    factory = get_async_session_factory()
+    async with factory() as db:
+        u = await db.get(User, test_user_owner)
+        assert u is not None
+        u.is_active = False
+        await db.commit()
+
+    r = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "owner@example.com", "password": "secretpass12"},
+        headers={"X-Test-Rate-Bucket": rate_bucket},
+    )
+    assert r.status_code == 403
+    assert r.json().get("detail") == "account_inactive"
+
+
+@pytest.mark.asyncio
 async def test_login_rate_limited(test_user_owner, client: AsyncClient, rate_bucket) -> None:
     url = "/api/v1/auth/login"
     body = {"email": "owner@example.com", "password": "wrong"}
