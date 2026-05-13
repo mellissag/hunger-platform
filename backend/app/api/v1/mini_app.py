@@ -9,7 +9,7 @@ import urllib.parse
 import uuid
 from datetime import timedelta
 from decimal import Decimal
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials
@@ -1072,6 +1072,7 @@ class MiniAppDailyPickOut(_BM):
     service_id: str | None = None
     button_text: str | None = None
     button_url: str | None = None
+    button_type: Literal["url", "mini_app"] = "url"
     active: bool = True
 
 
@@ -1089,11 +1090,67 @@ class DailyPickUpsert(_BM):
     button_text_uk: str = ""
     button_text_bg: str = ""
     button_url: str = ""
+    button_type: Literal["url", "mini_app"] = "url"
     price: float | None = None
     service_id: str | None = None
     active: bool = True
     valid_from: str | None = None
     valid_to: str | None = None
+
+
+class DailyPickFull(_BM):
+    id: str
+    title_ru: str
+    title_en: str
+    title_uk: str
+    title_bg: str
+    tags_ru: str
+    tags_en: str
+    tags_uk: str
+    tags_bg: str
+    button_text_ru: str
+    button_text_en: str
+    button_text_uk: str
+    button_text_bg: str
+    button_url: str
+    button_type: Literal["url", "mini_app"] = "url"
+    price: float | None = None
+    service_id: str | None = None
+    active: bool
+    valid_from: str | None = None
+    valid_to: str | None = None
+
+
+def _daily_pick_button_type(pick: Any) -> Literal["url", "mini_app"]:
+    raw = (getattr(pick, "button_type", None) or "url")
+    if isinstance(raw, str):
+        raw = raw.strip().lower()
+    return "mini_app" if raw == "mini_app" else "url"
+
+
+def _daily_pick_full_from_orm(p: Any) -> DailyPickFull:
+    return DailyPickFull(
+        id=str(p.id),
+        title_ru=p.title_ru or "",
+        title_en=p.title_en or "",
+        title_uk=p.title_uk or "",
+        title_bg=p.title_bg or "",
+        tags_ru=p.tags_ru or "",
+        tags_en=p.tags_en or "",
+        tags_uk=p.tags_uk or "",
+        tags_bg=p.tags_bg or "",
+        button_text_ru=p.button_text_ru or "",
+        button_text_en=p.button_text_en or "",
+        button_text_uk=p.button_text_uk or "",
+        button_text_bg=p.button_text_bg or "",
+        button_url=p.button_url or "",
+        button_type=_daily_pick_button_type(p),
+        price=float(p.price) if p.price is not None else None,
+        service_id=str(p.service_id) if p.service_id else None,
+        active=p.active,
+        valid_from=p.valid_from.isoformat() if p.valid_from else None,
+        valid_to=p.valid_to.isoformat() if p.valid_to else None,
+    )
 
 
 @router.get("/daily-pick", response_model=list[MiniAppDailyPickOut])
@@ -1140,15 +1197,16 @@ async def get_daily_pick(
             service_id=str(pick.service_id) if pick.service_id else None,
             button_text=button_text or None,
             button_url=pick.button_url or None,
+            button_type=_daily_pick_button_type(pick),
             active=True,
         ))
     return out
 
 
-@router.get("/daily-pick/admin", response_model=list[MiniAppDailyPickOut])
+@router.get("/daily-pick/admin", response_model=list[DailyPickFull])
 async def list_daily_picks_admin(
     db: AsyncSession = Depends(get_db),
-) -> list[MiniAppDailyPickOut]:
+) -> list[DailyPickFull]:
     """Admin: list all daily picks."""
     from app.models.daily_pick import DailyPick
 
@@ -1156,43 +1214,7 @@ async def list_daily_picks_admin(
         await db.execute(select(DailyPick).order_by(DailyPick.updated_at.desc()))
     ).scalars().all()
 
-    out = []
-    for p in rows:
-        raw = p.tags_ru or ""
-        tags = [t.strip() for t in raw.split(",") if t.strip()]
-        out.append(MiniAppDailyPickOut(
-            id=str(p.id),
-            title=p.title_ru or p.title_en or "",
-            tags=tags,
-            price=float(p.price) if p.price is not None else None,
-            service_id=str(p.service_id) if p.service_id else None,
-            button_text=p.button_text_ru or None,
-            button_url=p.button_url or None,
-            active=p.active,
-        ))
-    return out
-
-
-class DailyPickFull(_BM):
-    id: str
-    title_ru: str
-    title_en: str
-    title_uk: str
-    title_bg: str
-    tags_ru: str
-    tags_en: str
-    tags_uk: str
-    tags_bg: str
-    button_text_ru: str
-    button_text_en: str
-    button_text_uk: str
-    button_text_bg: str
-    button_url: str
-    price: float | None = None
-    service_id: str | None = None
-    active: bool
-    valid_from: str | None = None
-    valid_to: str | None = None
+    return [_daily_pick_full_from_orm(p) for p in rows]
 
 
 @router.get("/daily-pick/admin/{pick_id}", response_model=DailyPickFull)
@@ -1208,27 +1230,7 @@ async def get_daily_pick_admin(
     p = await db.get(DailyPick, _uuid.UUID(pick_id))
     if not p:
         raise HTTPException(404, "Not found")
-    return DailyPickFull(
-        id=str(p.id),
-        title_ru=p.title_ru or "",
-        title_en=p.title_en or "",
-        title_uk=p.title_uk or "",
-        title_bg=p.title_bg or "",
-        tags_ru=p.tags_ru or "",
-        tags_en=p.tags_en or "",
-        tags_uk=p.tags_uk or "",
-        tags_bg=p.tags_bg or "",
-        button_text_ru=p.button_text_ru or "",
-        button_text_en=p.button_text_en or "",
-        button_text_uk=p.button_text_uk or "",
-        button_text_bg=p.button_text_bg or "",
-        button_url=p.button_url or "",
-        price=float(p.price) if p.price is not None else None,
-        service_id=str(p.service_id) if p.service_id else None,
-        active=p.active,
-        valid_from=p.valid_from.isoformat() if p.valid_from else None,
-        valid_to=p.valid_to.isoformat() if p.valid_to else None,
-    )
+    return _daily_pick_full_from_orm(p)
 
 
 @router.post("/daily-pick/admin", response_model=DailyPickFull, status_code=201)
@@ -1256,6 +1258,7 @@ async def create_daily_pick(
         button_text_uk=payload.button_text_uk or None,
         button_text_bg=payload.button_text_bg or None,
         button_url=payload.button_url or None,
+        button_type=payload.button_type,
         price=payload.price,
         service_id=_uuid.UUID(payload.service_id) if payload.service_id else None,
         active=payload.active,
@@ -1297,6 +1300,7 @@ async def update_daily_pick(
     p.button_text_uk = payload.button_text_uk or None
     p.button_text_bg = payload.button_text_bg or None
     p.button_url = payload.button_url or None
+    p.button_type = payload.button_type
     p.price = payload.price
     p.service_id = _uuid.UUID(payload.service_id) if payload.service_id else None
     p.active = payload.active

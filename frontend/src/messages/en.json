@@ -850,7 +850,15 @@
         "auto_translate_loading": "Translating...",
         "auto_translate_success": "Translated. Please review before saving",
         "auto_translate_no_key": "Configure AI key in the AI section",
-        "auto_translate_empty": "Enter at least the title, tags, or button text on the active tab"
+        "auto_translate_empty": "Enter at least the title, tags, or button text on the active tab",
+        "button_type_label": "Button type",
+        "button_type_url": "Website link",
+        "button_type_url_hint": "Opens in browser",
+        "button_type_mini_app": "Mini App",
+        "button_type_mini_app_hint": "Opens in Telegram",
+        "button_url_label": "Button link (URL)",
+        "button_url_hint_url": "The link will open in the browser.",
+        "button_url_hint_mini_app": "The link will open as a Telegram Mini App."
       }
     },
     "schedule": {

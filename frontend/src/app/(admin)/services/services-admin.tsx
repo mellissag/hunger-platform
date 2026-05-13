@@ -42,6 +42,7 @@ interface DailyPickFull {
   tags_ru: string; tags_en: string; tags_uk: string; tags_bg: string;
   button_text_ru: string; button_text_en: string; button_text_uk: string; button_text_bg: string;
   button_url: string;
+  button_type: "url" | "mini_app";
   price: number | null;
   service_id: string | null;
   active: boolean;
@@ -54,6 +55,7 @@ const emptyPickForm = (): Omit<DailyPickFull, "id"> => ({
   tags_ru: "", tags_en: "", tags_uk: "", tags_bg: "",
   button_text_ru: "", button_text_en: "", button_text_uk: "", button_text_bg: "",
   button_url: "",
+  button_type: "url",
   price: null, service_id: null, active: true,
   valid_from: null, valid_to: null,
 });
@@ -68,6 +70,7 @@ function pickShowsInMiniApp(p: DailyPickFull): boolean {
 function DailyPickBlock() {
   const qc = useQueryClient();
   const t = useTranslations("pages.services");
+  const tc = useTranslations("pages.services.collection");
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Omit<DailyPickFull, "id">>(emptyPickForm());
   const [activeLang, setActiveLang] = useState<PickLang>("ru");
@@ -132,6 +135,7 @@ function DailyPickBlock() {
       button_text_ru: p.button_text_ru, button_text_en: p.button_text_en,
       button_text_uk: p.button_text_uk, button_text_bg: p.button_text_bg,
       button_url: p.button_url,
+      button_type: p.button_type === "mini_app" ? "mini_app" : "url",
       price: p.price, service_id: p.service_id, active: p.active,
       valid_from: p.valid_from, valid_to: p.valid_to,
     });
@@ -360,16 +364,54 @@ function DailyPickBlock() {
             ))}
           </div>
 
-          {/* Button URL */}
-          <div className="space-y-1.5">
+          {/* Button link type + URL */}
+          <div className="space-y-2">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              Ссылка кнопки (URL)
+              {tc("button_type_label")}
             </Label>
-            <Input
-              value={form.button_url}
-              onChange={e => setField("button_url", e.target.value)}
-              placeholder="https://... или /mini-app/book (если пусто — стандартное бронирование)"
-            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setField("button_type", "url")}
+                className={cn(
+                  "flex-1 rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                  form.button_type === "url"
+                    ? "border-primary bg-primary/10 text-primary font-medium"
+                    : "border-border text-muted-foreground hover:border-primary/50",
+                )}
+              >
+                <p className="font-medium">🔗 {tc("button_type_url")}</p>
+                <p className="opacity-60">{tc("button_type_url_hint")}</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setField("button_type", "mini_app")}
+                className={cn(
+                  "flex-1 rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                  form.button_type === "mini_app"
+                    ? "border-primary bg-primary/10 text-primary font-medium"
+                    : "border-border text-muted-foreground hover:border-primary/50",
+                )}
+              >
+                <p className="font-medium">📱 {tc("button_type_mini_app")}</p>
+                <p className="opacity-60">{tc("button_type_mini_app_hint")}</p>
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                {tc("button_url_label")}
+              </Label>
+              <Input
+                value={form.button_url}
+                onChange={e => setField("button_url", e.target.value)}
+                placeholder="https://... или /mini-app/book (если пусто — стандартное бронирование)"
+              />
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                {form.button_type === "mini_app"
+                  ? tc("button_url_hint_mini_app")
+                  : tc("button_url_hint_url")}
+              </p>
+            </div>
           </div>
 
           {/* Price */}

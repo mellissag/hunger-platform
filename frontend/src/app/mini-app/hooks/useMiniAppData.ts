@@ -274,6 +274,8 @@ export interface DailyPick {
   service_id: string | null;
   button_text: string | null;
   button_url: string | null;
+  /** Defaults to `url` when absent (older API). */
+  button_type?: 'url' | 'mini_app';
 }
 
 export function useDailyPick(lang = 'ru') {

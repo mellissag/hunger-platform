@@ -55,6 +55,10 @@ interface TelegramWebApp {
     notificationOccurred(type: 'error' | 'success' | 'warning'): void;
     selectionChanged(): void;
   };
+  /** Opens http(s) links — typically in the system browser. */
+  openLink?(url: string, options?: { try_instant_view?: boolean }): void;
+  /** Opens `t.me` / `telegram.me` links inside Telegram (incl. other Mini Apps). */
+  openTelegramLink?(url: string): void;
 }
 
 const SESSION_KEY = 'tg_init_data';

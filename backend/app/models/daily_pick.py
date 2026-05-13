@@ -40,6 +40,8 @@ class DailyPick(Base):
     button_text_bg: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     button_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # "url" — open in browser; "mini_app" — open inside Telegram (WebApp APIs)
+    button_type: Mapped[str] = mapped_column(String(20), nullable=False, server_default="url")
 
     price: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

@@ -851,7 +851,15 @@
         "auto_translate_loading": "Переводим...",
         "auto_translate_success": "Переведено. Проверьте перед сохранением",
         "auto_translate_no_key": "Настройте AI-ключ в разделе AI",
-        "auto_translate_empty": "Заполните на активной вкладке хотя бы заголовок, теги или текст кнопки"
+        "auto_translate_empty": "Заполните на активной вкладке хотя бы заголовок, теги или текст кнопки",
+        "button_type_label": "Тип кнопки",
+        "button_type_url": "Ссылка на сайт",
+        "button_type_url_hint": "Откроется браузер",
+        "button_type_mini_app": "Mini App",
+        "button_type_mini_app_hint": "Откроется в Telegram",
+        "button_url_label": "Ссылка кнопки (URL)",
+        "button_url_hint_url": "Ссылка откроется в браузере.",
+        "button_url_hint_mini_app": "Ссылка откроется как Telegram Mini App."
       }
     },
     "schedule": {

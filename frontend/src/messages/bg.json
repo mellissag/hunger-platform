@@ -851,7 +851,15 @@
         "auto_translate_loading": "Превеждаме...",
         "auto_translate_success": "Преведено. Прегледайте преди запазване",
         "auto_translate_no_key": "Конфигурирайте AI ключа в раздел AI",
-        "auto_translate_empty": "Попълнете поне заглавие, тагове или текст на бутона на активния език"
+        "auto_translate_empty": "Попълнете поне заглавие, тагове или текст на бутона на активния език",
+        "button_type_label": "Тип на бутон",
+        "button_type_url": "Връзка към сайт",
+        "button_type_url_hint": "Отваря се в браузър",
+        "button_type_mini_app": "Mini App",
+        "button_type_mini_app_hint": "Отваря се в Telegram",
+        "button_url_label": "Връзка на бутона (URL)",
+        "button_url_hint_url": "Връзката ще се отвори в браузъра.",
+        "button_url_hint_mini_app": "Връзката ще се отвори като Telegram Mini App."
       }
     },
     "schedule": {

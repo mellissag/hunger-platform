@@ -59,7 +59,7 @@ function formatLocalDate(iso: string, daysShort: string[], monthsGen: string[]):
 
 export default function HomePage() {
   const router = useRouter();
-  const { user } = useTelegram();
+  const { user, webApp } = useTelegram();
   const { t, lang } = useT();
   const { data: bookings = [] } = useMyBookings();
   const { data: profile } = useMeProfile();
@@ -242,10 +242,45 @@ export default function HomePage() {
           {dailyPicks.map((pick) => {
             const btnLabel = pick.button_text ?? t.homeBtnBook;
             const handleBtnClick = () => {
-              if (pick.button_url) {
-                window.open(pick.button_url, '_blank', 'noopener,noreferrer');
-              } else {
+              const rawUrl = (pick.button_url ?? '').trim();
+              const mode = pick.button_type === 'mini_app' ? 'mini_app' : 'url';
+              if (!rawUrl) {
                 router.push(pick.service_id ? `/mini-app/catalog/${pick.service_id}` : '/mini-app/book');
+                return;
+              }
+              const tg = webApp ?? (typeof window !== 'undefined' ? window.Telegram?.WebApp : undefined);
+              if (mode === 'mini_app') {
+                try {
+                  const u = new URL(rawUrl, typeof window !== 'undefined' ? window.location.origin : 'https://local.invalid');
+                  if (typeof window !== 'undefined' && u.origin === window.location.origin && u.pathname.startsWith('/mini-app')) {
+                    router.push(`${u.pathname}${u.search}${u.hash}`);
+                    return;
+                  }
+                } catch {
+                  /* ignore invalid URL */
+                }
+                const lower = rawUrl.toLowerCase();
+                if (lower.includes('t.me/') || lower.includes('telegram.me/')) {
+                  if (tg?.openTelegramLink) {
+                    tg.openTelegramLink(rawUrl);
+                  } else if (tg?.openLink) {
+                    tg.openLink(rawUrl);
+                  } else {
+                    window.open(rawUrl, '_blank', 'noopener,noreferrer');
+                  }
+                  return;
+                }
+                if (tg?.openLink) {
+                  tg.openLink(rawUrl);
+                } else {
+                  window.open(rawUrl, '_blank', 'noopener,noreferrer');
+                }
+                return;
+              }
+              if (tg?.openLink) {
+                tg.openLink(rawUrl, { try_instant_view: false });
+              } else {
+                window.open(rawUrl, '_blank', 'noopener,noreferrer');
               }
             };
             return (
