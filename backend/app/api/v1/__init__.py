@@ -20,6 +20,7 @@ from app.api.v1 import (
     masters,
     mini_app,
     notifications,
+    public_api,
     salon,
     schedule,
     segments,
@@ -56,6 +57,7 @@ api_router.include_router(users_admin.router)
 api_router.include_router(audit.router)
 api_router.include_router(notifications.router)
 api_router.include_router(mini_app.router)
+api_router.include_router(public_api.router)
 api_router.include_router(upload.router)
 api_router.include_router(inventory.router)
 api_router.include_router(color_formulas.router)

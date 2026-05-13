@@ -692,7 +692,13 @@
       "saving": "Saving…",
       "statsEmpty": "Statistics",
       "statsEmptyDesc": "Detailed stats will connect to /stats in a later phase.",
-      "notFound": "Master not found"
+      "notFound": "Master not found",
+      "publicTextsTitle": "Mini App — public profile text",
+      "publicTextsDesc": "Shown on the master profile in the Telegram Mini App. Edit all four languages; portfolio and certificates are on their tabs.",
+      "publicBioLabel": "Description ({lang})",
+      "publicSpecLabel": "Short tagline ({lang})",
+      "savePublicTexts": "Save description & tagline",
+      "tabCertificates": "Certificates"
     },
     "services": {
       "pageSubtitle": "· Service Management ·",

@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { useAddReview, useUpdateMaster, useUpdateWorkingHours, useUploadMasterPhoto, type WorkingHoursForm } from "@/hooks/useMasters";
 import { apiFetch, apiFormData, apiJson } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,8 @@ const PRESET_COLORS = [
   "#0891B2",
   "#BE185D",
 ] as const;
+
+const PUB_LANGS = ["en", "ru", "uk", "bg"] as const;
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 function defaultWorkingHours(): WorkingHoursForm {
@@ -111,6 +114,19 @@ export function MasterDetail({ masterId }: { masterId: string }) {
   const [reviewPhotoPreview, setReviewPhotoPreview] = useState<string | null>(null);
   const [profilePhotoBroken, setProfilePhotoBroken] = useState(false);
   const [brokenPortfolio, setBrokenPortfolio] = useState<Record<number, boolean>>({});
+  const [pubLang, setPubLang] = useState<(typeof PUB_LANGS)[number]>("ru");
+  const [bioDraft, setBioDraft] = useState<Record<(typeof PUB_LANGS)[number], string>>({
+    en: "",
+    ru: "",
+    uk: "",
+    bg: "",
+  });
+  const [specDraft, setSpecDraft] = useState<Record<(typeof PUB_LANGS)[number], string>>({
+    en: "",
+    ru: "",
+    uk: "",
+    bg: "",
+  });
   const profilePhotoInputRef = useRef<HTMLInputElement | null>(null);
   const colorPickerInputRef = useRef<HTMLInputElement | null>(null);
   const [credEmail, setCredEmail] = useState("");
@@ -160,6 +176,23 @@ export function MasterDetail({ masterId }: { masterId: string }) {
     setProfilePhotoBroken(false);
     setBrokenPortfolio({});
   }, [master?.id, master?.photo_url, master?.portfolio]);
+  useEffect(() => {
+    if (!master) return;
+    const b = master.bio ?? {};
+    const s = master.specialization ?? {};
+    setBioDraft({
+      en: typeof b.en === "string" ? b.en : "",
+      ru: typeof b.ru === "string" ? b.ru : "",
+      uk: typeof b.uk === "string" ? b.uk : "",
+      bg: typeof b.bg === "string" ? b.bg : "",
+    });
+    setSpecDraft({
+      en: typeof s.en === "string" ? s.en : "",
+      ru: typeof s.ru === "string" ? s.ru : "",
+      uk: typeof s.uk === "string" ? s.uk : "",
+      bg: typeof s.bg === "string" ? s.bg : "",
+    });
+  }, [master?.id, master?.bio, master?.specialization]);
   useEffect(() => {
     setCredEmail(master?.user_email ?? "");
     setCredPassword("");
@@ -271,7 +304,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
         <TabsList className="flex flex-wrap gap-1">
           <TabsTrigger value="profile">{t("tabProfile")}</TabsTrigger>
           <TabsTrigger value="services">{t("tabServices")}</TabsTrigger>
-          <TabsTrigger value="certificates">Сертификаты</TabsTrigger>
+          <TabsTrigger value="certificates">{t("tabCertificates")}</TabsTrigger>
           <TabsTrigger value="portfolio">{t("tabPortfolio")}</TabsTrigger>
           <TabsTrigger value="schedule">{t("tabSchedule")}</TabsTrigger>
           {me?.role !== "reception" ? <TabsTrigger value="stats">{t("tabStats")}</TabsTrigger> : null}
@@ -451,6 +484,72 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                   </Button>
                 </div>
               </form>
+              <Card className="max-w-2xl">
+                <CardHeader>
+                  <CardTitle className="text-base">{t("publicTextsTitle")}</CardTitle>
+                  <CardDescription>{t("publicTextsDesc")}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex flex-wrap gap-1 border-b pb-2">
+                    {PUB_LANGS.map((l) => (
+                      <button
+                        key={l}
+                        type="button"
+                        className={cn(
+                          "rounded border px-3 py-1 text-[11px] font-medium uppercase tracking-wider transition-all",
+                          pubLang === l
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border text-muted-foreground hover:border-primary/40",
+                        )}
+                        onClick={() => setPubLang(l)}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                  {PUB_LANGS.map((l) => (
+                    <div key={l} className={cn("space-y-3", pubLang !== l && "hidden")}>
+                      <div className="space-y-2">
+                        <Label>{t("publicBioLabel", { lang: l.toUpperCase() })}</Label>
+                        <Textarea
+                          rows={5}
+                          value={bioDraft[l]}
+                          onChange={(e) => setBioDraft((d) => ({ ...d, [l]: e.target.value }))}
+                          className="resize-y"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t("publicSpecLabel", { lang: l.toUpperCase() })}</Label>
+                        <Textarea
+                          rows={2}
+                          value={specDraft[l]}
+                          onChange={(e) => setSpecDraft((d) => ({ ...d, [l]: e.target.value }))}
+                          className="resize-y"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={saveProfile.isPending}
+                    onClick={() =>
+                      saveProfile.mutate(
+                        { bio: bioDraft, specialization: specDraft },
+                        {
+                          onSuccess: async () => {
+                            toast.success(t("toastSaved"));
+                            await qc.invalidateQueries({ queryKey: ["master", masterId] });
+                          },
+                          onError: (e: Error) => toast.error(e.message),
+                        },
+                      )
+                    }
+                  >
+                    {t("savePublicTexts")}
+                  </Button>
+                </CardContent>
+              </Card>
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">{t("accountSettings")}</CardTitle>

@@ -11,6 +11,7 @@ import {
   useAvailableSlots,
   useCreateBooking,
   useClientProfile,
+  usePublicMasterProfile,
   pickI18n,
   type Service,
   type Master,
@@ -36,8 +37,8 @@ function getMasterName(m: Master): string {
   return m.display_name ?? m.name ?? '';
 }
 
-function getServiceName(s: Service): string {
-  return pickI18n(s.name_i18n ?? { ru: s.name }, 'ru');
+function getServiceName(s: Service, langCode: string): string {
+  return pickI18n(s.name_i18n ?? { ru: s.name }, langCode);
 }
 
 function getMasterInitials(name: string): string {
@@ -105,6 +106,11 @@ function BookContent() {
 
   const qServiceId = searchParams.get('service_id');
   const qMasterId = searchParams.get('master_id');
+  const masterOnly = Boolean(qMasterId && !qServiceId);
+  const { data: masterPub, isLoading: masterPubLoading, isError: masterPubErr } = usePublicMasterProfile(
+    masterOnly ? qMasterId : null,
+    lang,
+  );
 
   const { data: services = [] } = useServices();
   const { data: categories = [] } = useServiceCategories(lang);
@@ -235,16 +241,39 @@ function BookContent() {
 
   // ── Step 0: Service catalog ──────────────────────────────────────────────
   if (step === 0) {
-    const filtered = services.filter(s => {
+    if (masterOnly && masterPubLoading) {
+      return (
+        <div style={pageBg}>
+          <div style={{ padding: 48, textAlign: 'center', color: MUTED, fontFamily: SERIF }}>{t.loading}</div>
+        </div>
+      );
+    }
+    if (masterOnly && (masterPubErr || !masterPub)) {
+      return (
+        <div style={pageBg}>
+          <div style={{ padding: 48, textAlign: 'center', color: MUTED }}>{t.bookErrorMsg}</div>
+        </div>
+      );
+    }
+    const allowedIds = masterOnly && masterPub ? new Set(masterPub.services.map((s) => s.service_id)) : null;
+    const filtered = services.filter((s) => {
+      if (allowedIds && !allowedIds.has(s.id)) return false;
       if (!activeCatId) return true;
       return s.category_id === activeCatId;
     });
     return (
       <div style={pageBg}>
         <div style={{ padding: '18px 22px 12px' }}>
+          {masterOnly && masterPub ? (
+            <div style={{ fontSize: 12, color: MUTED, marginBottom: 10, lineHeight: 1.45 }}>
+              {t.bookMasterPreHint}
+            </div>
+          ) : null}
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookEyebrow}</div>
           <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.1, marginTop: 10, letterSpacing: '-0.02em' }}>
-            {t.bookCatH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookCatHi}</span>.
+            {masterOnly ? t.bookPickServiceForMaster : (
+              <>{t.bookCatH} <span style={{ fontStyle: 'italic', color: GOLD }}>{t.bookCatHi}</span>.</>
+            )}
           </div>
         </div>
 
@@ -292,7 +321,21 @@ function BookContent() {
           {filtered.map(svc => (
             <button
               key={svc.id}
-              onClick={() => { setSelectedService(svc); setStep(1); }}
+              onClick={() => {
+                if (masterOnly && masterPub) {
+                  setSelectedService(svc);
+                  setSelectedMaster({
+                    id: masterPub.id,
+                    display_name: masterPub.display_name,
+                    name: masterPub.display_name,
+                    photo_url: masterPub.photo_url,
+                  });
+                  setStep(2);
+                } else {
+                  setSelectedService(svc);
+                  setStep(1);
+                }
+              }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 background: 'var(--bg-surface)', border: '1px solid var(--border)',
@@ -301,7 +344,7 @@ function BookContent() {
               }}
             >
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.2 }}>{getServiceName(svc)}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.2 }}>{getServiceName(svc, lang)}</div>
                 <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: MUTED, marginTop: 4 }}>{t.bookDurLabel(svc.duration_minutes)}</div>
               </div>
               <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 500, color: GOLD, marginLeft: 12 }}>€{svc.price}</div>
@@ -326,7 +369,7 @@ function BookContent() {
   if (step === 1) {
     return (
       <div style={pageBg}>
-        <BackBar onBack={handleBackFromMasterStep} label={selectedService ? getServiceName(selectedService) : t.back} />
+        <BackBar onBack={handleBackFromMasterStep} label={selectedService ? getServiceName(selectedService, lang) : t.back} />
         <div style={{ padding: '20px 22px 16px' }}>
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', color: GOLD, textTransform: 'uppercase' }}>{t.bookStep1}</div>
           <div style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600, color: NEAR_BLACK, lineHeight: 1.0, marginTop: 10, letterSpacing: '-0.02em' }}>
@@ -497,7 +540,7 @@ function BookContent() {
     return (
       <div style={pageBg}>
         <BackBar
-          onBack={() => setStep(1)}
+          onBack={() => (masterOnly ? setStep(0) : setStep(1))}
           label={selectedMaster ? getMasterName(selectedMaster) : t.back}
         />
         <div style={{ padding: '20px 22px 10px' }}>
@@ -788,7 +831,7 @@ function BookContent() {
             <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(228,221,208,.8)' }}>
               <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookConfirmServiceLabel}</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>{selectedService ? getServiceName(selectedService) : '—'}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>{selectedService ? getServiceName(selectedService, lang) : '—'}</div>
                 <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 500, color: GOLD }}>€{selectedService?.price}</div>
               </div>
             </div>
@@ -933,7 +976,7 @@ function BookContent() {
               {t.bookConsultYourRequest}
             </div>
             <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>
-              {selectedService ? getServiceName(selectedService) : '—'}
+              {selectedService ? getServiceName(selectedService, lang) : '—'}
             </div>
             <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
               {t.bookConsultTimeNote}

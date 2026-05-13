@@ -153,6 +153,48 @@ export function useMastersByService(serviceId: string | null) {
   });
 }
 
+/** Public master profile (GET /api/v1/public/masters/{id}) — no auth. */
+export interface PublicMasterProfile {
+  id: string;
+  display_name: string;
+  photo_url: string | null;
+  description: string;
+  description_i18n: Record<string, string>;
+  specialization: string;
+  specialization_i18n: Record<string, string>;
+  rating_avg: number | null;
+  rating_count: number;
+  services: Array<{
+    service_id: string;
+    name_i18n: Record<string, string>;
+    price: number;
+    duration_minutes: number;
+    duration_type: string;
+    duration_max_minutes: number | null;
+  }>;
+  reviews: Array<{
+    client_name: string | null;
+    text: string | null;
+    rating: number;
+    created_at: string;
+  }>;
+  reviews_total: number;
+  certificates: Array<{ title: string; year: number | null; photo_url: string | null }>;
+  portfolio_urls: string[];
+}
+
+export function usePublicMasterProfile(masterId: string | null, lang: string) {
+  return useQuery<PublicMasterProfile>({
+    queryKey: ['mini-app', 'public-master', masterId, lang],
+    queryFn: () =>
+      apiFetch<PublicMasterProfile>(
+        `/api/v1/public/masters/${masterId}?lang=${encodeURIComponent(lang)}`,
+      ),
+    enabled: !!masterId,
+    staleTime: 60_000,
+  });
+}
+
 export function useAvailableSlots(
   masterId: string | null,
   serviceId: string | null,

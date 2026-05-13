@@ -376,7 +376,7 @@ export default function ServiceDetailPage() {
               const mName = master.display_name ?? master.name ?? '';
               const spec =
                 typeof master.specialization === 'object'
-                  ? pickI18n(master.specialization as Record<string, string>)
+                  ? pickI18n(master.specialization as Record<string, string>, lang)
                   : (master.specialization ?? '');
               const initials = getMasterInitials(mName);
               const isLast = idx === masters.length - 1;
@@ -389,11 +389,28 @@ export default function ServiceDetailPage() {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 14,
+                    gap: 12,
                     padding: '12px 0',
                     borderBottom: isLast ? 'none' : '1px solid rgba(28,20,9,.06)',
                   }}
                 >
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/mini-app/master/${master.id}`)}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 14,
+                      padding: 0,
+                      margin: 0,
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      minWidth: 0,
+                    }}
+                  >
                   {/* Avatar */}
                   <div
                     style={{
@@ -437,7 +454,7 @@ export default function ServiceDetailPage() {
                   </div>
 
                   {/* Name + spec */}
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
                         fontFamily: SERIF,
@@ -463,6 +480,7 @@ export default function ServiceDetailPage() {
                         color: GOLD,
                         fontSize: 13,
                         fontWeight: 600,
+                        flexShrink: 0,
                       }}
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill={GOLD}>
@@ -476,6 +494,27 @@ export default function ServiceDetailPage() {
                       )}
                     </div>
                   )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/mini-app/book?service_id=${id}&master_id=${master.id}`)}
+                    style={{
+                      flexShrink: 0,
+                      borderRadius: 999,
+                      border: `1px solid rgba(154,114,48,.45)`,
+                      background: 'rgba(154,114,48,.08)',
+                      color: GOLD,
+                      fontSize: 9,
+                      fontWeight: 700,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      padding: '10px 14px',
+                      cursor: 'pointer',
+                      fontFamily: BODY,
+                    }}
+                  >
+                    {t.masterRowSelectBook}
+                  </button>
                 </div>
               );
             })}

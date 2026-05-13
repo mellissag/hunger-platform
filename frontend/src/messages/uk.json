@@ -692,7 +692,13 @@
       "saving": "Збереження…",
       "statsEmpty": "Статистика",
       "statsEmptyDesc": "Деталі підключимо до /stats пізніше.",
-      "notFound": "Майстра не знайдено"
+      "notFound": "Майстра не знайдено",
+      "publicTextsTitle": "Mini App — текст профілю",
+      "publicTextsDesc": "Показується в профілі майстра в Telegram Mini App. Усі 4 мови; портфоліо та сертифікати — на окремих вкладках.",
+      "publicBioLabel": "Опис ({lang})",
+      "publicSpecLabel": "Короткий слоган / спеціалізація ({lang})",
+      "savePublicTexts": "Зберегти опис і слоган",
+      "tabCertificates": "Сертифікати"
     },
     "services": {
       "title": "Послуги",

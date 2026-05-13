@@ -51,6 +51,23 @@ export interface AppTranslations {
   bookBtnConfirm: string; bookBtnPending: string;
   bookSuccessH: string; bookSuccessHi: string; bookSuccessSub: string; bookSuccessBtn: string;
   bookErrorMsg: string;
+  // Master public profile page + catalog row
+  masterProfileBack: string;
+  masterProfileBookWithMaster: string;
+  masterProfileBookService: string;
+  masterProfileReadMore: string;
+  masterProfileReadLess: string;
+  masterProfileSectionServices: string;
+  masterProfileSectionPortfolio: string;
+  masterProfileSectionCertificates: string;
+  masterProfileSectionReviews: string;
+  masterProfileShowAllReviews: string;
+  masterProfileAnonymous: string;
+  masterProfileNoData: string;
+  masterRowSelectBook: string;
+  bookPickServiceForMaster: string;
+  // Booking step 0 when pre-selected master
+  bookMasterPreHint: string;
   // Bookings list
   listEyebrow: string; listH: string; listHi: string;
   listTabUpcoming: string; listTabHistory: string;
@@ -138,6 +155,11 @@ const RU: AppTranslations = {
   bookBtnConfirm: 'Подтвердить запись', bookBtnPending: 'Создаём запись...',
   bookSuccessH: 'Запись', bookSuccessHi: 'создана', bookSuccessSub: 'Ждём вас! Напомним о записи заранее.',
   bookSuccessBtn: 'Мои записи', bookErrorMsg: 'Не удалось создать запись. Попробуйте ещё раз.',
+  masterProfileBack: 'Назад', masterProfileBookWithMaster: 'Записаться к мастеру', masterProfileBookService: 'Записаться',
+  masterProfileReadMore: 'Читать далее', masterProfileReadLess: 'Свернуть',
+  masterProfileSectionServices: 'Услуги', masterProfileSectionPortfolio: 'Портфолио', masterProfileSectionCertificates: 'Сертификаты', masterProfileSectionReviews: 'Отзывы',
+  masterProfileShowAllReviews: 'Показать все', masterProfileAnonymous: 'Анонимно', masterProfileNoData: 'Пока нет данных',
+  masterRowSelectBook: 'Записаться', bookPickServiceForMaster: 'Выберите услугу', bookMasterPreHint: 'Сначала выберите услугу — затем дату и время.',
   listEyebrow: 'Личное', listH: 'Мои', listHi: 'записи',
   listTabUpcoming: 'Предстоящие', listTabHistory: 'Прошедшие',
   listEmpty: 'Пока записей нет', listBtnNew: 'Записаться',
@@ -219,6 +241,11 @@ const EN: AppTranslations = {
   bookBtnConfirm: 'Confirm booking', bookBtnPending: 'Creating booking...',
   bookSuccessH: 'Booking', bookSuccessHi: 'confirmed', bookSuccessSub: "We'll see you! We'll send a reminder.",
   bookSuccessBtn: 'My bookings', bookErrorMsg: 'Could not create booking. Please try again.',
+  masterProfileBack: 'Back', masterProfileBookWithMaster: 'Book with this stylist', masterProfileBookService: 'Book',
+  masterProfileReadMore: 'Read more', masterProfileReadLess: 'Show less',
+  masterProfileSectionServices: 'Services', masterProfileSectionPortfolio: 'Portfolio', masterProfileSectionCertificates: 'Certificates', masterProfileSectionReviews: 'Reviews',
+  masterProfileShowAllReviews: 'Show all', masterProfileAnonymous: 'Anonymous', masterProfileNoData: 'Nothing here yet',
+  masterRowSelectBook: 'Book', bookPickServiceForMaster: 'Choose a service', bookMasterPreHint: 'Pick a service, then date and time.',
   listEyebrow: 'Personal', listH: 'My', listHi: 'bookings',
   listTabUpcoming: 'Upcoming', listTabHistory: 'History',
   listEmpty: 'No bookings yet', listBtnNew: 'Book',
@@ -300,6 +327,11 @@ const UK: AppTranslations = {
   bookBtnConfirm: 'Підтвердити запис', bookBtnPending: 'Створюємо запис...',
   bookSuccessH: 'Запис', bookSuccessHi: 'створено', bookSuccessSub: 'Чекаємо вас! Нагадаємо про запис заздалегідь.',
   bookSuccessBtn: 'Мої записи', bookErrorMsg: 'Не вдалося створити запис. Спробуйте ще раз.',
+  masterProfileBack: 'Назад', masterProfileBookWithMaster: 'Записатися до майстра', masterProfileBookService: 'Записатися',
+  masterProfileReadMore: 'Читати далі', masterProfileReadLess: 'Згорнути',
+  masterProfileSectionServices: 'Послуги', masterProfileSectionPortfolio: 'Портфоліо', masterProfileSectionCertificates: 'Сертифікати', masterProfileSectionReviews: 'Відгуки',
+  masterProfileShowAllReviews: 'Показати всі', masterProfileAnonymous: 'Анонімно', masterProfileNoData: 'Поки немає даних',
+  masterRowSelectBook: 'Записатися', bookPickServiceForMaster: 'Оберіть послугу', bookMasterPreHint: 'Спочатку послугу — потім дату й час.',
   listEyebrow: 'Особисте', listH: 'Мої', listHi: 'записи',
   listTabUpcoming: 'Майбутні', listTabHistory: 'Минулі',
   listEmpty: 'Поки немає записів', listBtnNew: 'Записатись',
@@ -381,6 +413,11 @@ const BG: AppTranslations = {
   bookBtnConfirm: 'Потвърди записа', bookBtnPending: 'Създаваме запис...',
   bookSuccessH: 'Записът е', bookSuccessHi: 'създаден', bookSuccessSub: 'Очакваме ви! Ще ви напомним предварително.',
   bookSuccessBtn: 'Моите записи', bookErrorMsg: 'Неуспешно създаване. Моля, опитайте отново.',
+  masterProfileBack: 'Назад', masterProfileBookWithMaster: 'Запиши се при майстора', masterProfileBookService: 'Запиши се',
+  masterProfileReadMore: 'Още', masterProfileReadLess: 'По-малко',
+  masterProfileSectionServices: 'Услуги', masterProfileSectionPortfolio: 'Портфолио', masterProfileSectionCertificates: 'Сертификати', masterProfileSectionReviews: 'Отзиви',
+  masterProfileShowAllReviews: 'Всички', masterProfileAnonymous: 'Анонимно', masterProfileNoData: 'Все още няма данни',
+  masterRowSelectBook: 'Запиши се', bookPickServiceForMaster: 'Изберете услуга', bookMasterPreHint: 'Първо услуга — после дата и час.',
   listEyebrow: 'Лично', listH: 'Моите', listHi: 'записи',
   listTabUpcoming: 'Предстоящи', listTabHistory: 'Минали',
   listEmpty: 'Засега няма записи', listBtnNew: 'Запиши се',
