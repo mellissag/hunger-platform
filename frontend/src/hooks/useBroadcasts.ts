@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { apiFetch, apiJson } from "@/lib/api";
+import { apiFetch, apiJson, HttpError } from "@/lib/api";
 import type { BroadcastOut } from "@/types/admin-api";
 
 export type BroadcastCreatePayload = {
@@ -52,14 +52,41 @@ export type BroadcastStatsPayload = {
   broadcast: BroadcastOut;
   stats: Record<string, unknown>;
   recipients: BroadcastRecipient[];
+  /** true when /stats was missing (old backend) and we merged GET broadcast + recipients */
+  _usedLegacyStatsFetch?: boolean;
 };
+
+async function fetchBroadcastStatsPayload(id: string): Promise<BroadcastStatsPayload> {
+  try {
+    return await apiJson<BroadcastStatsPayload>(`/broadcasts/${id}/stats`);
+  } catch (e) {
+    if (e instanceof HttpError && e.status === 404) {
+      const [broadcast, recipients] = await Promise.all([
+        apiJson<BroadcastOut>(`/broadcasts/${id}`),
+        apiJson<BroadcastRecipient[]>(`/broadcasts/${id}/recipients`),
+      ]);
+      return {
+        broadcast,
+        stats: (broadcast.stats ?? {}) as Record<string, unknown>,
+        recipients,
+        _usedLegacyStatsFetch: true,
+      };
+    }
+    throw e;
+  }
+}
 
 export const useBroadcastStats = (id: string | null) =>
   useQuery({
     queryKey: ["broadcast-stats", id],
-    queryFn: () => apiJson<BroadcastStatsPayload>(`/broadcasts/${id}/stats`),
+    queryFn: () => fetchBroadcastStatsPayload(id!),
     enabled: Boolean(id),
-    refetchInterval: 5000,
+    refetchInterval: (query) => {
+      const d = query.state.data;
+      if (!d) return false;
+      if (d._usedLegacyStatsFetch) return false;
+      return d.broadcast.status === "sending" ? 5000 : false;
+    },
   });
 
 export const useBroadcasts = (page = 1, pageSize = 20) =>

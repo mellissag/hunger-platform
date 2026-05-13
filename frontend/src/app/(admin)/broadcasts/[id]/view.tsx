@@ -25,16 +25,7 @@ export function BroadcastAnalytics({ id }: { id: string }) {
   const t = useTranslations("pages.broadcasts");
   const ts = useTranslations("pages.broadcasts.stats");
   const locale = useLocale();
-  const { data, isLoading, isError, error } = useBroadcastStats(id);
-
-  if (isLoading || !data) {
-    return (
-      <div className="space-y-4 p-6">
-        <Skeleton className="h-10 w-60" />
-        <Skeleton className="h-48 w-full" />
-      </div>
-    );
-  }
+  const { data, isPending, isError, error } = useBroadcastStats(id);
 
   if (isError) {
     return (
@@ -43,6 +34,15 @@ export function BroadcastAnalytics({ id }: { id: string }) {
         <Button variant="outline" asChild>
           <Link href="/broadcasts">{t("back")}</Link>
         </Button>
+      </div>
+    );
+  }
+
+  if (isPending || !data) {
+    return (
+      <div className="space-y-4 p-6">
+        <Skeleton className="h-10 w-60" />
+        <Skeleton className="h-48 w-full" />
       </div>
     );
   }
