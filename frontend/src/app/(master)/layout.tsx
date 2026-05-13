@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { MasterAppShell } from "@/components/layout/master-app-shell";
-import { COOKIE_LOCALE } from "@/lib/cookies";
+import { COOKIE_ACCESS, COOKIE_LOCALE } from "@/lib/cookies";
 import { getSalonThemeForLayout, getSessionUser } from "@/lib/server-session";
 import { ThemeSync } from "@/providers/ThemeProvider";
 
@@ -15,10 +15,16 @@ function parseLocale(raw: string | undefined): (typeof locales)[number] {
 }
 
 export default async function MasterLayout({ children }: { children: ReactNode }) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
-
   const cookieStore = await cookies();
+  const accessCookie = cookieStore.get(COOKIE_ACCESS)?.value;
+  const user = await getSessionUser();
+  if (!user) {
+    if (accessCookie) {
+      cookieStore.delete(COOKIE_ACCESS);
+    }
+    redirect("/login");
+  }
+
   const locale = parseLocale(cookieStore.get(COOKIE_LOCALE)?.value);
   const salonTheme = await getSalonThemeForLayout();
 

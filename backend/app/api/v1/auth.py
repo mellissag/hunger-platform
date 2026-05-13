@@ -7,6 +7,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 import hashlib
+import json
+import logging
 from redis.asyncio import Redis
 
 from sqlalchemy import select
@@ -36,6 +38,7 @@ from app.schemas.auth import (
 from app.services.audit_log import record_auth_login, record_auth_logout
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _client_ip(request: Request) -> str | None:
@@ -276,7 +279,11 @@ async def read_me(
 
     data = UserMeResponse.model_validate(user)
     data.effective_permissions = get_effective_permissions(user)
-    data.salon_role_permissions = await role_permissions_service.get_merged_role_permissions(db, redis)
+    try:
+        data.salon_role_permissions = await role_permissions_service.get_merged_role_permissions(db, redis)
+    except Exception:  # noqa: BLE001 — missing column / DB drift until alembic catches up
+        logger.warning("auth/me: role_permissions unavailable, using defaults", exc_info=True)
+        data.salon_role_permissions = json.loads(json.dumps(role_permissions_service.DEFAULT_ROLE_PERMISSIONS))
     return data
 
 

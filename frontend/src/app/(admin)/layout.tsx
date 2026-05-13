@@ -28,10 +28,18 @@ function parseLocale(raw: string | undefined): (typeof locales)[number] {
 }
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
-
   const cookieStore = await cookies();
+  const accessCookie = cookieStore.get(COOKIE_ACCESS)?.value;
+  const user = await getSessionUser();
+  if (!user) {
+    // Stale JWT: middleware still accepts the cookie, but /auth/me fails (e.g. schema drift).
+    // Clear cookie so /login is reachable instead of redirect loop.
+    if (accessCookie) {
+      cookieStore.delete(COOKIE_ACCESS);
+    }
+    redirect("/login");
+  }
+
   const locale = parseLocale(cookieStore.get(COOKIE_LOCALE)?.value);
   const salonTheme = await getSalonThemeForLayout();
   const access = cookieStore.get(COOKIE_ACCESS)?.value;
