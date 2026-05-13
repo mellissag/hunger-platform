@@ -428,7 +428,7 @@ function BookContent() {
           </div>
         </div>
 
-        {/* "или выберите мастера" divider */}
+        {/* "or choose a specialist" divider */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
           padding: '14px 20px 8px',

@@ -13,7 +13,7 @@ vi.mock("next-intl", () => ({
       serviceCardPrice: "Цена",
       serviceCardDuration: "Длительность",
       serviceCardMinSuffix: "мин",
-      serviceCardMasters: "Мастеров",
+      serviceCardMasters: "Специалистов",
       serviceCardBookings30d: "Записей за 30 дн.",
       serviceCardEdit: "Редактировать",
       serviceCardDeleteAria: "Удалить услугу",

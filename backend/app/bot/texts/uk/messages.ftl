@@ -29,9 +29,9 @@ ai-btn-menu = 🏠 Меню
 ai-bad-thanks = Дякуємо за відгук — передамо команді.
 
 booking-choose-flow = Як зручніше обрати?
-booking-flow-master-first = Спочатку майстер
+booking-flow-master-first = Спочатку спеціаліст
 booking-flow-service-first = Спочатку послуга
-booking-choose-master = Оберіть майстра:
+booking-choose-master = Оберіть спеціаліста:
 booking-choose-service = Оберіть послугу:
 booking-choose-category = Оберіть категорію:
 booking-choose-date = Оберіть дату:
@@ -46,7 +46,7 @@ booking-phone-saved = Збережено.
 booking-confirm-body =
     Перевірте запис:
     💇 Послуга: { $service }
-    👩 Майстер: { $master }
+    👩 Спеціаліст: { $master }
     📅 Дата: { $date }
     🕐 Час: { $time }
     💰 Ціна: { $price }
@@ -67,7 +67,7 @@ payment-not-configured = Онлайн-оплата не налаштована.
 booking-success =
     Запис підтверджено! 🎉
     { $date } о { $time }
-    Майстер: { $master }
+    Спеціаліст: { $master }
 
 success-my-bookings = 📋 Мої записи
 success-main-menu = 🏠 Меню

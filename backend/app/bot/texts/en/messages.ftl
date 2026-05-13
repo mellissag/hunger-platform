@@ -29,9 +29,9 @@ ai-btn-menu = 🏠 Menu
 ai-bad-thanks = Thanks for the feedback — we’ll review it.
 
 booking-choose-flow = How would you like to choose?
-booking-flow-master-first = Master first
+booking-flow-master-first = Specialist first
 booking-flow-service-first = Service first
-booking-choose-master = Choose a master:
+booking-choose-master = Choose a specialist:
 booking-choose-service = Choose a service:
 booking-choose-category = Choose a category:
 booking-choose-date = Choose a date:
@@ -46,7 +46,7 @@ booking-phone-saved = Saved.
 booking-confirm-body =
     Please confirm:
     💇 Service: { $service }
-    👩 Master: { $master }
+    👩 Specialist: { $master }
     📅 Date: { $date }
     🕐 Time: { $time }
     💰 Price: { $price }
@@ -67,7 +67,7 @@ payment-not-configured = Online payment is not configured.
 booking-success =
     Booking confirmed! 🎉
     { $date } at { $time }
-    Master: { $master }
+    Specialist: { $master }
 
 success-my-bookings = 📋 My bookings
 success-main-menu = 🏠 Menu
@@ -121,4 +121,4 @@ menu-mini-app = Open salon
 review-comment-prompt = Would you like to add a comment? (optional)
 review-skip-btn = Skip
 review-thanks = Thank you for your feedback! 💖
-review-prompt = How was your visit to { $master }? Please rate us.
+review-prompt = How was your visit with { $master }? Please rate us.

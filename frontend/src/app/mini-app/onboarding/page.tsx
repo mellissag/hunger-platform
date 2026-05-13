@@ -62,7 +62,7 @@ const T: Record<Lang, {
     step3Label: 'Стъпка 3 от 3', step3Title: 'Изберете', step3TitleItalic: 'тема',
     themeLight: 'Светла', themeDark: 'Тъмна',
     themeSubLight: 'Кремаво бяло, злато', themeSubDark: 'Почти черно, злато',
-    celebTitle: 'Вие сте в', celebTitleItalic: 'Hunger', celebSub: 'Всичко е готово. Запишете се при майстор с едно движение.',
+    celebTitle: 'Вие сте в', celebTitleItalic: 'Hunger', celebSub: 'Всичко е готово. Запишете се при специалист с едно движение.',
     celebBtn: 'Начало', backBtn: 'Назад',
   },
   en: {
@@ -77,7 +77,7 @@ const T: Record<Lang, {
     step3Label: 'Step 3 of 3', step3Title: 'Choose', step3TitleItalic: 'theme',
     themeLight: 'Light', themeDark: 'Dark',
     themeSubLight: 'Ivory white, gold', themeSubDark: 'Near-black, gold',
-    celebTitle: "You're in", celebTitleItalic: 'Hunger', celebSub: 'All set. Book a master in one tap.',
+    celebTitle: "You're in", celebTitleItalic: 'Hunger', celebSub: 'All set. Book a specialist in one tap.',
     celebBtn: 'Start', backBtn: 'Back',
   },
   uk: {
@@ -92,7 +92,7 @@ const T: Record<Lang, {
     step3Label: 'Крок 3 з 3', step3Title: 'Оберіть', step3TitleItalic: 'тему',
     themeLight: 'Світла', themeDark: 'Темна',
     themeSubLight: 'Кремово-біла, золото', themeSubDark: 'Майже чорна, золото',
-    celebTitle: 'Ви в', celebTitleItalic: 'Hunger', celebSub: 'Все готово. Запишіться до майстра одним жестом.',
+    celebTitle: 'Ви в', celebTitleItalic: 'Hunger', celebSub: 'Все готово. Запишіться до спеціаліста одним жестом.',
     celebBtn: 'Початок', backBtn: 'Назад',
   },
   ru: {
@@ -107,7 +107,7 @@ const T: Record<Lang, {
     step3Label: 'Шаг 3 из 3', step3Title: 'Выберите', step3TitleItalic: 'тему',
     themeLight: 'Светлая', themeDark: 'Тёмная',
     themeSubLight: 'Кремово-белый, золото', themeSubDark: 'Почти чёрный, золото',
-    celebTitle: 'Вы в', celebTitleItalic: 'Hunger', celebSub: 'Всё готово. Записывайтесь к мастеру в один жест.',
+    celebTitle: 'Вы в', celebTitleItalic: 'Hunger', celebSub: 'Всё готово. Записывайтесь к специалисту в один жест.',
     celebBtn: 'Начать', backBtn: 'Назад',
   },
 };

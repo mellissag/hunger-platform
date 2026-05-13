@@ -464,9 +464,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                       ))}
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Этот цвет используется для отображения записей мастера в расписании
-                  </p>
+                  <p className="text-xs text-muted-foreground">{t("fieldColorHint")}</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Telegram ID</Label>

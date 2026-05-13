@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 export type WeekBooking = {
@@ -147,6 +148,7 @@ export function WeekScheduler({
   onSelectBooking,
   locale,
 }: Props) {
+  const t = useTranslations("pages.bookings");
   const containerRef = useRef<HTMLDivElement>(null);
   const visibleMasters = focusMasterId
     ? data.masters.filter((m) => m.id === focusMasterId)
@@ -206,7 +208,7 @@ export function WeekScheduler({
           </button>
         </div>
 
-        {/* Master filter chips — скрыты при одном мастере (роль master: только своё расписание) */}
+        {/* Specialist filter chips — hidden with a single specialist (master role: own schedule only) */}
         {data.masters.length > 1 ? (
           <div className="flex flex-wrap gap-1.5">
             <button
@@ -219,7 +221,7 @@ export function WeekScheduler({
                   : "border-border text-muted-foreground hover:border-primary/50",
               )}
             >
-              Все мастера
+              {t("allMasters")}
             </button>
             {data.masters.map((m) => (
               <button

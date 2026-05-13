@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { salonMediaSrcForApiOrigin } from "@/lib/salon-branding";
+import { translations, type Lang } from "../i18n/translations";
 
 interface Master {
   id: string;
@@ -43,6 +44,9 @@ export default function MastersPage() {
   const [lang, setLang] = useState("en");
   const [brokenAvatars, setBrokenAvatars] = useState<Record<string, boolean>>({});
 
+  const langKey = (lang in translations ? lang : "en") as Lang;
+  const t = translations[langKey];
+
   useEffect(() => {
     setLang(getLang());
   }, []);
@@ -55,7 +59,9 @@ export default function MastersPage() {
         setLoading(false);
       })
       .catch(() => {
-        setError("Не удалось загрузить мастеров");
+        const code = getLang();
+        const tt = translations[(code in translations ? code : "en") as Lang];
+        setError(tt.mastersLoadError);
         setLoading(false);
       });
   }, []);
@@ -70,10 +76,10 @@ export default function MastersPage() {
       >
         <Link href="/mini-app" style={{ color: "var(--gold)", textDecoration: "none", fontSize: 20 }}>‹</Link>
         <div className="serif" style={{ fontSize: 22, fontWeight: 700, color: "var(--fg)", marginTop: 4 }}>
-          Выберите мастера
+          {t.mastersPickTitle}
         </div>
         <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>
-          Подберем удобное время в пару шагов
+          {t.mastersPickSubtitle}
         </div>
       </div>
 
@@ -90,7 +96,7 @@ export default function MastersPage() {
       >
         {loading && (
           <div style={{ textAlign: "center", padding: 40, color: "var(--muted)", fontSize: 13 }}>
-            Загрузка…
+            {t.loading}
           </div>
         )}
         {error && (
