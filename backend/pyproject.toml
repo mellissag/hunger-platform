@@ -56,6 +56,10 @@ dev = [
 where = ["."]
 include = ["app*", "scripts*"]
 
+# Include bot Fluent files in wheels / pip installs (cron workers import format_message).
+[tool.setuptools.package-data]
+"app.bot" = ["texts/**/*.ftl"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"

@@ -926,3 +926,7 @@ async def _handle_cancel_pick(
     await _reply(db, settings=settings, to_phone=phone, text=wb_msg("cancelled_ok", lang), client_id=client_row.id)
     await _session_clear(redis, phone)
     return WhatsappInboundResult(forwarded_to_admin=False)
+
+
+# Webhook worker entrypoint name (same implementation as process_inbound_text).
+handle_message = process_inbound_text

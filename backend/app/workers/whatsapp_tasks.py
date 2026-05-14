@@ -28,7 +28,7 @@ from app.services.whatsapp import (
     send_whatsapp_template_message,
     send_whatsapp_text_message,
 )
-from app.services.whatsapp_bot import get_or_create_client_for_whatsapp_phone, process_inbound_text
+from app.services.whatsapp_bot import get_or_create_client_for_whatsapp_phone, handle_message
 from app.services.whatsapp_bot_messages import wb_msg
 from app.utils.datetime_utils import format_booking_datetime
 from app.utils.phone_digits import digits_only
@@ -189,14 +189,38 @@ async def process_whatsapp_webhook(ctx: dict[str, Any], payload_json: str) -> No
                                 redis=redis,
                             )
 
-                            await process_inbound_text(
-                                db=session,
-                                redis=redis,
-                                phone_digits=phone_digits,
-                                text=text_body,
-                                client=c,
-                                telegram_bot=ctx.get("bot"),
-                            )
+                            if not is_whatsapp_configured(settings):
+                                logger.warning(
+                                    "whatsapp webhook: inbound persisted but bot replies disabled — "
+                                    "set WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID for this worker "
+                                    "(wa_mid=%s client_id=%s phone_prefix=%s…)",
+                                    wa_mid,
+                                    c.id,
+                                    phone_digits[:6],
+                                )
+                            else:
+                                try:
+                                    bot_result = await handle_message(
+                                        db=session,
+                                        redis=redis,
+                                        phone_digits=phone_digits,
+                                        text=text_body,
+                                        client=c,
+                                        telegram_bot=ctx.get("bot"),
+                                    )
+                                    logger.info(
+                                        "whatsapp bot handle_message ok wa_mid=%s client_id=%s forwarded_to_admin=%s",
+                                        wa_mid,
+                                        c.id,
+                                        getattr(bot_result, "forwarded_to_admin", None),
+                                    )
+                                except Exception:
+                                    logger.exception(
+                                        "whatsapp bot handle_message failed wa_mid=%s client_id=%s phone_prefix=%s…",
+                                        wa_mid,
+                                        c.id,
+                                        phone_digits[:6],
+                                    )
             await session.commit()
     finally:
         if redis is not None:
