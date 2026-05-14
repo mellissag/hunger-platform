@@ -221,7 +221,7 @@ export function AdminAppShell({
   const canReadChats = can(userWithPerms, "read", "chats");
   const { data: chatList = [] } = useChatList();
   const totalUnreadChats = canReadChats
-    ? chatList.reduce((s, c) => s + c.unread_count, 0)
+    ? chatList.reduce((s, c) => s + (Number(c.unread_count) || 0), 0)
     : 0;
 
   return (

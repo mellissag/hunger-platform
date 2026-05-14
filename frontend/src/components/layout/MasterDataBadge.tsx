@@ -16,17 +16,19 @@ interface MasterDataBadgeProps {
  * if the master doesn't have the required page-level permission.
  */
 export function MasterDataBadge({ pagePermission }: MasterDataBadgeProps) {
-  const { me, can } = usePermissions();
+  const { me } = usePermissions();
   const router = useRouter();
   const tc = useTranslations("common");
 
   const isMaster = me?.role === "master";
 
   useEffect(() => {
-    if (me && isMaster && !can(pagePermission)) {
+    if (!me || !isMaster) return;
+    const allowed = me.effective_permissions?.[pagePermission] ?? false;
+    if (!allowed) {
       router.replace("/m/dashboard");
     }
-  }, [me, isMaster, pagePermission, can, router]);
+  }, [me, isMaster, pagePermission, router]);
 
   if (!isMaster) return null;
 

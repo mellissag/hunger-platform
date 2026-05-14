@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import { canExportClients } from "@/lib/permissions";
 import type { UserRole } from "@/types/user";
@@ -32,8 +32,13 @@ export function usePermissions() {
     [permUser],
   );
 
+  const can = useCallback(
+    (permission: string): boolean => me?.effective_permissions?.[permission] ?? false,
+    [me],
+  );
+
   return {
-    can: (permission: string): boolean => me?.effective_permissions?.[permission] ?? false,
+    can,
     canExportClients: exportClientsAllowed,
     isOwner: me?.role === "owner",
     isAdmin: me?.role === "owner" || me?.role === "admin",

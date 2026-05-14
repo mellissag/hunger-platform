@@ -212,8 +212,9 @@ function ChatListRow({
   const t = useTranslations("pages.chats");
   const initials = `${(chat.first_name ?? "?").charAt(0)}${(chat.last_name ?? "").charAt(0)}`.toUpperCase();
   const [menuOpen, setMenuOpen] = useState(false);
-  const visibleTags = chat.tags.slice(0, MAX_VISIBLE_TAGS);
-  const extraTagCount = chat.tags.length - visibleTags.length;
+  const tags = chat.tags ?? [];
+  const visibleTags = tags.slice(0, MAX_VISIBLE_TAGS);
+  const extraTagCount = tags.length - visibleTags.length;
 
   return (
     <div
@@ -269,7 +270,7 @@ function ChatListRow({
             </span>
           )}
         </div>
-        {chat.tags.length > 0 && (
+        {tags.length > 0 && (
           <div className="mt-1.5 flex flex-wrap items-center gap-1">
             {visibleTags.map((tag) => (
               <TagBadge key={tag.id} tag={tag} />
@@ -309,7 +310,7 @@ function ChatListRow({
         >
           <ChatTagPicker
             clientId={chat.client_id}
-            currentTags={chat.tags}
+            currentTags={chat.tags ?? []}
             trigger={
               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                 <TagIcon className="mr-2 h-3.5 w-3.5" />
@@ -340,9 +341,9 @@ export default function ChatsPage() {
   const qc = useQueryClient();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const clientFromUrl = isClientIdParam(searchParams.get("client"))
-    ? searchParams.get("client")!
-    : null;
+  /** Primitives only — `searchParams` object identity can change every render in Next.js. */
+  const rawClientParam = searchParams.get("client");
+  const clientFromUrl = isClientIdParam(rawClientParam) ? rawClientParam : null;
 
   const t = useTranslations("pages.chats");
 
@@ -394,7 +395,7 @@ export default function ChatsPage() {
     );
   }, [chatList]);
   const { data: messages = [], isLoading: msgsLoading } = useChatMessages(activeId);
-  const markRead = useMarkRead();
+  const { mutate: markReadMutate } = useMarkRead();
   const sendText = useSendText();
   const sendMedia = useSendMedia();
 
@@ -417,20 +418,19 @@ export default function ChatsPage() {
   }, [activeId, messages, mergedChatList]);
 
   useEffect(() => {
-    const raw = searchParams.get("client");
-    if (raw && !isClientIdParam(raw)) {
+    if (rawClientParam && !isClientIdParam(rawClientParam)) {
       toast.error(t("toastInvalidLink"));
       router.replace("/chats", { scroll: false });
     }
-  }, [searchParams, router, t]);
+  }, [rawClientParam, router, t]);
 
   useEffect(() => {
     if (!clientFromUrl || chatListPending) return;
     if (!hasChatRow(clientFromUrl)) return;
     setActiveId(clientFromUrl);
-    markRead.mutate(clientFromUrl);
+    markReadMutate(clientFromUrl);
     router.replace("/chats", { scroll: false });
-  }, [clientFromUrl, chatListPending, hasChatRow, router, markRead]);
+  }, [clientFromUrl, chatListPending, hasChatRow, router, markReadMutate]);
 
   useEffect(() => {
     if (!clientFromUrl || chatListPending) return;
@@ -599,7 +599,7 @@ export default function ChatsPage() {
   // ── Open chat ──────────────────────────────────────────────────────────────
   function openChat(clientId: string) {
     setActiveId(clientId);
-    markRead.mutate(clientId);
+    markReadMutate(clientId);
   }
 
   // ── Send text ──────────────────────────────────────────────────────────────
@@ -750,7 +750,7 @@ export default function ChatsPage() {
               </div>
               {activeClient && (
                 <div className="flex flex-wrap items-center gap-1">
-                  {activeClient.tags.map((tag) => (
+                  {(activeClient.tags ?? []).map((tag) => (
                     <TagBadge
                       key={tag.id}
                       tag={tag}
@@ -759,7 +759,7 @@ export default function ChatsPage() {
                   ))}
                   <ChatTagPicker
                     clientId={activeClient.client_id}
-                    currentTags={activeClient.tags}
+                    currentTags={activeClient.tags ?? []}
                     align="end"
                     trigger={
                       <button
