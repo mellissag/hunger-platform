@@ -40,6 +40,7 @@ _STATUS_MAP = {
 }
 
 
+def _svc_name(svc: Service | None) -> str:
     name_i18n = svc.name_i18n if svc and isinstance(svc.name_i18n, dict) else {}
     return str(name_i18n.get("ru") or name_i18n.get("en") or "—")
 
@@ -182,27 +183,20 @@ async def process_whatsapp_webhook(ctx: dict[str, Any], payload_json: str) -> No
                         if isinstance(text_body, str) and text_body.strip():
                             c = await get_or_create_client_for_whatsapp_phone(session, phone_digits)
                             wm.client_id = c.id
-                            bot_res = await process_inbound_text(
-                                db=session,
-                                redis=redis,
-                                phone_digits=phone_digits,
+                            # Admin /chats list is driven by chat_messages, not whatsapp_messages alone.
+                            await ensure_client_chat_row(session, c.id)
+                            cm = ChatMessage(
+                                client_id=c.id,
+                                direction=MessageDirection.inbound,
+                                message_type=MessageType.text,
                                 text=text_body,
-                                client=c,
-                                telegram_bot=ctx.get("bot"),
+                                channel=ChatChannel.whatsapp,
+                                is_read=False,
                             )
-                            if bot_res.forwarded_to_admin:
-                                await ensure_client_chat_row(session, c.id)
-                                cm = ChatMessage(
-                                    client_id=c.id,
-                                    direction=MessageDirection.inbound,
-                                    message_type=MessageType.text,
-                                    text=text_body,
-                                    channel=ChatChannel.whatsapp,
-                                    is_read=False,
-                                )
-                                session.add(cm)
-                                await session.flush()
-                                if redis is not None:
+                            session.add(cm)
+                            await session.flush()
+                            if redis is not None:
+                                try:
                                     await _publish_chat_new_message(
                                         redis,
                                         {
@@ -218,6 +212,17 @@ async def process_whatsapp_webhook(ctx: dict[str, Any], payload_json: str) -> No
                                             "channel": ChatChannel.whatsapp.value,
                                         },
                                     )
+                                except Exception:  # noqa: BLE001
+                                    logger.exception("redis publish inbound wa chat failed client=%s", c.id)
+
+                            await process_inbound_text(
+                                db=session,
+                                redis=redis,
+                                phone_digits=phone_digits,
+                                text=text_body,
+                                client=c,
+                                telegram_bot=ctx.get("bot"),
+                            )
             await session.commit()
     finally:
         if redis is not None:
