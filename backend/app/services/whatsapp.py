@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 from uuid import UUID
@@ -12,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import Settings, get_settings
 from app.models.chat_message import ChatChannel, ChatMessage, MessageDirection, MessageType
 from app.models.whatsapp_message import WhatsAppMessage, WhatsAppMsgDirection, WhatsAppMsgStatus
+from app.services.chat_threads import ensure_client_chat_row
 from app.utils.phone_digits import digits_only
 
 logger = logging.getLogger(__name__)
@@ -63,6 +65,57 @@ def _extract_sent_wa_id(result: dict[str, Any]) -> str | None:
         if isinstance(mid, str):
             return mid
     return None
+
+
+async def publish_chat_new_message_redis(redis: Any, payload: dict[str, Any]) -> None:
+    """Fan-out for admin /chats WebSocket (same channel as admin_chat)."""
+    body = dict(payload)
+    body["_event"] = "new_message"
+    await redis.publish("chat:new_message", json.dumps(body))
+
+
+async def persist_whatsapp_inbound_chat_message(
+    db: AsyncSession,
+    *,
+    client_id: UUID,
+    text: str,
+    redis: Any | None = None,
+) -> ChatMessage:
+    """Persist inbound WhatsApp text for admin /chats (PHASE 58 single path).
+
+    Call after ``WhatsAppMessage`` inbound row exists and ``client_id`` is known.
+    """
+    await ensure_client_chat_row(db, client_id)
+    cm = ChatMessage(
+        client_id=client_id,
+        direction=MessageDirection.inbound,
+        message_type=MessageType.text,
+        text=text,
+        channel=ChatChannel.whatsapp,
+        is_read=False,
+    )
+    db.add(cm)
+    await db.flush()
+    if redis is not None:
+        try:
+            await publish_chat_new_message_redis(
+                redis,
+                {
+                    "id": str(cm.id),
+                    "client_id": str(client_id),
+                    "direction": "inbound",
+                    "message_type": "text",
+                    "text": text,
+                    "media_path": None,
+                    "tg_message_id": None,
+                    "is_read": False,
+                    "created_at": cm.created_at.isoformat(),
+                    "channel": ChatChannel.whatsapp.value,
+                },
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("redis publish inbound wa chat failed client=%s", client_id)
+    return cm
 
 
 async def send_whatsapp_text_message(

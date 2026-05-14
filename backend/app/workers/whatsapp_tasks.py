@@ -22,8 +22,12 @@ from app.models.enums import BookingCreatedVia, BookingStatus
 from app.models.master import Master
 from app.models.salon import Salon
 from app.models.whatsapp_message import WhatsAppMessage, WhatsAppMsgDirection, WhatsAppMsgStatus
-from app.services.chat_threads import ensure_client_chat_row
-from app.services.whatsapp import is_whatsapp_configured, send_whatsapp_template_message, send_whatsapp_text_message
+from app.services.whatsapp import (
+    is_whatsapp_configured,
+    persist_whatsapp_inbound_chat_message,
+    send_whatsapp_template_message,
+    send_whatsapp_text_message,
+)
 from app.services.whatsapp_bot import get_or_create_client_for_whatsapp_phone, process_inbound_text
 from app.services.whatsapp_bot_messages import wb_msg
 from app.utils.datetime_utils import format_booking_datetime
@@ -91,11 +95,6 @@ async def _client_in_whatsapp_service_window(session: AsyncSession, client_id: U
         )
     )
     return (n_wa or 0) > 0
-
-
-async def _publish_chat_new_message(redis, payload: dict[str, Any]) -> None:
-    payload["_event"] = "new_message"
-    await redis.publish("chat:new_message", json.dumps(payload))
 
 
 async def process_whatsapp_webhook(ctx: dict[str, Any], payload_json: str) -> None:
@@ -183,37 +182,12 @@ async def process_whatsapp_webhook(ctx: dict[str, Any], payload_json: str) -> No
                         if isinstance(text_body, str) and text_body.strip():
                             c = await get_or_create_client_for_whatsapp_phone(session, phone_digits)
                             wm.client_id = c.id
-                            # Admin /chats list is driven by chat_messages, not whatsapp_messages alone.
-                            await ensure_client_chat_row(session, c.id)
-                            cm = ChatMessage(
+                            await persist_whatsapp_inbound_chat_message(
+                                session,
                                 client_id=c.id,
-                                direction=MessageDirection.inbound,
-                                message_type=MessageType.text,
                                 text=text_body,
-                                channel=ChatChannel.whatsapp,
-                                is_read=False,
+                                redis=redis,
                             )
-                            session.add(cm)
-                            await session.flush()
-                            if redis is not None:
-                                try:
-                                    await _publish_chat_new_message(
-                                        redis,
-                                        {
-                                            "id": str(cm.id),
-                                            "client_id": str(c.id),
-                                            "direction": "inbound",
-                                            "message_type": "text",
-                                            "text": text_body,
-                                            "media_path": None,
-                                            "tg_message_id": None,
-                                            "is_read": False,
-                                            "created_at": cm.created_at.isoformat(),
-                                            "channel": ChatChannel.whatsapp.value,
-                                        },
-                                    )
-                                except Exception:  # noqa: BLE001
-                                    logger.exception("redis publish inbound wa chat failed client=%s", c.id)
 
                             await process_inbound_text(
                                 db=session,
