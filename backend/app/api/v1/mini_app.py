@@ -1522,7 +1522,7 @@ async def contact_master(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty message")
 
     import json as _json
-    from app.models.chat_message import ChatMessage, MessageDirection, MessageType
+    from app.models.chat_message import ChatMessage, MessageDirection, MessageType, ChatChannel
 
     client = await _get_or_create_client(current_user, db)
     msg = ChatMessage(
@@ -1531,6 +1531,7 @@ async def contact_master(
         message_type=MessageType.text,
         text=stripped,
         is_read=False,
+        channel=ChatChannel.telegram,
     )
     db.add(msg)
     await db.commit()
@@ -1547,6 +1548,7 @@ async def contact_master(
             "text": stripped,
             "media_path": None,
             "tg_message_id": None,
+            "channel": ChatChannel.telegram.value,
             "is_read": False,
             "created_at": msg.created_at.isoformat(),
         }

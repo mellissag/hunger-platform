@@ -14,6 +14,7 @@ from app.messages import get_message
 from app.models.booking import Booking
 from app.models.catalog import Service
 from app.models.client import Client
+from app.models.enums import BookingCreatedVia
 from app.models.master import Master
 from app.services.broadcast_analytics import record_client_blocked_after_delivered_broadcast
 from app.utils.datetime_utils import format_booking_datetime
@@ -143,13 +144,11 @@ async def notify_master_booking_status_changed(
 
 
 async def notify_client_booking_confirmed(booking_id: UUID, bot: Bot | None, db: AsyncSession) -> None:
-    if bot is None:
-        return
     b = await db.get(Booking, booking_id)
     if b is None:
         return
     client = await db.get(Client, b.client_id)
-    if client is None or not client.tg_user_id:
+    if client is None:
         return
     m = await db.get(Master, b.master_id)
     svc = await db.get(Service, b.service_id)
@@ -161,28 +160,47 @@ async def notify_client_booking_confirmed(booking_id: UUID, bot: Bot | None, db:
         master=m.display_name if m else "—",
         date=format_booking_datetime(b.starts_at, lang),
     )
-    try:
-        await bot.send_message(chat_id=int(client.tg_user_id), text=text, parse_mode="HTML")
-    except TelegramForbiddenError:
-        logger.info("client tg forbidden chat_id=%s", client.tg_user_id)
+
+    from app.services.whatsapp_queue import enqueue_whatsapp_booking_client_notice
+    from app.utils.phone_digits import digits_only
+
+    if b.created_via == BookingCreatedVia.whatsapp:
+        if digits_only(client.whatsapp_phone or client.phone or ""):
+            await enqueue_whatsapp_booking_client_notice(booking_id, "confirmed", "")
+        return
+
+    if bot is not None and client.tg_user_id:
         try:
-            await record_client_blocked_after_delivered_broadcast(db, client.id)
+            await bot.send_message(chat_id=int(client.tg_user_id), text=text, parse_mode="HTML")
+        except TelegramForbiddenError:
+            logger.info("client tg forbidden chat_id=%s", client.tg_user_id)
+            try:
+                await record_client_blocked_after_delivered_broadcast(db, client.id)
+            except Exception:  # noqa: BLE001
+                logger.exception("broadcast unsubscribed bump failed booking_id=%s", booking_id)
         except Exception:  # noqa: BLE001
-            logger.exception("broadcast unsubscribed bump failed booking_id=%s", booking_id)
-    except Exception:  # noqa: BLE001
-        logger.exception("notify_client_booking_confirmed failed booking_id=%s", booking_id)
+            logger.exception("notify_client_booking_confirmed failed booking_id=%s", booking_id)
 
 
 async def notify_client_booking_rejected(
     booking_id: UUID, bot: Bot | None, db: AsyncSession, *, reason: str | None = None
 ) -> None:
-    if bot is None:
-        return
     b = await db.get(Booking, booking_id)
     if b is None:
         return
     client = await db.get(Client, b.client_id)
-    if client is None or not client.tg_user_id:
+    if client is None:
+        return
+
+    from app.services.whatsapp_queue import enqueue_whatsapp_booking_client_notice
+    from app.utils.phone_digits import digits_only
+
+    if b.created_via == BookingCreatedVia.whatsapp:
+        if digits_only(client.whatsapp_phone or client.phone or ""):
+            await enqueue_whatsapp_booking_client_notice(booking_id, "rejected", reason or "")
+        return
+
+    if bot is None or not client.tg_user_id:
         return
     svc = await db.get(Service, b.service_id)
     lang = client.lang or "ru"
@@ -208,13 +226,22 @@ async def notify_client_booking_rejected(
 
 
 async def notify_client_booking_rescheduled(booking_id: UUID, bot: "Bot | None", db: AsyncSession) -> None:
-    if bot is None:
-        return
     b = await db.get(Booking, booking_id)
     if b is None:
         return
     client = await db.get(Client, b.client_id)
-    if client is None or not client.tg_user_id:
+    if client is None:
+        return
+
+    from app.services.whatsapp_queue import enqueue_whatsapp_booking_client_notice
+    from app.utils.phone_digits import digits_only
+
+    if b.created_via == BookingCreatedVia.whatsapp:
+        if digits_only(client.whatsapp_phone or client.phone or ""):
+            await enqueue_whatsapp_booking_client_notice(booking_id, "rescheduled", "")
+        return
+
+    if bot is None or not client.tg_user_id:
         return
     m = await db.get(Master, b.master_id)
     svc = await db.get(Service, b.service_id)

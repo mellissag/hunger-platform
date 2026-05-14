@@ -22,6 +22,7 @@ from app.models.enums import BookingStatus
 from app.models.master import Master
 from app.models.salon import Salon
 from app.utils.datetime_utils import format_booking_datetime
+from app.utils.phone_digits import digits_only
 
 # (часы до визита, поле в booking, ключ текста)
 _REMINDER_BUCKETS: tuple[tuple[float, str, str], ...] = (
@@ -209,8 +210,6 @@ async def _run_reminders_session(session: AsyncSession, token: str) -> None:
     bot = Bot(token=token)
     try:
         for booking, client, service, master in rows:
-            if client.tg_user_id is None:
-                continue
             delta_sec = (booking.starts_at - now).total_seconds()
             lang = (client.lang or "en").split("-")[0].lower()
             if lang not in ("en", "ru", "uk", "bg"):
@@ -223,6 +222,7 @@ async def _run_reminders_session(session: AsyncSession, token: str) -> None:
             )
             master_name = master.display_name
             starts_local = format_booking_datetime(booking.starts_at, lang, salon_tz)
+            wa_digits = digits_only(client.whatsapp_phone or client.phone or "")
 
             for bucket_hours, flag_attr, kind_key in _REMINDER_BUCKETS:
                 if not _bucket_allowed(bucket_hours, enabled):
@@ -243,15 +243,31 @@ async def _run_reminders_session(session: AsyncSession, token: str) -> None:
                     master_name=master_name,
                     starts_local=starts_local,
                 )
-                try:
-                    await bot.send_message(int(client.tg_user_id), text, parse_mode="HTML")
-                except Exception as exc:
-                    logger.exception(
-                        "reminder send failed booking={} flag={} err={}",
-                        booking.id,
-                        flag_attr,
-                        exc,
-                    )
+                sent_tg = False
+                if client.tg_user_id is not None:
+                    try:
+                        await bot.send_message(int(client.tg_user_id), text, parse_mode="HTML")
+                        sent_tg = True
+                    except Exception as exc:
+                        logger.exception(
+                            "reminder send failed booking={} flag={} err={}",
+                            booking.id,
+                            flag_attr,
+                            exc,
+                        )
+                        await _revert_reminder_flag(session, booking.id, flag_attr)
+                        await session.commit()
+                        continue
+                elif flag_attr != "reminder_sent_24h":
+                    await _revert_reminder_flag(session, booking.id, flag_attr)
+                    await session.commit()
+                    continue
+
+                if flag_attr == "reminder_sent_24h" and wa_digits:
+                    from app.services.whatsapp_queue import enqueue_send_whatsapp_booking_reminder
+
+                    await enqueue_send_whatsapp_booking_reminder(booking.id)
+                elif flag_attr == "reminder_sent_24h" and not sent_tg and not wa_digits:
                     await _revert_reminder_flag(session, booking.id, flag_attr)
                     await session.commit()
     finally:

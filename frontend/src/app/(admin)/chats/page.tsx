@@ -9,6 +9,7 @@ import {
   Plus,
   Search,
   Send,
+  Smartphone,
   Tag as TagIcon,
   Trash2,
 } from "lucide-react";
@@ -84,6 +85,11 @@ function isLikelyRasterImagePath(p: string | null | undefined): boolean {
   return /\.(jpe?g|png|gif|webp|bmp|heic)$/i.test(p);
 }
 
+function digitsOnly(s: string | null | undefined): string {
+  if (!s) return "";
+  return s.replace(/\D/g, "");
+}
+
 // ── Sound notification ────────────────────────────────────────────────────────
 
 function playNotify() {
@@ -119,6 +125,7 @@ function fmtTime(iso: string, locale: string) {
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   const locale = useLocale();
   const t = useTranslations("pages.chats");
+  const isWa = msg.channel === "whatsapp";
   const isOut = msg.direction === "outbound";
   const mediaSrc = chatMediaUrl(msg.media_path);
   const showImagePreview =
@@ -171,10 +178,15 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
       )}
       <span
         className={cn(
-          "mt-1 self-end text-[10px]",
+          "mt-1 flex items-center gap-1 self-end text-[10px]",
           isOut ? "text-primary-foreground/60" : "text-muted-foreground",
         )}
       >
+        {isWa ? (
+          <span className="rounded bg-muted px-1 font-medium text-muted-foreground" title={t("whatsappChannel")}>
+            {t("channelBadgeWhatsApp")}
+          </span>
+        ) : null}
         {fmtTime(msg.created_at, locale)}
       </span>
     </div>
@@ -240,8 +252,16 @@ function ChatListRow({
           )}
         </div>
         <div className="flex items-center justify-between gap-1">
-          <p className="max-w-[140px] truncate text-xs text-muted-foreground">
-            {chat.last_message ?? "—"}
+          <p className="flex max-w-[140px] items-center gap-1 truncate text-xs text-muted-foreground">
+            {chat.last_message_channel === "whatsapp" ? (
+              <span
+                className="shrink-0 rounded bg-muted px-1 text-[9px] font-semibold uppercase text-muted-foreground"
+                title={t("whatsappChannel")}
+              >
+                {t("channelBadgeWhatsApp")}
+              </span>
+            ) : null}
+            <span className="truncate">{chat.last_message ?? "—"}</span>
           </p>
           {chat.unread_count > 0 && (
             <span className="ml-1 flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
@@ -329,6 +349,7 @@ export default function ChatsPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [input, setInput] = useState("");
+  const [replyChannel, setReplyChannel] = useState<"telegram" | "whatsapp">("telegram");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   /** Chats with no messages yet — not returned by GET /admin/chats; pinned after opening from `/clients`. */
   const [pinnedExtras, setPinnedExtras] = useState<ChatListItem[]>([]);
@@ -378,6 +399,24 @@ export default function ChatsPage() {
   const sendMedia = useSendMedia();
 
   useEffect(() => {
+    if (!activeId) {
+      setReplyChannel("telegram");
+      return;
+    }
+    const ac = mergedChatList.find((c) => c.client_id === activeId);
+    const inbound = [...messages].reverse().find((m) => m.direction === "inbound");
+    if (inbound?.channel === "whatsapp") {
+      setReplyChannel("whatsapp");
+    } else if (inbound?.channel === "telegram") {
+      setReplyChannel("telegram");
+    } else if (ac?.can_reply_whatsapp && !ac?.can_reply_telegram) {
+      setReplyChannel("whatsapp");
+    } else {
+      setReplyChannel("telegram");
+    }
+  }, [activeId, messages, mergedChatList]);
+
+  useEffect(() => {
     const raw = searchParams.get("client");
     if (raw && !isClientIdParam(raw)) {
       toast.error(t("toastInvalidLink"));
@@ -399,19 +438,23 @@ export default function ChatsPage() {
     if (clientBootstrapError) return;
     if (!clientBootstrapFetched) return;
     if (!clientBootstrap || clientBootstrap.id !== clientFromUrl) return;
-    if (!clientBootstrap.tg_user_id) {
-      toast.error(t("toastNoTelegram"));
+    const hasTg = Boolean(clientBootstrap.tg_user_id);
+    const hasWaDigits = Boolean(
+      digitsOnly(clientBootstrap.whatsapp_phone ?? clientBootstrap.phone ?? ""),
+    );
+    if (!hasTg && !hasWaDigits) {
+      toast.error(t("toastNoContactChannel"));
       router.replace("/chats", { scroll: false });
       return;
     }
-    if (clientBootstrap.bot_blocked) {
+    if (hasTg && clientBootstrap.bot_blocked) {
       toast.error(t("toastBotBlocked"));
       router.replace("/chats", { scroll: false });
       return;
     }
     const row: ChatListItem = {
       client_id: clientBootstrap.id,
-      tg_user_id: clientBootstrap.tg_user_id,
+      tg_user_id: clientBootstrap.tg_user_id ?? null,
       first_name: clientBootstrap.first_name,
       last_name: clientBootstrap.last_name,
       last_message: null,
@@ -419,6 +462,8 @@ export default function ChatsPage() {
       unread_count: 0,
       note: null,
       tags: [],
+      can_reply_telegram: hasTg,
+      can_reply_whatsapp: hasWaDigits,
     };
     setPinnedExtras((prev) =>
       prev.some((p) => p.client_id === row.client_id) ? prev : [row, ...prev],
@@ -468,7 +513,11 @@ export default function ChatsPage() {
   const handleWsEvent = useCallback(
     (event: WsEvent) => {
       if (event._event === "new_message") {
-        const msg = event as ChatMessage & { _event: string };
+        const raw = event as ChatMessage & { _event: string };
+        const msg: ChatMessage & { _event: string } = {
+          ...raw,
+          channel: raw.channel ?? "telegram",
+        };
 
         // Append to open conversation cache
         qc.setQueryData<ChatMessage[]>(chatKeys.messages(msg.client_id), (old = []) => {
@@ -492,6 +541,7 @@ export default function ChatsPage() {
                     ...c,
                     last_message: preview,
                     last_message_at: msg.created_at,
+                    last_message_channel: msg.channel,
                     unread_count:
                       msg.direction === "inbound" && msg.client_id !== activeId
                         ? c.unread_count + 1
@@ -558,7 +608,7 @@ export default function ChatsPage() {
     const text = input.trim();
     setInput("");
     sendText.mutate(
-      { clientId: activeId, text },
+      { clientId: activeId, text, channel: replyChannel },
       {
         onSuccess: () => {
           void qc.invalidateQueries({ queryKey: chatKeys.messages(activeId) });
@@ -660,8 +710,43 @@ export default function ChatsPage() {
                   {activeClient?.first_name} {activeClient?.last_name ?? ""}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {t("telegramId")}: {activeClient?.tg_user_id ?? "—"}
+                  {replyChannel === "whatsapp"
+                    ? t("replyChannelWhatsApp")
+                    : `${t("telegramId")}: ${activeClient?.tg_user_id ?? "—"}`}
                 </p>
+                {activeClient &&
+                (activeClient.can_reply_telegram || activeClient.can_reply_whatsapp) ? (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {activeClient.can_reply_telegram ? (
+                      <button
+                        type="button"
+                        onClick={() => setReplyChannel("telegram")}
+                        className={cn(
+                          "rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
+                          replyChannel === "telegram"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary/50",
+                        )}
+                      >
+                        {t("replyViaTelegram")}
+                      </button>
+                    ) : null}
+                    {activeClient.can_reply_whatsapp ? (
+                      <button
+                        type="button"
+                        onClick={() => setReplyChannel("whatsapp")}
+                        className={cn(
+                          "rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
+                          replyChannel === "whatsapp"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary/50",
+                        )}
+                      >
+                        {t("replyViaWhatsApp")}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
               {activeClient && (
                 <div className="flex flex-wrap items-center gap-1">
@@ -720,7 +805,8 @@ export default function ChatsPage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex-shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              disabled={replyChannel === "whatsapp"}
+              className="flex-shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
               title={t("attachFile")}
             >
               <Paperclip className="h-4 w-4" />

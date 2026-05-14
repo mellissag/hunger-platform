@@ -635,6 +635,60 @@ class AIService:
         return answer.strip() or "…", cited_ids
 
 
+async def whatsapp_bot_llm_text(
+    db: AsyncSession,
+    *,
+    system: str,
+    user_prompt: str,
+    temperature: float = 0.25,
+) -> str:
+    """Stateless LLM completion for WhatsApp booking bot (salon AI provider, no RAG)."""
+    salon_row = await db.execute(
+        select(Salon, Settings).join(Settings, Settings.salon_id == Salon.id).limit(1)
+    )
+    first = salon_row.first()
+    if not first:
+        raise AIUnavailableError("Salon is not configured.")
+    salon, salon_settings = first
+    if not salon_settings.ai_enabled:
+        raise AIUnavailableError("AI assistant is disabled.")
+
+    provider = _get_provider(salon_settings)
+    raw_model = (salon_settings.ai_model or "").strip()
+    temp = float(temperature)
+
+    if provider == "groq":
+        groq_key = _get_groq_key(salon_settings)
+        groq_model = (
+            raw_model
+            if raw_model and "gemini" not in raw_model.lower() and "models/" not in raw_model
+            else _DEFAULT_GROQ_MODEL
+        )
+        return (
+            await _call_groq(
+                api_key=groq_key,
+                system=system,
+                user_prompt=user_prompt,
+                model=groq_model,
+                temperature=temp,
+                max_tokens=512,
+            )
+        ).strip()
+
+    gemini_key = _get_gemini_key(salon_settings)
+    gemini_client = _make_client(gemini_key)
+    model_name = (raw_model or _DEFAULT_GEN_MODEL).removeprefix("models/")
+    return (
+        await _gemini_generate_plain(
+            client=gemini_client,
+            model_name=model_name,
+            system=system,
+            user_prompt=user_prompt,
+            temperature=temp,
+        )
+    ).strip()
+
+
 def gemini_configured() -> bool:
     """Check if a Gemini API key is available (env or DB — rough check via env only)."""
     return bool(get_settings().gemini_api_key)

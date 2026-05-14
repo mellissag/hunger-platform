@@ -6,7 +6,7 @@ import asyncio
 import json
 import os
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 import aiofiles
@@ -23,19 +23,22 @@ from fastapi import (
     WebSocketDisconnect,
     status,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.core.security import decode_access_token, parse_access_payload
 from app.core.user_page_permissions import page_perm
 from app.deps import get_db, get_redis, get_telegram_bot, require_roles
 from app.models.booking import Booking
 from app.models.chat import Chat, ChatTag, ChatTagAssignment
-from app.models.chat_message import ChatMessage, MessageDirection, MessageType
+from app.models.chat_message import ChatMessage, ChatChannel, MessageDirection, MessageType
 from app.models.client import Client
 from app.models.enums import UserRole
 from app.models.user import User
+from app.services.whatsapp import is_whatsapp_configured, send_whatsapp_text_message
+from app.utils.phone_digits import digits_only
 from app.schemas.chat_admin import (
     ChatNoteUpdate,
     ChatTagAssign,
@@ -76,9 +79,12 @@ class ChatListItem(BaseModel):
     last_name: str | None
     last_message: str | None
     last_message_at: str | None
+    last_message_channel: str | None = None
     unread_count: int
     note: str | None = None
     tags: list[ChatTagSummary] = []
+    can_reply_telegram: bool = False
+    can_reply_whatsapp: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -91,6 +97,7 @@ class MessageOut(BaseModel):
     text: str | None
     media_path: str | None
     tg_message_id: int | None
+    channel: str = "telegram"
     is_read: bool
     created_at: str
 
@@ -98,7 +105,10 @@ class MessageOut(BaseModel):
 
 
 class SendTextPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     text: str
+    channel: Literal["telegram", "whatsapp"] = "telegram"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -112,6 +122,7 @@ def _msg_to_out(m: ChatMessage) -> MessageOut:
         text=m.text,
         media_path=_media_url(m.media_path),
         tg_message_id=m.tg_message_id,
+        channel=m.channel.value,
         is_read=m.is_read,
         created_at=m.created_at.isoformat(),
     )
@@ -148,6 +159,8 @@ async def list_chats(
     db: AsyncSession = Depends(get_db),
 ):
     """Список клиентов с диалогами, сортированных по последнему сообщению."""
+    settings = get_settings()
+    wa_ok = is_whatsapp_configured(settings)
     last_at_subq = (
         select(
             ChatMessage.client_id,
@@ -209,6 +222,7 @@ async def list_chats(
         )
         last = last_msg_row.scalar_one_or_none()
         preview = last.text if last and last.text else (f"[{last.message_type.value}]" if last else None)
+        wa_digits = digits_only(client.whatsapp_phone or client.phone or "")
         result.append(
             ChatListItem(
                 client_id=client.id,
@@ -217,9 +231,12 @@ async def list_chats(
                 last_name=client.last_name,
                 last_message=preview,
                 last_message_at=last_at.isoformat() if last_at else None,
+                last_message_channel=last.channel.value if last else None,
                 unread_count=unread or 0,
                 note=chat.note if chat else None,
                 tags=tags_by_chat.get(chat.id, []) if chat else [],
+                can_reply_telegram=bool(client.tg_user_id),
+                can_reply_whatsapp=bool(wa_ok and wa_digits),
             )
         )
     return result
@@ -283,6 +300,49 @@ async def send_text(
     client = await db.get(Client, client_id)
     if not client:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Client not found")
+
+    settings = get_settings()
+
+    if payload.channel == "whatsapp":
+        if not is_whatsapp_configured(settings):
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "WhatsApp is not configured",
+            )
+        wa_digits = digits_only(client.whatsapp_phone or client.phone or "")
+        if not wa_digits:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "Client has no phone number for WhatsApp",
+            )
+        _wa_id, cm = await send_whatsapp_text_message(
+            db=db,
+            to_phone_digits=wa_digits,
+            text=payload.text,
+            client_id=client_id,
+            settings=settings,
+        )
+        if cm is None:
+            raise HTTPException(
+                status.HTTP_502_BAD_GATEWAY,
+                "WhatsApp send failed",
+            )
+        await db.commit()
+        await db.refresh(cm)
+        await _publish(redis, "new_message", {
+            "id": str(cm.id),
+            "client_id": str(client_id),
+            "direction": "outbound",
+            "message_type": "text",
+            "text": payload.text,
+            "media_path": None,
+            "tg_message_id": None,
+            "channel": ChatChannel.whatsapp.value,
+            "is_read": True,
+            "created_at": cm.created_at.isoformat(),
+        })
+        return {"ok": True, "message_id": str(cm.id)}
+
     if not client.tg_user_id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Client has no Telegram account")
 
@@ -294,6 +354,7 @@ async def send_text(
         message_type=MessageType.text,
         text=payload.text,
         tg_message_id=tg_msg.message_id,
+        channel=ChatChannel.telegram,
         is_read=True,
     )
     db.add(msg)
@@ -308,6 +369,7 @@ async def send_text(
         "text": payload.text,
         "media_path": None,
         "tg_message_id": tg_msg.message_id,
+        "channel": ChatChannel.telegram.value,
         "is_read": True,
         "created_at": msg.created_at.isoformat(),
     })
@@ -400,6 +462,7 @@ async def send_media(
         text=caption,
         media_path=media_path,
         tg_message_id=tg_message_id,
+        channel=ChatChannel.telegram,
         is_read=True,
     )
     db.add(msg)
@@ -414,6 +477,7 @@ async def send_media(
         "text": caption,
         "media_path": _media_url(media_path),
         "tg_message_id": tg_message_id,
+        "channel": ChatChannel.telegram.value,
         "is_read": True,
         "created_at": msg.created_at.isoformat(),
     })

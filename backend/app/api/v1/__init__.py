@@ -32,8 +32,10 @@ from app.api.v1 import (
     upload,
     users_admin,
 )
+from app.api.v1.webhooks import whatsapp as webhooks_whatsapp
 
 api_router = APIRouter()
+api_router.include_router(webhooks_whatsapp.router)
 api_router.include_router(auth.router, prefix="/auth")
 api_router.include_router(admin_chat.router)
 api_router.include_router(admin_chat.tags_router)

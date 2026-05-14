@@ -35,6 +35,7 @@ class ClientUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     phone: str | None = None
+    whatsapp_phone: str | None = None
     first_name: str | None = None
     last_name: str | None = None
     city: str | None = None
@@ -51,6 +52,7 @@ class ClientOut(ClientBase):
     id: UUID
     tg_user_id: int | None
     tg_username: str | None
+    whatsapp_phone: str | None = None
     source: ClientSource
     joined_at: datetime
     joined_bot_at: datetime | None = None

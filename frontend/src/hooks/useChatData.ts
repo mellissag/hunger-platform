@@ -25,9 +25,12 @@ export interface ChatListItem {
   last_name: string | null;
   last_message: string | null;
   last_message_at: string | null;
+  last_message_channel?: string | null;
   unread_count: number;
   note: string | null;
   tags: ChatTagSummary[];
+  can_reply_telegram?: boolean;
+  can_reply_whatsapp?: boolean;
 }
 
 export interface ChatMessage {
@@ -38,6 +41,7 @@ export interface ChatMessage {
   text?: string | null;
   media_path?: string | null;
   tg_message_id?: number | null;
+  channel?: "telegram" | "whatsapp";
   is_read: boolean;
   created_at: string;
 }
@@ -95,10 +99,18 @@ export function useMarkRead() {
 
 export function useSendText() {
   return useMutation({
-    mutationFn: ({ clientId, text }: { clientId: string; text: string }) =>
+    mutationFn: ({
+      clientId,
+      text,
+      channel = "telegram",
+    }: {
+      clientId: string;
+      text: string;
+      channel?: "telegram" | "whatsapp";
+    }) =>
       apiJson(`/admin/chats/${clientId}/send/text`, {
         method: "POST",
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, channel }),
       }),
   });
 }

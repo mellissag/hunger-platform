@@ -33,6 +33,15 @@ class Settings(BaseSettings):
     # Allow ?tg_user_id=… on mini-app requests as an explicit test override (also enabled in dev/test by code)
     mini_app_allow_query_tg_fallback: bool = False
 
+    # WhatsApp Business Cloud API (Meta)
+    whatsapp_token: str | None = None
+    whatsapp_phone_number_id: str | None = None
+    whatsapp_business_account_id: str | None = None
+    whatsapp_verify_token: str | None = None
+    # Optional approved template names for business-initiated messages (reminders / confirmations)
+    whatsapp_reminder_template_name: str | None = None
+    whatsapp_confirmation_template_name: str | None = None
+
 
 @lru_cache
 def get_settings() -> Settings:

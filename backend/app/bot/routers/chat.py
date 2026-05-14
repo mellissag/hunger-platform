@@ -11,7 +11,7 @@ from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_redis_optional
-from app.models.chat_message import ChatMessage, MessageDirection, MessageType
+from app.models.chat_message import ChatMessage, MessageDirection, MessageType, ChatChannel
 from app.models.client import Client
 
 router = Router(name="chat_inbound")
@@ -49,6 +49,7 @@ async def _persist(
         tg_file_id=tg_file_id,
         media_path=media_path,
         tg_message_id=tg_message_id,
+        channel=ChatChannel.telegram,
         is_read=False,
     )
     db.add(msg)
@@ -64,6 +65,7 @@ async def _persist(
             "text": text,
             "media_path": f"chat/{Path(media_path).name}" if media_path else None,
             "tg_message_id": tg_message_id,
+            "channel": ChatChannel.telegram.value,
             "is_read": False,
             "created_at": msg.created_at.isoformat() if msg.created_at else None,
         }

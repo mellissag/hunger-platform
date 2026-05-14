@@ -28,6 +28,11 @@ class MessageType(str, enum.Enum):
     sticker = "sticker"
 
 
+class ChatChannel(str, enum.Enum):
+    telegram = "telegram"
+    whatsapp = "whatsapp"
+
+
 class ChatMessage(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "chat_message"
 
@@ -45,6 +50,17 @@ class ChatMessage(UUIDPrimaryKeyMixin, Base):
         SAEnum(MessageType, name="messagetype", native_enum=True, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=MessageType.text,
+    )
+    channel: Mapped[ChatChannel] = mapped_column(
+        SAEnum(
+            ChatChannel,
+            name="chatchannel",
+            native_enum=True,
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+        default=ChatChannel.telegram,
+        server_default="telegram",
     )
 
     # Text content (or caption for media)

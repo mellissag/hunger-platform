@@ -80,6 +80,15 @@ def _phone_for_user(c: ClientModel, user: User) -> str | None:
     return None
 
 
+def _whatsapp_phone_for_user(c: ClientModel, user: User) -> str | None:
+    raw = c.whatsapp_phone
+    if not raw:
+        return raw
+    if has_permission(user, "clients_view_phones"):
+        return raw
+    return None
+
+
 def _to_out(
     c: ClientModel,
     tb: int,
@@ -93,11 +102,13 @@ def _to_out(
     else:
         eff_lv = last_visit_at  # type: ignore[assignment]
     phone = _phone_for_user(c, user) if user is not None else c.phone
+    whatsapp_phone = _whatsapp_phone_for_user(c, user) if user is not None else c.whatsapp_phone
     return ClientOut(
         id=c.id,
         tg_user_id=c.tg_user_id,
         tg_username=c.tg_username,
         phone=phone,
+        whatsapp_phone=whatsapp_phone,
         first_name=c.first_name,
         last_name=c.last_name,
         city=c.city,

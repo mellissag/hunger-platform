@@ -40,6 +40,7 @@ class Client(UUIDPrimaryKeyMixin, Base):
     tg_user_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, nullable=True)
     tg_username: Mapped[str | None] = mapped_column(Text, nullable=True)
     phone: Mapped[str | None] = mapped_column(Text, nullable=True)
+    whatsapp_phone: Mapped[str | None] = mapped_column(Text, nullable=True)
     first_name: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_name: Mapped[str | None] = mapped_column(Text, nullable=True)
     city: Mapped[str | None] = mapped_column(Text, nullable=True)

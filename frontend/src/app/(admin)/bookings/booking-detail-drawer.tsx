@@ -511,6 +511,16 @@ export function BookingDetailDrawer({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  {bookingSourceBadgeLabel(data.created_via, t) ? (
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                        bookingSourceBadgeClass(data.created_via),
+                      )}
+                    >
+                      {bookingSourceBadgeLabel(data.created_via, t)}
+                    </span>
+                  ) : null}
                   <span
                     className={cn(
                       "rounded-full px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide",
@@ -841,6 +851,35 @@ function pickName(m: Record<string, string>, locale: string) {
 
 function shortId(id: string) {
   return id.replace(/-/g, "").slice(0, 8);
+}
+
+function bookingSourceBadgeLabel(
+  createdVia: string | undefined,
+  translate: (key: string) => string,
+): string | null {
+  if (!createdVia) return null;
+  switch (createdVia) {
+    case "bot":
+      return translate("bookingSourceTelegram");
+    case "whatsapp":
+      return translate("bookingSourceWhatsApp");
+    case "manual":
+      return translate("bookingSourceManual");
+    case "admin":
+      return translate("bookingSourceAdmin");
+    case "mini_app":
+      return translate("bookingSourceMiniApp");
+    case "broadcast":
+      return translate("bookingSourceBroadcast");
+    default:
+      return translate("bookingSourceOther");
+  }
+}
+
+function bookingSourceBadgeClass(createdVia: string | undefined): string {
+  if (createdVia === "whatsapp") return "bg-emerald-500/12 text-emerald-900";
+  if (createdVia === "bot") return "bg-sky-500/12 text-sky-900";
+  return "bg-muted text-muted-foreground";
 }
 
 function statusPillClass(status: string) {

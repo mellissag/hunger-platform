@@ -50,6 +50,7 @@ export type ClientOut = {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  whatsapp_phone?: string | null;
   tg_user_id?: number | null;
   tg_username: string | null;
   city?: string | null;
