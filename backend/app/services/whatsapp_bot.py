@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextvars
 import json
 import logging
 import re
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -20,7 +23,7 @@ import app.core.clock as clock
 from app.config import Settings, get_settings
 from app.core.exceptions import ClientBlacklistedError, SlotTakenError
 from app.models.booking import Booking
-from app.models.catalog import Service
+from app.models.catalog import MasterService, Service
 from app.models.client import Client
 from app.models.enums import BookingStatus, ClientSource
 from app.models.master import Master
@@ -34,6 +37,11 @@ from app.utils.datetime_utils import format_booking_datetime
 from app.utils.phone_digits import digits_only
 
 logger = logging.getLogger(__name__)
+
+# Set while handling one inbound message: first outbound WhatsApp cancels delayed "loading" (STEP 7).
+_first_wa_outbound: contextvars.ContextVar[asyncio.Event | None] = contextvars.ContextVar(
+    "first_wa_outbound", default=None
+)
 
 SESSION_PREFIX = "whatsapp:session:"
 SESSION_TTL_SEC = 30 * 60
@@ -64,6 +72,7 @@ def _default_session(lang: str) -> dict[str, Any]:
         "any_master": False,
         "selected_date": None,
         "selected_time": None,
+        "client_id": None,
         "master_pool": None,
         "dates_shown": [],
         "date_options": [],
@@ -146,10 +155,41 @@ async def _reply(
     text: str,
     client_id: UUID | None,
 ) -> None:
+    evt = _first_wa_outbound.get()
+    if evt is not None and not evt.is_set():
+        evt.set()
     await send_whatsapp_text_message(
         db=db,
         to_phone_digits=to_phone,
         text=text,
+        client_id=client_id,
+        settings=settings,
+    )
+
+
+async def _stall_loading_if_silent(
+    db: AsyncSession,
+    *,
+    settings: Settings,
+    to_phone: str,
+    lang: str,
+    client_id: UUID | None,
+) -> None:
+    """If no outbound reply within 5s, send localized loading line (PHASE 59 STEP 7)."""
+    evt = _first_wa_outbound.get()
+    if evt is None:
+        return
+    try:
+        await asyncio.wait_for(evt.wait(), timeout=5.0)
+        return
+    except asyncio.TimeoutError:
+        pass
+    if evt.is_set():
+        return
+    await send_whatsapp_text_message(
+        db=db,
+        to_phone_digits=to_phone,
+        text=wb_msg("loading", lang),
         client_id=client_id,
         settings=settings,
     )
@@ -312,77 +352,106 @@ async def process_inbound_text(
     else:
         lang = await _detect_lang_ai(db, text)
 
-    await _reply(db, settings=settings, to_phone=phone_digits, text=wb_msg("loading", lang), client_id=client_row.id if client_row else None)
-
-    if await is_blacklisted(db, client_row.id) if client_row else False:
-        await _reply(
+    first_evt = asyncio.Event()
+    token = _first_wa_outbound.set(first_evt)
+    stall_t = asyncio.create_task(
+        _stall_loading_if_silent(
             db,
             settings=settings,
             to_phone=phone_digits,
-            text=wb_msg("ai_disabled", lang),
-            client_id=client_row.id,
-        )
-        return WhatsappInboundResult(forwarded_to_admin=False)
-
-    if _is_reset_command(text):
-        await _session_clear(redis, phone_digits)
-        await _reply(
-            db,
-            settings=settings,
-            to_phone=phone_digits,
-            text=wb_msg("session_reset", lang),
+            lang=lang,
             client_id=client_row.id if client_row else None,
         )
-        return WhatsappInboundResult(forwarded_to_admin=False)
-
-    sess = await _session_load(redis, phone_digits) or _default_session(lang)
-    sess["language"] = lang
-    state = str(sess.get("state") or "idle")
-    if state not in VALID_STATES:
-        state = "idle"
-        sess["state"] = "idle"
-
-    if state != "idle":
-        client_row = client_row or await _ensure_client(db, phone_digits)
-        await db.flush()
-
+    )
     try:
-        if state == "cancel_pick":
-            assert client_row is not None
-            return await _handle_cancel_pick(db, redis, settings, phone_digits, text, sess, client_row)
-        if state == "idle":
-            return await _handle_idle(db, redis, settings, phone_digits, text, sess, client_row, telegram_bot)
-        if state == "selecting_service":
-            return await _handle_selecting_service(db, redis, settings, phone_digits, text, sess, client_row, telegram_bot)
-        if state == "selecting_master":
-            return await _handle_selecting_master(db, redis, settings, phone_digits, text, sess, client_row, telegram_bot)
-        if state == "selecting_date":
-            return await _handle_selecting_date(db, redis, settings, phone_digits, text, sess, client_row, telegram_bot)
-        if state == "selecting_time":
-            return await _handle_selecting_time(db, redis, settings, phone_digits, text, sess, client_row, telegram_bot)
-        if state == "confirming":
-            return await _handle_confirming(db, redis, settings, phone_digits, text, sess, client_row, telegram_bot)
-    except AIUnavailableError:
-        await _reply(
-            db,
-            settings=settings,
-            to_phone=phone_digits,
-            text=wb_msg("ai_disabled", lang),
-            client_id=client_row.id if client_row else None,
-        )
-        return WhatsappInboundResult(forwarded_to_admin=False)
-    except Exception:  # noqa: BLE001
-        logger.exception("whatsapp bot error phone=%s", phone_digits[:6])
-        await _reply(
-            db,
-            settings=settings,
-            to_phone=phone_digits,
-            text=wb_msg("unclear_retry", lang),
-            client_id=client_row.id if client_row else None,
-        )
-        return WhatsappInboundResult(forwarded_to_admin=False)
+        if await is_blacklisted(db, client_row.id) if client_row else False:
+            await _reply(
+                db,
+                settings=settings,
+                to_phone=phone_digits,
+                text=wb_msg("ai_disabled", lang),
+                client_id=client_row.id,
+            )
+            return WhatsappInboundResult(forwarded_to_admin=False)
 
-    return WhatsappInboundResult(forwarded_to_admin=False)
+        if _is_reset_command(text):
+            await _session_clear(redis, phone_digits)
+            await _reply(
+                db,
+                settings=settings,
+                to_phone=phone_digits,
+                text=wb_msg("session_reset", lang),
+                client_id=client_row.id if client_row else None,
+            )
+            return WhatsappInboundResult(forwarded_to_admin=False)
+
+        sess = await _session_load(redis, phone_digits) or _default_session(lang)
+        sess["language"] = lang
+        if client_row is not None:
+            sess["client_id"] = str(client_row.id)
+        state = str(sess.get("state") or "idle")
+        if state not in VALID_STATES:
+            state = "idle"
+            sess["state"] = "idle"
+
+        if state != "idle":
+            client_row = client_row or await _ensure_client(db, phone_digits)
+            await db.flush()
+            sess["client_id"] = str(client_row.id)
+
+        try:
+            if state == "cancel_pick":
+                assert client_row is not None
+                return await _handle_cancel_pick(db, redis, settings, phone_digits, text, sess, client_row)
+            if state == "idle":
+                return await _handle_idle(db, redis, settings, phone_digits, text, sess, client_row, telegram_bot)
+            if state == "selecting_service":
+                return await _handle_selecting_service(
+                    db, redis, settings, phone_digits, text, sess, client_row, telegram_bot
+                )
+            if state == "selecting_master":
+                return await _handle_selecting_master(
+                    db, redis, settings, phone_digits, text, sess, client_row, telegram_bot
+                )
+            if state == "selecting_date":
+                return await _handle_selecting_date(
+                    db, redis, settings, phone_digits, text, sess, client_row, telegram_bot
+                )
+            if state == "selecting_time":
+                return await _handle_selecting_time(
+                    db, redis, settings, phone_digits, text, sess, client_row, telegram_bot
+                )
+            if state == "confirming":
+                return await _handle_confirming(
+                    db, redis, settings, phone_digits, text, sess, client_row, telegram_bot
+                )
+        except AIUnavailableError:
+            await _reply(
+                db,
+                settings=settings,
+                to_phone=phone_digits,
+                text=wb_msg("ai_disabled", lang),
+                client_id=client_row.id if client_row else None,
+            )
+            return WhatsappInboundResult(forwarded_to_admin=False)
+        except Exception:  # noqa: BLE001
+            logger.exception("whatsapp bot error phone=%s", phone_digits[:6])
+            await _reply(
+                db,
+                settings=settings,
+                to_phone=phone_digits,
+                text=wb_msg("unclear_retry", lang),
+                client_id=client_row.id if client_row else None,
+            )
+            return WhatsappInboundResult(forwarded_to_admin=False)
+
+        return WhatsappInboundResult(forwarded_to_admin=False)
+    finally:
+        first_evt.set()
+        stall_t.cancel()
+        with suppress(asyncio.CancelledError):
+            await stall_t
+        _first_wa_outbound.reset(token)
 
 
 async def _handle_idle(
