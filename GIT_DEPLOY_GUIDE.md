@@ -554,6 +554,25 @@ SMTP_PASSWORD=app_password_here
 python3 -c "import secrets; print(secrets.token_hex(32))"
 ```
 
+### 7.2.1 Обновить только `.env` на VPS (актуальные секреты / WhatsApp и т.д.)
+
+Файл `.env` **не в git** — CI при push в `main` **не копирует** его на сервер. Чтобы на VPS лежала та же версия, что у вас локально:
+
+1. Убедитесь, что в корне репозитория заполнён `.env` (или задайте `ENV_FILE=...`).
+2. С машины с SSH-ключом к VPS:
+   ```bash
+   cd /path/to/hunger-platform
+   chmod +x deploy/scripts/push-env-to-vps.sh
+   export VPS_HOST=your.server.tld
+   export VPS_USER=deploy
+   export VPS_SSH_KEY=$HOME/.ssh/your_deploy_key   # при необходимости
+   export VPS_PORT=22
+   ./deploy/scripts/push-env-to-vps.sh
+   ```
+3. Скрипт копирует `.env` в `${VPS_APP_DIR:-/opt/hunger-platform}/.env` и выполняет `docker compose ... up -d` (как в `.github/workflows/deploy.yml`), чтобы контейнеры подхватили новые переменные.
+
+Если на сервере **нет** overlay `docker-compose.prod.yml`, задайте `VPS_USE_PROD_OVERLAY=0`.
+
 ---
 
 ## 8. Полный цикл: от коммита до боевого сервера
