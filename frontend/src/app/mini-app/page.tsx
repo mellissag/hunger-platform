@@ -48,6 +48,15 @@ const PICK_SHADOW =
 const PICK_BTN_FROM = '#B59449';
 const PICK_BTN_TO = '#C9A84C';
 
+/** Shared with «ПОДБОРКА ДНЯ» header label */
+const PICK_HEADER_FONT: React.CSSProperties = {
+  fontFamily: BODY,
+  fontSize: 9,
+  fontWeight: 700,
+  letterSpacing: '0.28em',
+  lineHeight: 1,
+};
+
 function dailyPickEndMs(validTo: string | null | undefined): number | null {
   if (!validTo) return null;
   const end = new Date(validTo.includes('T') ? validTo : `${validTo}T23:59:59`).getTime();
@@ -78,13 +87,10 @@ function DailyPickCountdown({ validTo }: { validTo: string }) {
   return (
     <span
       style={{
-        fontFamily: SERIF,
-        fontSize: 22,
-        fontWeight: 600,
+        ...PICK_HEADER_FONT,
         color: PICK_PRICE_GOLD,
-        letterSpacing: '-0.02em',
-        lineHeight: 1,
         flexShrink: 0,
+        fontVariantNumeric: 'tabular-nums',
       }}
     >
       {formatCountdown(left)}
@@ -390,12 +396,9 @@ export default function HomePage() {
                 >
                   <div
                     style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      letterSpacing: '0.28em',
+                      ...PICK_HEADER_FONT,
                       color: PICK_LABEL,
                       textTransform: 'uppercase',
-                      fontFamily: BODY,
                     }}
                   >
                     {t.homeDayPick}

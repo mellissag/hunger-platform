@@ -3,8 +3,6 @@
 import { Calendar, Clock } from "lucide-react";
 import { useRef } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +44,14 @@ function openNativePicker(el: HTMLInputElement | null) {
   }
 }
 
+const pickerInputClass = cn(
+  "h-10 w-full border-0 bg-transparent px-3 text-sm text-foreground shadow-none",
+  "focus-visible:outline-none focus-visible:ring-0",
+  "disabled:cursor-not-allowed disabled:opacity-50",
+  "[&::-webkit-calendar-picker-indicator]:hidden",
+  "[&::-webkit-clear-button]:hidden",
+);
+
 type DailyPickDateTimeFieldProps = {
   label: string;
   value: string | null;
@@ -68,9 +74,14 @@ export function DailyPickDateTimeField({
   return (
     <div className="space-y-1.5">
       <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</Label>
-      <div className="flex gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Input
+      <div
+        className={cn(
+          "flex overflow-hidden rounded-md border border-input bg-background",
+          "ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
+        )}
+      >
+        <div className="relative min-w-0 flex-1 border-r border-input">
+          <input
             ref={dateRef}
             type="date"
             value={date}
@@ -79,22 +90,20 @@ export function DailyPickDateTimeField({
             }
             onClick={() => openNativePicker(dateRef.current)}
             onFocus={() => openNativePicker(dateRef.current)}
-            className={cn("pr-9", "[&::-webkit-calendar-picker-indicator]:opacity-0")}
+            className={cn(pickerInputClass, "pr-10")}
           />
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="icon"
             tabIndex={-1}
             aria-label={`${label} — календарь`}
-            className="absolute right-0 top-0 h-10 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+            className="absolute right-0 top-0 flex h-10 w-9 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
             onClick={() => openNativePicker(dateRef.current)}
           >
             <Calendar className="h-4 w-4" />
-          </Button>
+          </button>
         </div>
-        <div className="relative w-[7.5rem] shrink-0">
-          <Input
+        <div className="relative w-[6.75rem] shrink-0">
+          <input
             ref={timeRef}
             type="time"
             value={timeValue}
@@ -102,20 +111,18 @@ export function DailyPickDateTimeField({
             onChange={(e) => onChange(combinePickDateTime(date, e.target.value, defaultTime))}
             onClick={() => openNativePicker(timeRef.current)}
             onFocus={() => openNativePicker(timeRef.current)}
-            className={cn("pr-9", "[&::-webkit-calendar-picker-indicator]:opacity-0")}
+            className={cn(pickerInputClass, "px-2 pr-9 text-center tabular-nums")}
           />
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="icon"
             tabIndex={-1}
             disabled={!hasDate}
             aria-label={`${label} — время`}
-            className="absolute right-0 top-0 h-10 w-9 shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-40"
+            className="absolute right-0 top-0 flex h-10 w-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
             onClick={() => openNativePicker(timeRef.current)}
           >
-            <Clock className="h-4 w-4" />
-          </Button>
+            <Clock className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
     </div>

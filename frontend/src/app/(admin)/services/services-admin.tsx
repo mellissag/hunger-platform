@@ -460,7 +460,7 @@ function DailyPickBlock() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-4">
             <DailyPickDateTimeField
               label="Действует от"
               value={form.valid_from}
