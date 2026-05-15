@@ -42,7 +42,7 @@ from app.services import schedule_service
 from app.services.bot_booking import create_tg_booking, is_blacklisted
 from app.services.notification_service import AdminEvent, get_admin_notify_chat_id, notify_admin
 from app.services.notifications import notify_master_new_booking
-from app.utils.datetime_utils import ensure_aware
+from app.utils.datetime_utils import ensure_aware, now_utc
 
 router = APIRouter(prefix="/mini-app", tags=["mini-app"])
 
@@ -1074,6 +1074,7 @@ class MiniAppDailyPickOut(_BM):
     button_url: str | None = None
     button_type: Literal["url", "mini_app"] = "url"
     active: bool = True
+    valid_to: str | None = None
 
 
 class DailyPickUpsert(_BM):
@@ -1121,6 +1122,20 @@ class DailyPickFull(_BM):
     valid_to: str | None = None
 
 
+def _parse_daily_pick_datetime(value: str | None):
+    """Parse admin/Mini App ISO datetime; naive values use salon timezone."""
+    if not value or not str(value).strip():
+        return None
+    from datetime import UTC, datetime
+    from zoneinfo import ZoneInfo
+
+    raw = str(value).strip()
+    dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=ZoneInfo("Europe/Sofia"))
+    return dt.astimezone(UTC)
+
+
 def _daily_pick_button_type(pick: Any) -> Literal["url", "mini_app"]:
     raw = (getattr(pick, "button_type", None) or "url")
     if isinstance(raw, str):
@@ -1158,10 +1173,9 @@ async def get_daily_pick(
     lang: str = "ru",
     db: AsyncSession = Depends(get_db),
 ) -> list[MiniAppDailyPickOut]:
-    """Public: all active daily picks for Mini App (vertical stack).
+    """Public: active daily picks for Mini App.
 
-    Visibility is controlled only by the ``active`` flag. ``valid_from`` / ``valid_to``
-    are stored for planning reference in admin and do not hide picks from clients.
+    Picks past ``valid_to`` are omitted. ``valid_to`` is returned for the countdown timer.
     """
     from app.models.daily_pick import DailyPick
 
@@ -1171,10 +1185,13 @@ async def get_daily_pick(
         .order_by(DailyPick.updated_at.desc())
     )
     rows = (await db.execute(q)).scalars().all()
+    now = now_utc()
 
     resolved = lang if lang in _SUPPORTED_LANGS else "ru"
     out: list[MiniAppDailyPickOut] = []
     for pick in rows:
+        if pick.valid_to is not None and pick.valid_to <= now:
+            continue
         title = (
             getattr(pick, f"title_{resolved}", None)
             or pick.title_ru
@@ -1199,6 +1216,7 @@ async def get_daily_pick(
             button_url=pick.button_url or None,
             button_type=_daily_pick_button_type(pick),
             active=True,
+            valid_to=pick.valid_to.isoformat() if pick.valid_to else None,
         ))
     return out
 
@@ -1240,7 +1258,6 @@ async def create_daily_pick(
 ) -> DailyPickFull:
     """Admin: create a daily pick."""
     import uuid as _uuid
-    from datetime import date as _date
 
     from app.models.daily_pick import DailyPick
 
@@ -1262,8 +1279,8 @@ async def create_daily_pick(
         price=payload.price,
         service_id=_uuid.UUID(payload.service_id) if payload.service_id else None,
         active=payload.active,
-        valid_from=_date.fromisoformat(payload.valid_from) if payload.valid_from else None,
-        valid_to=_date.fromisoformat(payload.valid_to) if payload.valid_to else None,
+        valid_from=_parse_daily_pick_datetime(payload.valid_from),
+        valid_to=_parse_daily_pick_datetime(payload.valid_to),
     )
     db.add(p)
     await db.commit()
@@ -1279,7 +1296,6 @@ async def update_daily_pick(
 ) -> DailyPickFull:
     """Admin: update a daily pick."""
     import uuid as _uuid
-    from datetime import date as _date
 
     from app.models.daily_pick import DailyPick
 
@@ -1304,8 +1320,8 @@ async def update_daily_pick(
     p.price = payload.price
     p.service_id = _uuid.UUID(payload.service_id) if payload.service_id else None
     p.active = payload.active
-    p.valid_from = _date.fromisoformat(payload.valid_from) if payload.valid_from else None
-    p.valid_to = _date.fromisoformat(payload.valid_to) if payload.valid_to else None
+    p.valid_from = _parse_daily_pick_datetime(payload.valid_from)
+    p.valid_to = _parse_daily_pick_datetime(payload.valid_to)
 
     await db.commit()
     await db.refresh(p)

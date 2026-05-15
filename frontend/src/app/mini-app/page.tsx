@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTelegram } from './hooks/useTelegram';
 import { useMyBookings, useMeProfile, useSalonInfo, useDailyPick, pickI18n } from './hooks/useMiniAppData';
@@ -48,6 +48,50 @@ const PICK_SHADOW =
 const PICK_BTN_FROM = '#B59449';
 const PICK_BTN_TO = '#C9A84C';
 
+function dailyPickEndMs(validTo: string | null | undefined): number | null {
+  if (!validTo) return null;
+  const end = new Date(validTo.includes('T') ? validTo : `${validTo}T23:59:59`).getTime();
+  return Number.isNaN(end) ? null : end;
+}
+
+function formatCountdown(msLeft: number): string {
+  const totalSec = Math.max(0, Math.floor(msLeft / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function DailyPickCountdown({ validTo }: { validTo: string }) {
+  const endMs = dailyPickEndMs(validTo);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (endMs == null) return null;
+  const left = endMs - now;
+  if (left <= 0) return null;
+
+  return (
+    <span
+      style={{
+        fontFamily: SERIF,
+        fontSize: 22,
+        fontWeight: 600,
+        color: PICK_PRICE_GOLD,
+        letterSpacing: '-0.02em',
+        lineHeight: 1,
+        flexShrink: 0,
+      }}
+    >
+      {formatCountdown(left)}
+    </span>
+  );
+}
+
 function formatLocalDate(iso: string, daysShort: string[], monthsGen: string[]): string {
   try {
     const d = new Date(iso);
@@ -65,6 +109,21 @@ export default function HomePage() {
   const { data: profile } = useMeProfile();
   const { data: salonInfo } = useSalonInfo(lang);
   const { data: dailyPicks = [] } = useDailyPick(lang);
+  const [tick, setTick] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const visibleDailyPicks = useMemo(
+    () =>
+      dailyPicks.filter((pick) => {
+        const end = dailyPickEndMs(pick.valid_to);
+        return end == null || end > tick;
+      }),
+    [dailyPicks, tick],
+  );
 
   const salonAddress = (salonInfo?.address ?? '').trim();
   const salonCity = (salonInfo?.city ?? '').trim();
@@ -237,9 +296,9 @@ export default function HomePage() {
       </div>
 
       {/* ── Подборки дня — вертикальный стек тёмных карточек ── */}
-      {dailyPicks.length > 0 && (
+      {visibleDailyPicks.length > 0 && (
         <div style={{ padding: '0 16px', marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {dailyPicks.map((pick) => {
+          {visibleDailyPicks.map((pick) => {
             const btnLabel = pick.button_text ?? t.homeBtnBook;
             const handleBtnClick = () => {
               const rawUrl = (pick.button_url ?? '').trim();
@@ -322,16 +381,26 @@ export default function HomePage() {
                 />
                 <div
                   style={{
-                    fontSize: 9,
-                    fontWeight: 700,
-                    letterSpacing: '0.28em',
-                    color: PICK_LABEL,
-                    textTransform: 'uppercase',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
                     position: 'relative',
-                    fontFamily: BODY,
                   }}
                 >
-                  {t.homeDayPick}
+                  <div
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 700,
+                      letterSpacing: '0.28em',
+                      color: PICK_LABEL,
+                      textTransform: 'uppercase',
+                      fontFamily: BODY,
+                    }}
+                  >
+                    {t.homeDayPick}
+                  </div>
+                  {pick.valid_to ? <DailyPickCountdown validTo={pick.valid_to} /> : null}
                 </div>
                 <div
                   style={{

@@ -276,6 +276,8 @@ export interface DailyPick {
   button_url: string | null;
   /** Defaults to `url` when absent (older API). */
   button_type?: 'url' | 'mini_app';
+  /** ISO datetime — countdown target; omitted when open-ended. */
+  valid_to?: string | null;
 }
 
 export function useDailyPick(lang = 'ru') {

@@ -60,9 +60,42 @@ const emptyPickForm = (): Omit<DailyPickFull, "id"> => ({
   valid_from: null, valid_to: null,
 });
 
-/** Mirrors Mini App rule: only ``active`` controls visibility on the home screen. */
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function splitPickDateTime(iso: string | null): { date: string; time: string } {
+  if (!iso) return { date: "", time: "" };
+  try {
+    const normalized = iso.includes("T") ? iso : `${iso}T00:00:00`;
+    const d = new Date(normalized);
+    if (Number.isNaN(d.getTime())) return { date: iso.slice(0, 10), time: "" };
+    return {
+      date: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`,
+      time: `${pad2(d.getHours())}:${pad2(d.getMinutes())}`,
+    };
+  } catch {
+    return { date: iso.slice(0, 10), time: "" };
+  }
+}
+
+function combinePickDateTime(
+  date: string,
+  time: string,
+  defaultTime: string,
+): string | null {
+  const d = date.trim();
+  if (!d) return null;
+  const t = (time.trim() || defaultTime).slice(0, 5);
+  return `${d}T${t}:00`;
+}
+
+/** Mirrors Mini App: active and not past ``valid_to``. */
 function pickShowsInMiniApp(p: DailyPickFull): boolean {
-  return p.active;
+  if (!p.active) return false;
+  if (!p.valid_to) return true;
+  const end = new Date(p.valid_to.includes("T") ? p.valid_to : `${p.valid_to}T23:59:59`);
+  return !Number.isNaN(end.getTime()) && end.getTime() > Date.now();
 }
 
 function dailyPickMutationToastMessage(error: unknown, fallback: string): string {
@@ -219,8 +252,8 @@ function DailyPickBlock() {
               Блок на главном экране Mini App
             </p>
             <p className="mt-2 max-w-xl text-xs text-muted-foreground leading-relaxed">
-              В приложении показываются только подборки с включённым переключателем «Активно».
-              Даты «действует от / до» — для справки в админке и не скрывают блок у клиентов.
+              В приложении показываются активные подборки до момента «Действует до»; после окончания
+              срока блок скрывается, на карточке — таймер обратного отсчёта.
             </p>
           </div>
           <button
@@ -460,15 +493,78 @@ function DailyPickBlock() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Действует от</Label>
-              <Input type="date" value={form.valid_from ?? ""} onChange={e => setField("valid_from", e.target.value || null)} />
+              <div className="flex gap-2">
+                {(() => {
+                  const fromParts = splitPickDateTime(form.valid_from);
+                  return (
+                    <>
+                      <Input
+                        type="date"
+                        className="min-w-0 flex-1"
+                        value={fromParts.date}
+                        onChange={e =>
+                          setField(
+                            "valid_from",
+                            combinePickDateTime(e.target.value, fromParts.time, "00:00"),
+                          )
+                        }
+                      />
+                      <Input
+                        type="time"
+                        className="w-[7.25rem] shrink-0"
+                        value={fromParts.time || (fromParts.date ? "00:00" : "")}
+                        onChange={e =>
+                          setField(
+                            "valid_from",
+                            combinePickDateTime(fromParts.date, e.target.value, "00:00"),
+                          )
+                        }
+                        disabled={!fromParts.date}
+                      />
+                    </>
+                  );
+                })()}
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Действует до</Label>
-              <Input type="date" value={form.valid_to ?? ""} onChange={e => setField("valid_to", e.target.value || null)} />
+              <div className="flex gap-2">
+                {(() => {
+                  const toParts = splitPickDateTime(form.valid_to);
+                  return (
+                    <>
+                      <Input
+                        type="date"
+                        className="min-w-0 flex-1"
+                        value={toParts.date}
+                        onChange={e =>
+                          setField(
+                            "valid_to",
+                            combinePickDateTime(e.target.value, toParts.time, "23:59"),
+                          )
+                        }
+                      />
+                      <Input
+                        type="time"
+                        className="w-[7.25rem] shrink-0"
+                        value={toParts.time || (toParts.date ? "23:59" : "")}
+                        onChange={e =>
+                          setField(
+                            "valid_to",
+                            combinePickDateTime(toParts.date, e.target.value, "23:59"),
+                          )
+                        }
+                        disabled={!toParts.date}
+                      />
+                    </>
+                  );
+                })()}
+              </div>
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground leading-snug">
-            Период не влияет на показ в Mini App — скрыть подборку можно только отключив «Активно».
+            Время по умолчанию: 00:00 для начала, 23:59 для окончания. После «Действует до» подборка
+            исчезает в Mini App.
           </p>
 
           {/* Active toggle */}
