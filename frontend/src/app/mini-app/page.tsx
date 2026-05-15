@@ -48,10 +48,9 @@ const PICK_SHADOW =
 const PICK_BTN_FROM = '#B59449';
 const PICK_BTN_TO = '#C9A84C';
 
-/** Shared with «ПОДБОРКА ДНЯ» header label */
-const PICK_HEADER_FONT: React.CSSProperties = {
+/** Shared typography for «ПОДБОРКА ДНЯ» row (label 10px, timer 12px) */
+const PICK_HEADER_BASE: React.CSSProperties = {
   fontFamily: BODY,
-  fontSize: 9,
   fontWeight: 700,
   letterSpacing: '0.28em',
   lineHeight: 1,
@@ -87,7 +86,8 @@ function DailyPickCountdown({ validTo }: { validTo: string }) {
   return (
     <span
       style={{
-        ...PICK_HEADER_FONT,
+        ...PICK_HEADER_BASE,
+        fontSize: 12,
         color: PICK_PRICE_GOLD,
         flexShrink: 0,
         fontVariantNumeric: 'tabular-nums',
@@ -396,7 +396,8 @@ export default function HomePage() {
                 >
                   <div
                     style={{
-                      ...PICK_HEADER_FONT,
+                      ...PICK_HEADER_BASE,
+                      fontSize: 10,
                       color: PICK_LABEL,
                       textTransform: 'uppercase',
                     }}
@@ -501,12 +502,12 @@ export default function HomePage() {
           borderRadius: 20,
           padding: '16px 14px',
         }}>
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', color: MUTED, textTransform: 'uppercase', marginBottom: 10 }}>{t.homeAddress}</div>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.22em', color: MUTED, textTransform: 'uppercase', marginBottom: 10 }}>{t.homeAddress}</div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: salonCity ? 6 : 0 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" style={{ flexShrink: 0, marginTop: 2 }}>
               <path d="M12 21s7-7 7-12a7 7 0 10-14 0c0 5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>
             </svg>
-            <div style={{ fontFamily: SERIF, fontSize: 14, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.35 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, color: NEAR_BLACK, lineHeight: 1.35 }}>
               {salonAddress || '—'}
             </div>
           </div>
@@ -520,7 +521,7 @@ export default function HomePage() {
               </svg>
               <a
                 href={`tel:${salonPhone.replace(/\s/g, '')}`}
-                style={{ fontSize: 13, fontWeight: 500, color: NEAR_BLACK, textDecoration: 'none' }}
+                style={{ fontSize: 10, fontWeight: 500, color: NEAR_BLACK, textDecoration: 'underline' }}
               >
                 {salonPhone}
               </a>

@@ -170,13 +170,7 @@ export default function ProfilePage() {
 
         {/* ── Statistics ────────────────────────────────── */}
         <SectionLabel className="pt-2">{pl.stats}</SectionLabel>
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard label={pl.bookingsCount} value={String(profile?.total_bookings ?? 0)} />
-          <StatCard
-            label="Telegram"
-            value={tgUser?.username ? `@${tgUser.username}` : '—'}
-          />
-        </div>
+        <StatCard label={pl.bookingsCount} value={String(profile?.total_bookings ?? 0)} />
 
       </div>
 
@@ -245,7 +239,7 @@ function SettingRow({ label, value, onEdit }: { label: string; value: string; on
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white border border-[#E4DDD0] rounded-sm px-4 py-3">
+    <div className="w-full bg-white border border-[#E4DDD0] rounded-sm px-4 py-3">
       <div className="text-xs text-[#7A6E58]">{label}</div>
       <div
         className="text-base font-semibold text-[#1C1408] mt-1"
