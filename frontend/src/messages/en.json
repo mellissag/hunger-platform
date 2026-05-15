@@ -1759,7 +1759,17 @@
       "statusMinSpent": "Min spent €",
       "dragHint": "Drag to reorder",
       "cancel": "Cancel",
-      "statusNamesRequired": "Enter RU and EN names"
+      "statusNamesRequired": "Enter RU and EN names",
+      "promoHasExpiry": "Set expiration date",
+      "promoValidUntil": "Valid until",
+      "promoValidUntilColumn": "Expires",
+      "promoDelete": "Delete promo code",
+      "confirmDeletePromo": "Delete promo code «{code}»? It can never be used again, even if you create a code with the same name.",
+      "promoDeleted": "Promo code deleted",
+      "promoCodeRequired": "Enter a promo code",
+      "promoExpiryDateRequired": "Select an end date",
+      "actions": "Actions",
+      "noPromos": "No promo codes yet"
     }
   },
   "miniApp": {

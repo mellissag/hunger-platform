@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Annotated
 from uuid import UUID
 
@@ -138,7 +138,15 @@ async def list_promo_codes(
     db: AsyncSession = Depends(get_db),
 ) -> list[PromoCode]:
     return list(
-        (await db.execute(select(PromoCode).order_by(PromoCode.created_at.desc()))).scalars().all()
+        (
+            await db.execute(
+                select(PromoCode)
+                .where(PromoCode.deleted_at.is_(None))
+                .order_by(PromoCode.created_at.desc())
+            )
+        )
+        .scalars()
+        .all()
     )
 
 
@@ -149,10 +157,15 @@ async def create_promo_code(
     db: AsyncSession = Depends(get_db),
 ) -> PromoCode:
     code = _normalize_promo_code(body.code)
-    exists = (
-        await db.execute(select(PromoCode.id).where(func.upper(PromoCode.code) == code))
+    existing = (
+        await db.execute(select(PromoCode).where(func.upper(PromoCode.code) == code))
     ).scalar_one_or_none()
-    if exists:
+    if existing is not None:
+        if existing.deleted_at is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="Promo code was deleted and cannot be reused",
+            )
         raise HTTPException(status_code=409, detail="Promo code already exists")
     row = PromoCode(**{**body.model_dump(), "code": code})
     db.add(row)
@@ -168,7 +181,7 @@ async def update_promo_code(
     db: AsyncSession = Depends(get_db),
 ) -> PromoCode:
     row = await db.get(PromoCode, promo_id)
-    if row is None:
+    if row is None or row.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Promo code not found")
     data = body.model_dump(exclude_unset=True)
     if "code" in data and data["code"] is not None:
@@ -186,9 +199,10 @@ async def delete_promo_code(
     db: AsyncSession = Depends(get_db),
 ) -> None:
     row = await db.get(PromoCode, promo_id)
-    if row is None:
+    if row is None or row.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Promo code not found")
-    await db.delete(row)
+    row.deleted_at = datetime.now(timezone.utc)
+    row.is_active = False
     await db.flush()
 
 

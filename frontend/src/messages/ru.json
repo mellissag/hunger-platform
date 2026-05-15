@@ -1760,7 +1760,17 @@
       "statusMinSpent": "Мин. сумма €",
       "dragHint": "Перетащите для изменения порядка",
       "cancel": "Отмена",
-      "statusNamesRequired": "Укажите названия RU и EN"
+      "statusNamesRequired": "Укажите названия RU и EN",
+      "promoHasExpiry": "Ограничить срок действия",
+      "promoValidUntil": "Действует до",
+      "promoValidUntilColumn": "Срок",
+      "promoDelete": "Удалить промокод",
+      "confirmDeletePromo": "Удалить промокод «{code}»? Его нельзя будет использовать снова, даже если создать код с тем же именем.",
+      "promoDeleted": "Промокод удалён",
+      "promoCodeRequired": "Укажите код промокода",
+      "promoExpiryDateRequired": "Выберите дату окончания",
+      "actions": "Действия",
+      "noPromos": "Промокодов пока нет"
     }
   },
   "miniApp": {

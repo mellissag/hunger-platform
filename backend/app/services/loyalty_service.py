@@ -103,7 +103,12 @@ async def validate_promo_code(
 ) -> tuple[PromoCode, Decimal]:
     normalized = code.strip().upper()
     promo = (
-        await db.execute(select(PromoCode).where(func.upper(PromoCode.code) == normalized))
+        await db.execute(
+            select(PromoCode).where(
+                func.upper(PromoCode.code) == normalized,
+                PromoCode.deleted_at.is_(None),
+            )
+        )
     ).scalar_one_or_none()
     if promo is None or not promo.is_active:
         raise PromoValidationError("not_found")

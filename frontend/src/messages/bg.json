@@ -1760,7 +1760,17 @@
       "statusMinSpent": "Мин. сума €",
       "dragHint": "Плъзнете за пренареждане",
       "cancel": "Отказ",
-      "statusNamesRequired": "Въведете имена RU и EN"
+      "statusNamesRequired": "Въведете имена RU и EN",
+      "promoHasExpiry": "Ограничи срок на валидност",
+      "promoValidUntil": "Валиден до",
+      "promoValidUntilColumn": "Срок",
+      "promoDelete": "Изтрий промокод",
+      "confirmDeletePromo": "Изтриване на промокод «{code}»? Не може да се използва отново, дори при същото име.",
+      "promoDeleted": "Промокодът е изтрит",
+      "promoCodeRequired": "Въведете промо код",
+      "promoExpiryDateRequired": "Изберете крайна дата",
+      "actions": "Действия",
+      "noPromos": "Все още няма промокодове"
     }
   },
   "miniApp": {

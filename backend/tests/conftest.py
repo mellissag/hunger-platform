@@ -89,6 +89,11 @@ async def _truncate_tables() -> None:
             text(
                 """
                 TRUNCATE TABLE
+                  loyalty_transaction,
+                  referral_code,
+                  promo_code,
+                  client_status,
+                  loyalty_settings,
                   ai_message,
                   ai_conversation,
                   bot_visit_stat,

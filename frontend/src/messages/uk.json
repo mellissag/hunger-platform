@@ -1760,7 +1760,17 @@
       "statusMinSpent": "Мін. сума €",
       "dragHint": "Перетягніть для зміни порядку",
       "cancel": "Скасувати",
-      "statusNamesRequired": "Вкажіть назви RU та EN"
+      "statusNamesRequired": "Вкажіть назви RU та EN",
+      "promoHasExpiry": "Обмежити термін дії",
+      "promoValidUntil": "Діє до",
+      "promoValidUntilColumn": "Термін",
+      "promoDelete": "Видалити промокод",
+      "confirmDeletePromo": "Видалити промокод «{code}»? Його більше не можна буде використати, навіть якщо створити код з тією ж назвою.",
+      "promoDeleted": "Промокод видалено",
+      "promoCodeRequired": "Вкажіть код промокоду",
+      "promoExpiryDateRequired": "Оберіть дату закінчення",
+      "actions": "Дії",
+      "noPromos": "Промокодів ще немає"
     }
   },
   "miniApp": {
