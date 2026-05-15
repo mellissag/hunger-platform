@@ -41,6 +41,7 @@ export type PromoCodeRow = {
   valid_from: string | null;
   valid_until: string | null;
   is_active: boolean;
+  deleted_at?: string | null;
   created_at: string;
 };
 
