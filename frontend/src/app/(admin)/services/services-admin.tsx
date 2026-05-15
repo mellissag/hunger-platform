@@ -5,6 +5,7 @@ import { Check, Download, Loader2, Pencil, Plus, Tag, Trash2, X } from "lucide-r
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+import { DailyPickDateTimeField } from "@/components/services/DailyPickDateTimeField";
 import { ServiceCard, ServiceCardSkeleton } from "@/components/services/ServiceCard";
 import { ServiceDeleteModal } from "@/components/services/ServiceDeleteModal";
 import { ServiceDrawer } from "@/components/services/ServiceDrawer";
@@ -59,36 +60,6 @@ const emptyPickForm = (): Omit<DailyPickFull, "id"> => ({
   price: null, service_id: null, active: true,
   valid_from: null, valid_to: null,
 });
-
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-function splitPickDateTime(iso: string | null): { date: string; time: string } {
-  if (!iso) return { date: "", time: "" };
-  try {
-    const normalized = iso.includes("T") ? iso : `${iso}T00:00:00`;
-    const d = new Date(normalized);
-    if (Number.isNaN(d.getTime())) return { date: iso.slice(0, 10), time: "" };
-    return {
-      date: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`,
-      time: `${pad2(d.getHours())}:${pad2(d.getMinutes())}`,
-    };
-  } catch {
-    return { date: iso.slice(0, 10), time: "" };
-  }
-}
-
-function combinePickDateTime(
-  date: string,
-  time: string,
-  defaultTime: string,
-): string | null {
-  const d = date.trim();
-  if (!d) return null;
-  const t = (time.trim() || defaultTime).slice(0, 5);
-  return `${d}T${t}:00`;
-}
 
 /** Mirrors Mini App: active and not past ``valid_to``. */
 function pickShowsInMiniApp(p: DailyPickFull): boolean {
@@ -489,78 +460,19 @@ function DailyPickBlock() {
             />
           </div>
 
-          {/* Date range */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Действует от</Label>
-              <div className="flex gap-2">
-                {(() => {
-                  const fromParts = splitPickDateTime(form.valid_from);
-                  return (
-                    <>
-                      <Input
-                        type="date"
-                        className="min-w-0 flex-1"
-                        value={fromParts.date}
-                        onChange={e =>
-                          setField(
-                            "valid_from",
-                            combinePickDateTime(e.target.value, fromParts.time, "00:00"),
-                          )
-                        }
-                      />
-                      <Input
-                        type="time"
-                        className="w-[7.25rem] shrink-0"
-                        value={fromParts.time || (fromParts.date ? "00:00" : "")}
-                        onChange={e =>
-                          setField(
-                            "valid_from",
-                            combinePickDateTime(fromParts.date, e.target.value, "00:00"),
-                          )
-                        }
-                        disabled={!fromParts.date}
-                      />
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Действует до</Label>
-              <div className="flex gap-2">
-                {(() => {
-                  const toParts = splitPickDateTime(form.valid_to);
-                  return (
-                    <>
-                      <Input
-                        type="date"
-                        className="min-w-0 flex-1"
-                        value={toParts.date}
-                        onChange={e =>
-                          setField(
-                            "valid_to",
-                            combinePickDateTime(e.target.value, toParts.time, "23:59"),
-                          )
-                        }
-                      />
-                      <Input
-                        type="time"
-                        className="w-[7.25rem] shrink-0"
-                        value={toParts.time || (toParts.date ? "23:59" : "")}
-                        onChange={e =>
-                          setField(
-                            "valid_to",
-                            combinePickDateTime(toParts.date, e.target.value, "23:59"),
-                          )
-                        }
-                        disabled={!toParts.date}
-                      />
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
+            <DailyPickDateTimeField
+              label="Действует от"
+              value={form.valid_from}
+              defaultTime="00:00"
+              onChange={(iso) => setField("valid_from", iso)}
+            />
+            <DailyPickDateTimeField
+              label="Действует до"
+              value={form.valid_to}
+              defaultTime="23:59"
+              onChange={(iso) => setField("valid_to", iso)}
+            />
           </div>
           <p className="text-[11px] text-muted-foreground leading-snug">
             Время по умолчанию: 00:00 для начала, 23:59 для окончания. После «Действует до» подборка
