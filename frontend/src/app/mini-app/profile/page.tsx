@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useClientProfile, useUpdateClientProfile } from '../hooks/useMiniAppData';
 import { useTelegram } from '../hooks/useTelegram';
 import { useT } from '../i18n/context';
+import { fmtTpl } from '../i18n/loyalty';
+import { useMeLoyalty } from '../hooks/useLoyalty';
 import type { Lang } from '../i18n/translations';
 import { useTheme } from '../providers/ThemeProvider';
 
@@ -38,8 +41,9 @@ const LANGS: Array<{ code: Lang; label: string }> = [
 export default function ProfilePage() {
   const { user: tgUser } = useTelegram();
   const { data: profile, isLoading } = useClientProfile();
+  const { data: loyalty } = useMeLoyalty();
   const { mutate: updateProfile, isPending } = useUpdateClientProfile();
-  const { lang, setLang } = useT();
+  const { t, lang, setLang } = useT();
   const pl = PROFILE_LABELS[lang] ?? PROFILE_LABELS.ru;
 
   const [editingName, setEditingName] = useState(false);
@@ -167,6 +171,44 @@ export default function ProfilePage() {
             ))}
           </div>
         </div>
+
+        {loyalty ? (
+          <>
+            <SectionLabel className="pt-2">{t.loyaltyMyPoints}</SectionLabel>
+            <Link
+              href="/mini-app/bonuses"
+              className="block rounded-sm px-4 py-3"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-2xl font-semibold" style={{ color: 'var(--gold)', fontFamily: '"Cormorant Garamond", serif' }}>
+                    {loyalty.points}
+                  </div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {fmtTpl(t.loyaltyPointsEqualsEur, {
+                      value: (loyalty.points * Number(loyalty.points_value_eur)).toFixed(2),
+                    })}
+                  </div>
+                  {loyalty.status ? (
+                    <span
+                      className="inline-block mt-2 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                      style={{
+                        background: loyalty.status.background_color,
+                        color: loyalty.status.text_color,
+                      }}
+                    >
+                      {loyalty.status.name}
+                    </span>
+                  ) : (
+                    <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{t.loyaltyNoStatus}</div>
+                  )}
+                </div>
+                <span className="text-xs font-semibold" style={{ color: 'var(--gold-deep)' }}>{t.loyaltyGoToBonuses} →</span>
+              </div>
+            </Link>
+          </>
+        ) : null}
 
         {/* ── Statistics ────────────────────────────────── */}
         <SectionLabel className="pt-2">{pl.stats}</SectionLabel>

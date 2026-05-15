@@ -566,7 +566,22 @@
       "editDrawerSource": "Източник",
       "editDrawerTgUsername": "Потребителско име в Telegram (без @)",
       "editDrawerCity": "Град",
-      "editDrawerLang": "Език"
+      "editDrawerLang": "Език",
+      "loyaltyTitle": "Лоялност",
+      "loyaltyPoints": "Точки",
+      "loyaltyVisits": "Посещения",
+      "loyaltySpent": "Похарчено",
+      "loyaltyReferralUses": "Реферали",
+      "loyaltyNone": "Без статус",
+      "loyaltyManualBadge": "Ръчно назначен",
+      "loyaltyChangeStatus": "Статус",
+      "adjustPoints": "Корекция на точки",
+      "adjustPointsPlaceholder": "Причина",
+      "adjustPointsBtn": "Приложи",
+      "loyaltyHistory": "История на точки",
+      "loyaltyNoTransactions": "Няма операции",
+      "toastPointsAdjusted": "Точките са обновени",
+      "toastStatusUpdated": "Статусът е обновен"
     },
     "masters": {
       "title": "Специалисти",
@@ -1729,7 +1744,23 @@
       "points": "Точки",
       "description": "Описание",
       "loyaltyPoints": "Точки за услуга",
-      "loyaltyPointsHint": "Клиентът получава толкова точки след завършено посещение"
+      "loyaltyPointsHint": "Клиентът получава толкова точки след завършено посещение",
+      "addStatus": "Добави статус",
+      "editStatus": "Редактирай статус",
+      "confirmDeleteStatus": "Изтриване на този статус?",
+      "statusNameRu": "Име (RU)",
+      "statusNameEn": "Име (EN)",
+      "statusNameUk": "Име (UK)",
+      "statusNameBg": "Име (BG)",
+      "statusBgColor": "Фон",
+      "statusTextColor": "Текст",
+      "statusDiscount": "Отстъпка %",
+      "statusMultiplier": "Множител точки",
+      "statusMinVisits": "Мин. посещения",
+      "statusMinSpent": "Мин. сума €",
+      "dragHint": "Плъзнете за пренареждане",
+      "cancel": "Отказ",
+      "statusNamesRequired": "Въведете имена RU и EN"
     }
   },
   "miniApp": {

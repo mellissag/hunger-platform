@@ -565,7 +565,22 @@
       "editDrawerSource": "Source",
       "editDrawerTgUsername": "Telegram username (without @)",
       "editDrawerCity": "City",
-      "editDrawerLang": "Language"
+      "editDrawerLang": "Language",
+      "loyaltyTitle": "Loyalty",
+      "loyaltyPoints": "Points",
+      "loyaltyVisits": "Visits",
+      "loyaltySpent": "Spent",
+      "loyaltyReferralUses": "Referrals",
+      "loyaltyNone": "No status",
+      "loyaltyManualBadge": "Assigned manually",
+      "loyaltyChangeStatus": "Status",
+      "adjustPoints": "Adjust points",
+      "adjustPointsPlaceholder": "Reason",
+      "adjustPointsBtn": "Apply",
+      "loyaltyHistory": "Points history",
+      "loyaltyNoTransactions": "No transactions",
+      "toastPointsAdjusted": "Points updated",
+      "toastStatusUpdated": "Status updated"
     },
     "masters": {
       "title": "Specialists",
@@ -1728,7 +1743,23 @@
       "points": "Points",
       "description": "Description",
       "loyaltyPoints": "Loyalty points per visit",
-      "loyaltyPointsHint": "Client earns this many points after a completed visit"
+      "loyaltyPointsHint": "Client earns this many points after a completed visit",
+      "addStatus": "Add status",
+      "editStatus": "Edit status",
+      "confirmDeleteStatus": "Delete this status?",
+      "statusNameRu": "Name (RU)",
+      "statusNameEn": "Name (EN)",
+      "statusNameUk": "Name (UK)",
+      "statusNameBg": "Name (BG)",
+      "statusBgColor": "Background",
+      "statusTextColor": "Text color",
+      "statusDiscount": "Discount %",
+      "statusMultiplier": "Points multiplier",
+      "statusMinVisits": "Min visits",
+      "statusMinSpent": "Min spent €",
+      "dragHint": "Drag to reorder",
+      "cancel": "Cancel",
+      "statusNamesRequired": "Enter RU and EN names"
     }
   },
   "miniApp": {

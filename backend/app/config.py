@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 30
     redis_url: str | None = None
     telegram_bot_token: str | None = None
-    telegram_bot_username: str | None = None
+    telegram_bot_username: str | None = Field(default=None, validation_alias="TELEGRAM_BOT_USERNAME")
     telegram_webhook_secret: str | None = None
     gemini_api_key: str | None = None
     upload_dir: str = "./data/uploads"

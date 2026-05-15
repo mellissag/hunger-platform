@@ -19,6 +19,8 @@ import {
 import { zonedToUtcIso, isoToTimeInZone, isoToDateInZone } from '@/lib/date-local';
 import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
 import { useT } from '../i18n/context';
+import { fmtTpl } from '../i18n/loyalty';
+import { validatePromoCode } from '../hooks/useLoyalty';
 
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? '';
 
@@ -99,6 +101,16 @@ function BookContent() {
   const [confirmName, setConfirmName] = useState('');
   const [confirmPhone, setConfirmPhone] = useState('');
   const [bookingComment, setBookingComment] = useState('');
+  const [promoOpen, setPromoOpen] = useState(false);
+  const [promoInput, setPromoInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    discount_amount?: number;
+    discount_percent?: number;
+    final_amount?: number;
+  } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
   const [isSubmittingConsultation, setIsSubmittingConsultation] = useState(false);
   const [brokenMasterPhotos, setBrokenMasterPhotos] = useState<Record<string, boolean>>({});
   const serviceQueryHandledRef = useRef(false);
@@ -190,6 +202,7 @@ function BookContent() {
         comment: bookingComment.trim() || undefined,
         call_for_time: callForTime,
         telegram_id: user?.id,
+        promo_code: appliedPromo?.code,
       });
       try {
         if (nameForBooking) localStorage.setItem('hunger_profile_name', nameForBooking);
@@ -209,6 +222,7 @@ function BookContent() {
     confirmName,
     confirmPhone,
     bookingComment,
+    appliedPromo,
     user,
     clientProfile,
     createBooking,
@@ -776,6 +790,45 @@ function BookContent() {
       : '';
     const masterDisplay = selectedMaster ? getMasterName(selectedMaster) : '—';
     const timeDisplay = callForTime ? t.bookConfirmTimeByPhone : selectedTime ?? '—';
+    const basePrice = Number(selectedService?.price ?? 0);
+    const displayPrice =
+      appliedPromo?.final_amount != null
+        ? Number(appliedPromo.final_amount).toFixed(2)
+        : selectedService?.price;
+
+    async function applyPromo() {
+      const code = promoInput.trim();
+      if (!code) return;
+      setPromoLoading(true);
+      setPromoError(null);
+      try {
+        const res = await validatePromoCode(code, basePrice);
+        if (!res.valid) {
+          const errKey =
+            res.error === 'expired'
+              ? t.loyaltyPromoExpired
+              : res.error === 'min_amount'
+                ? t.loyaltyPromoMinAmount
+                : res.error === 'client_limit' || res.error === 'limit_reached'
+                  ? t.loyaltyPromoLimitReached
+                  : t.loyaltyPromoInvalid;
+          setPromoError(errKey);
+          setAppliedPromo(null);
+          return;
+        }
+        setAppliedPromo({
+          code: res.code ?? code.toUpperCase(),
+          discount_amount: res.discount_amount,
+          discount_percent: res.discount_percent,
+          final_amount: res.final_amount,
+        });
+        setPromoOpen(false);
+      } catch {
+        setPromoError(t.loyaltyPromoInvalid);
+      } finally {
+        setPromoLoading(false);
+      }
+    }
 
     const fieldBase: CSSProperties = {
       width: '100%',
@@ -832,7 +885,7 @@ function BookContent() {
               <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookConfirmServiceLabel}</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>{selectedService ? getServiceName(selectedService, lang) : '—'}</div>
-                <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 500, color: GOLD }}>€{selectedService?.price}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 500, color: GOLD }}>€{displayPrice}</div>
               </div>
             </div>
             <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(228,221,208,.8)' }}>
@@ -874,6 +927,93 @@ function BookContent() {
               </div>
             </div>
           </div>
+        </div>
+
+
+        {/* Promo code */}
+        <div style={{ margin: '0 16px 14px', padding: '18px', background: '#fff', border: '1px solid rgba(228,221,208,1)', borderRadius: 20 }}>
+          <button
+            type="button"
+            onClick={() => setPromoOpen((o) => !o)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              fontFamily: BODY,
+              fontSize: 13,
+              color: NEAR_BLACK,
+            }}
+          >
+            <span>{t.loyaltyPromoQuestion}</span>
+            <span style={{ color: MUTED, fontSize: 18 }}>{promoOpen ? '−' : '+'}</span>
+          </button>
+          {promoOpen ? (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  value={promoInput}
+                  onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                  placeholder={t.loyaltyPromoPlaceholder}
+                  style={{ ...fieldBase, flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => void applyPromo()}
+                  disabled={promoLoading || !promoInput.trim()}
+                  style={{
+                    padding: '0 16px',
+                    borderRadius: 12,
+                    border: 'none',
+                    background: GOLD,
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: promoLoading ? 'wait' : 'pointer',
+                    fontFamily: BODY,
+                  }}
+                >
+                  {t.loyaltyPromoApply}
+                </button>
+              </div>
+              {promoError ? <p style={{ fontSize: 12, color: '#b91c1c', marginTop: 8 }}>{promoError}</p> : null}
+            </div>
+          ) : null}
+          {appliedPromo ? (
+            <div style={{ marginTop: promoOpen ? 10 : 14, paddingTop: promoOpen ? 10 : 0, borderTop: promoOpen ? '1px solid rgba(228,221,208,.8)' : 'none' }}>
+              <p style={{ fontSize: 13, color: GOLD, margin: '0 0 8px' }}>
+                {appliedPromo.discount_percent != null
+                  ? fmtTpl(t.loyaltyPromoSuccessPercent, {
+                      percent: appliedPromo.discount_percent,
+                      code: appliedPromo.code,
+                    })
+                  : fmtTpl(t.loyaltyPromoSuccess, {
+                      amount: appliedPromo.discount_amount ?? 0,
+                      code: appliedPromo.code,
+                    })}
+              </p>
+              {appliedPromo.final_amount != null ? (
+                <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 8px' }}>
+                  {fmtTpl(t.loyaltyTotalWithDiscount, { amount: Number(appliedPromo.final_amount).toFixed(2) })}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => {
+                  setAppliedPromo(null);
+                  setPromoInput('');
+                  setPromoError(null);
+                }}
+                style={{ background: 'none', border: 'none', color: MUTED, fontSize: 12, cursor: 'pointer', padding: 0, fontFamily: BODY }}
+              >
+                {t.loyaltyPromoRemove}
+              </button>
+            </div>
+          ) : null}
         </div>
 
         {/* Comment */}

@@ -566,7 +566,22 @@
       "editDrawerSource": "Джерело",
       "editDrawerTgUsername": "Username у Telegram (без @)",
       "editDrawerCity": "Місто",
-      "editDrawerLang": "Мова"
+      "editDrawerLang": "Мова",
+      "loyaltyTitle": "Лояльність",
+      "loyaltyPoints": "Бали",
+      "loyaltyVisits": "Візити",
+      "loyaltySpent": "Витрачено",
+      "loyaltyReferralUses": "Реферали",
+      "loyaltyNone": "Без статусу",
+      "loyaltyManualBadge": "Призначено вручну",
+      "loyaltyChangeStatus": "Статус",
+      "adjustPoints": "Коригування балів",
+      "adjustPointsPlaceholder": "Причина",
+      "adjustPointsBtn": "Застосувати",
+      "loyaltyHistory": "Історія балів",
+      "loyaltyNoTransactions": "Немає операцій",
+      "toastPointsAdjusted": "Бали оновлено",
+      "toastStatusUpdated": "Статус оновлено"
     },
     "masters": {
       "title": "Спеціалісти",
@@ -1729,7 +1744,23 @@
       "points": "Бали",
       "description": "Опис",
       "loyaltyPoints": "Бали за послугу",
-      "loyaltyPointsHint": "Клієнт отримає стільки балів після завершеного візиту"
+      "loyaltyPointsHint": "Клієнт отримає стільки балів після завершеного візиту",
+      "addStatus": "Додати статус",
+      "editStatus": "Редагувати статус",
+      "confirmDeleteStatus": "Видалити цей статус?",
+      "statusNameRu": "Назва (RU)",
+      "statusNameEn": "Назва (EN)",
+      "statusNameUk": "Назва (UK)",
+      "statusNameBg": "Назва (BG)",
+      "statusBgColor": "Колір фону",
+      "statusTextColor": "Колір тексту",
+      "statusDiscount": "Знижка %",
+      "statusMultiplier": "Множник балів",
+      "statusMinVisits": "Мін. візитів",
+      "statusMinSpent": "Мін. сума €",
+      "dragHint": "Перетягніть для зміни порядку",
+      "cancel": "Скасувати",
+      "statusNamesRequired": "Вкажіть назви RU та EN"
     }
   },
   "miniApp": {

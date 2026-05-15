@@ -7,6 +7,8 @@ import { useMyBookings, useMeProfile, useSalonInfo, useDailyPick, pickI18n } fro
 import { isoToTimeInZone } from '@/lib/date-local';
 import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
 import { useT } from './i18n/context';
+import { fmtTpl } from './i18n/loyalty';
+import { useMeLoyalty } from './hooks/useLoyalty';
 import { miniAppBookingPriceDurationLine } from './lib/booking-price-duration';
 
 const GOLD = 'var(--gold-deep)';
@@ -115,6 +117,7 @@ export default function HomePage() {
   const { data: profile } = useMeProfile();
   const { data: salonInfo } = useSalonInfo(lang);
   const { data: dailyPicks = [] } = useDailyPick(lang);
+  const { data: loyalty } = useMeLoyalty();
   const [tick, setTick] = useState(() => Date.now());
 
   useEffect(() => {
@@ -238,6 +241,31 @@ export default function HomePage() {
           </button>
         </div>
       </div>
+
+      {loyalty && loyalty.points > 0 ? (
+        <button
+          type="button"
+          onClick={() => router.push('/mini-app/bonuses')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            margin: '4px 16px 0',
+            padding: '14px 18px',
+            borderRadius: 16,
+            border: '1px solid var(--gold-border)',
+            background: 'linear-gradient(135deg, rgba(201,168,76,.12), rgba(201,168,76,.04))',
+            cursor: 'pointer',
+            width: 'calc(100% - 32px)',
+            fontFamily: BODY,
+          }}
+        >
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: GOLD }}>
+            {fmtTpl(t.loyaltyHomeStrip, { points: loyalty.points })}
+          </span>
+          <span style={{ fontSize: 12, color: SOFT }}>{t.loyaltyGoToBonuses} →</span>
+        </button>
+      ) : null}
 
       {/* ── Ornament ── */}
       <div style={{ textAlign: 'center', color: GOLD, opacity: .55, letterSpacing: '0.6em', fontSize: 12, padding: '6px 0', fontFamily: SERIF }}>

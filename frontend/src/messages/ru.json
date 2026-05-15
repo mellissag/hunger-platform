@@ -566,7 +566,22 @@
       "editDrawerSource": "Источник",
       "editDrawerTgUsername": "Username в Telegram (без @)",
       "editDrawerCity": "Город",
-      "editDrawerLang": "Язык"
+      "editDrawerLang": "Язык",
+      "loyaltyTitle": "Лояльность",
+      "loyaltyPoints": "Баллы",
+      "loyaltyVisits": "Визиты",
+      "loyaltySpent": "Потрачено",
+      "loyaltyReferralUses": "Рефералы",
+      "loyaltyNone": "Без статуса",
+      "loyaltyManualBadge": "Назначен вручную",
+      "loyaltyChangeStatus": "Статус",
+      "adjustPoints": "Корректировка баллов",
+      "adjustPointsPlaceholder": "Причина",
+      "adjustPointsBtn": "Применить",
+      "loyaltyHistory": "История баллов",
+      "loyaltyNoTransactions": "Нет операций",
+      "toastPointsAdjusted": "Баллы обновлены",
+      "toastStatusUpdated": "Статус обновлён"
     },
     "masters": {
       "title": "Специалисты",
@@ -1729,7 +1744,23 @@
       "points": "Баллы",
       "description": "Описание",
       "loyaltyPoints": "Баллы за услугу",
-      "loyaltyPointsHint": "Клиент получит столько баллов после завершённого визита"
+      "loyaltyPointsHint": "Клиент получит столько баллов после завершённого визита",
+      "addStatus": "Добавить статус",
+      "editStatus": "Редактировать статус",
+      "confirmDeleteStatus": "Удалить этот статус?",
+      "statusNameRu": "Название (RU)",
+      "statusNameEn": "Название (EN)",
+      "statusNameUk": "Название (UK)",
+      "statusNameBg": "Название (BG)",
+      "statusBgColor": "Цвет фона",
+      "statusTextColor": "Цвет текста",
+      "statusDiscount": "Скидка %",
+      "statusMultiplier": "Множитель баллов",
+      "statusMinVisits": "Мин. визитов",
+      "statusMinSpent": "Мин. сумма €",
+      "dragHint": "Перетащите для изменения порядка",
+      "cancel": "Отмена",
+      "statusNamesRequired": "Укажите названия RU и EN"
     }
   },
   "miniApp": {

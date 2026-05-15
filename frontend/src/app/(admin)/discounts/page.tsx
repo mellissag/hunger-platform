@@ -10,8 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LoyaltyStatusTab } from "@/components/loyalty/loyalty-status-tab";
 import {
-  useClientStatuses,
   useCreatePromoCode,
   useLoyaltySettings,
   useLoyaltyTransactions,
@@ -32,7 +32,6 @@ export default function DiscountsPage() {
   const updateSettings = useUpdateLoyaltySettings();
   const { data: promos = [] } = usePromoCodes();
   const createPromo = useCreatePromoCode();
-  const { data: statuses = [] } = useClientStatuses();
   const [txClient, setTxClient] = useState("");
   const { data: transactions = [] } = useLoyaltyTransactions({ client: txClient || undefined });
 
@@ -161,25 +160,7 @@ export default function DiscountsPage() {
         </TabsContent>
 
         <TabsContent value="statuses">
-          <Card>
-            <CardContent className="space-y-3 pt-6">
-              {statuses.map((s) => (
-                <div
-                  key={s.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                >
-                  <span
-                    className="rounded-full px-3 py-1 text-sm font-medium"
-                    style={{ background: s.background_color, color: s.text_color }}
-                  >
-                    {s.name_ru}
-                  </span>
-                  <span className="text-sm text-muted-foreground">×{s.points_multiplier}</span>
-                </div>
-              ))}
-              {!statuses.length ? <p className="text-sm text-muted-foreground">{t("noStatuses")}</p> : null}
-            </CardContent>
-          </Card>
+          <LoyaltyStatusTab />
         </TabsContent>
 
         <TabsContent value="history">

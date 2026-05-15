@@ -34,6 +34,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ClientEditDrawer } from "@/components/clients/client-edit-drawer";
+import { ClientLoyaltyCard } from "@/components/loyalty/client-loyalty-card";
 import { SendMessageModal } from "@/components/clients/send-message-modal";
 import {
   useAddBlacklist,
@@ -369,6 +370,8 @@ export function ClientDetail({ clientId }: { clientId: string }) {
           </CardContent>
         </Card>
       ) : null}
+
+      {c.loyalty ? <ClientLoyaltyCard clientId={c.id} loyalty={c.loyalty} /> : null}
 
       <div className="grid gap-3 lg:grid-cols-2">
         <div className="grid gap-3 sm:grid-cols-2">

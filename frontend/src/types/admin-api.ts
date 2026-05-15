@@ -121,7 +121,21 @@ export type ClientBroadcastHistoryOut = {
   status: string;
 };
 
+export type ClientLoyaltySummaryOut = {
+  loyalty_points: number;
+  status_id: string | null;
+  status_name: string | null;
+  status_background_color: string | null;
+  status_text_color: string | null;
+  status_assigned_manually: boolean;
+  referral_code: string | null;
+  referral_uses_count: number;
+  total_visits: number;
+  total_spent: string;
+};
+
 export type ClientDetailOut = ClientOut & {
+  loyalty?: ClientLoyaltySummaryOut | null;
   notes: ClientNoteOut[];
   bookings: ClientBookingHistoryOut[];
   reviews: ClientReviewOut[];
