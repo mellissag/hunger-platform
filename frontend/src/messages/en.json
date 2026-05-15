@@ -1769,7 +1769,25 @@
       "promoCodeRequired": "Enter a promo code",
       "promoExpiryDateRequired": "Select an end date",
       "actions": "Actions",
-      "noPromos": "No promo codes yet"
+      "noPromos": "No promo codes yet",
+      "promoHasMaxUses": "Limit number of uses",
+      "promoMaxUses": "Max uses",
+      "promoMaxUsesRequired": "Enter number of uses (at least 1)",
+      "promoMaxUsesColumn": "Limit",
+      "promoDetailTitle": "Promo code",
+      "promoViewDetails": "View promo details",
+      "promoTypePercent": "Percent",
+      "promoTypeFixed": "Fixed amount",
+      "promoFieldMinBooking": "Min. booking amount",
+      "promoFieldMaxUses": "Usage limit",
+      "promoFieldMaxUsesPerClient": "Limit per client",
+      "promoFieldValidFrom": "Valid from",
+      "promoFieldStatus": "Status",
+      "promoFieldCreatedAt": "Created",
+      "promoUnlimited": "Unlimited",
+      "promoNotSet": "Not set",
+      "promoActive": "Active",
+      "promoInactive": "Inactive"
     }
   },
   "miniApp": {

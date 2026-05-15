@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Tag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoyaltyStatusTab } from "@/components/loyalty/loyalty-status-tab";
+import { PromoDetailDrawer, PromoViewButton } from "@/components/loyalty/promo-detail-drawer";
 import {
   useCreatePromoCode,
   useDeletePromoCode,
@@ -18,6 +19,7 @@ import {
   useLoyaltyTransactions,
   usePromoCodes,
   useUpdateLoyaltySettings,
+  type PromoCodeRow,
 } from "@/hooks/useLoyaltyAdmin";
 
 function genPromoCode() {
@@ -36,8 +38,14 @@ function formatPromoDate(iso: string | null, locale: string): string {
   }
 }
 
+function formatMaxUses(p: PromoCodeRow, unlimited: string): string {
+  if (p.max_uses == null) return unlimited;
+  return `${p.uses_count} / ${p.max_uses}`;
+}
+
 export default function DiscountsPage() {
   const t = useTranslations("pages.discounts");
+  const locale = useLocale();
   const { data: settings } = useLoyaltySettings();
   const updateSettings = useUpdateLoyaltySettings();
   const { data: promos = [] } = usePromoCodes();
@@ -54,16 +62,26 @@ export default function DiscountsPage() {
   });
   const [hasExpiry, setHasExpiry] = useState(false);
   const [validUntil, setValidUntil] = useState("");
+  const [hasMaxUses, setHasMaxUses] = useState(false);
+  const [maxUses, setMaxUses] = useState("1");
+  const [detailPromo, setDetailPromo] = useState<PromoCodeRow | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const pointsEur = Number(settings?.points_value_eur ?? 0.01);
   const preview100 = (100 * pointsEur).toFixed(2);
-  const locale =
-    typeof document !== "undefined" ? document.documentElement.lang || "ru" : "ru";
+  const unlimitedLabel = t("promoUnlimited");
 
   function resetPromoForm() {
     setPromoForm({ code: "", discount_type: "percent", discount_value: "10", is_active: true });
     setHasExpiry(false);
     setValidUntil("");
+    setHasMaxUses(false);
+    setMaxUses("1");
+  }
+
+  function openDetail(p: PromoCodeRow) {
+    setDetailPromo(p);
+    setDetailOpen(true);
   }
 
   function handleCreatePromo() {
@@ -75,12 +93,20 @@ export default function DiscountsPage() {
       toast.error(t("promoExpiryDateRequired"));
       return;
     }
+    if (hasMaxUses) {
+      const n = Number(maxUses);
+      if (!Number.isFinite(n) || n < 1) {
+        toast.error(t("promoMaxUsesRequired"));
+        return;
+      }
+    }
     createPromo.mutate(
       {
         ...promoForm,
         discount_value: Number(promoForm.discount_value),
         valid_until: hasExpiry ? validUntil : null,
         valid_from: null,
+        max_uses: hasMaxUses ? Number(maxUses) : null,
       },
       {
         onSuccess: () => {
@@ -94,7 +120,10 @@ export default function DiscountsPage() {
   function handleDeletePromo(id: string, code: string) {
     if (!window.confirm(t("confirmDeletePromo", { code }))) return;
     deletePromo.mutate(id, {
-      onSuccess: () => toast.success(t("promoDeleted")),
+      onSuccess: () => {
+        toast.success(t("promoDeleted"));
+        if (detailPromo?.id === id) setDetailOpen(false);
+      },
     });
   }
 
@@ -140,6 +169,7 @@ export default function DiscountsPage() {
                 <Label>{t("discountValue")}</Label>
                 <Input
                   type="number"
+                  min={0}
                   value={promoForm.discount_value}
                   onChange={(e) => setPromoForm((f) => ({ ...f, discount_value: e.target.value }))}
                 />
@@ -169,9 +199,34 @@ export default function DiscountsPage() {
                     />
                   </div>
                 ) : null}
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={hasMaxUses}
+                    onChange={(e) => {
+                      setHasMaxUses(e.target.checked);
+                      if (!e.target.checked) setMaxUses("1");
+                    }}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  {t("promoHasMaxUses")}
+                </label>
+                {hasMaxUses ? (
+                  <div className="max-w-xs space-y-2">
+                    <Label htmlFor="promo-max-uses">{t("promoMaxUses")}</Label>
+                    <Input
+                      id="promo-max-uses"
+                      type="number"
+                      min={1}
+                      value={maxUses}
+                      onChange={(e) => setMaxUses(e.target.value)}
+                    />
+                  </div>
+                ) : null}
               </div>
               <Button
                 type="button"
+                className="sm:col-span-2"
                 disabled={createPromo.isPending}
                 onClick={handleCreatePromo}
               >
@@ -188,7 +243,7 @@ export default function DiscountsPage() {
                     <th className="pb-2">{t("type")}</th>
                     <th className="pb-2">{t("value")}</th>
                     <th className="pb-2">{t("promoValidUntilColumn")}</th>
-                    <th className="pb-2">{t("uses")}</th>
+                    <th className="pb-2">{t("promoMaxUsesColumn")}</th>
                     <th className="pb-2 text-right">{t("actions")}</th>
                   </tr>
                 </thead>
@@ -196,21 +251,31 @@ export default function DiscountsPage() {
                   {promos.map((p) => (
                     <tr key={p.id} className="border-b">
                       <td className="py-2 font-mono">{p.code}</td>
-                      <td className="py-2">{p.discount_type}</td>
-                      <td className="py-2">{p.discount_value}</td>
+                      <td className="py-2">
+                        {p.discount_type === "percent" ? t("promoTypePercent") : t("promoTypeFixed")}
+                      </td>
+                      <td className="py-2">
+                        {p.discount_type === "percent" ? `${p.discount_value}%` : `€${p.discount_value}`}
+                      </td>
                       <td className="py-2">{formatPromoDate(p.valid_until, locale)}</td>
-                      <td className="py-2">{p.uses_count}</td>
-                      <td className="py-2 text-right">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={t("promoDelete")}
-                          disabled={deletePromo.isPending}
-                          onClick={() => handleDeletePromo(p.id, p.code)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                      <td className="py-2">{formatMaxUses(p, unlimitedLabel)}</td>
+                      <td className="py-2">
+                        <div className="flex justify-end gap-1">
+                          <PromoViewButton
+                            label={t("promoViewDetails")}
+                            onClick={() => openDetail(p)}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={t("promoDelete")}
+                            disabled={deletePromo.isPending}
+                            onClick={() => handleDeletePromo(p.id, p.code)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -292,6 +357,13 @@ export default function DiscountsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <PromoDetailDrawer
+        promo={detailPromo}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        locale={locale}
+      />
     </div>
   );
 }

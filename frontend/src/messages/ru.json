@@ -1770,7 +1770,25 @@
       "promoCodeRequired": "Укажите код промокода",
       "promoExpiryDateRequired": "Выберите дату окончания",
       "actions": "Действия",
-      "noPromos": "Промокодов пока нет"
+      "noPromos": "Промокодов пока нет",
+      "promoHasMaxUses": "Ограничить количество использований",
+      "promoMaxUses": "Макс. использований",
+      "promoMaxUsesRequired": "Укажите количество использований (минимум 1)",
+      "promoMaxUsesColumn": "Лимит",
+      "promoDetailTitle": "Промокод",
+      "promoViewDetails": "Подробнее о промокоде",
+      "promoTypePercent": "Процент",
+      "promoTypeFixed": "Фиксированная сумма",
+      "promoFieldMinBooking": "Мин. сумма заказа",
+      "promoFieldMaxUses": "Лимит использований",
+      "promoFieldMaxUsesPerClient": "Лимит на клиента",
+      "promoFieldValidFrom": "Действует с",
+      "promoFieldStatus": "Статус",
+      "promoFieldCreatedAt": "Создан",
+      "promoUnlimited": "Без ограничения",
+      "promoNotSet": "Не задано",
+      "promoActive": "Активен",
+      "promoInactive": "Неактивен"
     }
   },
   "miniApp": {

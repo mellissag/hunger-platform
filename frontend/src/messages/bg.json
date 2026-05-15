@@ -1770,7 +1770,25 @@
       "promoCodeRequired": "Въведете промо код",
       "promoExpiryDateRequired": "Изберете крайна дата",
       "actions": "Действия",
-      "noPromos": "Все още няма промокодове"
+      "noPromos": "Все още няма промокодове",
+      "promoHasMaxUses": "Ограничи броя използвания",
+      "promoMaxUses": "Макс. използвания",
+      "promoMaxUsesRequired": "Въведете брой използвания (минимум 1)",
+      "promoMaxUsesColumn": "Лимит",
+      "promoDetailTitle": "Промокод",
+      "promoViewDetails": "Детайли за промокода",
+      "promoTypePercent": "Процент",
+      "promoTypeFixed": "Фиксирана сума",
+      "promoFieldMinBooking": "Мин. сума на поръчка",
+      "promoFieldMaxUses": "Лимит на използвания",
+      "promoFieldMaxUsesPerClient": "Лимит на клиент",
+      "promoFieldValidFrom": "Валиден от",
+      "promoFieldStatus": "Статус",
+      "promoFieldCreatedAt": "Създаден",
+      "promoUnlimited": "Без ограничение",
+      "promoNotSet": "Не е зададено",
+      "promoActive": "Активен",
+      "promoInactive": "Неактивен"
     }
   },
   "miniApp": {

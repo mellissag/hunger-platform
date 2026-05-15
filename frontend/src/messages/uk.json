@@ -1770,7 +1770,25 @@
       "promoCodeRequired": "Вкажіть код промокоду",
       "promoExpiryDateRequired": "Оберіть дату закінчення",
       "actions": "Дії",
-      "noPromos": "Промокодів ще немає"
+      "noPromos": "Промокодів ще немає",
+      "promoHasMaxUses": "Обмежити кількість використань",
+      "promoMaxUses": "Макс. використань",
+      "promoMaxUsesRequired": "Вкажіть кількість використань (мінімум 1)",
+      "promoMaxUsesColumn": "Ліміт",
+      "promoDetailTitle": "Промокод",
+      "promoViewDetails": "Деталі промокоду",
+      "promoTypePercent": "Відсоток",
+      "promoTypeFixed": "Фіксована сума",
+      "promoFieldMinBooking": "Мін. сума замовлення",
+      "promoFieldMaxUses": "Ліміт використань",
+      "promoFieldMaxUsesPerClient": "Ліміт на клієнта",
+      "promoFieldValidFrom": "Діє з",
+      "promoFieldStatus": "Статус",
+      "promoFieldCreatedAt": "Створено",
+      "promoUnlimited": "Без обмеження",
+      "promoNotSet": "Не задано",
+      "promoActive": "Активний",
+      "promoInactive": "Неактивний"
     }
   },
   "miniApp": {
