@@ -458,11 +458,25 @@ async def update_booking(
     for k, v in payload.items():
         setattr(b, k, v)
     await db.flush()
-    if (
+    if prev_status == BookingStatus.completed and b.status != BookingStatus.completed:
+        await loyalty_service.on_booking_loyalty_reversed(db, b)
+    elif (
         prev_status != BookingStatus.completed
         and b.status == BookingStatus.completed
     ):
         await loyalty_service.on_booking_completed(db, b)
+    elif (
+        prev_status not in (
+            BookingStatus.cancelled_by_client,
+            BookingStatus.cancelled_by_salon,
+        )
+        and b.status in (
+            BookingStatus.cancelled_by_client,
+            BookingStatus.cancelled_by_salon,
+        )
+        and int(b.points_earned or 0) > 0
+    ):
+        await loyalty_service.on_booking_loyalty_reversed(db, b)
     return b
 
 

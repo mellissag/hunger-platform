@@ -8,6 +8,7 @@ from arq.worker import func
 
 from app.config import get_settings
 from app.db.base import get_async_session_factory
+from app.workers.auto_complete_bookings import auto_complete_past_bookings
 from app.workers.broadcasts import fire_post_visit_trigger, send_broadcast
 from app.workers.indexer import index_kb_document
 from app.workers.reminders import process_booking_reminders
@@ -79,6 +80,12 @@ class WorkerSettings:
             run_review_sender,
             minute=set(range(0, 60, 10)),
             timeout=120,
+            max_tries=3,
+        ),
+        cron(
+            auto_complete_past_bookings,
+            minute=set(range(0, 60, 10)),
+            timeout=180,
             max_tries=3,
         ),
     ]

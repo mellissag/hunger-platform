@@ -51,7 +51,7 @@ async def test_deleted_promo_code_not_validated(db_session):
     assert exc.value.code == "not_found"
 
     still = (
-        await db.execute(select(PromoCode).where(PromoCode.code == code))
+        await db_session.execute(select(PromoCode).where(PromoCode.code == code))
     ).scalar_one_or_none()
     assert still is not None
     assert still.deleted_at is not None

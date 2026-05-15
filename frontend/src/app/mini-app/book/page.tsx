@@ -791,10 +791,11 @@ function BookContent() {
     const masterDisplay = selectedMaster ? getMasterName(selectedMaster) : '—';
     const timeDisplay = callForTime ? t.bookConfirmTimeByPhone : selectedTime ?? '—';
     const basePrice = Number(selectedService?.price ?? 0);
-    const displayPrice =
-      appliedPromo?.final_amount != null
-        ? Number(appliedPromo.final_amount).toFixed(2)
-        : selectedService?.price;
+    const hasPromoDiscount =
+      appliedPromo?.final_amount != null && Number(appliedPromo.final_amount) < basePrice;
+    const finalPrice = hasPromoDiscount
+      ? Number(appliedPromo!.final_amount).toFixed(2)
+      : selectedService?.price;
 
     async function applyPromo() {
       const code = promoInput.trim();
@@ -885,7 +886,24 @@ function BookContent() {
               <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookConfirmServiceLabel}</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>{selectedService ? getServiceName(selectedService, lang) : '—'}</div>
-                <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 500, color: GOLD }}>€{displayPrice}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                  {hasPromoDiscount ? (
+                    <span
+                      style={{
+                        fontFamily: SERIF,
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: MUTED,
+                        textDecoration: 'line-through',
+                      }}
+                    >
+                      €{basePrice.toFixed(2)}
+                    </span>
+                  ) : null}
+                  <span style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 600, color: GOLD }}>
+                    €{finalPrice}
+                  </span>
+                </div>
               </div>
             </div>
             <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(228,221,208,.8)' }}>

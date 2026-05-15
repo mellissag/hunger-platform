@@ -297,8 +297,22 @@ async def _auto_assign_status(db: AsyncSession, client: Client) -> None:
     await db.flush()
 
 
+def _loyalty_already_settled(booking: Booking) -> bool:
+    return int(booking.points_earned or 0) > 0
+
+
+_CANCELLED_STATUSES = frozenset(
+    {
+        BookingStatus.cancelled_by_client,
+        BookingStatus.cancelled_by_salon,
+    }
+)
+
+
 async def on_booking_completed(db: AsyncSession, booking: Booking) -> None:
-    if booking.points_earned and booking.points_earned > 0:
+    if _loyalty_already_settled(booking):
+        return
+    if booking.status != BookingStatus.completed:
         return
 
     client = await db.get(Client, booking.client_id)
@@ -348,6 +362,59 @@ async def on_booking_completed(db: AsyncSession, booking: Booking) -> None:
                 booking_id=booking.id,
             )
 
+    await db.flush()
+
+
+async def on_booking_loyalty_reversed(db: AsyncSession, booking: Booking) -> None:
+    """Откат визита/баллов, если запись снята с completed или отменена после начисления."""
+    if not _loyalty_already_settled(booking):
+        return
+
+    client = await db.get(Client, booking.client_id)
+    if client is None:
+        booking.points_earned = 0
+        await db.flush()
+        return
+
+    earned = int(booking.points_earned or 0)
+    if earned > 0:
+        await _add_transaction(
+            db,
+            client_id=client.id,
+            points=-earned,
+            tx_type=LoyaltyTransactionType.manual_adjustment,
+            description="Отмена начисления за визит",
+            booking_id=booking.id,
+        )
+
+    ref_rows = (
+        await db.execute(
+            select(LoyaltyTransaction).where(
+                LoyaltyTransaction.booking_id == booking.id,
+                LoyaltyTransaction.type == LoyaltyTransactionType.referral_bonus,
+            )
+        )
+    ).scalars().all()
+    for tx in ref_rows:
+        ref_client = await db.get(Client, tx.client_id)
+        if ref_client is not None:
+            await _add_transaction(
+                db,
+                client_id=ref_client.id,
+                points=-int(tx.points),
+                tx_type=LoyaltyTransactionType.manual_adjustment,
+                description="Отмена реферального бонуса",
+                booking_id=booking.id,
+            )
+
+    amount = _final_booking_amount(booking)
+    client.total_visits = max(0, int(client.total_visits or 0) - 1)
+    client.total_spent = max(Decimal("0"), Decimal(client.total_spent or 0) - amount)
+    client.total_bookings = max(0, int(client.total_bookings or 0) - 1)
+    client.total_revenue = max(Decimal("0"), Decimal(client.total_revenue or 0) - amount)
+
+    booking.points_earned = 0
+    await _auto_assign_status(db, client)
     await db.flush()
 
 
