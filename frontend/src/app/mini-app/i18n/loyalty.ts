@@ -33,6 +33,7 @@ export type LoyaltyTranslations = {
   loyaltyPromoMinAmount: string;
   loyaltyPromoLimitReached: string;
   loyaltyTotalWithDiscount: string;
+  loyaltyStatusDiscountApplied: string;
 };
 
 export function fmtTpl(s: string, vars: Record<string, string | number>): string {
@@ -75,6 +76,7 @@ const RU: LoyaltyTranslations = {
   loyaltyPromoMinAmount: 'Минимальная сумма заказа €{{amount}}',
   loyaltyPromoLimitReached: 'Вы уже использовали этот промокод',
   loyaltyTotalWithDiscount: 'Итого: €{{amount}}',
+  loyaltyStatusDiscountApplied: 'Скидка статуса {{status}}: −{{n}}%',
 };
 
 const EN: LoyaltyTranslations = {
@@ -110,6 +112,7 @@ const EN: LoyaltyTranslations = {
   loyaltyPromoMinAmount: 'Minimum order amount €{{amount}}',
   loyaltyPromoLimitReached: 'You have already used this promo code',
   loyaltyTotalWithDiscount: 'Total: €{{amount}}',
+  loyaltyStatusDiscountApplied: '{{status}} status discount: −{{n}}%',
 };
 
 const UK: LoyaltyTranslations = {
@@ -145,6 +148,7 @@ const UK: LoyaltyTranslations = {
   loyaltyPromoMinAmount: 'Мінімальна сума замовлення €{{amount}}',
   loyaltyPromoLimitReached: 'Ви вже використали цей промокод',
   loyaltyTotalWithDiscount: 'Разом: €{{amount}}',
+  loyaltyStatusDiscountApplied: 'Знижка статусу {{status}}: −{{n}}%',
 };
 
 const BG: LoyaltyTranslations = {
@@ -180,6 +184,7 @@ const BG: LoyaltyTranslations = {
   loyaltyPromoMinAmount: 'Минимална сума на поръчката €{{amount}}',
   loyaltyPromoLimitReached: 'Вече сте използвали този промо код',
   loyaltyTotalWithDiscount: 'Общо: €{{amount}}',
+  loyaltyStatusDiscountApplied: 'Отстъпка статус {{status}}: −{{n}}%',
 };
 
 export const loyaltyTranslations: Record<Lang, LoyaltyTranslations> = {

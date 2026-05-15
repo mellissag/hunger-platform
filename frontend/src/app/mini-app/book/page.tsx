@@ -20,7 +20,7 @@ import { zonedToUtcIso, isoToTimeInZone, isoToDateInZone } from '@/lib/date-loca
 import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
 import { useT } from '../i18n/context';
 import { fmtTpl } from '../i18n/loyalty';
-import { validatePromoCode } from '../hooks/useLoyalty';
+import { useMeLoyalty, validatePromoCode } from '../hooks/useLoyalty';
 
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? '';
 
@@ -88,6 +88,7 @@ function BookContent() {
   const searchParams = useSearchParams();
   const { user } = useTelegram();
   const { data: clientProfile } = useClientProfile();
+  const { data: meLoyalty } = useMeLoyalty();
   const { t, lang } = useT();
   const [step, setStep] = useState<Step>(0);
   const [activeCatId, setActiveCatId] = useState<string | null>(null);
@@ -791,11 +792,20 @@ function BookContent() {
     const masterDisplay = selectedMaster ? getMasterName(selectedMaster) : '—';
     const timeDisplay = callForTime ? t.bookConfirmTimeByPhone : selectedTime ?? '—';
     const basePrice = Number(selectedService?.price ?? 0);
+    const statusDiscountPercent = Number(meLoyalty?.status?.discount_percent ?? 0);
+    const priceAfterStatus =
+      statusDiscountPercent > 0
+        ? Math.round(basePrice * (1 - statusDiscountPercent / 100) * 100) / 100
+        : basePrice;
+    const hasStatusDiscount = statusDiscountPercent > 0 && priceAfterStatus < basePrice;
     const hasPromoDiscount =
-      appliedPromo?.final_amount != null && Number(appliedPromo.final_amount) < basePrice;
+      appliedPromo?.final_amount != null && Number(appliedPromo.final_amount) < priceAfterStatus;
     const finalPrice = hasPromoDiscount
       ? Number(appliedPromo!.final_amount).toFixed(2)
-      : selectedService?.price;
+      : hasStatusDiscount
+        ? priceAfterStatus.toFixed(2)
+        : selectedService?.price;
+    const hasAnyDiscount = hasStatusDiscount || hasPromoDiscount;
 
     async function applyPromo() {
       const code = promoInput.trim();
@@ -803,7 +813,7 @@ function BookContent() {
       setPromoLoading(true);
       setPromoError(null);
       try {
-        const res = await validatePromoCode(code, basePrice);
+        const res = await validatePromoCode(code, priceAfterStatus);
         if (!res.valid) {
           const errKey =
             res.error === 'expired'
@@ -887,7 +897,7 @@ function BookContent() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 500, color: NEAR_BLACK }}>{selectedService ? getServiceName(selectedService, lang) : '—'}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                  {hasPromoDiscount ? (
+                  {hasAnyDiscount ? (
                     <span
                       style={{
                         fontFamily: SERIF,
@@ -905,6 +915,14 @@ function BookContent() {
                   </span>
                 </div>
               </div>
+              {hasStatusDiscount && meLoyalty?.status?.name ? (
+                <p style={{ fontSize: 12, color: GOLD, margin: '6px 0 0', textAlign: 'right' }}>
+                  {fmtTpl(t.loyaltyStatusDiscountApplied, {
+                    status: meLoyalty.status.name,
+                    n: statusDiscountPercent,
+                  })}
+                </p>
+              ) : null}
             </div>
             <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(228,221,208,.8)' }}>
               <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED, marginBottom: 6 }}>{t.bookConfirmDurationLabel}</div>

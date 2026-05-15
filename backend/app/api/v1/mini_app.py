@@ -642,13 +642,17 @@ async def create_booking(
         if not svc:
             raise HTTPException(status_code=404, detail="Service not found")
 
+        price_dec = Decimal(svc.price)
+        status_disc = await loyalty_service.resolve_client_status_discount(db, client, price_dec)
+        price_dec = max(Decimal("0"), price_dec - status_disc)
+
         booking = Booking(
             client_id=client.id,
             service_id=sid,
             master_id=None,
             starts_at=None,
             ends_at=None,
-            price=svc.price,
+            price=price_dec,
             status=BookingStatus.pending,
             created_via=BookingCreatedVia.bot,
             needs_consultation=True,
