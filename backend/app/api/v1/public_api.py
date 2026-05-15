@@ -21,7 +21,9 @@ from app.schemas.public_master import (
     PublicMasterReviewItem,
     PublicMasterServiceItem,
 )
-from app.services import master_phase20
+from app.services import loyalty_service, master_phase20
+from app.schemas.loyalty import PromoValidateIn, PromoValidateOut
+from app.services.loyalty_service import PromoValidationError
 
 router = APIRouter(prefix="/public", tags=["public"])
 
@@ -191,3 +193,31 @@ async def public_master_profile(
         certificates=certs_out,
         portfolio_urls=portfolio_urls,
     )
+
+
+@router.post("/promo-codes/validate", response_model=PromoValidateOut)
+async def validate_promo_code(
+    body: PromoValidateIn,
+    db: AsyncSession = Depends(get_db),
+) -> PromoValidateOut:
+    try:
+        promo, discount = await loyalty_service.validate_promo_code(
+            db,
+            code=body.code,
+            booking_amount=body.booking_amount,
+            client_id=body.client_id,
+        )
+    except PromoValidationError as e:
+        return PromoValidateOut(valid=False, error=e.code)
+
+    final = max(Decimal("0"), body.booking_amount - discount)
+    out = PromoValidateOut(
+        valid=True,
+        code=promo.code,
+        discount_type=promo.discount_type,
+        discount_amount=discount,
+        final_amount=final,
+    )
+    if promo.discount_type.value == "percent":
+        out.discount_percent = promo.discount_value
+    return out

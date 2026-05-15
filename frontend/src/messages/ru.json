@@ -44,7 +44,8 @@
       "inventory": "Склад",
       "formulas": "Формулы",
       "chatsBadge": "Скоро",
-      "noSectionAccess": "Нет доступа к этому разделу."
+      "noSectionAccess": "Нет доступа к этому разделу.",
+      "discounts": "Скидки"
     },
     "topbar": {
       "search": "Поиск",
@@ -1701,6 +1702,34 @@
       "statusStockLow": "Мало",
       "statusStockModerate": "Умеренно",
       "statusStockOk": "Достаточно"
+    },
+    "discounts": {
+      "title": "Скидки",
+      "tabPromos": "Промокоды",
+      "tabSettings": "Настройки лояльности",
+      "tabStatuses": "Статусы клиентов",
+      "tabHistory": "История баллов",
+      "createPromo": "Создать промокод",
+      "promoCode": "Код",
+      "generate": "Сгенерировать",
+      "discountValue": "Размер скидки",
+      "save": "Сохранить",
+      "saved": "Сохранено",
+      "type": "Тип",
+      "value": "Значение",
+      "uses": "Использований",
+      "pointsValueEur": "Стоимость 1 балла (€)",
+      "pointsPreview": "100 баллов = €{amount}",
+      "referralBonusReferrer": "Бонус пригласившему (баллы)",
+      "referralBonusInvited": "Бонус приглашённому (баллы)",
+      "noStatuses": "Статусы ещё не созданы",
+      "searchClient": "Поиск клиента",
+      "date": "Дата",
+      "client": "Клиент",
+      "points": "Баллы",
+      "description": "Описание",
+      "loyaltyPoints": "Баллы за услугу",
+      "loyaltyPointsHint": "Клиент получит столько баллов после завершённого визита"
     }
   },
   "miniApp": {

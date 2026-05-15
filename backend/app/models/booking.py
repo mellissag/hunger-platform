@@ -13,6 +13,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     Numeric,
     SmallInteger,
     Text,
@@ -109,6 +110,15 @@ class Booking(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancellation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    promo_code_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("promo_code.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    promo_discount_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    points_spent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    points_spent_discount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    points_earned: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     reminder_sent_24h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     reminder_sent_2h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

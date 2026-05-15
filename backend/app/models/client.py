@@ -87,6 +87,20 @@ class Client(UUIDPrimaryKeyMixin, Base):
     )
     prefers_no_ai: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     marketing_opted_out: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    loyalty_points: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    status_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("client_status.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    status_assigned_manually: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    total_visits: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_spent: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
+    referred_by_client_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("client.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

@@ -14,6 +14,7 @@ class InitDataPayload(BaseModel):
     username: str | None = None
     photo_url: str | None = None
     language_code: str | None = None
+    start_param: str | None = None
 
 
 class MiniAppServiceOut(BaseModel):
@@ -61,6 +62,7 @@ class MiniAppBookingCreate(BaseModel):
     comment: str | None = None
     any_master: bool = False
     call_for_time: bool = False
+    promo_code: str | None = None
 
 
 class MiniAppBookingOut(BaseModel):

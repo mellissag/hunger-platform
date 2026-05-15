@@ -44,7 +44,8 @@
       "inventory": "Склад",
       "formulas": "Формули",
       "chatsBadge": "Скоро",
-      "noSectionAccess": "Няма достъп до този раздел."
+      "noSectionAccess": "Няма достъп до този раздел.",
+      "discounts": "Отстъпки"
     },
     "topbar": {
       "search": "Търсене",
@@ -1701,6 +1702,34 @@
       "statusStockLow": "Малко",
       "statusStockModerate": "Умерено",
       "statusStockOk": "Достатъчно"
+    },
+    "discounts": {
+      "title": "Отстъпки",
+      "tabPromos": "Промо кодове",
+      "tabSettings": "Настройки лоялност",
+      "tabStatuses": "Статуси на клиенти",
+      "tabHistory": "История на точки",
+      "createPromo": "Създай промо код",
+      "promoCode": "Код",
+      "generate": "Генерирай",
+      "discountValue": "Стойност на отстъпка",
+      "save": "Запази",
+      "saved": "Запазено",
+      "type": "Тип",
+      "value": "Стойност",
+      "uses": "Използвания",
+      "pointsValueEur": "Стойност на 1 точка (€)",
+      "pointsPreview": "100 точки = €{amount}",
+      "referralBonusReferrer": "Бонус поканил (точки)",
+      "referralBonusInvited": "Бонус поканен (точки)",
+      "noStatuses": "Все още няма статуси",
+      "searchClient": "Търсене на клиент",
+      "date": "Дата",
+      "client": "Клиент",
+      "points": "Точки",
+      "description": "Описание",
+      "loyaltyPoints": "Точки за услуга",
+      "loyaltyPointsHint": "Клиентът получава толкова точки след завършено посещение"
     }
   },
   "miniApp": {

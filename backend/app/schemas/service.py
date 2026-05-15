@@ -75,6 +75,7 @@ class ServiceCreate(BaseModel):
     photo_url: str | None = None
     is_active: bool = True
     sort_order: int = 0
+    loyalty_points: int = Field(default=0, ge=0)
 
     @field_validator("name_i18n", "description_i18n")
     @classmethod
@@ -96,6 +97,7 @@ class ServiceUpdate(BaseModel):
     photo_url: str | None = None
     is_active: bool | None = None
     sort_order: int | None = None
+    loyalty_points: int | None = Field(default=None, ge=0)
 
     @field_validator("name_i18n", "description_i18n")
     @classmethod
@@ -119,6 +121,7 @@ class ServiceOut(BaseModel):
     price: Decimal
     photo_url: str | None
     is_active: bool
+    loyalty_points: int = 0
     sort_order: int
     created_at: datetime
     updated_at: datetime

@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Бонусы — Hunger Beauty</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Dark */
+    --d-bg: #1A1A1A;
+    --d-card: #242424;
+    --d-border: #2E2E2E;
+    --d-fg: #FFFFFF;
+    --d-fg-2: rgba(255,255,255,.72);
+    --d-muted: rgba(255,255,255,.45);
+    --d-divider: rgba(255,255,255,.07);
+    /* Light */
+    --l-bg: #F5F0EB;
+    --l-card: #FFFFFF;
+    --l-border: #E8E0D8;
+    --l-fg: #1A1A1A;
+    --l-fg-2: rgba(26,20,8,.72);
+    --l-muted: #8A7D6A;
+    --l-divider: rgba(26,20,8,.06);
+    /* Gold */
+    --gold: #C9A84C;
+    --gold-hi: #E0CF6A;
+    --gold-lo: #9A7230;
+    --gold-l-d: rgba(201,168,76,.12);
+    --gold-l-l: rgba(154,114,48,.10);
+    --grad-gold: linear-gradient(135deg, #C9A84C, #E0CF6A);
+    --grad-gold-text: linear-gradient(135deg, #C9A84C, #E8CF80, #9A7230);
+    --grad-divider: linear-gradient(90deg, transparent, rgba(201,168,76,.5), transparent);
+
+    --ff-serif: "Cormorant Garamond", Georgia, serif;
+    --ff-body: "Inter", system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: var(--ff-body);
+    font-size: 13px;
+    color: var(--l-fg);
+    background: #0e0e0e;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .stage {
+    min-height: 100vh;
+    padding: 48px 32px;
+    background:
+      radial-gradient(ellipse at top left, rgba(201,168,76,.04), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(201,168,76,.03), transparent 50%),
+      #0e0e0e;
+    display: flex;
+    gap: 48px;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .stage-label {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 8px;
+    color: rgba(255,255,255,.4);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+  }
+  .stage-label .accent {
+    color: var(--gold);
+    font-family: var(--ff-serif);
+    font-style: italic;
+    font-size: 22px;
+    letter-spacing: .02em;
+    text-transform: none;
+    display: block;
+    margin-top: 6px;
+    font-weight: 500;
+  }
+
+  .phone-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .phone-col-label {
+    color: rgba(255,255,255,.5);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 390px;
+    height: 844px;
+    border-radius: 44px;
+    padding: 12px;
+    background: #050505;
+    box-shadow:
+      0 24px 80px rgba(0,0,0,.55),
+      0 0 0 1px rgba(201,168,76,.10),
+      inset 0 1px 0 rgba(201,168,76,.08);
+    position: relative;
+  }
+  .phone.light {
+    background: #1a1410;
+    box-shadow:
+      0 24px 80px rgba(0,0,0,.45),
+      0 0 0 1px rgba(154,114,48,.18),
+      inset 0 1px 0 rgba(154,114,48,.15);
+  }
+  .screen {
+    width: 100%;
+    height: 100%;
+    border-radius: 32px;
+    overflow: hidden;
+    position: relative;
+  }
+  .screen.dark {
+    background: var(--d-bg);
+    color: var(--d-fg);
+  }
+  .screen.light {
+    background: var(--l-bg);
+    color: var(--l-fg);
+  }
+
+  /* Notch */
+  .notch {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 30px;
+    background: #050505;
+    border-radius: 999px;
+    z-index: 10;
+  }
+
+  /* Status bar */
+  .statusbar {
+    height: 50px;
+    padding: 16px 28px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--ff-body);
+    position: relative;
+    z-index: 5;
+  }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+
+  /* Page header */
+  .header {
+    padding: 8px 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 2px;
+    border: 1px solid var(--border, var(--l-border));
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: inherit;
+    flex-shrink: 0;
+  }
+  .dark .back-btn { border-color: var(--d-border); }
+  .light .back-btn { border-color: var(--l-border); }
+
+  .page-title {
+    font-family: var(--ff-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: var(--gold);
+    text-align: center;
+    flex: 1;
+  }
+  .page-title-sub {
+    font-family: var(--ff-serif);
+    font-style: italic;
+    font-size: 11px;
+    color: inherit;
+    opacity: .5;
+    letter-spacing: .02em;
+    text-transform: none;
+    font-weight: 500;
+    display: block;
+    margin-top: 4px;
+  }
+  .header-spacer { width: 36px; }
+
+  /* Content */
+  .content {
+    padding: 0 20px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: calc(100% - 110px);
+    overflow-y: auto;
+  }
+  .content::-webkit-scrollbar { display: none; }
+
+  /* Card base */
+  .card {
+    border-radius: 2px;
+    padding: 22px 20px;
+    position: relative;
+    transition: all .2s ease;
+    flex-shrink: 0;
+  }
+  .dark .card {
+    background: var(--d-card);
+    border: 1px solid var(--d-border);
+  }
+  .light .card {
+    background: var(--l-card);
+    border: 1px solid var(--l-border);
+    box-shadow: 0 1px 4px rgba(28,20,9,.04);
+  }
+
+  /* Gold top stripe on featured card */
+  .card-featured::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  /* Eyebrow */
+  .eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+  .dark .eyebrow { color: var(--d-muted); }
+  .light .eyebrow { color: var(--l-muted); }
+  .eyebrow-gold { color: var(--gold) !important; }
+
+  /* CARD 1 — POINTS */
+  .points-card {
+    overflow: hidden;
+  }
+  .points-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .points-num {
+    font-family: var(--ff-serif);
+    font-weight: 500;
+    font-size: 56px;
+    line-height: 1;
+    background: var(--grad-gold-text);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-top: 12px;
+    letter-spacing: -.01em;
+  }
+  .points-eq {
+    font-family: var(--ff-serif);
+    font-size: 14px;
+    margin-top: 6px;
+    letter-spacing: .04em;
+  }
+  .dark .points-eq { color: var(--d-fg-2); }
+  .light .points-eq { color: var(--l-muted); }
+  .points-eq .euro {
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .star-decoration {
+    width: 88px;
+    height: 88px;
+    flex-shrink: 0;
+    position: relative;
+    margin-top: 4px;
+  }
+  .star-decoration svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 18px rgba(201,168,76,.35));
+  }
+
+  .points-divider {
+    height: 1px;
+    border: 0;
+    margin: 18px 0 16px;
+    background: var(--grad-divider);
+    opacity: .5;
+  }
+  .points-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .points-foot-label {
+    font-size: 11px;
+  }
+  .dark .points-foot-label { color: var(--d-muted); }
+  .light .points-foot-label { color: var(--l-muted); }
+  .points-foot-label em {
+    font-family: var(--ff-serif);
+    font-style: italic;
+    font-size: 13px;
+    font-weight: 500;
+    color: inherit;
+    opacity: .85;
+  }
+
+  .vip-pill {
+    background: var(--grad-gold);
+    color: #1a1408;
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 12px rgba(201,168,76,.3);
+  }
+  .vip-pill svg { width: 11px; height: 11px; }
+
+  /* CARD 2 — STATUS */
+  .status-card .eyebrow { margin-bottom: 14px; }
+  .status-pill-big {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--grad-gold);
+    color: #1a1408;
+    padding: 9px 26px;
+    border-radius: 999px;
+    font-family: var(--ff-serif);
+    font-weight: 600;
+    font-size: 20px;
+    letter-spacing: .12em;
+    box-shadow: 0 4px 18px rgba(201,168,76,.28);
+  }
+  .status-pill-big::before {
+    content: "✦";
+    font-size: 14px;
+    opacity: .7;
+  }
+
+  .benefits {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .benefit {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+  }
+  .benefit-mark {
+    color: var(--gold);
+    font-size: 13px;
+    flex-shrink: 0;
+    width: 16px;
+    text-align: center;
+  }
+  .benefit-text {
+    flex: 1;
+    line-height: 1.4;
+  }
+  .dark .benefit-text { color: var(--d-fg-2); }
+  .light .benefit-text { color: var(--l-fg-2); }
+  .benefit-text strong {
+    color: var(--gold);
+    font-weight: 600;
+    font-family: var(--ff-serif);
+    font-size: 15px;
+    letter-spacing: .02em;
+  }
+
+  .progress-wrap {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px dotted;
+  }
+  .dark .progress-wrap { border-color: var(--d-divider); }
+  .light .progress-wrap { border-color: var(--l-divider); }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+  .progress-label-l {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+  .dark .progress-label-l { color: var(--d-muted); }
+  .light .progress-label-l { color: var(--l-muted); }
+  .progress-label-l em {
+    font-family: var(--ff-serif);
+    font-style: italic;
+    color: var(--gold);
+    text-transform: none;
+    letter-spacing: .02em;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+  .progress-label-r {
+    font-family: var(--ff-serif);
+    font-size: 13px;
+    color: var(--gold);
+    font-weight: 600;
+    letter-spacing: .04em;
+  }
+  .progress-bar {
+    height: 3px;
+    width: 100%;
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+  .dark .progress-bar { background: rgba(255,255,255,.06); }
+  .light .progress-bar { background: rgba(26,20,8,.06); }
+  .progress-fill {
+    height: 100%;
+    width: 60%;
+    background: var(--grad-gold);
+    border-radius: 999px;
+    box-shadow: 0 0 8px rgba(201,168,76,.4);
+  }
+
+  /* CARD 3 — REFERRAL */
+  .ref-card .eyebrow { margin-bottom: 6px; }
+  .ref-sub {
+    font-family: var(--ff-serif);
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 16px;
+    letter-spacing: .01em;
+  }
+  .dark .ref-sub { color: var(--d-fg-2); }
+  .light .ref-sub { color: var(--l-fg-2); }
+
+  .ref-code-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .ref-code {
+    flex: 1;
+    border: 1px dashed var(--gold);
+    border-radius: 2px;
+    padding: 14px 16px;
+    background: var(--gold-l-l);
+    font-family: var(--ff-serif);
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: .22em;
+    color: var(--gold);
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dark .ref-code { background: var(--gold-l-d); }
+  .ref-copy {
+    width: 50px;
+    background: var(--grad-gold);
+    border-radius: 2px;
+    border: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #1a1408;
+    box-shadow: 0 4px 16px rgba(154,114,48,.25);
+  }
+  .ref-copy svg { width: 18px; height: 18px; }
+
+  .ref-reward {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 14px;
+    border-top: 1px dotted;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .dark .ref-reward { border-color: var(--d-divider); color: var(--d-fg-2); }
+  .light .ref-reward { border-color: var(--l-divider); color: var(--l-fg-2); }
+  .ref-reward-amt {
+    font-family: var(--ff-serif);
+    color: var(--gold);
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  /* CARD 4 — HISTORY */
+  .hist-card .eyebrow { margin-bottom: 14px; }
+  .hist-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .hist-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px dotted;
+  }
+  .hist-row:last-child { border-bottom: 0; }
+  .dark .hist-row { border-color: var(--d-divider); }
+  .light .hist-row { border-color: var(--l-divider); }
+
+  .hist-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 2px;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--gold);
+  }
+  .dark .hist-icon { border-color: var(--d-border); background: rgba(201,168,76,.05); }
+  .light .hist-icon { border-color: var(--l-border); background: var(--gold-l-l); }
+  .hist-icon svg { width: 14px; height: 14px; }
+
+  .hist-body { flex: 1; min-width: 0; }
+  .hist-title-row {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hist-date {
+    font-size: 11px;
+  }
+  .dark .hist-date { color: var(--d-muted); }
+  .light .hist-date { color: var(--l-muted); }
+  .hist-amt {
+    font-family: var(--ff-serif);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    flex-shrink: 0;
+  }
+  .hist-amt.plus { color: var(--gold); }
+  .hist-amt.minus { opacity: .55; }
+  .dark .hist-amt.minus { color: var(--d-fg-2); }
+  .light .hist-amt.minus { color: var(--l-fg-2); }
+
+  /* Decorative wordmark inside star */
+  .star-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(201,168,76,.25), transparent 60%);
+    border-radius: 50%;
+    z-index: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="stage-label">
+    Hunger Beauty — Telegram Mini App
+    <span class="accent">Бонусы</span>
+  </div>
+
+  <!-- ════════════ DARK ════════════ -->
+  <div class="phone-col">
+    <div class="phone-col-label">Dark theme</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen dark">
+
+        <!-- Status bar -->
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M1 7h2v4H1zM5 5h2v6H5zM9 3h2v8H9zM13 0h2v11h-2z"/></svg>
+            <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><path d="M7 1.5c1.9 0 3.7.7 5 2l1-1c-1.6-1.6-3.8-2.5-6-2.5S2.6 1 1 2.5l1 1c1.3-1.3 3.1-2 5-2zM7 4.5c1.1 0 2.2.4 3 1.2l1-1c-1.1-1-2.5-1.6-4-1.6s-2.9.6-4 1.6l1 1c.8-.8 1.9-1.2 3-1.2zM7 7.5c.6 0 1.1.2 1.5.6L7 9.5 5.5 8.1c.4-.4.9-.6 1.5-.6z"/></svg>
+            <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="0.5" y="0.5" width="21" height="10" rx="2.5" stroke="currentColor" opacity=".5"/><rect x="2" y="2" width="15" height="7" rx="1" fill="currentColor"/><rect x="22" y="4" width="1.5" height="3" rx=".5" fill="currentColor" opacity=".5"/></svg>
+          </span>
+        </div>
+
+        <!-- Header -->
+        <div class="header">
+          <button class="back-btn" aria-label="back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </button>
+          <div class="page-title">
+            Бонусы
+            <span class="page-title-sub">программа лояльности</span>
+          </div>
+          <div class="header-spacer"></div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+
+          <!-- CARD 1: My Points -->
+          <div class="card points-card card-featured">
+            <div class="points-row">
+              <div>
+                <div class="eyebrow eyebrow-gold">Мои баллы</div>
+                <div class="points-num">250</div>
+                <div class="points-eq">= <span class="euro">€ 2.50</span></div>
+              </div>
+              <div class="star-decoration">
+                <svg viewBox="0 0 100 100" fill="none">
+                  <defs>
+                    <linearGradient id="starGradD" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#E8CF80"/>
+                      <stop offset="50%" stop-color="#C9A84C"/>
+                      <stop offset="100%" stop-color="#9A7230"/>
+                    </linearGradient>
+                  </defs>
+                  <!-- Ornate star -->
+                  <path d="M50 8 L57 38 L88 38 L62 56 L72 86 L50 68 L28 86 L38 56 L12 38 L43 38 Z"
+                        fill="url(#starGradD)" stroke="#E8CF80" stroke-width="0.5"/>
+                  <circle cx="50" cy="50" r="6" fill="#1A1A1A" opacity=".25"/>
+                  <text x="50" y="55" text-anchor="middle" font-family="Cormorant Garamond" font-size="11" font-weight="600" fill="#E8CF80">H</text>
+                </svg>
+              </div>
+            </div>
+            <hr class="points-divider">
+            <div class="points-foot">
+              <div class="points-foot-label">Уровень: <em>VIP клиент</em></div>
+              <span class="vip-pill">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                VIP
+              </span>
+            </div>
+          </div>
+
+          <!-- CARD 2: Status -->
+          <div class="card status-card">
+            <div class="eyebrow">Мой статус</div>
+            <div class="status-pill-big">VIP</div>
+            <div class="benefits">
+              <div class="benefit">
+                <span class="benefit-mark">✦</span>
+                <span class="benefit-text">Скидка <strong>15%</strong> на все услуги</span>
+              </div>
+              <div class="benefit">
+                <span class="benefit-mark">✦</span>
+                <span class="benefit-text">Баллы <strong>×1.5</strong> за каждый визит</span>
+              </div>
+              <div class="benefit">
+                <span class="benefit-mark">✦</span>
+                <span class="benefit-text">Приоритетная запись и подарок в день рождения</span>
+              </div>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-label">
+                <span class="progress-label-l">До Platinum: <em>ещё 3 визита</em></span>
+                <span class="progress-label-r">60%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill"></div></div>
+            </div>
+          </div>
+
+          <!-- CARD 3: Referral -->
+          <div class="card ref-card">
+            <div class="eyebrow">Пригласи друга</div>
+            <div class="ref-sub">Поделитесь кодом — получите <span style="color:var(--gold);font-weight:600">100 баллов</span> за каждого друга</div>
+            <div class="ref-code-row">
+              <div class="ref-code">HUNGER-AN24</div>
+              <button class="ref-copy" aria-label="copy">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+            <div class="ref-reward">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Другу — <span class="ref-reward-amt">−10%</span> на первую запись</span>
+            </div>
+          </div>
+
+          <!-- CARD 4: History -->
+          <div class="card hist-card">
+            <div class="eyebrow">История начислений</div>
+            <div class="hist-list">
+              <div class="hist-row">
+                <div class="hist-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+                </div>
+                <div class="hist-body">
+                  <div class="hist-title-row">Окрашивание Balayage</div>
+                  <div class="hist-date">12 мая · Анна П.</div>
+                </div>
+                <div class="hist-amt plus">+ 45</div>
+              </div>
+              <div class="hist-row">
+                <div class="hist-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </div>
+                <div class="hist-body">
+                  <div class="hist-title-row">Списано — маникюр</div>
+                  <div class="hist-date">28 апреля · Елена К.</div>
+                </div>
+                <div class="hist-amt minus">− 80</div>
+              </div>
+              <div class="hist-row">
+                <div class="hist-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <div class="hist-body">
+                  <div class="hist-title-row">Друг присоединился — Мария</div>
+                  <div class="hist-date">15 апреля</div>
+                </div>
+                <div class="hist-amt plus">+ 100</div>
+              </div>
+              <div class="hist-row">
+                <div class="hist-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+                </div>
+                <div class="hist-body">
+                  <div class="hist-title-row">Стрижка + укладка</div>
+                  <div class="hist-date">2 апреля · Анна П.</div>
+                </div>
+                <div class="hist-amt plus">+ 35</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ LIGHT ════════════ -->
+  <div class="phone-col">
+    <div class="phone-col-label">Light theme</div>
+    <div class="phone light">
+      <div class="notch"></div>
+      <div class="screen light">
+
+        <!-- Status bar -->
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M1 7h2v4H1zM5 5h2v6H5zM9 3h2v8H9zM13 0h2v11h-2z"/></svg>
+            <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><path d="M7 1.5c1.9 0 3.7.7 5 2l1-1c-1.6-1.6-3.8-2.5-6-2.5S2.6 1 1 2.5l1 1c1.3-1.3 3.1-2 5-2zM7 4.5c1.1 0 2.2.4 3 1.2l1-1c-1.1-1-2.5-1.6-4-1.6s-2.9.6-4 1.6l1 1c.8-.8 1.9-1.2 3-1.2zM7 7.5c.6 0 1.1.2 1.5.6L7 9.5 5.5 8.1c.4-.4.9-.6 1.5-.6z"/></svg>
+            <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="0.5" y="0.5" width="21" height="10" rx="2.5" stroke="currentColor" opacity=".5"/><rect x="2" y="2" width="15" height="7" rx="1" fill="currentColor"/><rect x="22" y="4" width="1.5" height="3" rx=".5" fill="currentColor" opacity=".5"/></svg>
+          </span>
+        </div>
+
+        <!-- Header -->
+        <div class="header">
+          <button class="back-btn" aria-label="back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </button>
+          <div class="page-title">
+            Бонусы
+            <span class="page-title-sub">программа лояльности</span>
+          </div>
+          <div class="header-spacer"></div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+
+          <!-- CARD 1: My Points -->
+          <div class="card points-card card-featured">
+            <div class="points-row">
+              <div>
+                <div class="eyebrow eyebrow-gold">Мои баллы</div>
+                <div class="points-num">250</div>
+                <div class="points-eq">= <span class="euro">€ 2.50</span></div>
+              </div>
+              <div class="star-decoration">
+                <svg viewBox="0 0 100 100" fill="none">
+                  <defs>
+                    <linearGradient id="starGradL" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#C9A84C"/>
+                      <stop offset="50%" stop-color="#9A7230"/>
+                      <stop offset="100%" stop-color="#6F5020"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M50 8 L57 38 L88 38 L62 56 L72 86 L50 68 L28 86 L38 56 L12 38 L43 38 Z"
+                        fill="url(#starGradL)" stroke="#9A7230" stroke-width="0.5"/>
+                  <circle cx="50" cy="50" r="6" fill="#FFFFFF" opacity=".35"/>
+                  <text x="50" y="55" text-anchor="middle" font-family="Cormorant Garamond" font-size="11" font-weight="600" fill="#FAF8F3">H</text>
+                </svg>
+              </div>
+            </div>
+            <hr class="points-divider">
+            <div class="points-foot">
+              <div class="points-foot-label">Уровень: <em>VIP клиент</em></div>
+              <span class="vip-pill">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                VIP
+              </span>
+            </div>
+          </div>
+
+          <!-- CARD 2: Status -->
+          <div class="card status-card">
+            <div class="eyebrow">Мой статус</div>
+            <div class="status-pill-big">VIP</div>
+            <div class="benefits">
+              <div class="benefit">
+                <span class="benefit-mark">✦</span>
+                <span class="benefit-text">Скидка <strong>15%</strong> на все услуги</span>
+              </div>
+              <div class="benefit">
+                <span class="benefit-mark">✦</span>
+                <span class="benefit-text">Баллы <strong>×1.5</strong> за каждый визит</span>
+              </div>
+              <div class="benefit">
+                <span class="benefit-mark">✦</span>
+                <span class="benefit-text">Приоритетная запись и подарок в день рождения</span>
+              </div>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-label">
+                <span class="progress-label-l">До Platinum: <em>ещё 3 визита</em></span>
+                <span class="progress-label-r">60%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill"></div></div>
+            </div>
+          </div>
+
+          <!-- CARD 3: Referral -->
+          <div class="card ref-card">
+            <div class="eyebrow">Пригласи друга</div>
+            <div class="ref-sub">Поделитесь кодом — получите <span style="color:var(--gold);font-weight:600">100 баллов</span> за каждого друга</div>
+            <div class="ref-code-row">
+              <div class="ref-code">HUNGER-AN24</div>
+              <button class="ref-copy" aria-label="copy">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+            <div class="ref-reward">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Другу — <span class="ref-reward-amt">−10%</span> на первую запись</span>
+            </div>
+          </div>
+
+          <!-- CARD 4: History -->
+          <div class="card hist-card">
+            <div class="eyebrow">История начислений</div>
+            <div class="hist-list">
+              <div class="hist-row">
+                <div class="hist-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+                </div>
+                <div class="hist-body">
+                  <div class="hist-title-row">Окрашивание Balayage</div>
+                  <div class="hist-date">12 мая · Анна П.</div>
+                </div>
+                <div class="hist-amt plus">+ 45</div>
+              </div>
+              <div class="hist-row">
+                <div class="hist-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </div>
+                <div class="hist-body">
+                  <div class="hist-title-row">Списано — маникюр</div>
+                  <div class="hist-date">28 апреля · Елена К.</div>
+                </div>
+                <div class="hist-amt minus">− 80</div>
+              </div>
+              <div class="hist-row">
+                <div class="hist-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <div class="hist-body">
+                  <div class="hist-title-row">Друг присоединился — Мария</div>
+                  <div class="hist-date">15 апреля</div>
+                </div>
+                <div class="hist-amt plus">+ 100</div>
+              </div>
+              <div class="hist-row">
+                <div class="hist-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+                </div>
+                <div class="hist-body">
+                  <div class="hist-title-row">Стрижка + укладка</div>
+                  <div class="hist-date">2 апреля · Анна П.</div>
+                </div>
+                <div class="hist-amt plus">+ 35</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

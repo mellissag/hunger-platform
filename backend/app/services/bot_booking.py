@@ -41,6 +41,7 @@ async def create_tg_booking(
     service_id: UUID,
     starts_at: datetime,
     telegram_bot: "Bot | None" = None,
+    promo_code: str | None = None,
 ) -> Booking:
     actor = await get_bot_actor_user(db)
     data = BookingCreate(
@@ -49,6 +50,7 @@ async def create_tg_booking(
         service_id=service_id,
         starts_at=starts_at,
         created_via=BookingCreatedVia.bot,
+        promo_code=promo_code,
     )
     b = await booking_service.create_booking(db, actor, data)
     await notify_master_new_booking(b.id, telegram_bot, db)

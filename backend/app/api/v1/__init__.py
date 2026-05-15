@@ -16,6 +16,8 @@ from app.api.v1 import (
     color_formulas,
     inventory,
     knowledge,
+    loyalty_admin,
+    me_loyalty,
     master_portal,
     masters,
     mini_app,
@@ -59,6 +61,8 @@ api_router.include_router(users_admin.router)
 api_router.include_router(audit.router)
 api_router.include_router(notifications.router)
 api_router.include_router(mini_app.router)
+api_router.include_router(me_loyalty.router)
+api_router.include_router(loyalty_admin.router)
 api_router.include_router(public_api.router)
 api_router.include_router(upload.router)
 api_router.include_router(inventory.router)

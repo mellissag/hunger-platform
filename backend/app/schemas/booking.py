@@ -20,6 +20,7 @@ class BookingCreate(BaseModel):
     service_id: UUID
     starts_at: datetime = Field(description="UTC")
     notes: str | None = None
+    promo_code: str | None = None
     created_via: BookingCreatedVia = BookingCreatedVia.admin
 
 
@@ -79,6 +80,11 @@ class BookingOut(BaseModel):
     cancelled_at: datetime | None
     cancellation_reason: str | None
     needs_consultation: bool
+    promo_code_id: UUID | None = None
+    promo_discount_amount: Decimal | None = None
+    points_spent: int = 0
+    points_spent_discount: Decimal = Decimal("0")
+    points_earned: int = 0
 
 
 class BookingStatsOut(BaseModel):

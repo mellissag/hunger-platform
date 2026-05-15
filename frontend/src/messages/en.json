@@ -44,7 +44,8 @@
       "inventory": "Warehouse",
       "formulas": "Formulas",
       "chatsBadge": "Soon",
-      "noSectionAccess": "No access to this section."
+      "noSectionAccess": "No access to this section.",
+      "discounts": "Discounts"
     },
     "topbar": {
       "search": "Search",
@@ -1700,6 +1701,34 @@
       "statusStockLow": "Low",
       "statusStockModerate": "Moderate",
       "statusStockOk": "OK"
+    },
+    "discounts": {
+      "title": "Discounts",
+      "tabPromos": "Promo codes",
+      "tabSettings": "Loyalty settings",
+      "tabStatuses": "Client statuses",
+      "tabHistory": "Points history",
+      "createPromo": "Create promo code",
+      "promoCode": "Code",
+      "generate": "Generate",
+      "discountValue": "Discount value",
+      "save": "Save",
+      "saved": "Saved",
+      "type": "Type",
+      "value": "Value",
+      "uses": "Uses",
+      "pointsValueEur": "Value of 1 point (EUR)",
+      "pointsPreview": "100 points = €{amount}",
+      "referralBonusReferrer": "Referrer bonus (points)",
+      "referralBonusInvited": "Invited bonus (points)",
+      "noStatuses": "No statuses yet",
+      "searchClient": "Search client",
+      "date": "Date",
+      "client": "Client",
+      "points": "Points",
+      "description": "Description",
+      "loyaltyPoints": "Loyalty points per visit",
+      "loyaltyPointsHint": "Client earns this many points after a completed visit"
     }
   },
   "miniApp": {

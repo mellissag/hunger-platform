@@ -16,6 +16,13 @@ from app.models.color_formula import ColorFormula
 from app.models.daily_pick import DailyPick
 from app.models.inventory import Product, ProductWriteOff, SupplyInvoice, SupplyInvoiceItem
 from app.models.knowledge import KBChunk, KBDocument
+from app.models.loyalty import (
+    ClientStatus,
+    LoyaltySettings,
+    LoyaltyTransaction,
+    PromoCode,
+    ReferralCode,
+)
 from app.models.master import Master
 from app.models.salon import Salon, Settings
 from app.models.schedule import ScheduleSlot
@@ -45,6 +52,11 @@ __all__ = [
     "DailyPick",
     "KBChunk",
     "KBDocument",
+    "ClientStatus",
+    "LoyaltySettings",
+    "LoyaltyTransaction",
+    "PromoCode",
+    "ReferralCode",
     "Master",
     "MasterService",
     "Product",

@@ -9,10 +9,13 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { loyaltyTranslations, type LoyaltyTranslations } from './loyalty';
 import { translations, type Lang, type AppTranslations } from './translations';
 
+export type MiniAppT = AppTranslations & LoyaltyTranslations;
+
 interface LangCtx {
-  t: AppTranslations;
+  t: MiniAppT;
   lang: Lang;
   setLang: (l: Lang) => void;
 }
@@ -24,7 +27,7 @@ function isLang(v: unknown): v is Lang {
 }
 
 const LanguageContext = createContext<LangCtx>({
-  t: translations.ru,
+  t: { ...translations.ru, ...loyaltyTranslations.ru },
   lang: 'ru',
   setLang: () => {},
 });
@@ -56,7 +59,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<LangCtx>(
-    () => ({ t: translations[lang], lang, setLang }),
+    () => ({ t: { ...translations[lang], ...loyaltyTranslations[lang] }, lang, setLang }),
     [lang, setLang],
   );
 

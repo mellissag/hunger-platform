@@ -124,7 +124,27 @@ class SendMessageRequest(BaseModel):
     parse_mode: str = Field(default="HTML", max_length=32)
 
 
+class ClientLoyaltySummaryOut(BaseModel):
+    loyalty_points: int = 0
+    status_id: UUID | None = None
+    status_name: str | None = None
+    status_background_color: str | None = None
+    status_text_color: str | None = None
+    status_assigned_manually: bool = False
+    referral_code: str | None = None
+    referral_uses_count: int = 0
+    total_visits: int = 0
+    total_spent: Decimal = Decimal("0")
+
+
+class ClientStatusAssignIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status_id: UUID | None = None
+
+
 class ClientDetailOut(ClientOut):
+    loyalty: ClientLoyaltySummaryOut | None = None
     notes: list[ClientNoteOut]
     bookings: list[ClientBookingHistoryOut]
     reviews: list[ClientReviewOut]

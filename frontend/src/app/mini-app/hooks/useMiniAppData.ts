@@ -116,6 +116,7 @@ export interface BookingCreatePayload {
   comment?: string;
   any_master?: boolean;
   call_for_time?: boolean;
+  promo_code?: string;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

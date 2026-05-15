@@ -39,6 +39,7 @@ from app.models.booking import Booking
 from app.models.salon import Salon
 from app.models.user import User
 from app.services import schedule_service
+from app.services import loyalty_service
 from app.services.bot_booking import create_tg_booking, is_blacklisted
 from app.services.notification_service import AdminEvent, get_admin_notify_chat_id, notify_admin
 from app.services.notifications import notify_master_new_booking
@@ -168,6 +169,7 @@ async def get_mini_app_user(
                 username=user_data.get("username"),
                 photo_url=user_data.get("photo_url"),
                 language_code=user_data.get("language_code"),
+                start_param=parsed.get("start_param"),
             )
 
     if credentials is not None:
@@ -260,7 +262,12 @@ async def _sync_client_lang(client: Client, payload: InitDataPayload, db: AsyncS
         await db.flush()
 
 
-async def _get_or_create_client(payload: InitDataPayload, db: AsyncSession) -> Client:
+async def _get_or_create_client(
+    payload: InitDataPayload,
+    db: AsyncSession,
+    *,
+    start_param: str | None = None,
+) -> Client:
     client = (
         await db.execute(select(Client).where(Client.tg_user_id == payload.tg_user_id))
     ).scalar_one_or_none()
@@ -276,6 +283,9 @@ async def _get_or_create_client(payload: InitDataPayload, db: AsyncSession) -> C
         db.add(client)
         await db.flush()
         await db.refresh(client)
+        sp = start_param or payload.start_param
+        if sp:
+            await loyalty_service.process_referral_start_param(db, client, sp)
         return client
 
     changed = False
@@ -305,6 +315,9 @@ async def _get_or_create_client(payload: InitDataPayload, db: AsyncSession) -> C
         changed = True
     if changed:
         await db.flush()
+    sp = start_param or payload.start_param
+    if sp and client.referred_by_client_id is None:
+        await loyalty_service.process_referral_start_param(db, client, sp)
     return client
 
 
@@ -700,6 +713,8 @@ async def create_booking(
             raise HTTPException(status_code=400, detail="starts_at required unless call_for_time")
 
         price_dec, dur_min = await _mini_resolve_price_duration(db, mid, sid)
+        status_disc = await loyalty_service.resolve_client_status_discount(db, client, price_dec)
+        price_dec = max(Decimal("0"), price_dec - status_disc)
 
         starts_at_utc = None
         ends_at_utc = None
@@ -729,6 +744,10 @@ async def create_booking(
         )
         db.add(booking)
         await db.flush()
+        if payload.promo_code and payload.promo_code.strip():
+            await loyalty_service.apply_promo_to_booking(
+                db, booking, payload.promo_code.strip(), client.id
+            )
         await db.refresh(booking)
 
         bot = getattr(request.app.state, "bot", None)
@@ -784,6 +803,7 @@ async def create_booking(
             service_id=_uuid.UUID(payload.service_id),
             starts_at=starts_at_utc,
             telegram_bot=getattr(request.app.state, "bot", None),
+            promo_code=payload.promo_code,
         )
     except ClientBlacklistedError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Client is blacklisted")

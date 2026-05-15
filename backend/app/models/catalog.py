@@ -72,6 +72,7 @@ class Service(UUIDPrimaryKeyMixin, Base):
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    loyalty_points: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     created_at: Mapped[datetime] = mapped_column(

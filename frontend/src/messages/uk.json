@@ -44,7 +44,8 @@
       "inventory": "Склад",
       "formulas": "Формули",
       "chatsBadge": "Скоро",
-      "noSectionAccess": "Немає доступу до цього розділу."
+      "noSectionAccess": "Немає доступу до цього розділу.",
+      "discounts": "Знижки"
     },
     "topbar": {
       "search": "Пошук",
@@ -1701,6 +1702,34 @@
       "statusStockLow": "Мало",
       "statusStockModerate": "Помірно",
       "statusStockOk": "Достатньо"
+    },
+    "discounts": {
+      "title": "Знижки",
+      "tabPromos": "Промокоди",
+      "tabSettings": "Налаштування лояльності",
+      "tabStatuses": "Статуси клієнтів",
+      "tabHistory": "Історія балів",
+      "createPromo": "Створити промокод",
+      "promoCode": "Код",
+      "generate": "Згенерувати",
+      "discountValue": "Розмір знижки",
+      "save": "Зберегти",
+      "saved": "Збережено",
+      "type": "Тип",
+      "value": "Значення",
+      "uses": "Використань",
+      "pointsValueEur": "Вартість 1 бала (€)",
+      "pointsPreview": "100 балів = €{amount}",
+      "referralBonusReferrer": "Бонус запросившему (бали)",
+      "referralBonusInvited": "Бонус запрошеному (бали)",
+      "noStatuses": "Статусів ще немає",
+      "searchClient": "Пошук клієнта",
+      "date": "Дата",
+      "client": "Клієнт",
+      "points": "Бали",
+      "description": "Опис",
+      "loyaltyPoints": "Бали за послугу",
+      "loyaltyPointsHint": "Клієнт отримає стільки балів після завершеного візиту"
     }
   },
   "miniApp": {

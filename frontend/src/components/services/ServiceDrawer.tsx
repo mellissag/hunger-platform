@@ -33,6 +33,7 @@ const serviceSchema = z.object({
   duration_type: z.enum(["fixed", "range"]),
   duration_max_minutes: z.coerce.number().int().min(1).optional().nullable(),
   sort_order: z.coerce.number().int(),
+  loyalty_points: z.coerce.number().int().min(0),
   is_active: z.boolean(),
   name_ru: z.string().min(1, "Обязательное поле"),
   name_en: z.string(),
@@ -104,6 +105,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
       duration_max_minutes: null,
       price: 0,
       sort_order: 0,
+      loyalty_points: 0,
       name_ru: "",
       name_en: "",
       name_uk: "",
@@ -128,6 +130,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
         duration_type: (service.duration_type as "fixed" | "range") ?? "fixed",
         duration_max_minutes: service.duration_max_minutes ?? null,
         sort_order: service.sort_order ?? 0,
+        loyalty_points: service.loyalty_points ?? 0,
         is_active: service.is_active,
         name_ru: service.name_i18n.ru ?? "",
         name_en: service.name_i18n.en ?? "",
@@ -247,6 +250,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
       duration_type: values.duration_type,
       duration_max_minutes: values.duration_type === "range" ? (values.duration_max_minutes ?? null) : null,
       sort_order: values.sort_order,
+      loyalty_points: values.loyalty_points,
       is_active: values.is_active,
       photo_url: photoUrl ?? null,
       name_i18n: { ru: values.name_ru, en: values.name_en, uk: values.name_uk, bg: values.name_bg },
@@ -584,11 +588,20 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
             </p>
           </div>
 
+          {/* Loyalty points */}
+          <div className="space-y-1.5">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              {t("loyaltyPoints")}
+            </Label>
+            <Input type="number" min={0} {...register("loyalty_points")} />
+            <p className="text-[10px] text-muted-foreground">{t("loyaltyPointsHint")}</p>
+          </div>
+
           {/* Sort order */}
           <div className="space-y-1.5">
-          <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            {t("drawerSort")}
-          </Label>
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              {t("drawerSort")}
+            </Label>
             <Input type="number" {...register("sort_order")} />
           </div>
 

@@ -26,12 +26,11 @@ function HomeIcon({ active }: { active: boolean }) {
   );
 }
 
-function GridIcon({ active }: { active: boolean }) {
+function StarNavIcon({ active }: { active: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-      <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+      <polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9" />
     </svg>
   );
 }
@@ -62,13 +61,13 @@ function UserIcon({ active }: { active: boolean }) {
 
 interface NavTab {
   href: string;
-  labelKey: 'tabHome' | 'tabCatalog' | 'tabBookings' | 'tabProfile';
+  labelKey: 'tabHome' | 'tabBonuses' | 'tabBookings' | 'tabProfile';
   icon: (active: boolean) => JSX.Element;
 }
 
 const NAV_TABS: NavTab[] = [
   { href: '/mini-app',          labelKey: 'tabHome',     icon: (a) => <HomeIcon active={a} /> },
-  { href: '/mini-app/catalog',  labelKey: 'tabCatalog',  icon: (a) => <GridIcon active={a} /> },
+  { href: '/mini-app/bonuses',   labelKey: 'tabBonuses',  icon: (a) => <StarNavIcon active={a} /> },
   { href: '/mini-app/bookings', labelKey: 'tabBookings', icon: (a) => <CalendarIcon active={a} /> },
   { href: '/mini-app/profile',  labelKey: 'tabProfile',  icon: (a) => <UserIcon active={a} /> },
 ];
@@ -143,12 +142,12 @@ function TabBar() {
         {/* Начало */}
         <TabBarItem tab={NAV_TABS[0]!} active={isActive(NAV_TABS[0]!.href)} />
 
-        {/* Каталог */}
+        {/* Бонусы */}
         <TabBarItem tab={NAV_TABS[1]!} active={isActive(NAV_TABS[1]!.href)} />
 
-        {/* FAB — запись */}
+        {/* FAB — каталог / запись */}
         <button
-          onClick={() => router.push('/mini-app/book')}
+          onClick={() => router.push('/mini-app/catalog')}
           style={{
             width: 48, height: 48, borderRadius: '50%', border: 'none',
             background: 'linear-gradient(135deg, var(--gold-deep), var(--gold))',

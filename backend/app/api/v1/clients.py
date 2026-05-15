@@ -12,6 +12,7 @@ from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
 from redis.asyncio import Redis
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import has_permission
@@ -27,7 +28,9 @@ from app.schemas.client import (
     ClientBroadcastHistoryOut,
     ClientCreate,
     ClientDetailOut,
+    ClientLoyaltySummaryOut,
     ClientFunnelStatsOut,
+    ClientStatusAssignIn,
     ClientOut,
     ClientReviewOut,
     ClientStatsOut,
@@ -37,6 +40,9 @@ from app.schemas.client import (
     SendMessageResponse,
 )
 from app.schemas.client_note import ClientNoteCreate, ClientNoteOut, ClientNotePinBody, ClientNoteUpdate
+from app.schemas.loyalty import AdjustPointsIn, LoyaltyTransactionOut
+from app.models.loyalty import ClientStatus, LoyaltyTransaction, ReferralCode
+from app.services import loyalty_service
 from app.schemas.common import PaginatedResponse
 from app.services import client_note_service
 from app.services import client_service
@@ -44,6 +50,34 @@ from app.services.audit_log import record_event
 from app.services.bot_booking import is_blacklisted
 
 router = APIRouter(prefix="/clients", tags=["clients"])
+
+
+async def _client_loyalty_summary(db: AsyncSession, c: ClientModel) -> ClientLoyaltySummaryOut:
+    status_name = None
+    status_bg = None
+    status_fg = None
+    if c.status_id:
+        st = await db.get(ClientStatus, c.status_id)
+        if st is not None:
+            status_name = st.name_ru
+            status_bg = st.background_color
+            status_fg = st.text_color
+    ref = (
+        await db.execute(select(ReferralCode).where(ReferralCode.client_id == c.id))
+    ).scalar_one_or_none()
+    return ClientLoyaltySummaryOut(
+        loyalty_points=int(c.loyalty_points or 0),
+        status_id=c.status_id,
+        status_name=status_name,
+        status_background_color=status_bg,
+        status_text_color=status_fg,
+        status_assigned_manually=bool(c.status_assigned_manually),
+        referral_code=ref.code if ref else None,
+        referral_uses_count=int(ref.uses_count) if ref else 0,
+        total_visits=int(c.total_visits or 0),
+        total_spent=Decimal(c.total_spent or 0),
+    )
+
 
 STAFF = (UserRole.owner, UserRole.admin, UserRole.reception, UserRole.master)
 ADMINS = (UserRole.owner, UserRole.admin)
@@ -247,8 +281,11 @@ async def get_client_detail(
 
     extras = await client_service.client_detail_extras(db, user, client_id, c, tb, tr)
 
+    loyalty_summary = await _client_loyalty_summary(db, c)
+
     return ClientDetailOut(
         **base.model_dump(),
+        loyalty=loyalty_summary,
         notes=notes,
         bookings=bookings,
         reviews=reviews,
@@ -444,3 +481,56 @@ async def pin_client_note(
     user: ClientsCRMUser,
 ) -> ClientNoteOut:
     return await client_note_service.set_pinned(db, user, client_id, note_id, body.pinned)
+
+
+@router.get("/{client_id}/transactions", response_model=list[LoyaltyTransactionOut])
+async def list_client_transactions(
+    client_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: ClientsTabUser,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+) -> list[LoyaltyTransactionOut]:
+    await client_service.get_client(db, user, client_id)
+    rows = (
+        await db.execute(
+            select(LoyaltyTransaction)
+            .where(LoyaltyTransaction.client_id == client_id)
+            .order_by(LoyaltyTransaction.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+    ).scalars().all()
+    return [LoyaltyTransactionOut.model_validate(r) for r in rows]
+
+
+@router.post("/{client_id}/adjust-points", response_model=LoyaltyTransactionOut)
+async def adjust_client_points(
+    client_id: UUID,
+    body: AdjustPointsIn,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: AdminsClientsUser,
+) -> LoyaltyTransactionOut:
+    await client_service.get_client(db, user, client_id)
+    tx = await loyalty_service.adjust_client_points(
+        db, client_id, body.points, body.description
+    )
+    return LoyaltyTransactionOut.model_validate(tx)
+
+
+@router.put("/{client_id}/loyalty-status", response_model=ClientLoyaltySummaryOut)
+async def assign_client_status(
+    client_id: UUID,
+    body: ClientStatusAssignIn,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: AdminsClientsUser,
+) -> ClientLoyaltySummaryOut:
+    c, _tb, _tr, _lv = await client_service.get_client(db, user, client_id)
+    if body.status_id is not None:
+        st = await db.get(ClientStatus, body.status_id)
+        if st is None:
+            raise HTTPException(status_code=404, detail="Status not found")
+    c.status_id = body.status_id
+    c.status_assigned_manually = True
+    await db.flush()
+    return await _client_loyalty_summary(db, c)

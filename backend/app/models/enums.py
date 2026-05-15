@@ -86,3 +86,26 @@ class AIMessageRole(str, enum.Enum):
     user = "user"
     assistant = "assistant"
     system = "system"
+
+
+class PromoDiscountType(str, enum.Enum):
+    percent = "percent"
+    fixed = "fixed"
+
+
+class ReferralRewardMode(str, enum.Enum):
+    both = "both"
+    referrer_only = "referrer_only"
+    invited_only = "invited_only"
+
+
+class ReferralTrigger(str, enum.Enum):
+    on_registration = "on_registration"
+    on_first_visit = "on_first_visit"
+
+
+class LoyaltyTransactionType(str, enum.Enum):
+    earned = "earned"
+    spent = "spent"
+    referral_bonus = "referral_bonus"
+    manual_adjustment = "manual_adjustment"

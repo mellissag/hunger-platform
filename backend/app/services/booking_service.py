@@ -47,7 +47,7 @@ from app.schemas.booking import (
     BookingStatsOut,
     BookingUpdate,
 )
-from app.services import schedule_service
+from app.services import loyalty_service, schedule_service
 from app.services.broadcast_analytics import try_attribute_booking_to_broadcast
 from app.utils.datetime_utils import ensure_aware
 
@@ -142,6 +142,10 @@ async def create_booking(db: AsyncSession, user: User, data: BookingCreate) -> B
         raise ClientBlacklistedError()
 
     price, duration_min = await _resolve_pricing(db, data.master_id, data.service_id)
+    client_row = await db.get(Client, data.client_id)
+    if client_row is not None:
+        status_disc = await loyalty_service.resolve_client_status_discount(db, client_row, price)
+        price = max(Decimal("0"), price - status_disc)
     ends_at = starts_at + timedelta(minutes=duration_min)
 
     if user.role == UserRole.master:
@@ -192,6 +196,8 @@ async def create_booking(db: AsyncSession, user: User, data: BookingCreate) -> B
     except IntegrityError as e:
         raise MasterDoesNotOfferServiceError("Invalid booking data") from e
     await try_attribute_booking_to_broadcast(db, b)
+    if data.promo_code and data.promo_code.strip():
+        await loyalty_service.apply_promo_to_booking(db, b, data.promo_code.strip(), data.client_id)
     await db.refresh(b)
     return b
 
@@ -448,9 +454,15 @@ async def update_booking(
         elif "price" not in payload:
             payload["price"] = price
 
+    prev_status = b.status
     for k, v in payload.items():
         setattr(b, k, v)
     await db.flush()
+    if (
+        prev_status != BookingStatus.completed
+        and b.status == BookingStatus.completed
+    ):
+        await loyalty_service.on_booking_completed(db, b)
     return b
 
 
@@ -577,6 +589,7 @@ async def mark_completed(db: AsyncSession, user: User, booking_id: UUID) -> Book
         raise InvalidBookingStateError("Booking is not active")
     b.status = BookingStatus.completed
     await db.flush()
+    await loyalty_service.on_booking_completed(db, b)
     return b
 
 

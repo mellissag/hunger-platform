@@ -235,6 +235,7 @@ export type ServiceOut = {
   duration_max_minutes: number | null;
   price: string;
   is_active: boolean;
+  loyalty_points?: number;
   sort_order: number;
   photo_url: string | null;
   created_at?: string;
