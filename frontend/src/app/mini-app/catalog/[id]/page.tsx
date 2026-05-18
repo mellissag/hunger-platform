@@ -185,7 +185,7 @@ export default function ServiceDetailPage() {
               <div
                 style={{
                   position: 'absolute',
-                  bottom: 14,
+                  bottom: 28,
                   left: 0,
                   right: 0,
                   display: 'flex',
@@ -217,8 +217,8 @@ export default function ServiceDetailPage() {
           aria-label={t.back}
           style={{
             position: 'absolute',
-            top: 52,
-            left: 16,
+            top: 'calc(12px + env(safe-area-inset-top, 0px))',
+            left: 12,
             width: 48,
             height: 48,
             borderRadius: '50%',
