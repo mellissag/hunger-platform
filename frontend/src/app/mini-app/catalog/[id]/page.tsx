@@ -413,6 +413,7 @@ export default function ServiceDetailPage() {
                 lineHeight: 1.65,
                 color: SOFT,
                 margin: 0,
+                whiteSpace: 'pre-wrap',
               }}
             >
               {desc}
