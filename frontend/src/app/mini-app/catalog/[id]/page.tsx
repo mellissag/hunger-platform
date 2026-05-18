@@ -71,6 +71,29 @@ export default function ServiceDetailPage() {
   const svc = services.find((s) => s.id === id);
   const { data: masters = [] } = useMastersByService(id);
 
+  const galleryPhotos = useMemo(() => {
+    if (!svc) return [];
+    const raw =
+      svc.photo_urls && svc.photo_urls.length > 0
+        ? svc.photo_urls
+        : svc.photo_url
+          ? [svc.photo_url]
+          : [];
+    return raw
+      .map((u) => salonMediaSrcForApiOrigin(u, API_ORIGIN))
+      .filter((u): u is string => Boolean(u));
+  }, [svc]);
+
+  const hasPhoto = galleryPhotos.some((_, i) => !brokenGallery[i]);
+
+  const syncGalleryIndex = useCallback(() => {
+    const el = galleryScrollRef.current;
+    if (!el || galleryPhotos.length === 0) return;
+    const w = el.clientWidth || 1;
+    const idx = Math.round(el.scrollLeft / w);
+    setGalleryIndex(Math.max(0, Math.min(idx, galleryPhotos.length - 1)));
+  }, [galleryPhotos.length]);
+
   if (!svc) {
     return (
       <div
@@ -100,28 +123,6 @@ export default function ServiceDetailPage() {
         : '';
   const categoryName =
     svc.category_name_i18n ? pickI18n(svc.category_name_i18n as Record<string, string>, lang) : (svc.category ?? '');
-
-  const galleryPhotos = useMemo(() => {
-    const raw =
-      svc.photo_urls && svc.photo_urls.length > 0
-        ? svc.photo_urls
-        : svc.photo_url
-          ? [svc.photo_url]
-          : [];
-    return raw
-      .map((u) => salonMediaSrcForApiOrigin(u, API_ORIGIN))
-      .filter((u): u is string => Boolean(u));
-  }, [svc.photo_url, svc.photo_urls]);
-
-  const hasPhoto = galleryPhotos.some((_, i) => !brokenGallery[i]);
-
-  const syncGalleryIndex = useCallback(() => {
-    const el = galleryScrollRef.current;
-    if (!el || galleryPhotos.length === 0) return;
-    const w = el.clientWidth || 1;
-    const idx = Math.round(el.scrollLeft / w);
-    setGalleryIndex(Math.max(0, Math.min(idx, galleryPhotos.length - 1)));
-  }, [galleryPhotos.length]);
 
   return (
     <div
