@@ -8,8 +8,8 @@ import { useT } from '../../i18n/context';
 
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? '';
 
-const GOLD = '#9A7230';
-const GOLD_HI = '#C9A84C';
+const GOLD = 'var(--gold-deep)';
+const GOLD_HI = 'var(--gold)';
 const NEAR_BLACK = '#1C1408';
 const IVORY = '#FAF8F3';
 const MUTED = '#7A6E58';
@@ -138,76 +138,39 @@ export default function ServiceDetailPage() {
             onError={() => setHeroPhotoBroken(true)}
           />
         ) : null}
-        {/* Bottom gradient for readability */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background:
-              'linear-gradient(to bottom, rgba(0,0,0,.30) 0%, rgba(0,0,0,.0) 30%, rgba(0,0,0,.65) 70%, rgba(0,0,0,.88) 100%)',
-          }}
-        />
-
         {/* Back button */}
         <button
+          type="button"
           onClick={() => router.back()}
+          aria-label={t.back}
           style={{
             position: 'absolute',
             top: 52,
             left: 16,
-            width: 40,
-            height: 40,
+            width: 48,
+            height: 48,
             borderRadius: '50%',
-            background: 'rgba(255,255,255,.18)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,.25)',
+            border: 'none',
+            background: 'linear-gradient(135deg, var(--gold-deep), var(--gold))',
+            boxShadow: 'var(--shadow-md)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
+            color: 'var(--text-inverse)',
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
             <path
               d="M15 6l-6 6 6 6"
-              stroke="white"
-              strokeWidth="2"
+              stroke="currentColor"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
           </svg>
         </button>
 
-        {/* Category eyebrow + service title — bottom of hero */}
-        <div style={{ position: 'absolute', bottom: 24, left: 20, right: 20 }}>
-          {categoryName && (
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-                color: 'rgba(255,255,255,.70)',
-                marginBottom: 8,
-              }}
-            >
-              {categoryName}
-            </div>
-          )}
-          <div
-            style={{
-              fontFamily: SERIF,
-              fontSize: 36,
-              fontWeight: 500,
-              color: '#fff',
-              lineHeight: 1.05,
-              letterSpacing: '-0.01em',
-            }}
-          >
-            {formatServiceTitle(name)}
-          </div>
-        </div>
       </div>
 
       {/* ── CONTENT (rounded top) ─────────────────────────────────────── */}
@@ -220,11 +183,41 @@ export default function ServiceDetailPage() {
           paddingBottom: 100,
         }}
       >
+        {/* Category + title */}
+        <div style={{ padding: '22px 20px 0' }}>
+          {categoryName ? (
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: GOLD,
+                marginBottom: 8,
+              }}
+            >
+              {categoryName}
+            </div>
+          ) : null}
+          <div
+            style={{
+              fontFamily: SERIF,
+              fontSize: 34,
+              fontWeight: 500,
+              color: NEAR_BLACK,
+              lineHeight: 1.05,
+              letterSpacing: '-0.01em',
+            }}
+          >
+            {formatServiceTitle(name)}
+          </div>
+        </div>
+
         {/* Duration + Price row */}
         <div
           style={{
             display: 'flex',
-            padding: '24px 20px 18px',
+            padding: '20px 20px 18px',
             borderBottom: '1px solid rgba(28,20,9,.08)',
           }}
         >
