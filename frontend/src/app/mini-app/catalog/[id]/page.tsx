@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useServices, useMastersByService, pickI18n } from '../../hooks/useMiniAppData';
 import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
@@ -60,7 +60,9 @@ function getMasterInitials(name: string): string {
 
 export default function ServiceDetailPage() {
   const router = useRouter();
-  const [heroPhotoBroken, setHeroPhotoBroken] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [brokenGallery, setBrokenGallery] = useState<Record<number, boolean>>({});
+  const galleryScrollRef = useRef<HTMLDivElement>(null);
   const [brokenMasterPhotos, setBrokenMasterPhotos] = useState<Record<string, boolean>>({});
   const params = useParams();
   const id = params.id as string;
@@ -99,8 +101,27 @@ export default function ServiceDetailPage() {
   const categoryName =
     svc.category_name_i18n ? pickI18n(svc.category_name_i18n as Record<string, string>, lang) : (svc.category ?? '');
 
-  const photoUrl = salonMediaSrcForApiOrigin(svc.photo_url, API_ORIGIN) ?? null;
-  const hasPhoto = Boolean(photoUrl) && !heroPhotoBroken;
+  const galleryPhotos = useMemo(() => {
+    const raw =
+      svc.photo_urls && svc.photo_urls.length > 0
+        ? svc.photo_urls
+        : svc.photo_url
+          ? [svc.photo_url]
+          : [];
+    return raw
+      .map((u) => salonMediaSrcForApiOrigin(u, API_ORIGIN))
+      .filter((u): u is string => Boolean(u));
+  }, [svc.photo_url, svc.photo_urls]);
+
+  const hasPhoto = galleryPhotos.some((_, i) => !brokenGallery[i]);
+
+  const syncGalleryIndex = useCallback(() => {
+    const el = galleryScrollRef.current;
+    if (!el || galleryPhotos.length === 0) return;
+    const w = el.clientWidth || 1;
+    const idx = Math.round(el.scrollLeft / w);
+    setGalleryIndex(Math.max(0, Math.min(idx, galleryPhotos.length - 1)));
+  }, [galleryPhotos.length]);
 
   return (
     <div
@@ -123,20 +144,70 @@ export default function ServiceDetailPage() {
           overflow: 'hidden',
         }}
       >
-        {photoUrl && !heroPhotoBroken ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={photoUrl}
-            alt=""
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-            }}
-            onError={() => setHeroPhotoBroken(true)}
-          />
+        {hasPhoto ? (
+          <>
+            <div
+              ref={galleryScrollRef}
+              onScroll={syncGalleryIndex}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                overflowX: 'auto',
+                scrollSnapType: 'x mandatory',
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none',
+              }}
+            >
+              {galleryPhotos.map((src, index) =>
+                brokenGallery[index] ? null : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    key={`${src}-${index}`}
+                    src={src}
+                    alt=""
+                    style={{
+                      flex: '0 0 100%',
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      scrollSnapAlign: 'start',
+                    }}
+                    onError={() =>
+                      setBrokenGallery((prev) => ({ ...prev, [index]: true }))
+                    }
+                  />
+                ),
+              )}
+            </div>
+            {galleryPhotos.length > 1 ? (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 14,
+                  left: 0,
+                  right: 0,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 6,
+                  pointerEvents: 'none',
+                }}
+              >
+                {galleryPhotos.map((_, index) => (
+                  <span
+                    key={index}
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: index === galleryIndex ? NEAR_BLACK : '#9CA3AF',
+                      opacity: brokenGallery[index] ? 0.35 : 1,
+                    }}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </>
         ) : null}
         {/* Back button */}
         <button

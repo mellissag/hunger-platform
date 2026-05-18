@@ -65,9 +65,10 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
   const [translating, setTranslating] = useState(false);
   const [selectedMasters, setSelectedMasters] = useState<string[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const MAX_SERVICE_PHOTOS = 10;
 
   const { data: catData } = useServiceCategories();
   const { data: mastersData } = useQuery({
@@ -141,7 +142,13 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
         desc_uk: service.description_i18n?.uk ?? "",
         desc_bg: service.description_i18n?.bg ?? "",
       });
-      setPhotoUrl(service.photo_url ?? null);
+      const initialPhotos =
+        service.photo_urls?.length
+          ? [...service.photo_urls]
+          : service.photo_url
+            ? [service.photo_url]
+            : [];
+      setPhotos(initialPhotos);
     } else if (open && !service) {
       setSelectedCategoryIds([]);
       reset({
@@ -161,7 +168,7 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
         desc_bg: "",
       });
       setSelectedMasters([]);
-      setPhotoUrl(null);
+      setPhotos([]);
     }
   }, [open, service, reset]);
 
@@ -222,18 +229,32 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
   }
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const remaining = MAX_SERVICE_PHOTOS - photos.length;
+    if (remaining <= 0) {
+      toast.error(t("drawerPhotosMax", { max: MAX_SERVICE_PHOTOS }));
+      if (photoInputRef.current) photoInputRef.current.value = "";
+      return;
+    }
+    const batch = files.slice(0, remaining);
     setUploadingPhoto(true);
     try {
-      const url = await uploadImageFile(file, "services");
-      setPhotoUrl(url);
+      const uploaded: string[] = [];
+      for (const file of batch) {
+        uploaded.push(await uploadImageFile(file, "services"));
+      }
+      setPhotos((prev) => [...prev, ...uploaded]);
     } catch {
-      toast.error("Ошибка загрузки фото");
+      toast.error(t("drawerPhotosUploadError"));
     } finally {
       setUploadingPhoto(false);
       if (photoInputRef.current) photoInputRef.current.value = "";
     }
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
   }
 
   function toggleCategory(catId: string) {
@@ -252,7 +273,8 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
       sort_order: values.sort_order,
       loyalty_points: values.loyalty_points,
       is_active: values.is_active,
-      photo_url: photoUrl ?? null,
+      photo_urls: photos,
+      photo_url: photos[0] ?? null,
       name_i18n: { ru: values.name_ru, en: values.name_en, uk: values.name_uk, bg: values.name_bg },
       description_i18n: {
         ru: values.desc_ru ?? "",
@@ -397,38 +419,41 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
             ))}
           </div>
 
-          {/* Photo upload */}
+          {/* Photo gallery */}
           <div className="space-y-2">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              Фото услуги
+              {t("drawerPhotosLabel")}
             </Label>
-            <p className="text-[10px] text-muted-foreground -mt-1">
-              Квадратный формат (1:1). JPG, PNG, WebP — до 5 МБ.
-            </p>
+            <p className="-mt-1 text-[10px] text-muted-foreground">{t("drawerPhotosHint")}</p>
 
-            {photoUrl ? (
-              <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-border">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photoUrl}
-                  alt="Фото услуги"
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => setPhotoUrl(null)}
-                  className="absolute top-1.5 right-1.5 h-6 w-6 flex items-center justify-center rounded-full bg-red-500/90 text-white hover:bg-red-600 transition-colors"
-                  title="Удалить фото"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
+            {photos.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {photos.map((url, index) => (
+                  <div
+                    key={`${url}-${index}`}
+                    className="relative h-24 w-24 overflow-hidden rounded-lg border border-border"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(index)}
+                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500/90 text-white transition-colors hover:bg-red-600"
+                      title={t("drawerPhotosRemove")}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
               </div>
-            ) : (
+            ) : null}
+
+            {photos.length < MAX_SERVICE_PHOTOS ? (
               <button
                 type="button"
                 onClick={() => photoInputRef.current?.click()}
                 disabled={uploadingPhoto}
-                className="flex h-32 w-32 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/40 text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted disabled:opacity-60"
+                className="flex h-24 w-full max-w-[200px] flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/40 text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted disabled:opacity-60"
               >
                 {uploadingPhoto ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -436,15 +461,16 @@ export function ServiceDrawer({ open, serviceId, service, onClose }: ServiceDraw
                   <ImagePlus className="h-5 w-5" />
                 )}
                 <span className="text-[10px] font-medium">
-                  {uploadingPhoto ? "Загрузка…" : "Добавить фото"}
+                  {uploadingPhoto ? t("drawerPhotosUploading") : t("drawerPhotosAdd")}
                 </span>
               </button>
-            )}
+            ) : null}
 
             <input
               ref={photoInputRef}
               type="file"
               accept="image/jpeg,image/png,image/webp"
+              multiple
               className="hidden"
               onChange={handlePhotoUpload}
             />

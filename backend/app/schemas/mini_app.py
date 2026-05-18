@@ -26,6 +26,7 @@ class MiniAppServiceOut(BaseModel):
     duration_type: str
     duration_max_minutes: int | None
     photo_url: str | None
+    photo_urls: list[str] = Field(default_factory=list)
     category_id: str | None
     category_name_i18n: dict[str, Any]
     masters_count: int

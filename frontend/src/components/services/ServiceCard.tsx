@@ -39,7 +39,8 @@ export function ServiceCard({
   const mastersLabel = metricDisplay(service.masters_count);
   const bookingsLabel = metricDisplay(service.bookings_30d ?? service.bookings_count);
 
-  const photoSrc = service.photo_url?.trim() ?? "";
+  const photoSrc =
+    service.photo_urls?.[0]?.trim() ?? service.photo_url?.trim() ?? "";
 
   return (
     <div

@@ -179,7 +179,11 @@ export default function CatalogPage() {
             const durStr = durMin < 60
               ? `${durMin} min`
               : `${Math.floor(durMin/60)}h${durMin%60 ? ' ' + (durMin%60) + 'm' : ''}`;
-            const photoSrc = salonMediaSrcForApiOrigin(svc.photo_url, API_ORIGIN);
+            const thumbRaw =
+              svc.photo_urls && svc.photo_urls.length > 0
+                ? svc.photo_urls[0]
+                : svc.photo_url;
+            const photoSrc = salonMediaSrcForApiOrigin(thumbRaw, API_ORIGIN);
             const showPhoto = Boolean(photoSrc) && !brokenSvcPhotos[svc.id];
             return (
               <button

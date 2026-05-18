@@ -40,6 +40,7 @@ from app.models.salon import Salon
 from app.models.user import User
 from app.services import schedule_service
 from app.services import loyalty_service
+from app.services.catalog_service import service_photo_urls_list
 from app.services.bot_booking import create_tg_booking, is_blacklisted
 from app.services.notification_service import AdminEvent, get_admin_notify_chat_id, notify_admin
 from app.services.notifications import notify_master_new_booking
@@ -85,6 +86,16 @@ def _resolve_mini_app_media_url(raw: str | None, request: Request) -> str | None
         return s
     path = s if s.startswith("/") else f"/{s}"
     return f"{public}{path}"
+
+
+def _mini_app_service_photos(svc: Service, request: Request) -> tuple[str | None, list[str]]:
+    resolved: list[str] = []
+    for raw in service_photo_urls_list(svc):
+        url = _resolve_mini_app_media_url(raw, request)
+        if url:
+            resolved.append(url)
+    first = resolved[0] if resolved else None
+    return first, resolved
 
 
 # ─── HMAC validation ───────────────────────────────────────────────────────────
@@ -352,6 +363,7 @@ async def list_services(
     for svc in rows:
         masters_count = master_counts.get(svc.id, 0)
         cat_name = svc.category.name_i18n if svc.category else {}
+        photo_url, photo_urls = _mini_app_service_photos(svc, request)
         out.append(
             MiniAppServiceOut(
                 id=str(svc.id),
@@ -361,7 +373,8 @@ async def list_services(
                 duration_minutes=svc.duration_minutes,
                 duration_type=svc.duration_type,
                 duration_max_minutes=svc.duration_max_minutes,
-                photo_url=_resolve_mini_app_media_url(svc.photo_url, request),
+                photo_url=photo_url,
+                photo_urls=photo_urls,
                 category_id=str(svc.category_id) if svc.category_id else None,
                 category_name_i18n=cat_name,
                 masters_count=masters_count,
@@ -404,6 +417,7 @@ async def get_service(
     ).scalar_one()
 
     cat_name = svc.category.name_i18n if svc.category else {}
+    photo_url, photo_urls = _mini_app_service_photos(svc, request)
     return MiniAppServiceOut(
         id=str(svc.id),
         name_i18n=svc.name_i18n,
@@ -412,7 +426,8 @@ async def get_service(
         duration_minutes=svc.duration_minutes,
         duration_type=svc.duration_type,
         duration_max_minutes=svc.duration_max_minutes,
-        photo_url=_resolve_mini_app_media_url(svc.photo_url, request),
+        photo_url=photo_url,
+        photo_urls=photo_urls,
         category_id=str(svc.category_id) if svc.category_id else None,
         category_name_i18n=cat_name,
         masters_count=master_count_row,

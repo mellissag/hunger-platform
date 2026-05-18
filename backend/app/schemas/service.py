@@ -73,6 +73,7 @@ class ServiceCreate(BaseModel):
     duration_max_minutes: int | None = None
     price: Decimal = Field(ge=0)
     photo_url: str | None = None
+    photo_urls: list[str] | None = None
     is_active: bool = True
     sort_order: int = 0
     loyalty_points: int = Field(default=0, ge=0)
@@ -95,6 +96,7 @@ class ServiceUpdate(BaseModel):
     duration_max_minutes: int | None = None
     price: Decimal | None = Field(default=None, ge=0)
     photo_url: str | None = None
+    photo_urls: list[str] | None = None
     is_active: bool | None = None
     sort_order: int | None = None
     loyalty_points: int | None = Field(default=None, ge=0)
@@ -120,6 +122,7 @@ class ServiceOut(BaseModel):
     duration_max_minutes: int | None
     price: Decimal
     photo_url: str | None
+    photo_urls: list[str] = Field(default_factory=list)
     is_active: bool
     loyalty_points: int = 0
     sort_order: int

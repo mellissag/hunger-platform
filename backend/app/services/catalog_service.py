@@ -85,6 +85,31 @@ async def list_category_service_ids(db: AsyncSession, category_id: UUID) -> list
     return list((await db.execute(stmt)).scalars().all())
 
 
+def service_photo_urls_list(s: Service) -> list[str]:
+    raw = s.photo_urls if isinstance(s.photo_urls, list) else []
+    urls = [str(u).strip() for u in raw if u and str(u).strip()]
+    if not urls and s.photo_url and str(s.photo_url).strip():
+        return [str(s.photo_url).strip()]
+    return urls
+
+
+def apply_service_photos(
+    s: Service,
+    *,
+    photo_urls: list[str] | None = None,
+    photo_url: str | None = None,
+) -> None:
+    if photo_urls is not None:
+        cleaned = [str(u).strip() for u in photo_urls if u and str(u).strip()]
+        s.photo_urls = cleaned
+        s.photo_url = cleaned[0] if cleaned else None
+        return
+    if photo_url is not None:
+        single = str(photo_url).strip() if photo_url else ""
+        s.photo_url = single or None
+        s.photo_urls = [single] if single else []
+
+
 def service_to_out(
     s: Service,
     *,
@@ -112,7 +137,9 @@ def service_to_out(
         duration_max_minutes=s.duration_max_minutes,
         price=s.price,
         photo_url=s.photo_url,
+        photo_urls=service_photo_urls_list(s),
         is_active=s.is_active,
+        loyalty_points=int(s.loyalty_points or 0),
         sort_order=s.sort_order,
         created_at=s.created_at,
         updated_at=s.updated_at,
@@ -338,10 +365,14 @@ async def create_service(db: AsyncSession, redis: Redis | None, data: ServiceCre
         duration_type=data.duration_type,
         duration_max_minutes=data.duration_max_minutes,
         price=data.price,
-        photo_url=data.photo_url,
         is_active=data.is_active,
         sort_order=data.sort_order,
+        loyalty_points=data.loyalty_points,
     )
+    if data.photo_urls is not None:
+        apply_service_photos(s, photo_urls=data.photo_urls)
+    else:
+        apply_service_photos(s, photo_url=data.photo_url)
     db.add(s)
     await db.flush()
     if data.category_ids is not None:
@@ -366,6 +397,13 @@ async def update_service(
     payload = data.model_dump(exclude_unset=True)
     payload.pop("category_ids", None)
     payload.pop("category_id", None)
+    photo_urls = payload.pop("photo_urls", None)
+    photo_url = payload.pop("photo_url", None)
+    if photo_urls is not None or photo_url is not None:
+        if photo_urls is not None:
+            apply_service_photos(s, photo_urls=photo_urls)
+        else:
+            apply_service_photos(s, photo_url=photo_url)
     for k, v in payload.items():
         setattr(s, k, v)
     s.updated_at = datetime.now(tz=UTC)

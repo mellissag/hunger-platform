@@ -45,6 +45,7 @@ export interface Service {
   category_name_i18n?: Record<string, string>;
   description?: string;
   photo_url?: string | null;
+  photo_urls?: string[];
 }
 
 export interface ClientProfile {

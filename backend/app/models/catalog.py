@@ -71,6 +71,9 @@ class Service(UUIDPrimaryKeyMixin, Base):
     duration_max_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    photo_urls: Mapped[list[str]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     loyalty_points: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

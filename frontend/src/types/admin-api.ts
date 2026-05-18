@@ -252,6 +252,7 @@ export type ServiceOut = {
   loyalty_points?: number;
   sort_order: number;
   photo_url: string | null;
+  photo_urls?: string[];
   created_at?: string;
   updated_at?: string;
   bookings_count?: number;
