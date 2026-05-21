@@ -240,6 +240,8 @@ async def _grant_referral_bonuses(
     invited: Client,
     settings: LoyaltySettings,
     booking_id: UUID | None,
+    invited_description: str | None = None,
+    referrer_description: str | None = None,
 ) -> None:
     if not settings.referral_enabled or invited.referred_by_client_id is None:
         return
@@ -255,7 +257,7 @@ async def _grant_referral_bonuses(
                 client_id=referrer_id,
                 points=bonus,
                 tx_type=LoyaltyTransactionType.referral_bonus,
-                description="Реферальный бонус",
+                description=referrer_description or "Реферальный бонус",
                 booking_id=booking_id,
             )
 
@@ -267,9 +269,77 @@ async def _grant_referral_bonuses(
                 client_id=invited.id,
                 points=bonus,
                 tx_type=LoyaltyTransactionType.referral_bonus,
-                description="Реферальный бонус",
+                description=invited_description or "Реферальный бонус",
                 booking_id=booking_id,
             )
+
+
+class RegistrationCodeError(Exception):
+    """Referral or promo code invalid at Mini App onboarding registration."""
+
+
+async def _find_active_promo_for_registration(db: AsyncSession, code: str) -> PromoCode | None:
+    """Active promo valid for registration (no booking amount / per-client limits)."""
+    normalized = code.strip().upper()
+    promo = (
+        await db.execute(
+            select(PromoCode).where(
+                func.upper(PromoCode.code) == normalized,
+                PromoCode.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if promo is None or not promo.is_active:
+        return None
+    today = clock.utc_now().date()
+    if promo.valid_from is not None and today < promo.valid_from:
+        return None
+    if promo.valid_until is not None and today > promo.valid_until:
+        return None
+    if promo.max_uses is not None and promo.uses_count >= promo.max_uses:
+        return None
+    return promo
+
+
+async def process_registration_referral_code(
+    db: AsyncSession,
+    client: Client,
+    code: str | None,
+) -> None:
+    """Apply referral or promo code from onboarding registration form."""
+    if not code or not code.strip():
+        return
+    if client.referred_by_client_id is not None:
+        return
+
+    normalized = code.strip().upper()
+    ref = (
+        await db.execute(select(ReferralCode).where(ReferralCode.code == normalized))
+    ).scalar_one_or_none()
+
+    if ref is not None:
+        if ref.client_id == client.id:
+            raise RegistrationCodeError()
+        client.referred_by_client_id = ref.client_id
+        ref.uses_count = int(ref.uses_count) + 1
+        await db.flush()
+        settings = await get_loyalty_settings(db)
+        if settings.referral_enabled:
+            invited_name = (client.first_name or "").strip() or "друг"
+            await _grant_referral_bonuses(
+                db,
+                invited=client,
+                settings=settings,
+                booking_id=None,
+                invited_description="Приветственный бонус по коду приглашения",
+                referrer_description=f"Бонус за приглашение друга: {invited_name}",
+            )
+        return
+
+    if await _find_active_promo_for_registration(db, normalized) is not None:
+        return
+
+    raise RegistrationCodeError()
 
 
 async def _auto_assign_status(db: AsyncSession, client: Client) -> None:

@@ -43,6 +43,7 @@ const T: Record<Lang, {
   step2Label: string; step2Title: string; step2TitleItalic: string;
   nameLbl: string; namePlaceholder: string;
   phoneLbl: string; phonePlaceholder: string; phoneHint: string;
+  referralLbl: string; referralPlaceholder: string; referralError: string;
   privacy: string;
   step3Label: string; step3Title: string; step3TitleItalic: string;
   themeLight: string; themeDark: string;
@@ -58,6 +59,8 @@ const T: Record<Lang, {
     step2Label: 'Стъпка 2 от 3', step2Title: 'Запознанство.', step2TitleItalic: '',
     nameLbl: 'Вашето Имя', namePlaceholder: 'Въведете вашето Имя',
     phoneLbl: 'Телефон', phonePlaceholder: '+359 87 000 0000', phoneHint: 'Въведете вашия телефон',
+    referralLbl: 'Реферален код или промокод', referralPlaceholder: 'Напр. AB12CD34',
+    referralError: 'Невалиден или неактивен промокод. Проверете кода и опитайте отново.',
     privacy: 'Натисквайки „Продължи", вие се съгласявате с условията.',
     step3Label: 'Стъпка 3 от 3', step3Title: 'Изберете', step3TitleItalic: 'тема',
     themeLight: 'Светла', themeDark: 'Тъмна',
@@ -73,6 +76,8 @@ const T: Record<Lang, {
     step2Label: 'Step 2 of 3', step2Title: 'Introduction.', step2TitleItalic: '',
     nameLbl: 'Your Name', namePlaceholder: 'Enter your name',
     phoneLbl: 'Phone', phonePlaceholder: '+359 87 000 0000', phoneHint: 'Enter your phone number',
+    referralLbl: 'Referral or promo code', referralPlaceholder: 'e.g. AB12CD34',
+    referralError: 'Invalid or inactive promo code. Check the code and try again.',
     privacy: 'By tapping "Continue" you agree to the terms and privacy policy.',
     step3Label: 'Step 3 of 3', step3Title: 'Choose', step3TitleItalic: 'theme',
     themeLight: 'Light', themeDark: 'Dark',
@@ -88,6 +93,8 @@ const T: Record<Lang, {
     step2Label: 'Крок 2 з 3', step2Title: 'Знайомство.', step2TitleItalic: '',
     nameLbl: "Ваше Ім'я", namePlaceholder: "Введіть ваше ім'я",
     phoneLbl: 'Телефон', phonePlaceholder: '+359 87 000 0000', phoneHint: 'Введіть номер телефону',
+    referralLbl: 'Реферальний код або промокод', referralPlaceholder: 'Напр. AB12CD34',
+    referralError: 'Невірний або неактивний промокод. Перевірте код і спробуйте знову.',
     privacy: 'Натискаючи «Продовжити», ви погоджуєтесь з умовами.',
     step3Label: 'Крок 3 з 3', step3Title: 'Оберіть', step3TitleItalic: 'тему',
     themeLight: 'Світла', themeDark: 'Темна',
@@ -103,6 +110,8 @@ const T: Record<Lang, {
     step2Label: 'Шаг 2 из 3', step2Title: 'Знакомство.', step2TitleItalic: '',
     nameLbl: 'Ваше имя', namePlaceholder: 'Введите ваше имя',
     phoneLbl: 'Телефон', phonePlaceholder: '+359 87 000 0000', phoneHint: 'Введите номер телефона',
+    referralLbl: 'Реферальный код или промокод', referralPlaceholder: 'Напр. AB12CD34',
+    referralError: 'Неверный или неактуальный промокод. Проверьте код и попробуйте снова.',
     privacy: 'Нажимая «Продолжить», вы соглашаетесь с условиями и политикой конфиденциальности.',
     step3Label: 'Шаг 3 из 3', step3Title: 'Выберите', step3TitleItalic: 'тему',
     themeLight: 'Светлая', themeDark: 'Тёмная',
@@ -118,6 +127,8 @@ export default function OnboardingPage() {
   const [screen, setScreen] = useState<Screen>(-1);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+  const [referralError, setReferralError] = useState('');
   const [lang, setLangState] = useState<Lang>(() => {
     if (typeof window === 'undefined') return 'ru';
     try {
@@ -219,35 +230,70 @@ export default function OnboardingPage() {
 
   async function finishOnboarding() {
     setSaving(true);
+    setReferralError('');
     const trimmedName = name.trim();
     const trimmedPhone = phone.trim();
+    const normalizedReferral = referralCode.trim().toUpperCase();
+    const registrationBody: Record<string, string> = {
+      first_name: trimmedName,
+      phone: trimmedPhone,
+      lang,
+      theme,
+    };
+    if (normalizedReferral) {
+      registrationBody.referral_code = normalizedReferral;
+    }
+    let registrationOk = true;
     try {
       const initData = (window as Window & { Telegram?: { WebApp?: { initData?: string } } })
         .Telegram?.WebApp?.initData ?? '';
       if (initData) {
-        // Telegram mini-app: authenticated registration
-        await fetch(miniAppRequestUrl('/api/v1/mini-app/register'), {
+        const res = await fetch(miniAppRequestUrl('/api/v1/mini-app/register'), {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
-          body: JSON.stringify({ first_name: trimmedName, phone: trimmedPhone, lang, theme }),
+          body: JSON.stringify(registrationBody),
         });
+        if (!res.ok) {
+          registrationOk = false;
+          if (res.status === 400) {
+            try {
+              const err = (await res.json()) as { detail?: string | { msg?: string } };
+              const detail = typeof err.detail === 'string' ? err.detail : '';
+              if (detail === 'invalid_registration_code') {
+                setReferralError(t.referralError);
+              }
+            } catch { /**/ }
+          }
+        }
       } else {
-        // Browser: same anonymous session as bookings — PATCH client profile via BFF (cookie/JWT)
-        await fetch(miniAppRequestUrl('/api/v1/mini-app/client/profile'), {
+        const res = await fetch(miniAppRequestUrl('/api/v1/mini-app/client/profile'), {
           method: 'PATCH',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            first_name: trimmedName,
-            phone: trimmedPhone,
-            lang,
-            theme,
-          }),
+          body: JSON.stringify(registrationBody),
         });
+        if (!res.ok) {
+          registrationOk = false;
+          if (res.status === 400) {
+            try {
+              const err = (await res.json()) as { detail?: string | { msg?: string } };
+              const detail = typeof err.detail === 'string' ? err.detail : '';
+              if (detail === 'invalid_registration_code') {
+                setReferralError(t.referralError);
+              }
+            } catch { /**/ }
+          }
+        }
       }
-    } catch { /* offline — still proceed */ } finally {
+    } catch {
+      registrationOk = false;
+    } finally {
       setSaving(false);
+    }
+    if (!registrationOk) {
+      setScreen(2);
+      return;
     }
     try {
       localStorage.setItem('hunger_onboarded', 'true');
@@ -454,6 +500,34 @@ export default function OnboardingPage() {
             autoComplete="tel"
             style={{ ...inputStyle, width: '100%' }}
           />
+        </div>
+
+        {/* Referral / promo code (optional) */}
+        <div style={{ margin: '0 22px 16px' }}>
+          <label style={{ display: 'block', fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#7A6E58', marginBottom: 8 }}>
+            {t.referralLbl}
+          </label>
+          <input
+            type="text"
+            value={referralCode}
+            onChange={e => {
+              setReferralCode(e.target.value);
+              if (referralError) setReferralError('');
+            }}
+            placeholder={t.referralPlaceholder}
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            style={{
+              ...inputStyle,
+              borderColor: referralError ? 'rgba(180,40,40,.55)' : 'rgba(28,20,9,.18)',
+            }}
+          />
+          {referralError ? (
+            <div style={{ marginTop: 8, fontSize: 12, color: '#B42828', lineHeight: 1.45 }}>
+              {referralError}
+            </div>
+          ) : null}
         </div>
 
         <div style={{ padding: '0 22px', fontSize: 11, color: '#7A6E58', lineHeight: 1.5, marginBottom: 8 }}>

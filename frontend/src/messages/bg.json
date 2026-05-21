@@ -1799,6 +1799,11 @@
     }
   },
   "miniApp": {
+    "onboarding": {
+      "referralLabel": "Реферален код или промокод",
+      "referralPlaceholder": "Напр. AB12CD34",
+      "referralError": "Невалиден или неактивен промокод. Проверете кода и опитайте отново."
+    },
     "bookingConfirm": {
       "clientBlockTitle": "Вашите данни",
       "nameLabel": "Име",

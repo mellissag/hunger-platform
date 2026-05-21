@@ -1798,6 +1798,11 @@
     }
   },
   "miniApp": {
+    "onboarding": {
+      "referralLabel": "Referral or promo code",
+      "referralPlaceholder": "e.g. AB12CD34",
+      "referralError": "Invalid or inactive promo code. Check the code and try again."
+    },
     "bookingConfirm": {
       "clientBlockTitle": "Your details",
       "nameLabel": "Name",

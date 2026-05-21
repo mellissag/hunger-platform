@@ -940,6 +940,25 @@ class MiniAppRegisterIn(_BM):
     phone: str = ""
     lang: str = "ru"
     theme: str = "light"
+    referral_code: str | None = None
+
+
+def _raise_invalid_registration_code() -> None:
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="invalid_registration_code",
+    )
+
+
+async def _apply_registration_referral_code(
+    db: AsyncSession,
+    client: Client,
+    referral_code: str | None,
+) -> None:
+    try:
+        await loyalty_service.process_registration_referral_code(db, client, referral_code)
+    except loyalty_service.RegistrationCodeError:
+        _raise_invalid_registration_code()
 
 
 @router.get("/me", response_model=MiniAppMeOut)
@@ -963,6 +982,7 @@ class MiniAppGuestRegisterIn(_BM):
     first_name: str
     phone: str = ""
     lang: str = "ru"
+    referral_code: str | None = None
 
 
 @router.post("/register-guest", response_model=MiniAppMeOut)
@@ -1008,6 +1028,7 @@ async def register_guest(
             client.phone = phone
         client.lang = resolved_lang
 
+    await _apply_registration_referral_code(db, client, payload.referral_code)
     await db.commit()
     await db.refresh(client)
     return MiniAppMeOut(
@@ -1036,6 +1057,7 @@ async def register_client(
     client.lang = resolved
     if payload.theme in ("light", "dark"):
         client.theme = payload.theme
+    await _apply_registration_referral_code(db, client, payload.referral_code)
     await db.commit()
     await db.refresh(client)
     return MiniAppMeOut(
@@ -1464,6 +1486,7 @@ class ClientProfileUpdate(_BM):
     phone: str | None = None
     lang: str | None = None  # ru | en | uk | bg
     theme: str | None = None  # light | dark
+    referral_code: str | None = None
 
 
 @router.get("/client/profile", response_model=MiniAppClientProfileOut)
@@ -1511,6 +1534,7 @@ async def update_client_profile(
     if payload.theme is not None and payload.theme in ("light", "dark"):
         client.theme = payload.theme
 
+    await _apply_registration_referral_code(db, client, payload.referral_code)
     await db.commit()
     await db.refresh(client)
     return MiniAppClientProfileOut(
