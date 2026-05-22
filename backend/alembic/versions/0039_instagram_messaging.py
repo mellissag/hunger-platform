@@ -20,7 +20,7 @@ depends_on = None
 
 def upgrade() -> None:
     op.execute("ALTER TYPE chatchannel ADD VALUE IF NOT EXISTS 'instagram'")
-    op.execute("ALTER TYPE bookingcreatedvia ADD VALUE IF NOT EXISTS 'instagram'")
+    op.execute("ALTER TYPE booking_created_via ADD VALUE IF NOT EXISTS 'instagram'")
 
     op.add_column("client", sa.Column("instagram_user_id", sa.String(length=64), nullable=True))
     op.create_index(
