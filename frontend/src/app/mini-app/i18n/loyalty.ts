@@ -17,6 +17,7 @@ export type LoyaltyTranslations = {
   loyaltyReferralSubtitleInvitedOnly: string;
   loyaltyReferralYourCode: string;
   loyaltyReferralCopied: string;
+  loyaltyReferralLinkCopied: string;
   loyaltyReferralShare: string;
   loyaltyHistoryTitle: string;
   loyaltyShowAll: string;
@@ -60,6 +61,7 @@ const RU: LoyaltyTranslations = {
   loyaltyReferralSubtitleInvitedOnly: 'Ваш друг получит {{invited}} баллов при первом визите',
   loyaltyReferralYourCode: 'Ваш код',
   loyaltyReferralCopied: 'Скопировано!',
+  loyaltyReferralLinkCopied: 'Ссылка скопирована — отправьте другу',
   loyaltyReferralShare: 'Поделиться ссылкой',
   loyaltyHistoryTitle: 'История баллов',
   loyaltyShowAll: 'Показать всё →',
@@ -96,6 +98,7 @@ const EN: LoyaltyTranslations = {
   loyaltyReferralSubtitleInvitedOnly: 'Your friend gets {{invited}} points on their first visit',
   loyaltyReferralYourCode: 'Your code',
   loyaltyReferralCopied: 'Copied!',
+  loyaltyReferralLinkCopied: 'Link copied — send it to a friend',
   loyaltyReferralShare: 'Share link',
   loyaltyHistoryTitle: 'Points History',
   loyaltyShowAll: 'Show all →',
@@ -132,6 +135,7 @@ const UK: LoyaltyTranslations = {
   loyaltyReferralSubtitleInvitedOnly: 'Ваш друг отримає {{invited}} балів при першому візиті',
   loyaltyReferralYourCode: 'Ваш код',
   loyaltyReferralCopied: 'Скопійовано!',
+  loyaltyReferralLinkCopied: 'Посилання скопійовано — надішліть другу',
   loyaltyReferralShare: 'Поділитися посиланням',
   loyaltyHistoryTitle: 'Історія балів',
   loyaltyShowAll: 'Показати все →',
@@ -168,6 +172,7 @@ const BG: LoyaltyTranslations = {
   loyaltyReferralSubtitleInvitedOnly: 'Приятелят ти получава {{invited}} точки при първото посещение',
   loyaltyReferralYourCode: 'Твоят код',
   loyaltyReferralCopied: 'Копирано!',
+  loyaltyReferralLinkCopied: 'Връзката е копирана — изпратете на приятел',
   loyaltyReferralShare: 'Сподели връзка',
   loyaltyHistoryTitle: 'История на точките',
   loyaltyShowAll: 'Покажи всички →',

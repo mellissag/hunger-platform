@@ -30,7 +30,7 @@ from app.models.master import Master
 from app.models.salon import Salon
 from app.services import schedule_service
 from app.services.ai_service import AIUnavailableError, whatsapp_bot_llm_text
-from app.services.bot_booking import cancel_tg_booking, create_wa_booking, is_blacklisted
+from app.services.bot_booking import cancel_tg_booking, create_ig_booking, create_wa_booking, is_blacklisted
 from app.services.whatsapp import send_whatsapp_text_message
 from app.services.whatsapp_bot_messages import wb_msg
 from app.utils.datetime_utils import format_booking_datetime
@@ -38,12 +38,14 @@ from app.utils.phone_digits import digits_only
 
 logger = logging.getLogger(__name__)
 
-# Set while handling one inbound message: first outbound WhatsApp cancels delayed "loading" (STEP 7).
+# Set while handling one inbound message: first outbound cancels delayed "loading" (STEP 7).
 _first_wa_outbound: contextvars.ContextVar[asyncio.Event | None] = contextvars.ContextVar(
     "first_wa_outbound", default=None
 )
+_bot_channel: contextvars.ContextVar[str] = contextvars.ContextVar("bot_channel", default="whatsapp")
+_ig_recipient_id: contextvars.ContextVar[str] = contextvars.ContextVar("ig_recipient_id", default="")
 
-SESSION_PREFIX = "whatsapp:session:"
+SESSION_PREFIX = "bot:session:"
 SESSION_TTL_SEC = 30 * 60
 
 VALID_STATES = frozenset(
@@ -60,8 +62,9 @@ VALID_STATES = frozenset(
 )
 
 
-def _session_key(phone_digits: str) -> str:
-    return f"{SESSION_PREFIX}{phone_digits}"
+def _session_key(identity: str) -> str:
+    ch = _bot_channel.get()
+    return f"{SESSION_PREFIX}{ch}:{identity}"
 
 
 def _default_session(lang: str) -> dict[str, Any]:
@@ -130,15 +133,19 @@ async def _find_client_by_phone(db: AsyncSession, phone_digits: str) -> Client |
     return await db.scalar(select(Client).where(or_(fd == phone_digits, fwa == phone_digits)).limit(1))
 
 
-async def _ensure_client(db: AsyncSession, phone_digits: str) -> Client:
-    c = await _find_client_by_phone(db, phone_digits)
+async def _ensure_client(db: AsyncSession, identity: str) -> Client:
+    if identity.startswith("ig:"):
+        from app.services.instagram import get_or_create_client_for_instagram_user
+
+        return await get_or_create_client_for_instagram_user(db, identity[3:])
+    c = await _find_client_by_phone(db, identity)
     if c:
         if not (c.whatsapp_phone or "").strip():
-            c.whatsapp_phone = phone_digits
+            c.whatsapp_phone = identity
         return c
     c = Client(
-        phone=phone_digits,
-        whatsapp_phone=phone_digits,
+        phone=identity,
+        whatsapp_phone=identity,
         lang="en",
         source=ClientSource.bot,
     )
@@ -158,6 +165,18 @@ async def _reply(
     evt = _first_wa_outbound.get()
     if evt is not None and not evt.is_set():
         evt.set()
+    if _bot_channel.get() == "instagram":
+        from app.services.instagram import send_instagram_text_message
+
+        ig_id = (_ig_recipient_id.get() or "").strip() or to_phone.removeprefix("ig:")
+        await send_instagram_text_message(
+            db=db,
+            to_instagram_user_id=ig_id,
+            text=text,
+            client_id=client_id,
+            settings=settings,
+        )
+        return
     await send_whatsapp_text_message(
         db=db,
         to_phone_digits=to_phone,
@@ -185,6 +204,18 @@ async def _stall_loading_if_silent(
     except asyncio.TimeoutError:
         pass
     if evt.is_set():
+        return
+    if _bot_channel.get() == "instagram":
+        from app.services.instagram import send_instagram_text_message
+
+        ig_id = (_ig_recipient_id.get() or "").strip() or to_phone.removeprefix("ig:")
+        await send_instagram_text_message(
+            db=db,
+            to_instagram_user_id=ig_id,
+            text=wb_msg("loading", lang),
+            client_id=client_id,
+            settings=settings,
+        )
         return
     await send_whatsapp_text_message(
         db=db,
@@ -346,7 +377,18 @@ async def process_inbound_text(
     if not text.strip():
         return WhatsappInboundResult(forwarded_to_admin=False)
 
-    client_row = client or await _find_client_by_phone(db, phone_digits)
+    if phone_digits.startswith("ig:"):
+        from app.services.instagram import get_or_create_client_for_instagram_user
+
+        client_row = client
+        if client_row is None:
+            client_row = await db.scalar(
+                select(Client).where(Client.instagram_user_id == phone_digits[3:]).limit(1)
+            )
+        if client_row is None:
+            client_row = await get_or_create_client_for_instagram_user(db, phone_digits[3:])
+    else:
+        client_row = client or await _find_client_by_phone(db, phone_digits)
     if client_row is not None:
         lang = _norm_lang(client_row.lang)
     else:
@@ -906,14 +948,24 @@ async def _handle_confirming(
     starts_local = datetime.combine(day, time(int(hh), int(mm)), tzinfo=z)
     starts_at = starts_local.astimezone(UTC)
     try:
-        b = await create_wa_booking(
-            db,
-            client_id=client_row.id,
-            master_id=mid,
-            service_id=svc.id,
-            starts_at=starts_at,
-            telegram_bot=telegram_bot,
-        )
+        if _bot_channel.get() == "instagram":
+            b = await create_ig_booking(
+                db,
+                client_id=client_row.id,
+                master_id=mid,
+                service_id=svc.id,
+                starts_at=starts_at,
+                telegram_bot=telegram_bot,
+            )
+        else:
+            b = await create_wa_booking(
+                db,
+                client_id=client_row.id,
+                master_id=mid,
+                service_id=svc.id,
+                starts_at=starts_at,
+                telegram_bot=telegram_bot,
+            )
     except SlotTakenError:
         await _reply(db, settings=settings, to_phone=phone, text=wb_msg("slot_taken", lang), client_id=client_row.id)
         sess["state"] = "selecting_time"

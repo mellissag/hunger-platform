@@ -14,6 +14,7 @@ from app.workers.indexer import index_kb_document
 from app.workers.reminders import process_booking_reminders
 from app.workers.reviews import run_review_sender
 from app.workers.stats_job import refresh_bot_visit_stats_yesterday
+from app.workers.instagram_tasks import process_instagram_webhook
 from app.workers.whatsapp_tasks import (
     process_whatsapp_webhook,
     send_whatsapp_booking_client_notice,
@@ -48,6 +49,7 @@ class WorkerSettings:
         func(fire_post_visit_trigger, name="fire_post_visit_trigger", timeout=180, max_tries=3),
         func(index_kb_document, name="index_kb_document", timeout=600, max_tries=3),
         func(process_whatsapp_webhook, name="process_whatsapp_webhook", timeout=120, max_tries=3),
+        func(process_instagram_webhook, name="process_instagram_webhook", timeout=120, max_tries=3),
         func(send_whatsapp_booking_reminder, name="send_whatsapp_booking_reminder", timeout=120, max_tries=3),
         func(
             send_whatsapp_booking_client_notice,

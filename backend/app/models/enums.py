@@ -79,6 +79,7 @@ class BookingCreatedVia(str, enum.Enum):
     mini_app = "mini_app"
     manual = "manual"
     whatsapp = "whatsapp"
+    instagram = "instagram"
     broadcast = "broadcast"
 
 

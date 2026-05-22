@@ -43,6 +43,17 @@ class Settings(BaseSettings):
     whatsapp_reminder_template_name: str | None = None
     whatsapp_confirmation_template_name: str | None = None
 
+    # Instagram Messaging API (Meta — Instagram API with Instagram Login)
+    instagram_page_access_token: str | None = Field(
+        default=None, validation_alias="INSTAGRAM_PAGE_ACCESS_TOKEN"
+    )
+    instagram_account_id: str | None = Field(default=None, validation_alias="INSTAGRAM_ACCOUNT_ID")
+    instagram_app_id: str | None = Field(default=None, validation_alias="INSTAGRAM_APP_ID")
+    instagram_app_secret: str | None = Field(default=None, validation_alias="INSTAGRAM_APP_SECRET")
+    instagram_webhook_verify_token: str | None = Field(
+        default=None, validation_alias="INSTAGRAM_WEBHOOK_VERIFY_TOKEN"
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:

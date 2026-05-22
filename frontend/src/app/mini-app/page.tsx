@@ -10,6 +10,7 @@ import { useT } from './i18n/context';
 import { fmtTpl } from './i18n/loyalty';
 import { useMeLoyalty } from './hooks/useLoyalty';
 import { miniAppBookingPriceDurationLine } from './lib/booking-price-duration';
+import { captureReferralCode, onboardingPathWithRef } from './lib/referral';
 
 const GOLD = 'var(--gold-deep)';
 const GOLD_HI = 'var(--gold)';
@@ -141,7 +142,8 @@ export default function HomePage() {
   useEffect(() => {
     try {
       if (!localStorage.getItem('hunger_onboarded')) {
-        router.replace('/mini-app/onboarding');
+        const code = captureReferralCode();
+        router.replace(onboardingPathWithRef(code));
       }
     } catch { /* ignore */ }
   }, [router]);

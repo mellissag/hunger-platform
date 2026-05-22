@@ -175,10 +175,16 @@ async def get_or_create_referral_code(db: AsyncSession, client_id: UUID) -> Refe
 
 
 def referral_link(code: str) -> str:
-    username = (get_settings().telegram_bot_username or "").strip().lstrip("@")
-    if not username:
-        return f"?startapp={code}"
-    return f"https://t.me/{username}?startapp={code}"
+    """Public invite URL with ``?ref=`` for onboarding (web / Mini App in browser)."""
+    normalized = code.strip().upper()
+    settings = get_settings()
+    domain = (settings.app_domain or "").strip()
+    if domain and domain not in ("localhost", "127.0.0.1"):
+        return f"https://{domain}/mini-app/onboarding?ref={normalized}"
+    username = (settings.telegram_bot_username or "").strip().lstrip("@")
+    if username:
+        return f"https://t.me/{username}?startapp={normalized}"
+    return f"/mini-app/onboarding?ref={normalized}"
 
 
 async def process_referral_start_param(
@@ -189,6 +195,8 @@ async def process_referral_start_param(
     if not start_param or client.referred_by_client_id is not None:
         return
     code = start_param.strip().upper()
+    if code.startswith("REF_"):
+        code = code[4:]
     if len(code) != 8 or not all(c in _REFERRAL_ALPHABET for c in code):
         return
 

@@ -59,6 +59,8 @@ interface TelegramWebApp {
   openLink?(url: string, options?: { try_instant_view?: boolean }): void;
   /** Opens `t.me` / `telegram.me` links inside Telegram (incl. other Mini Apps). */
   openTelegramLink?(url: string): void;
+  /** Native share sheet with URL (Bot API 7.0+). */
+  shareURL?(url: string, text?: string): void;
 }
 
 const SESSION_KEY = 'tg_init_data';

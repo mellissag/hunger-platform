@@ -10,6 +10,7 @@ from app.models.broadcast import Broadcast, BroadcastRecipient
 from app.models.catalog import MasterService, Service, ServiceCategory, ServiceCategoryLink
 from app.models.chat import Chat, ChatTag, ChatTagAssignment
 from app.models.chat_message import ChatMessage
+from app.models.instagram_message import InstagramMessage
 from app.models.whatsapp_message import WhatsAppMessage
 from app.models.client import Client, ClientNote
 from app.models.color_formula import ColorFormula
@@ -43,6 +44,7 @@ __all__ = [
     "BroadcastRecipient",
     "Chat",
     "ChatMessage",
+    "InstagramMessage",
     "WhatsAppMessage",
     "ChatTag",
     "ChatTagAssignment",

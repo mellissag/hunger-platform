@@ -5,6 +5,7 @@ import { fmtTpl } from '../i18n/loyalty';
 import { useT } from '../i18n/context';
 import { useTheme } from '../providers/ThemeProvider';
 import { useMeLoyalty, useMeLoyaltyTransactions } from '../hooks/useLoyalty';
+import { buildReferralShareUrl } from '../lib/referral';
 
 const GOLD = '#C9A84C';
 const SERIF = '"Cormorant Garamond", Georgia, serif';
@@ -43,6 +44,7 @@ export default function BonusesPage() {
   const [txLimit, setTxLimit] = useState(10);
   const { data: transactions = [] } = useMeLoyaltyTransactions(txLimit, 0);
   const [copied, setCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const isDark = theme === 'dark';
   const bg = isDark ? '#0D0D0D' : '#F5F0E8';
@@ -93,12 +95,38 @@ export default function BonusesPage() {
     }
   }
 
-  function shareLink() {
-    const link = loyalty?.referral_link;
+  async function shareLink() {
+    const code = loyalty?.referral_code;
+    if (!code) return;
+    const link = buildReferralShareUrl(code, loyalty.referral_link);
     if (!link) return;
+
     const tg = window.Telegram?.WebApp;
-    if (tg?.openTelegramLink) tg.openTelegramLink(link);
-    else if (navigator.share) void navigator.share({ url: link });
+    const shareText = t.loyaltyReferralShare;
+
+    try {
+      const shareUrl = (tg as { shareURL?: (url: string, text?: string) => void } | undefined)?.shareURL;
+      if (typeof shareUrl === 'function') {
+        shareUrl(link, shareText);
+        return;
+      }
+      if (navigator.share) {
+        await navigator.share({ title: shareText, url: link });
+        return;
+      }
+      await navigator.clipboard.writeText(link);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+      tg?.HapticFeedback?.notificationOccurred?.('success');
+    } catch {
+      try {
+        await navigator.clipboard.writeText(link);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2500);
+      } catch {
+        /* ignore */
+      }
+    }
   }
 
   function formatDate(iso: string) {
@@ -168,9 +196,10 @@ export default function BonusesPage() {
             </button>
           </Box>
           {copied ? <p style={{ fontSize: 12, color: GOLD, marginTop: 8 }}>{t.loyaltyReferralCopied}</p> : null}
-          <button type="button" onClick={shareLink} style={{ marginTop: 14, width: '100%', padding: '12px 16px', border: `1px solid ${GOLD}`, borderRadius: 999, background: 'transparent', color: GOLD, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: BODY }}>
+          <button type="button" onClick={() => void shareLink()} style={{ marginTop: 14, width: '100%', padding: '12px 16px', border: `1px solid ${GOLD}`, borderRadius: 999, background: 'transparent', color: GOLD, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: BODY }}>
             {t.loyaltyReferralShare}
           </button>
+          {shareCopied ? <p style={{ fontSize: 12, color: GOLD, marginTop: 8 }}>{t.loyaltyReferralLinkCopied}</p> : null}
         </section>
       ) : null}
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
+import { captureReferralCode } from '../lib/referral';
 import { useT } from '../i18n/context';
 
 const GOLD = '#9A7230';
@@ -186,6 +187,11 @@ export default function OnboardingPage() {
   // the /me onboarding redirect should not re-fire when the user picks a
   // different language (otherwise the effect would overwrite their choice).
   const bootstrappedRef = useRef(false);
+  useEffect(() => {
+    const captured = captureReferralCode();
+    if (captured) setReferralCode(captured);
+  }, []);
+
   useEffect(() => {
     if (bootstrappedRef.current) return;
     bootstrappedRef.current = true;

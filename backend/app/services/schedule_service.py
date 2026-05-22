@@ -422,7 +422,11 @@ async def validate_booking_window(
     ):
         raise InvalidScheduleError("Overlaps an existing booking (including buffer)")
 
-    if created_via in (BookingCreatedVia.bot, BookingCreatedVia.whatsapp):
+    if created_via in (
+        BookingCreatedVia.bot,
+        BookingCreatedVia.whatsapp,
+        BookingCreatedVia.instagram,
+    ):
         if starts_at < clock.utc_now() + timedelta(minutes=ctx.lead_time_minutes):
             raise InvalidScheduleError("Inside booking lead time")
 

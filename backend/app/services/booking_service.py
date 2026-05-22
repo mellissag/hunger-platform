@@ -152,7 +152,11 @@ async def create_booking(db: AsyncSession, user: User, data: BookingCreate) -> B
         if user.master_id != data.master_id:
             raise ForbiddenScopeError("Cannot create booking for another master")
 
-    if data.created_via in (BookingCreatedVia.bot, BookingCreatedVia.whatsapp):
+    if data.created_via in (
+        BookingCreatedVia.bot,
+        BookingCreatedVia.whatsapp,
+        BookingCreatedVia.instagram,
+    ):
         await schedule_service.validate_booking_window(
             db,
             master_id=data.master_id,
@@ -574,7 +578,11 @@ async def reschedule_booking(
     _, duration_min = await _resolve_pricing(db, b.master_id, b.service_id)
     new_ends = aware_starts + timedelta(minutes=duration_min)
 
-    if b.created_via in (BookingCreatedVia.bot, BookingCreatedVia.whatsapp):
+    if b.created_via in (
+        BookingCreatedVia.bot,
+        BookingCreatedVia.whatsapp,
+        BookingCreatedVia.instagram,
+    ):
         await schedule_service.validate_booking_window(
             db,
             master_id=b.master_id,

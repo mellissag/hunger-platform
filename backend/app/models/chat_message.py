@@ -31,6 +31,7 @@ class MessageType(str, enum.Enum):
 class ChatChannel(str, enum.Enum):
     telegram = "telegram"
     whatsapp = "whatsapp"
+    instagram = "instagram"
 
 
 class ChatMessage(UUIDPrimaryKeyMixin, Base):
