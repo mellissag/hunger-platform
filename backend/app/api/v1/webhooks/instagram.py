@@ -54,6 +54,11 @@ async def instagram_events(request: Request) -> dict[str, bool]:
     except Exception:  # noqa: BLE001
         body = {}
     payload = body if isinstance(body, dict) else {}
+    logger.info(
+        "instagram webhook POST object=%s entries=%s",
+        payload.get("object") if isinstance(payload, dict) else None,
+        len(payload.get("entry") or []) if isinstance(payload, dict) else 0,
+    )
     settings = get_settings()
     if settings.redis_url:
         await enqueue_process_instagram_webhook(payload)

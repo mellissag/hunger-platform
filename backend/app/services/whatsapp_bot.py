@@ -169,13 +169,16 @@ async def _reply(
         from app.services.instagram import send_instagram_text_message
 
         ig_id = (_ig_recipient_id.get() or "").strip() or to_phone.removeprefix("ig:")
-        await send_instagram_text_message(
-            db=db,
-            to_instagram_user_id=ig_id,
-            text=text,
-            client_id=client_id,
-            settings=settings,
-        )
+        try:
+            await send_instagram_text_message(
+                db=db,
+                to_instagram_user_id=ig_id,
+                text=text,
+                client_id=client_id,
+                settings=settings,
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("instagram outbound send failed to=%s", ig_id[:8])
         return
     await send_whatsapp_text_message(
         db=db,
@@ -209,13 +212,16 @@ async def _stall_loading_if_silent(
         from app.services.instagram import send_instagram_text_message
 
         ig_id = (_ig_recipient_id.get() or "").strip() or to_phone.removeprefix("ig:")
-        await send_instagram_text_message(
-            db=db,
-            to_instagram_user_id=ig_id,
-            text=wb_msg("loading", lang),
-            client_id=client_id,
-            settings=settings,
-        )
+        try:
+            await send_instagram_text_message(
+                db=db,
+                to_instagram_user_id=ig_id,
+                text=wb_msg("loading", lang),
+                client_id=client_id,
+                settings=settings,
+            )
+        except Exception:  # noqa: BLE001
+            logger.debug("instagram loading message skipped", exc_info=True)
         return
     await send_whatsapp_text_message(
         db=db,

@@ -26,9 +26,11 @@ logger = logging.getLogger(__name__)
 
 
 def _iter_instagram_events(payload: dict) -> list[dict[str, Any]]:
-    """Normalize Instagram webhook payloads (messaging[] or changes[])."""
+    """Normalize Instagram webhook payloads (messaging[] or changes[].messages)."""
     events: list[dict[str, Any]] = []
-    if payload.get("object") not in ("instagram", "page", None):
+    obj = payload.get("object")
+    if obj not in ("instagram", "page", None):
+        logger.info("instagram webhook: skip unknown object=%r", obj)
         return events
     for entry in payload.get("entry") or []:
         if not isinstance(entry, dict):
@@ -39,8 +41,13 @@ def _iter_instagram_events(payload: dict) -> list[dict[str, Any]]:
         for change in entry.get("changes") or []:
             if not isinstance(change, dict):
                 continue
+            field = change.get("field")
             val = change.get("value")
             if not isinstance(val, dict):
+                continue
+            # Instagram API with Instagram Login: field "messages", payload in value
+            if field == "messages" and isinstance(val.get("sender"), dict):
+                events.append(val)
                 continue
             for item in val.get("messaging") or []:
                 if isinstance(item, dict):
@@ -58,6 +65,14 @@ async def process_instagram_webhook(ctx: dict[str, Any], payload_json: str) -> N
         return
     if not isinstance(payload, dict):
         return
+
+    events_preview = _iter_instagram_events(payload)
+    logger.info(
+        "instagram webhook: object=%r entries=%s messaging_events=%s",
+        payload.get("object"),
+        len(payload.get("entry") or []),
+        len(events_preview),
+    )
 
     redis = None
     if settings.redis_url:
