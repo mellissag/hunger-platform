@@ -17,7 +17,7 @@ type AiMsg = {
 
 function detectLang(): ChatLang {
   if (typeof navigator === 'undefined') return 'ru';
-  const code = (navigator.language || 'ru').split('-')[0].toLowerCase();
+  const code = ((navigator?.language) || 'ru').split('-')[0]?.toLowerCase() ?? 'ru';
   if (code === 'en' || code === 'uk' || code === 'bg') return code;
   return 'ru';
 }

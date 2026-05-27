@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getPublicAppUrl } from '@/lib/env';
 import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
 import { captureReferralCode } from '../lib/referral';
 import { useT } from '../i18n/context';
@@ -45,7 +46,8 @@ const T: Record<Lang, {
   nameLbl: string; namePlaceholder: string;
   phoneLbl: string; phonePlaceholder: string; phoneHint: string;
   referralLbl: string; referralPlaceholder: string; referralError: string;
-  privacy: string;
+  privacyBefore: string;
+  privacyLink: string;
   step3Label: string; step3Title: string; step3TitleItalic: string;
   themeLight: string; themeDark: string;
   themeSubLight: string; themeSubDark: string;
@@ -62,7 +64,8 @@ const T: Record<Lang, {
     phoneLbl: 'Телефон', phonePlaceholder: '+359 87 000 0000', phoneHint: 'Въведете вашия телефон',
     referralLbl: 'Реферален код или промокод', referralPlaceholder: 'Напр. AB12CD34',
     referralError: 'Невалиден или неактивен промокод. Проверете кода и опитайте отново.',
-    privacy: 'Натисквайки „Продължи", вие се съгласявате с условията.',
+    privacyBefore: 'Натисквайки „Продължи", вие се съгласявате с',
+    privacyLink: 'политиката за поверителност',
     step3Label: 'Стъпка 3 от 3', step3Title: 'Изберете', step3TitleItalic: 'тема',
     themeLight: 'Светла', themeDark: 'Тъмна',
     themeSubLight: 'Кремаво бяло, злато', themeSubDark: 'Почти черно, злато',
@@ -79,7 +82,8 @@ const T: Record<Lang, {
     phoneLbl: 'Phone', phonePlaceholder: '+359 87 000 0000', phoneHint: 'Enter your phone number',
     referralLbl: 'Referral or promo code', referralPlaceholder: 'e.g. AB12CD34',
     referralError: 'Invalid or inactive promo code. Check the code and try again.',
-    privacy: 'By tapping "Continue" you agree to the terms and privacy policy.',
+    privacyBefore: 'By tapping "Continue" you agree to the',
+    privacyLink: 'privacy policy',
     step3Label: 'Step 3 of 3', step3Title: 'Choose', step3TitleItalic: 'theme',
     themeLight: 'Light', themeDark: 'Dark',
     themeSubLight: 'Ivory white, gold', themeSubDark: 'Near-black, gold',
@@ -96,7 +100,8 @@ const T: Record<Lang, {
     phoneLbl: 'Телефон', phonePlaceholder: '+359 87 000 0000', phoneHint: 'Введіть номер телефону',
     referralLbl: 'Реферальний код або промокод', referralPlaceholder: 'Напр. AB12CD34',
     referralError: 'Невірний або неактивний промокод. Перевірте код і спробуйте знову.',
-    privacy: 'Натискаючи «Продовжити», ви погоджуєтесь з умовами.',
+    privacyBefore: 'Натискаючи «Продовжити», ви погоджуєтесь з',
+    privacyLink: 'політикою конфіденційності',
     step3Label: 'Крок 3 з 3', step3Title: 'Оберіть', step3TitleItalic: 'тему',
     themeLight: 'Світла', themeDark: 'Темна',
     themeSubLight: 'Кремово-біла, золото', themeSubDark: 'Майже чорна, золото',
@@ -113,7 +118,8 @@ const T: Record<Lang, {
     phoneLbl: 'Телефон', phonePlaceholder: '+359 87 000 0000', phoneHint: 'Введите номер телефона',
     referralLbl: 'Реферальный код или промокод', referralPlaceholder: 'Напр. AB12CD34',
     referralError: 'Неверный или неактуальный промокод. Проверьте код и попробуйте снова.',
-    privacy: 'Нажимая «Продолжить», вы соглашаетесь с условиями и политикой конфиденциальности.',
+    privacyBefore: 'Нажимая «Продолжить», вы соглашаетесь с',
+    privacyLink: 'политикой конфиденциальности',
     step3Label: 'Шаг 3 из 3', step3Title: 'Выберите', step3TitleItalic: 'тему',
     themeLight: 'Светлая', themeDark: 'Тёмная',
     themeSubLight: 'Кремово-белый, золото', themeSubDark: 'Почти чёрный, золото',
@@ -537,7 +543,16 @@ export default function OnboardingPage() {
         </div>
 
         <div style={{ padding: '0 22px', fontSize: 11, color: '#7A6E58', lineHeight: 1.5, marginBottom: 8 }}>
-          {t.privacy}
+          {t.privacyBefore}{' '}
+          <a
+            href={`${getPublicAppUrl() || 'https://test-adm.tech'}/privacy?lang=${lang}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: GOLD, textDecoration: 'underline', textUnderlineOffset: 2 }}
+          >
+            {t.privacyLink}
+          </a>
+          .
         </div>
 
         <div style={{ padding: '16px 22px 40px', marginTop: 'auto' }}>
