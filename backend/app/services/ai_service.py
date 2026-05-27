@@ -310,8 +310,12 @@ class AIService:
             f"[chunk {c.id}]\n{c.content}" for c in chunks
         ) or "(no relevant knowledge base excerpts)"
 
+        from app.services.ai_catalog_context import get_catalog_context_for_prompt
+
         system = _pick_system_prompt(salon_settings, lang)
         system += f"\n\nSalon name: {salon.name}\nClient language: {lang}\n"
+        catalog_ctx = await get_catalog_context_for_prompt(self.db, self.redis, lang)
+        system += f"\n{catalog_ctx}"
         system += f"\nKnowledge base excerpts:\n{kb_text}\n"
         if not salon_settings.ai_allow_booking:
             system += NO_BOOKING_VIA_AI_INSTRUCTION
@@ -601,8 +605,12 @@ class AIService:
         cited_ids = [c.id for c in chunks]
         kb_text = "\n\n".join(f"[chunk {c.id}]\n{c.content}" for c in chunks) or "(empty)"
 
+        from app.services.ai_catalog_context import get_catalog_context_for_prompt
+
         system = _pick_system_prompt(salon_settings, lang)
         system += f"\n\nSalon name: {salon.name}\n"
+        catalog_ctx = await get_catalog_context_for_prompt(self.db, self.redis, lang)
+        system += f"\n{catalog_ctx}"
         system += f"\nKnowledge base excerpts:\n{kb_text}\n"
         if not salon_settings.ai_allow_booking:
             system += NO_BOOKING_VIA_AI_INSTRUCTION

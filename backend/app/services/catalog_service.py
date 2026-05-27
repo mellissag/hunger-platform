@@ -32,9 +32,12 @@ async def _publish(redis: Redis | None, action: str, service_id: UUID | None) ->
     if redis is None:
         return
     try:
+        from app.services.ai_catalog_context import invalidate_ai_catalog_context_cache
+
         payload = json.dumps({"action": action, "id": str(service_id) if service_id else None})
         await redis.publish(CHANNEL, payload)
         await redis.delete(CACHE_KEY)
+        await invalidate_ai_catalog_context_cache(redis)
     except Exception as e:
         logger.warning("redis_publish_failed: {}", e)
 
