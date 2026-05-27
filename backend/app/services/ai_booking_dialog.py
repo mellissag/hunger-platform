@@ -54,6 +54,7 @@ BOOKING_MESSAGES: dict[str, dict[str, str]] = {
         ),
         "any_master": "Любой свободный",
         "show_more": "Показать ещё...",
+        "show_more_times": "Показать ещё время ↓",
         "today": "Сегодня",
         "tomorrow": "Завтра",
     },
@@ -82,6 +83,7 @@ BOOKING_MESSAGES: dict[str, dict[str, str]] = {
         ),
         "any_master": "Any available",
         "show_more": "Show more...",
+        "show_more_times": "Show more times ↓",
         "today": "Today",
         "tomorrow": "Tomorrow",
     },
@@ -110,6 +112,7 @@ BOOKING_MESSAGES: dict[str, dict[str, str]] = {
         ),
         "any_master": "Всеки свободен",
         "show_more": "Покажи още...",
+        "show_more_times": "Покажи още часове ↓",
         "today": "Днес",
         "tomorrow": "Утре",
     },
@@ -138,10 +141,20 @@ BOOKING_MESSAGES: dict[str, dict[str, str]] = {
         ),
         "any_master": "Будь-який вільний",
         "show_more": "Показати більше...",
+        "show_more_times": "Показати більше часів ↓",
         "today": "Сьогодні",
         "tomorrow": "Завтра",
     },
 }
+
+TIME_FILTERS: dict[str, tuple[str, str]] = {
+    "morning": ("08:00", "12:00"),
+    "afternoon": ("12:00", "17:00"),
+    "evening": ("17:00", "21:00"),
+}
+
+_TIME_PAGE_SIZE = 8
+_SUPPORTED_BOOKING_LANGS = frozenset({"ru", "en", "uk", "bg"})
 
 _WEEKDAY_RU = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"]
 _WEEKDAY_EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -169,8 +182,149 @@ def _msg(lang: str, key: str, **kwargs: str) -> str:
 
 
 def _norm_lang(lang: str | None) -> str:
+    """Map to ru/en/uk/bg; unknown codes (de, fr, …) → en."""
     l = (lang or "ru").split("-")[0].lower()
-    return l if l in ("en", "ru", "uk", "bg") else "ru"
+    if l in _SUPPORTED_BOOKING_LANGS:
+        return l
+    if lang:
+        return "en"
+    return "ru"
+
+
+def _map_lang_code(code: str | None) -> str | None:
+    if not code or not str(code).strip():
+        return None
+    l = str(code).split("-")[0].lower()
+    if l in _SUPPORTED_BOOKING_LANGS:
+        return l
+    return "en"
+
+
+async def _detect_message_language(db: AsyncSession, text: str) -> str | None:
+    prompt = (
+        f'Detect the language of this text: "{text[:800]}"\n'
+        "Reply with only the language code: ru, en, bg, or uk."
+    )
+    try:
+        raw = await whatsapp_bot_llm_text(
+            db,
+            system="Reply with exactly one language code: ru, en, bg, or uk.",
+            user_prompt=prompt,
+            temperature=0.1,
+        )
+        code = raw.strip().lower().split()[0] if raw.strip() else ""
+        return _map_lang_code(code)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+async def resolve_booking_language(
+    db: AsyncSession,
+    *,
+    client_lang: str | None,
+    telegram_lang: str | None,
+    accept_language: str | None,
+    user_message: str,
+    existing_session: dict[str, Any] | None,
+) -> str:
+    """
+    Resolve dialog language once per booking session.
+    Priority: client DB → Telegram/body → Accept-Language → Groq on message → ru.
+    """
+    if existing_session and existing_session.get("language_locked"):
+        return _norm_lang(str(existing_session.get("language") or "ru"))
+
+    for candidate in (client_lang, telegram_lang):
+        mapped = _map_lang_code(candidate)
+        if mapped:
+            return mapped
+
+    if accept_language:
+        for part in accept_language.split(","):
+            code = part.strip().split(";")[0]
+            mapped = _map_lang_code(code)
+            if mapped:
+                return mapped
+
+    if user_message.strip():
+        detected = await _detect_message_language(db, user_message)
+        if detected:
+            return detected
+
+    return "ru"
+
+
+async def detect_time_preference(db: AsyncSession, text: str) -> str:
+    """morning | afternoon | evening | none."""
+    prompt = (
+        f'The client wrote: "{text[:800]}"\n'
+        "Does it contain a time-of-day preference? "
+        "Reply with only: morning, afternoon, evening, or none."
+    )
+    try:
+        raw = await whatsapp_bot_llm_text(
+            db,
+            system="Reply with exactly one word: morning, afternoon, evening, or none.",
+            user_prompt=prompt,
+            temperature=0.1,
+        )
+        word = raw.strip().lower().split()[0] if raw.strip() else "none"
+        if word in TIME_FILTERS:
+            return word
+        return "none"
+    except Exception:  # noqa: BLE001
+        t = text.lower()
+        if any(x in t for x in ("утр", "morning", "сутр", "ранок", "сутрин")):
+            return "morning"
+        if any(x in t for x in ("день", "afternoon", "обед", "следобед", "обід")):
+            return "afternoon"
+        if any(x in t for x in ("вечер", "evening", "вечерта", "вечір")):
+            return "evening"
+        return "none"
+
+
+def _filter_slots_by_preference(
+    combined: list[tuple[str, str]],
+    preference: str | None,
+) -> list[tuple[str, str]]:
+    if not preference or preference == "none" or preference not in TIME_FILTERS:
+        return combined
+    start_s, end_s = TIME_FILTERS[preference]
+    start_t = time.fromisoformat(start_s)
+    end_t = time.fromisoformat(end_s)
+
+    def in_range(label: str) -> bool:
+        try:
+            h, m = (int(x) for x in label.split(":"))
+            tm = time(h, m)
+            return start_t <= tm < end_t
+        except ValueError:
+            return False
+
+    filtered = [(lb, val) for lb, val in combined if in_range(lb)]
+    return filtered if filtered else combined
+
+
+def _dialog_result(
+    sess: dict[str, Any],
+    response: str,
+    buttons: list[dict[str, str]],
+    *,
+    has_more_slots: bool = False,
+    all_slots: list[str] | None = None,
+    slot_buttons: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "response": response,
+        "buttons": buttons,
+        "booking_state": sess.get("state"),
+        "has_more_slots": has_more_slots,
+    }
+    if all_slots is not None:
+        out["all_slots"] = all_slots
+    if slot_buttons is not None:
+        out["slot_buttons"] = slot_buttons
+    return out
 
 
 def _session_key(session_id: str) -> str:
@@ -200,6 +354,8 @@ def _default_session(lang: str, client_id: UUID | None) -> dict[str, Any]:
         "available_dates": [],
         "available_slots": [],
         "master_pool": [],
+        "time_preference": None,
+        "language_locked": False,
     }
 
 
@@ -558,10 +714,10 @@ async def _build_date_step(
 
 async def _build_time_step(
     db: AsyncSession, sess: dict[str, Any], lang: str
-) -> tuple[str, list[dict[str, str]]]:
+) -> dict[str, Any]:
     svc = await db.get(Service, UUID(str(sess["selected_service_id"])))
     if svc is None or not sess.get("selected_date"):
-        return _msg(lang, "cancelled"), []
+        return _dialog_result(sess, _msg(lang, "cancelled"), [])
     day = date.fromisoformat(str(sess["selected_date"]))
     master_ids = await _master_ids_from_sess(sess)
     combined: list[tuple[str, str]] = []
@@ -573,14 +729,24 @@ async def _build_time_step(
             val = f"{tm.strftime('%H:%M')}|{mid}"
             combined.append((tm.strftime("%H:%M"), val))
     combined.sort(key=lambda x: x[0])
+    combined = _filter_slots_by_preference(combined, sess.get("time_preference"))
     if not combined:
         sess["state"] = "selecting_date"
-        return _msg(lang, "no_slots"), []
-    buttons = [_button(label, val) for label, val in combined[:24]]
-    sess["available_slots"] = [{"label": lb, "value": v} for lb, v in combined[:24]]
+        return _dialog_result(sess, _msg(lang, "no_slots"), [])
+    slot_records = [{"label": lb, "value": v} for lb, v in combined]
+    sess["available_slots"] = slot_records
     sess["state"] = "selecting_time"
     date_label = _format_date_short(day, lang)
-    return _msg(lang, "select_time", date=date_label), buttons
+    all_buttons = [_button(lb, v) for lb, v in combined]
+    page = all_buttons[:_TIME_PAGE_SIZE]
+    return _dialog_result(
+        sess,
+        _msg(lang, "select_time", date=date_label),
+        page,
+        has_more_slots=len(all_buttons) > _TIME_PAGE_SIZE,
+        all_slots=[b["label"] for b in all_buttons],
+        slot_buttons=all_buttons,
+    )
 
 
 async def _build_confirm_step(
@@ -668,10 +834,15 @@ async def handle_booking_dialog(
 ) -> dict[str, Any]:
     """
     Process one user message in the booking dialog.
-    Returns {"response": str, "buttons": list, "booking_state": str}.
+    Returns response, buttons, booking_state; optional has_more_slots, all_slots.
     """
-    lang = _norm_lang(language)
     text = (user_message or "").strip()
+    existing = await load_booking_session(redis, session_id)
+
+    if existing and existing.get("language_locked"):
+        lang = _norm_lang(str(existing.get("language") or "ru"))
+    else:
+        lang = _norm_lang(language)
 
     if _is_cancel_command(text):
         await _session_clear(redis, session_id)
@@ -681,8 +852,12 @@ async def handle_booking_dialog(
             "booking_state": "idle",
         }
 
-    sess = await load_booking_session(redis, session_id) or _default_session(lang, client_id)
-    sess["language"] = lang
+    sess = existing or _default_session(lang, client_id)
+    if not sess.get("language_locked"):
+        sess["language"] = lang
+        sess["language_locked"] = True
+    else:
+        lang = _norm_lang(sess.get("language"))
     if client_id is not None:
         sess["client_id"] = str(client_id)
 
@@ -695,6 +870,7 @@ async def handle_booking_dialog(
     if force_start and state == "idle":
         sess = _default_session(lang, client_id)
         sess["language"] = lang
+        sess["language_locked"] = True
         if client_id is not None:
             sess["client_id"] = str(client_id)
         resp, buttons = await _build_category_step(db, sess, lang)
@@ -775,9 +951,10 @@ async def handle_booking_dialog(
             await _session_save(redis, session_id, sess)
             return {"response": resp, "buttons": buttons, "booking_state": sess["state"]}
         sess["selected_date"] = text
-        resp, buttons = await _build_time_step(db, sess, lang)
+        sess["time_preference"] = None
+        result = await _build_time_step(db, sess, lang)
         await _session_save(redis, session_id, sess)
-        return {"response": resp, "buttons": buttons, "booking_state": sess["state"]}
+        return result
 
     if state == "selecting_time":
         slot_vals = {s["value"] for s in sess.get("available_slots") or []}
@@ -809,9 +986,12 @@ async def handle_booking_dialog(
                         sess["selected_service_price"] = str(price)
                     break
         else:
-            resp, buttons = await _build_time_step(db, sess, lang)
+            pref = await detect_time_preference(db, text)
+            if pref != "none":
+                sess["time_preference"] = pref
+            result = await _build_time_step(db, sess, lang)
             await _session_save(redis, session_id, sess)
-            return {"response": resp, "buttons": buttons, "booking_state": sess["state"]}
+            return result
         resp, buttons = await _build_confirm_step(db, sess, lang, tz_name)
         await _session_save(redis, session_id, sess)
         return {"response": resp, "buttons": buttons, "booking_state": sess["state"]}
@@ -849,13 +1029,10 @@ async def handle_booking_dialog(
             }
         except SlotTakenError:
             sess["state"] = "selecting_time"
-            resp, buttons = await _build_time_step(db, sess, lang)
+            result = await _build_time_step(db, sess, lang)
+            result["response"] = _msg(lang, "no_slots") + "\n" + result["response"]
             await _session_save(redis, session_id, sess)
-            return {
-                "response": _msg(lang, "no_slots") + "\n" + resp,
-                "buttons": buttons,
-                "booking_state": sess["state"],
-            }
+            return result
         await _session_clear(redis, session_id)
         return {"response": done_text, "buttons": [], "booking_state": "done"}
 

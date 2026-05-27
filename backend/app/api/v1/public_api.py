@@ -223,6 +223,21 @@ class PublicAiChatResponse(BaseModel):
     buttons: list[PublicAiChatButton] = Field(default_factory=list)
     booking_state: str | None = None
     session_id: str | None = None
+    has_more_slots: bool = False
+    all_slots: list[str] = Field(default_factory=list)
+    slot_buttons: list[PublicAiChatButton] = Field(default_factory=list)
+
+
+def _public_ai_response_from_dialog(result: dict, session_id: str) -> PublicAiChatResponse:
+    return PublicAiChatResponse(
+        reply=result.get("response") or "",
+        buttons=[PublicAiChatButton(**b) for b in result.get("buttons") or []],
+        booking_state=result.get("booking_state"),
+        session_id=session_id,
+        has_more_slots=bool(result.get("has_more_slots")),
+        all_slots=list(result.get("all_slots") or []),
+        slot_buttons=[PublicAiChatButton(**b) for b in result.get("slot_buttons") or []],
+    )
 
 
 class PublicSalonAiFlags(BaseModel):
@@ -314,38 +329,41 @@ async def public_ai_chat(
         )
 
     client = await _get_or_create_site_client(db, redis, session_id, "ru")
-    lang = _resolve_lang(accept_language, client.lang)
-    client.lang = lang
 
     from app.services.ai_booking_dialog import (
         detect_booking_intent,
         handle_booking_dialog,
         in_active_booking_dialog,
         load_booking_session,
+        resolve_booking_language,
     )
     from app.services.ai_service import AIService
 
     booking_via_ai = bool(settings_row.ai_allow_booking)
     chat_session = f"site:{session_id}"
+    session_data = await load_booking_session(redis, chat_session) if redis else None
+    booking_lang = await resolve_booking_language(
+        db,
+        client_lang=client.lang,
+        telegram_lang=None,
+        accept_language=accept_language,
+        user_message=user_text,
+        existing_session=session_data,
+    )
+    client.lang = booking_lang
 
     if booking_via_ai and redis is not None:
-        session_data = await load_booking_session(redis, chat_session)
         if in_active_booking_dialog(session_data):
             result = await handle_booking_dialog(
                 chat_session,
                 user_text,
                 client.id,
-                lang,
+                booking_lang,
                 db,
                 redis,
                 telegram_bot=getattr(request.app.state, "bot", None),
             )
-            return PublicAiChatResponse(
-                reply=result["response"],
-                buttons=[PublicAiChatButton(**b) for b in result.get("buttons") or []],
-                booking_state=result.get("booking_state"),
-                session_id=session_id,
-            )
+            return _public_ai_response_from_dialog(result, session_id)
         if user_text and not payload.image_base64:
             intent = await detect_booking_intent(db, user_text)
             if intent == "BOOK":
@@ -353,18 +371,13 @@ async def public_ai_chat(
                     chat_session,
                     user_text,
                     client.id,
-                    lang,
+                    booking_lang,
                     db,
                     redis,
                     telegram_bot=getattr(request.app.state, "bot", None),
                     force_start=True,
                 )
-                return PublicAiChatResponse(
-                    reply=result["response"],
-                    buttons=[PublicAiChatButton(**b) for b in result.get("buttons") or []],
-                    booking_state=result.get("booking_state"),
-                    session_id=session_id,
-                )
+                return _public_ai_response_from_dialog(result, session_id)
 
     try:
         svc = AIService(db=db, redis=redis)

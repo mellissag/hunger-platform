@@ -13,6 +13,9 @@ type AiMsg = {
   content: string;
   buttons?: ChatButtonItem[];
   buttonsDisabled?: boolean;
+  hasMoreSlots?: boolean;
+  allSlots?: string[];
+  slotButtons?: ChatButtonItem[];
 };
 
 function detectLang(): ChatLang {
@@ -71,6 +74,9 @@ export function SiteAiChatWidget() {
         reply: string;
         buttons?: ChatButtonItem[];
         session_id?: string;
+        has_more_slots?: boolean;
+        all_slots?: string[];
+        slot_buttons?: ChatButtonItem[];
       };
       if (data.session_id) setSessionId(data.session_id);
       return data;
@@ -107,6 +113,9 @@ export function SiteAiChatWidget() {
             role: 'assistant',
             content: data.reply,
             buttons: data.buttons?.length ? data.buttons : undefined,
+            hasMoreSlots: Boolean(data.has_more_slots),
+            allSlots: data.all_slots?.length ? data.all_slots : undefined,
+            slotButtons: data.slot_buttons?.length ? data.slot_buttons : undefined,
           },
         ]);
       } catch {
@@ -189,6 +198,11 @@ export function SiteAiChatWidget() {
                       <ChatButtons
                         buttons={m.buttons}
                         onSelect={(value, label) => void send('', { value, label })}
+                        timeSlots={Boolean(m.slotButtons?.length || m.allSlots?.length)}
+                        hasMoreSlots={m.hasMoreSlots}
+                        slotButtons={m.slotButtons}
+                        allSlots={m.allSlots}
+                        showMoreTimesLabel={t.showMoreTimes}
                       />
                     </div>
                   )}

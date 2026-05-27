@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { getInitData } from './useTelegram';
+import { getInitData, getTelegramLanguageCode } from './useTelegram';
 import type { ChatButtonItem } from '@/components/chat/ChatButtons';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -18,6 +18,9 @@ export interface AiChatMsg {
   imageDataUrl?: string;
   buttons?: ChatButtonItem[];
   buttonsDisabled?: boolean;
+  hasMoreSlots?: boolean;
+  allSlots?: string[];
+  slotButtons?: ChatButtonItem[];
 }
 
 type AiApiResponse = {
@@ -25,6 +28,9 @@ type AiApiResponse = {
   conversation_id?: string | null;
   buttons?: ChatButtonItem[];
   booking_state?: string | null;
+  has_more_slots?: boolean;
+  all_slots?: string[];
+  slot_buttons?: ChatButtonItem[];
 };
 
 export function useAiChat() {
@@ -82,6 +88,7 @@ export function useAiChat() {
           conversation_id: conversationId ?? undefined,
           image_base64: imageBase64 ?? null,
           image_mime_type: imageMimeType,
+          language: getTelegramLanguageCode(),
         };
         if (buttonMeta) {
           body.button_value = buttonMeta.value;
@@ -110,6 +117,9 @@ export function useAiChat() {
             content: data.reply ?? '...',
             buttons: data.buttons?.length ? data.buttons : undefined,
             buttonsDisabled: false,
+            hasMoreSlots: Boolean(data.has_more_slots),
+            allSlots: data.all_slots?.length ? data.all_slots : undefined,
+            slotButtons: data.slot_buttons?.length ? data.slot_buttons : undefined,
           },
         ]);
       } catch {

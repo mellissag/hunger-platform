@@ -157,3 +157,9 @@ export function getInitData(): string {
   if (hash) { cacheInitData(hash); return hash; }
   return readCachedInitData();
 }
+
+/** Telegram user language_code for API (e.g. bg, en, ru). */
+export function getTelegramLanguageCode(): string {
+  if (typeof window === 'undefined') return 'ru';
+  return window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code || 'ru';
+}

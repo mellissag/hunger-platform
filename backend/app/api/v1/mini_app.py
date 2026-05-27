@@ -11,7 +11,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials
 from jose import JWTError
 from pydantic import BaseModel as _BM, Field
@@ -1425,6 +1425,7 @@ class MiniAppAiRequest(_BM):
     image_mime_type: str | None = "image/jpeg"
     button_value: str | None = None
     button_label: str | None = None
+    language: str | None = None
 
 
 class MiniAppAiResponse(_BM):
@@ -1432,6 +1433,22 @@ class MiniAppAiResponse(_BM):
     conversation_id: str | None = None
     buttons: list[AiChatButton] = Field(default_factory=list)
     booking_state: str | None = None
+    has_more_slots: bool = False
+    all_slots: list[str] = Field(default_factory=list)
+    slot_buttons: list[AiChatButton] = Field(default_factory=list)
+
+
+def _ai_response_from_dialog(result: dict) -> MiniAppAiResponse:
+    buttons = [AiChatButton(**b) for b in result.get("buttons") or []]
+    slot_buttons = [AiChatButton(**b) for b in result.get("slot_buttons") or []]
+    return MiniAppAiResponse(
+        reply=result.get("response") or "",
+        buttons=buttons,
+        booking_state=result.get("booking_state"),
+        has_more_slots=bool(result.get("has_more_slots")),
+        all_slots=list(result.get("all_slots") or []),
+        slot_buttons=slot_buttons,
+    )
 
 
 async def _resolve_ai_chat_message(payload: MiniAppAiRequest) -> str:
@@ -1447,6 +1464,7 @@ async def ai_chat(
     current_user: MiniAppUser,
     db: AsyncSession = Depends(get_db),
     redis=Depends(get_redis),
+    accept_language: Annotated[str | None, Header(alias="Accept-Language")] = None,
 ) -> MiniAppAiResponse:
     """Authenticated: chat with AI assistant (optional interactive booking buttons)."""
     if not current_user.tg_user_id:
@@ -1465,16 +1483,13 @@ async def ai_chat(
     if not user_text and not payload.image_base64:
         return MiniAppAiResponse(reply="", conversation_id=None)
 
-    lang = (client.lang or current_user.language_code or "ru").split("-")[0].lower()
-    if lang not in _SUPPORTED_LANGS:
-        lang = "ru"
-
     from app.models.salon import Settings as SettingsModel
     from app.services.ai_booking_dialog import (
         detect_booking_intent,
         handle_booking_dialog,
         in_active_booking_dialog,
         load_booking_session,
+        resolve_booking_language,
     )
     from app.services.ai_service import AIService
     from google.genai.errors import ClientError as _GenAIClientError
@@ -1485,24 +1500,30 @@ async def ai_chat(
     session_id = str(current_user.tg_user_id)
     booking_via_ai = bool(settings_row and settings_row.ai_allow_booking)
 
+    telegram_lang = payload.language or current_user.language_code
+    session_data = await load_booking_session(redis, session_id) if redis else None
+    booking_lang = await resolve_booking_language(
+        db,
+        client_lang=client.lang,
+        telegram_lang=telegram_lang,
+        accept_language=accept_language,
+        user_message=user_text,
+        existing_session=session_data,
+    )
+
     if booking_via_ai and redis is not None:
-        session_data = await load_booking_session(redis, session_id)
         in_dialog = in_active_booking_dialog(session_data)
         if in_dialog:
             result = await handle_booking_dialog(
                 session_id,
                 user_text,
                 client.id,
-                lang,
+                booking_lang,
                 db,
                 redis,
                 telegram_bot=getattr(request.app.state, "bot", None),
             )
-            return MiniAppAiResponse(
-                reply=result["response"],
-                buttons=[AiChatButton(**b) for b in result.get("buttons") or []],
-                booking_state=result.get("booking_state"),
-            )
+            return _ai_response_from_dialog(result)
         if user_text and not payload.image_base64:
             intent = await detect_booking_intent(db, user_text)
             if intent == "BOOK":
@@ -1510,17 +1531,13 @@ async def ai_chat(
                     session_id,
                     user_text,
                     client.id,
-                    lang,
+                    booking_lang,
                     db,
                     redis,
                     telegram_bot=getattr(request.app.state, "bot", None),
                     force_start=True,
                 )
-                return MiniAppAiResponse(
-                    reply=result["response"],
-                    buttons=[AiChatButton(**b) for b in result.get("buttons") or []],
-                    booking_state=result.get("booking_state"),
-                )
+                return _ai_response_from_dialog(result)
 
     try:
         svc = AIService(db=db, redis=redis)

@@ -107,6 +107,10 @@ function ChatBubble({
   buttonsDisabled,
   isLastAssistant,
   onButtonSelect,
+  hasMoreSlots,
+  allSlots,
+  slotButtons,
+  showMoreTimesLabel,
 }: {
   role: string;
   content: string;
@@ -115,6 +119,10 @@ function ChatBubble({
   buttonsDisabled?: boolean;
   isLastAssistant?: boolean;
   onButtonSelect?: (value: string, label: string) => void;
+  hasMoreSlots?: boolean;
+  allSlots?: string[];
+  slotButtons?: { label: string; value: string }[];
+  showMoreTimesLabel?: string;
 }) {
   const isUser = role === 'user';
   const showButtons =
@@ -148,6 +156,11 @@ function ChatBubble({
             buttons={buttons}
             disabled={buttonsDisabled}
             onSelect={onButtonSelect}
+            timeSlots={Boolean(slotButtons?.length || allSlots?.length)}
+            hasMoreSlots={hasMoreSlots}
+            slotButtons={slotButtons}
+            allSlots={allSlots}
+            showMoreTimesLabel={showMoreTimesLabel}
           />
         </div>
       )}
@@ -344,6 +357,10 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
                   buttonsDisabled={m.buttonsDisabled}
                   isLastAssistant={m.role === 'assistant' && m.id === lastAssistantId}
                   onButtonSelect={(value, label) => handleSendAi({ value, label })}
+                  hasMoreSlots={m.hasMoreSlots}
+                  allSlots={m.allSlots}
+                  slotButtons={m.slotButtons}
+                  showMoreTimesLabel={t.showMoreTimes}
                 />
               ))}
               {loading && (
