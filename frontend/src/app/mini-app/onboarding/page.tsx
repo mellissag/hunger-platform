@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getPublicAppUrl } from '@/lib/env';
 import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
-import { setGuestClientId } from '../lib/guest-client';
+import { setGuestClientId, setGuestProfileHints } from '../lib/guest-client';
 import { captureReferralCode } from '../lib/referral';
 import { useT } from '../i18n/context';
 
@@ -324,6 +324,7 @@ export default function OnboardingPage() {
       localStorage.setItem('miniapp_theme', theme);
       // Store the name so home page and profile can display it without API call
       if (trimmedName) localStorage.setItem('hunger_profile_name', trimmedName);
+      setGuestProfileHints(trimmedPhone);
     } catch { /**/ }
     setScreen(4);
   }

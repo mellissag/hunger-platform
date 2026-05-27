@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { miniAppAuthHeaders } from '../lib/guest-client';
+import { ensureBrowserGuestSession, miniAppAuthHeaders } from '../lib/guest-client';
+import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
 import { getInitData, getTelegramLanguageCode } from './useTelegram';
 import type { ChatButtonItem } from '@/components/chat/ChatButtons';
 
@@ -83,6 +84,10 @@ export function useAiChat() {
       setLoading(true);
 
       try {
+        const initData = getInitData();
+        if (!initData) {
+          await ensureBrowserGuestSession(miniAppRequestUrl);
+        }
         const body: Record<string, unknown> = {
           message: buttonMeta ? '' : text || (imageDataUrl ? 'Проанализируй это фото' : ''),
           conversation_id: conversationId ?? undefined,

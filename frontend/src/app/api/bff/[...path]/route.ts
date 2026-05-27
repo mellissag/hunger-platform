@@ -49,6 +49,8 @@ async function proxy(request: NextRequest, pathSegments: string[], method: strin
   // Telegram Mini App: browser fetch sends this; must reach FastAPI or every user shares one anonymous Client row.
   const tgInit = request.headers.get("X-Telegram-Init-Data");
   if (tgInit) headers.set("X-Telegram-Init-Data", tgInit);
+  const guestClientId = request.headers.get("X-Guest-Client-Id");
+  if (guestClientId) headers.set("X-Guest-Client-Id", guestClientId);
 
   const hasBody = !["GET", "HEAD"].includes(method);
   const body = hasBody ? await request.arrayBuffer() : undefined;

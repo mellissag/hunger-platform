@@ -2,7 +2,12 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
-import { getGuestClientId, hasMiniAppAuth, miniAppAuthHeaders } from '../lib/guest-client';
+import {
+  ensureBrowserGuestSession,
+  getGuestClientId,
+  hasMiniAppAuth,
+  miniAppAuthHeaders,
+} from '../lib/guest-client';
 import { getInitData, useTelegram } from './useTelegram';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -16,6 +21,10 @@ function requestUrl(path: string): string {
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const initData = getInitData();
+  if (!initData && !getGuestClientId()) {
+    await ensureBrowserGuestSession(requestUrl);
+  }
   const res = await fetch(requestUrl(path), {
     credentials: 'same-origin',
     headers: {

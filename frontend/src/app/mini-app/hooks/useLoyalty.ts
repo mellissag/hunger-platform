@@ -2,7 +2,13 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
-import { getGuestClientId, hasMiniAppAuth, miniAppAuthHeaders } from '../lib/guest-client';
+import {
+  ensureBrowserGuestSession,
+  getGuestClientId,
+  hasMiniAppAuth,
+  miniAppAuthHeaders,
+} from '../lib/guest-client';
+import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
 import { getInitData } from './useTelegram';
 
 function authHeaders(): Record<string, string> {
@@ -10,6 +16,9 @@ function authHeaders(): Record<string, string> {
 }
 
 async function meFetch<T>(path: string): Promise<T> {
+  if (!getInitData() && !getGuestClientId()) {
+    await ensureBrowserGuestSession(miniAppRequestUrl);
+  }
   const res = await fetch(miniAppRequestUrl(path), {
     credentials: 'same-origin',
     headers: { ...authHeaders() },
