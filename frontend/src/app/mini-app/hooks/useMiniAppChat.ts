@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { miniAppAuthHeaders } from '../lib/guest-client';
 import { getInitData, getTelegramLanguageCode } from './useTelegram';
 import type { ChatButtonItem } from '@/components/chat/ChatButtons';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 function authHeaders(): Record<string, string> {
-  const id = getInitData();
-  return id ? { 'X-Telegram-Init-Data': id } : {};
+  return miniAppAuthHeaders(getInitData());
 }
 
 export interface AiChatMsg {

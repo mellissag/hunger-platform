@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import type { MiniAppTheme } from "@/app/mini-app/types/theme";
+import { miniAppAuthHeaders } from "@/app/mini-app/lib/guest-client";
 import { getInitData } from "@/app/mini-app/hooks/useTelegram";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -41,21 +42,21 @@ function readLocal(): MiniAppTheme | null {
 }
 
 async function fetchProfile(): Promise<{ theme?: MiniAppTheme } | null> {
-  const init = getInitData();
-  if (!API || !init) return null;
+  const auth = miniAppAuthHeaders(getInitData());
+  if (!API || Object.keys(auth).length === 0) return null;
   const res = await fetch(`${API}/api/v1/mini-app/client/profile`, {
-    headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": init },
+    headers: { "Content-Type": "application/json", ...auth },
   });
   if (!res.ok) return null;
   return (await res.json()) as { theme?: MiniAppTheme };
 }
 
 async function patchProfile(theme: MiniAppTheme): Promise<void> {
-  const init = getInitData();
-  if (!API || !init) return;
+  const auth = miniAppAuthHeaders(getInitData());
+  if (!API || Object.keys(auth).length === 0) return;
   await fetch(`${API}/api/v1/mini-app/client/profile`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": init },
+    headers: { "Content-Type": "application/json", ...auth },
     body: JSON.stringify({ theme }),
   }).catch(() => {});
 }

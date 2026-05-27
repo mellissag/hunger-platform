@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -15,6 +16,8 @@ class InitDataPayload(BaseModel):
     photo_url: str | None = None
     language_code: str | None = None
     start_param: str | None = None
+    """Browser guest registered via /register-guest (tg_user_id is None in DB)."""
+    guest_client_id: UUID | None = None
 
 
 class MiniAppServiceOut(BaseModel):

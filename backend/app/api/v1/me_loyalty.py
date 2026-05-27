@@ -9,7 +9,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.mini_app import MiniAppUser, get_mini_app_user, _get_or_create_client, _resolve_lang
+from app.api.v1.mini_app import (
+    MiniAppUser,
+    get_mini_app_user,
+    _mini_app_has_identity,
+    _resolve_lang,
+    _resolve_mini_app_client,
+)
 from app.deps import get_db
 from app.models.client import Client
 from app.models.loyalty import LoyaltyTransaction
@@ -27,9 +33,9 @@ async def _require_client(
     current_user: MiniAppUser,
     db: AsyncSession,
 ) -> Client:
-    if not current_user.tg_user_id:
+    if not _mini_app_has_identity(current_user):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
-    return await _get_or_create_client(current_user, db)
+    return await _resolve_mini_app_client(current_user, db)
 
 
 @router.get("/loyalty", response_model=MeLoyaltyOut)

@@ -142,6 +142,15 @@ def _allow_query_tg_fallback(cfg: Settings) -> bool:
     return cfg.mini_app_allow_query_tg_fallback or cfg.app_env in ("development", "test")
 
 
+GUEST_CLIENT_ID_HEADER = "X-Guest-Client-Id"
+
+
+def _mini_app_has_identity(payload: InitDataPayload) -> bool:
+    if payload.guest_client_id is not None:
+        return True
+    return bool(payload.tg_user_id)
+
+
 async def get_mini_app_user(
     request: Request,
     credentials: Annotated[
@@ -220,11 +229,34 @@ async def get_mini_app_user(
                     language_code=None,
                 )
 
-    anon_id = cfg.mini_app_browser_anonymous_tg_id
-    guest_label = "Dev" if cfg.app_env == "development" else "Guest"
+    raw_guest = (request.headers.get(GUEST_CLIENT_ID_HEADER) or "").strip()
+    if raw_guest:
+        try:
+            guest_uuid = uuid.UUID(raw_guest)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="invalid_guest_session",
+            )
+        guest_client = await db.get(Client, guest_uuid)
+        if guest_client is None or guest_client.tg_user_id is not None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="invalid_guest_session",
+            )
+        return InitDataPayload(
+            tg_user_id=0,
+            first_name=guest_client.first_name or "Guest",
+            last_name=guest_client.last_name,
+            username=None,
+            photo_url=None,
+            language_code=guest_client.lang,
+            guest_client_id=guest_uuid,
+        )
+
     return InitDataPayload(
-        tg_user_id=anon_id,
-        first_name=guest_label,
+        tg_user_id=0,
+        first_name="Guest",
         last_name=None,
         username=None,
         photo_url=None,
@@ -271,6 +303,26 @@ async def _sync_client_lang(client: Client, payload: InitDataPayload, db: AsyncS
     if not client.lang and payload.language_code:
         client.lang = _resolve_lang(payload.language_code)
         await db.flush()
+
+
+async def _resolve_mini_app_client(payload: InitDataPayload, db: AsyncSession) -> Client:
+    """Telegram user, staff JWT, or browser guest (X-Guest-Client-Id) — never shared anonymous row."""
+    if payload.guest_client_id is not None:
+        client = await db.get(Client, payload.guest_client_id)
+        if client is None or client.tg_user_id is not None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="invalid_guest_session",
+            )
+        return client
+
+    cfg = get_settings()
+    if payload.tg_user_id == 0 or payload.tg_user_id == cfg.mini_app_browser_anonymous_tg_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="mini_app_auth_required",
+        )
+    return await _get_or_create_client(payload, db)
 
 
 async def _get_or_create_client(payload: InitDataPayload, db: AsyncSession) -> Client:
@@ -612,10 +664,10 @@ async def create_booking(
     db: AsyncSession = Depends(get_db),
 ) -> MiniAppBookingOut:
     """Authenticated (initData): create booking from Mini App."""
-    if not current_user.tg_user_id:
+    if not _mini_app_has_identity(current_user):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
 
-    client = await _get_or_create_client(current_user, db)
+    client = await _resolve_mini_app_client(current_user, db)
     _apply_mini_booking_client_updates(client, payload)
     await db.flush()
 
@@ -870,14 +922,10 @@ async def list_my_bookings(
     """Authenticated: return client's bookings (last 50)."""
     from app.models.booking import BookingStatus
 
-    if not current_user.tg_user_id:
+    if not _mini_app_has_identity(current_user):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
 
-    client = (
-        await db.execute(select(Client).where(Client.tg_user_id == current_user.tg_user_id))
-    ).scalar_one_or_none()
-    if client is None:
-        return []
+    client = await _resolve_mini_app_client(current_user, db)
 
     stmt = (
         select(Booking)
@@ -922,6 +970,7 @@ class MiniAppMeOut(_BM):
     phone: str
     lang: str
     onboarded: bool
+    client_id: str | None = None
 
 
 class MiniAppRegisterIn(_BM):
@@ -956,14 +1005,15 @@ async def get_me(
     db: AsyncSession = Depends(get_db),
 ) -> MiniAppMeOut:
     """Authenticated: return client profile (creates browser guest row if needed)."""
-    if not current_user.tg_user_id:
+    if not _mini_app_has_identity(current_user):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
-    client = await _get_or_create_client(current_user, db)
+    client = await _resolve_mini_app_client(current_user, db)
     return MiniAppMeOut(
         first_name=client.first_name or "",
         phone=client.phone or "",
         lang=client.lang or "ru",
         onboarded=bool(client.phone),
+        client_id=str(client.id),
     )
 
 
@@ -971,6 +1021,7 @@ class MiniAppGuestRegisterIn(_BM):
     first_name: str
     phone: str = ""
     lang: str = "ru"
+    theme: str = "light"
     referral_code: str | None = None
 
 
@@ -1016,6 +1067,8 @@ async def register_guest(
         if phone:
             client.phone = phone
         client.lang = resolved_lang
+    if payload.theme in ("light", "dark"):
+        client.theme = payload.theme
 
     await _apply_registration_referral_code(db, client, payload.referral_code)
     await db.commit()
@@ -1025,6 +1078,7 @@ async def register_guest(
         phone=client.phone or "",
         lang=client.lang or "ru",
         onboarded=True,
+        client_id=str(client.id),
     )
 
 
@@ -1035,9 +1089,9 @@ async def register_client(
     db: AsyncSession = Depends(get_db),
 ) -> MiniAppMeOut:
     """Authenticated: save name, phone, lang from onboarding."""
-    if not current_user.tg_user_id:
+    if not _mini_app_has_identity(current_user):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
-    client = await _get_or_create_client(current_user, db)
+    client = await _resolve_mini_app_client(current_user, db)
     if payload.first_name.strip():
         client.first_name = payload.first_name.strip()
     if payload.phone.strip():
@@ -1054,6 +1108,7 @@ async def register_client(
         phone=client.phone or "",
         lang=client.lang or "ru",
         onboarded=bool(client.phone),
+        client_id=str(client.id),
     )
 
 
@@ -1456,15 +1511,14 @@ async def ai_chat(
     accept_language: Annotated[str | None, Header(alias="Accept-Language")] = None,
 ) -> MiniAppAiResponse:
     """Authenticated: chat with AI assistant (optional interactive booking buttons)."""
-    if not current_user.tg_user_id:
+    if not _mini_app_has_identity(current_user):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
 
-    client = (
-        await db.execute(select(Client).where(Client.tg_user_id == current_user.tg_user_id))
-    ).scalar_one_or_none()
-    if client is None:
+    try:
+        client = await _resolve_mini_app_client(current_user, db)
+    except HTTPException:
         return MiniAppAiResponse(
-            reply="Сначала напишите /start боту в Telegram.",
+            reply="Сначала завершите регистрацию в приложении.",
             conversation_id=None,
         )
 
@@ -1483,7 +1537,11 @@ async def ai_chat(
     settings_row = (
         await db.execute(select(SettingsModel).limit(1))
     ).scalar_one_or_none()
-    session_id = str(current_user.tg_user_id)
+    session_id = (
+        str(current_user.guest_client_id)
+        if current_user.guest_client_id is not None
+        else str(current_user.tg_user_id)
+    )
     booking_via_ai = bool(settings_row and settings_row.ai_allow_booking)
 
     telegram_lang = payload.language or current_user.language_code
@@ -1593,10 +1651,10 @@ async def get_client_profile(
     db: AsyncSession = Depends(get_db),
 ) -> MiniAppClientProfileOut:
     """Authenticated: return enriched client profile."""
-    if not current_user.tg_user_id:
+    if not _mini_app_has_identity(current_user):
         from fastapi import HTTPException as _HE
         raise _HE(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
-    client = await _get_or_create_client(current_user, db)
+    client = await _resolve_mini_app_client(current_user, db)
     return MiniAppClientProfileOut(
         id=str(client.id),
         first_name=client.first_name or "",
@@ -1616,10 +1674,10 @@ async def update_client_profile(
     db: AsyncSession = Depends(get_db),
 ) -> MiniAppClientProfileOut:
     """Authenticated: update client's own profile fields."""
-    if not current_user.tg_user_id:
+    if not _mini_app_has_identity(current_user):
         from fastapi import HTTPException as _HE
         raise _HE(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
-    client = await _get_or_create_client(current_user, db)
+    client = await _resolve_mini_app_client(current_user, db)
 
     if payload.first_name is not None:
         stripped = payload.first_name.strip()
@@ -1691,7 +1749,7 @@ async def contact_master(
     redis=Depends(get_redis),
 ) -> dict:
     """Authenticated: client sends a free-text message that appears in Admin Panel chat."""
-    if not current_user.tg_user_id:
+    if not _mini_app_has_identity(current_user):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
 
     stripped = payload.text.strip()
@@ -1701,7 +1759,7 @@ async def contact_master(
     import json as _json
     from app.models.chat_message import ChatMessage, MessageDirection, MessageType, ChatChannel
 
-    client = await _get_or_create_client(current_user, db)
+    client = await _resolve_mini_app_client(current_user, db)
     msg = ChatMessage(
         client_id=client.id,
         direction=MessageDirection.inbound,
@@ -1746,14 +1804,10 @@ async def cancel_booking(
     """Authenticated: cancel a client's own booking."""
     from app.models.booking import BookingStatus
 
-    if not current_user.tg_user_id:
+    if not _mini_app_has_identity(current_user):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
 
-    client = (
-        await db.execute(select(Client).where(Client.tg_user_id == current_user.tg_user_id))
-    ).scalar_one_or_none()
-    if client is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+    client = await _resolve_mini_app_client(current_user, db)
 
     import uuid as _uuid
 

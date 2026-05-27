@@ -2,11 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
+import { getGuestClientId, hasMiniAppAuth, miniAppAuthHeaders } from '../lib/guest-client';
 import { getInitData } from './useTelegram';
 
 function authHeaders(): Record<string, string> {
-  const id = getInitData();
-  return id ? { 'X-Telegram-Init-Data': id } : {};
+  return miniAppAuthHeaders(getInitData());
 }
 
 async function meFetch<T>(path: string): Promise<T> {
@@ -49,17 +49,19 @@ export interface MeLoyaltyTransaction {
 
 export function useMeLoyalty() {
   return useQuery({
-    queryKey: ['me', 'loyalty'],
+    queryKey: ['me', 'loyalty', getGuestClientId() ?? ''],
     queryFn: () => meFetch<MeLoyalty>('/me/loyalty'),
     staleTime: 15_000,
+    enabled: hasMiniAppAuth(getInitData()),
   });
 }
 
 export function useMeLoyaltyTransactions(limit = 10, offset = 0) {
   return useQuery({
-    queryKey: ['me', 'loyalty', 'transactions', limit, offset],
+    queryKey: ['me', 'loyalty', 'transactions', limit, offset, getGuestClientId() ?? ''],
     queryFn: () =>
       meFetch<MeLoyaltyTransaction[]>(`/me/loyalty/transactions?limit=${limit}&offset=${offset}`),
+    enabled: hasMiniAppAuth(getInitData()),
   });
 }
 

@@ -2,13 +2,13 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
+import { getGuestClientId, hasMiniAppAuth, miniAppAuthHeaders } from '../lib/guest-client';
 import { getInitData, useTelegram } from './useTelegram';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 function authHeaders(): Record<string, string> {
-  const id = getInitData();
-  return id ? { 'X-Telegram-Init-Data': id } : {};
+  return miniAppAuthHeaders(getInitData());
 }
 
 function requestUrl(path: string): string {
@@ -309,10 +309,9 @@ export function useDailyPick(lang = 'ru') {
 export function useMyBookings() {
   const { initData } = useTelegram();
   return useQuery<Booking[]>({
-    // Include initData in key: re-fetches automatically once SDK delivers auth
-    queryKey: ['mini-app', 'my-bookings', !!initData],
+    queryKey: ['mini-app', 'my-bookings', !!initData, getGuestClientId() ?? ''],
     queryFn: () => apiFetch('/api/v1/mini-app/my-bookings'),
-    enabled: !!initData,
+    enabled: hasMiniAppAuth(initData),
     staleTime: 0,
     retry: 1,
     refetchOnMount: 'always',
@@ -322,11 +321,9 @@ export function useMyBookings() {
 export function useMeProfile() {
   const { initData } = useTelegram();
   return useQuery<ClientProfile>({
-    // Key includes initData so we refetch when Telegram auth becomes available;
-    // query stays enabled so /me runs with whatever getInitData() can send (hash / session).
-    queryKey: ['mini-app', 'me', !!initData],
+    queryKey: ['mini-app', 'me', !!initData, getGuestClientId() ?? ''],
     queryFn: () => apiFetch('/api/v1/mini-app/me'),
-    enabled: true,
+    enabled: hasMiniAppAuth(initData),
     staleTime: 5 * 60_000,
     retry: false,
   });
@@ -363,9 +360,11 @@ export function useCancelBooking() {
 }
 
 export function useClientProfile() {
+  const { initData } = useTelegram();
   return useQuery<ClientProfileFull>({
-    queryKey: ['mini-app', 'client-profile'],
+    queryKey: ['mini-app', 'client-profile', getGuestClientId() ?? ''],
     queryFn: () => apiFetch('/api/v1/mini-app/client/profile'),
+    enabled: hasMiniAppAuth(initData),
     staleTime: 5 * 60_000,
     retry: false,
   });

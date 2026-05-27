@@ -167,14 +167,13 @@ async def test_get_or_create_client_upgrades_placeholder_to_real_name() -> None:
 
 
 @pytest.mark.asyncio
-async def test_mini_app_booking_without_init_data(client: AsyncClient) -> None:
-    """POST /api/v1/mini-app/bookings — without initData uses anonymous/JWT fallback (not 401)."""
+async def test_mini_app_booking_without_auth_returns_401(client: AsyncClient) -> None:
+    """Browser must register (register-guest) and send X-Guest-Client-Id — no shared anonymous user."""
     r = await client.post(
         "/api/v1/mini-app/bookings",
         json={"service_id": str(uuid.uuid4()), "master_id": str(uuid.uuid4()), "starts_at": "2026-05-10T14:00:00"},
     )
-    assert r.status_code != status.HTTP_401_UNAUTHORIZED
-    # Random UUIDs → usually 4xx; no longer 401 when initData is missing
+    assert r.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 # ─── Review worker tests ───────────────────────────────────────────────────────

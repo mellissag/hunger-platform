@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getPublicAppUrl } from '@/lib/env';
 import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
+import { setGuestClientId } from '../lib/guest-client';
 import { captureReferralCode } from '../lib/referral';
 import { useT } from '../i18n/context';
 
@@ -277,10 +278,15 @@ export default function OnboardingPage() {
               }
             } catch { /**/ }
           }
+        } else {
+          try {
+            const data = (await res.json()) as { client_id?: string };
+            if (data.client_id) setGuestClientId(data.client_id);
+          } catch { /**/ }
         }
       } else {
-        const res = await fetch(miniAppRequestUrl('/api/v1/mini-app/client/profile'), {
-          method: 'PATCH',
+        const res = await fetch(miniAppRequestUrl('/api/v1/mini-app/register-guest'), {
+          method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(registrationBody),
@@ -296,6 +302,11 @@ export default function OnboardingPage() {
               }
             } catch { /**/ }
           }
+        } else {
+          try {
+            const data = (await res.json()) as { client_id?: string };
+            if (data.client_id) setGuestClientId(data.client_id);
+          } catch { /**/ }
         }
       }
     } catch {
