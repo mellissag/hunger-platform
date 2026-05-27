@@ -56,6 +56,7 @@ export type PermUser = {
   role: UserRole;
   effective_permissions?: Record<string, boolean> | null;
   page_permissions?: PagePermissions;
+  reports_access?: boolean;
 };
 
 export function can(user: PermUser, action: Action, resource: Resource): boolean {
@@ -174,7 +175,6 @@ export function can(user: PermUser, action: Action, resource: Resource): boolean
   }
 
   if (resource === "reports") {
-    if (user.role === "owner") return true;
     if (user.role === "admin") return Boolean(user.reports_access);
     return false;
   }

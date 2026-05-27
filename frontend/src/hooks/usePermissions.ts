@@ -22,6 +22,7 @@ export function usePermissions() {
             role: me.role as UserRole,
             effective_permissions: me.effective_permissions,
             page_permissions: me.page_permissions,
+            reports_access: me.reports_access,
           }
         : null,
     [me],

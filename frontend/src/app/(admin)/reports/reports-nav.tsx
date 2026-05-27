@@ -21,9 +21,9 @@ const TABS = [
 export function ReportsChrome({ children }: { children: React.ReactNode }) {
   const t = useTranslations("pages.reports");
   const pathname = usePathname();
-  const { user } = usePermissions();
+  const { permUser } = usePermissions();
 
-  if (user && !can(user, "read", "reports")) {
+  if (permUser && !can(permUser, "read", "reports")) {
     return (
       <div className="p-8 text-center text-muted-foreground">
         {t("accessDenied")}
