@@ -27,6 +27,7 @@ from app.utils.datetime_utils import format_booking_datetime
 
 SESSION_PREFIX = "ai_booking:"
 SESSION_TTL_SEC = 30 * 60
+CONTINUE_BOOKING_VALUE = "continue_booking"
 
 BOOKING_MESSAGES: dict[str, dict[str, str]] = {
     "ru": {
@@ -55,6 +56,7 @@ BOOKING_MESSAGES: dict[str, dict[str, str]] = {
         "any_master": "Любой свободный",
         "show_more": "Показать ещё...",
         "show_more_times": "Показать ещё время ↓",
+        "continue_booking": "Продолжить запись",
         "today": "Сегодня",
         "tomorrow": "Завтра",
     },
@@ -84,6 +86,7 @@ BOOKING_MESSAGES: dict[str, dict[str, str]] = {
         "any_master": "Any available",
         "show_more": "Show more...",
         "show_more_times": "Show more times ↓",
+        "continue_booking": "Continue booking",
         "today": "Today",
         "tomorrow": "Tomorrow",
     },
@@ -113,6 +116,7 @@ BOOKING_MESSAGES: dict[str, dict[str, str]] = {
         "any_master": "Всеки свободен",
         "show_more": "Покажи още...",
         "show_more_times": "Покажи още часове ↓",
+        "continue_booking": "Продължи записването",
         "today": "Днес",
         "tomorrow": "Утре",
     },
@@ -142,6 +146,7 @@ BOOKING_MESSAGES: dict[str, dict[str, str]] = {
         "any_master": "Будь-який вільний",
         "show_more": "Показати більше...",
         "show_more_times": "Показати більше часів ↓",
+        "continue_booking": "Продовжити запис",
         "today": "Сьогодні",
         "tomorrow": "Завтра",
     },
@@ -356,6 +361,7 @@ def _default_session(lang: str, client_id: UUID | None) -> dict[str, Any]:
         "master_pool": [],
         "time_preference": None,
         "language_locked": False,
+        "paused": False,
     }
 
 
@@ -559,11 +565,14 @@ async def _pick_available_dates(
 
 
 async def detect_booking_intent(db: AsyncSession, text: str) -> str:
-    """BOOK | INFO | OTHER via Groq."""
+    """BOOK | INFO | OTHER via Groq. Greetings and vague messages → OTHER (not booking)."""
     prompt = (
         f'The client sent: "{text[:800]}"\n'
-        "Respond with only one word: BOOK (wants to book), "
-        "INFO (question about prices/services/masters), OTHER."
+        "Classify intent. Reply with only one word:\n"
+        "BOOK — clearly wants to schedule an appointment (not just mentioning a service).\n"
+        "INFO — asks about prices, services, hours, or salon info.\n"
+        "OTHER — greeting, thanks, small talk, general question, or unclear.\n"
+        "Do NOT use BOOK for hello/hi/здравей/привет alone."
     )
     try:
         raw = await whatsapp_bot_llm_text(
@@ -580,14 +589,150 @@ async def detect_booking_intent(db: AsyncSession, text: str) -> str:
         return "OTHER"
     except Exception:  # noqa: BLE001
         t = text.lower()
+        if any(x in t for x in ("здрав", "hello", "hi ", "привет", "віта", "благодар")):
+            return "OTHER"
         if any(
             x in t
-            for x in ("запис", "book", "appointment", "хочу", "запиш", "запиши", "бронь")
-        ):
+            for x in ("запис", "book", "appointment", "запиш", "запиши", "бронь", "запази")
+        ) and any(x in t for x in ("хочу", "мож", "искам", "want", "need", "ме", "меня", "мене")):
             return "BOOK"
-        if any(x in t for x in ("цен", "price", "сколько", "стоит", "прайс", "cost")):
+        if any(x in t for x in ("цен", "price", "сколько", "стоит", "прайс", "cost", "колко")):
             return "INFO"
         return "OTHER"
+
+
+async def detect_booking_flow_action(db: AsyncSession, message: str) -> str:
+    """A = continue booking script, B = consult first, C = reset."""
+    prompt = (
+        f'The client is in a booking flow. Their message: "{message[:800]}"\n'
+        "Should we:\n"
+        "A) Continue booking (they're selecting/confirming something)\n"
+        "B) Answer a question first (they're asking for advice, info, or are confused)\n"
+        "C) Reset booking (they want to cancel/start over)\n"
+        "Reply with only: A, B, or C"
+    )
+    try:
+        raw = await whatsapp_bot_llm_text(
+            db,
+            system="Reply with exactly one letter: A, B, or C.",
+            user_prompt=prompt,
+            temperature=0.1,
+        )
+        letter = raw.strip().upper()[:1] if raw.strip() else "A"
+        if letter in ("A", "B", "C"):
+            return letter
+        return "A"
+    except Exception:  # noqa: BLE001
+        if _is_cancel_command(message):
+            return "C"
+        t = message.lower()
+        if "?" in message or any(
+            x in t
+            for x in ("сколько", "цена", "price", "колко", "как", "what", "какво", "что", "какой")
+        ):
+            return "B"
+        return "A"
+
+
+def continue_booking_button(lang: str) -> dict[str, str]:
+    return _button(_msg(lang, "continue_booking"), CONTINUE_BOOKING_VALUE)
+
+
+def _is_structured_booking_input(text: str, sess: dict[str, Any]) -> bool:
+    """Button/value selections skip A/B/C hybrid check."""
+    if text == CONTINUE_BOOKING_VALUE:
+        return True
+    if text in ("confirm_yes", "confirm_no", "any_master", "more_services"):
+        return True
+    state = str(sess.get("state") or "idle")
+    if state == "selecting_category":
+        cat_ids = {c.get("id") for c in sess.get("available_categories") or []}
+        return text in cat_ids
+    if state == "selecting_service":
+        if text == "more_services":
+            return True
+        svc_ids = {s.get("id") for s in sess.get("available_services") or []}
+        return text in svc_ids
+    if state == "selecting_master":
+        if text == "any_master":
+            return True
+        master_ids = {m.get("id") for m in sess.get("available_masters") or []}
+        return text in master_ids
+    if state == "selecting_date":
+        return text in set(sess.get("available_dates") or [])
+    if state == "selecting_time":
+        slot_vals = {s.get("value") for s in sess.get("available_slots") or []}
+        if text in slot_vals:
+            return True
+        if "|" in text:
+            return True
+        return any(s.get("label") == text for s in sess.get("available_slots") or [])
+    return False
+
+
+async def _resume_booking_step(
+    db: AsyncSession,
+    sess: dict[str, Any],
+    lang: str,
+    today: date,
+    tz_name: str,
+) -> dict[str, Any]:
+    """Restore booking UI after consult pause."""
+    sess["paused"] = False
+    state = str(sess.get("state") or "idle")
+    if state == "selecting_category":
+        resp, buttons = await _build_category_step(db, sess, lang)
+        return _dialog_result(sess, resp, buttons)
+    if state == "selecting_service":
+        resp, buttons = await _build_service_step(db, sess, lang)
+        return _dialog_result(sess, resp, buttons)
+    if state == "selecting_master":
+        resp, buttons, _ = await _build_master_step(db, sess, lang, today)
+        return _dialog_result(sess, resp, buttons)
+    if state == "selecting_date":
+        resp, buttons = await _build_date_step(db, sess, lang, today)
+        return _dialog_result(sess, resp, buttons)
+    if state == "selecting_time":
+        return await _build_time_step(db, sess, lang)
+    if state == "confirming":
+        resp, buttons = await _build_confirm_step(db, sess, lang, tz_name)
+        return _dialog_result(sess, resp, buttons)
+    resp, buttons = await _build_category_step(db, sess, lang)
+    sess["state"] = "selecting_category"
+    return _dialog_result(sess, resp, buttons)
+
+
+async def _maybe_hybrid_interrupt(
+    db: AsyncSession,
+    redis: Redis | None,
+    session_id: str,
+    sess: dict[str, Any],
+    text: str,
+    lang: str,
+) -> dict[str, Any] | None:
+    """Return consult_pause / consult_reset action dict, or None to proceed with script."""
+    state = str(sess.get("state") or "idle")
+    if state in ("idle", "done"):
+        return None
+    if _is_structured_booking_input(text, sess):
+        return None
+    flow = await detect_booking_flow_action(db, text)
+    if flow == "B":
+        sess["paused"] = True
+        await _session_save(redis, session_id, sess)
+        return {
+            "action": "consult_pause",
+            "language": lang,
+            "booking_state": state,
+        }
+    if flow == "C":
+        await _session_clear(redis, session_id)
+        return {
+            "action": "consult_reset",
+            "language": lang,
+            "booking_state": "idle",
+        }
+    return None
 
 
 def _button(label: str, value: str) -> dict[str, str]:
@@ -852,6 +997,18 @@ async def handle_booking_dialog(
             "booking_state": "idle",
         }
 
+    tz_name = await _salon_tz(db)
+    z = ZoneInfo(tz_name)
+    today = clock.utc_now().astimezone(z).date()
+
+    if text == CONTINUE_BOOKING_VALUE and existing:
+        resume_lang = _norm_lang(str(existing.get("language") or lang))
+        resume_state = str(existing.get("state") or "idle")
+        if resume_state not in ("idle", "done"):
+            result = await _resume_booking_step(db, existing, resume_lang, today, tz_name)
+            await _session_save(redis, session_id, existing)
+            return result
+
     sess = existing or _default_session(lang, client_id)
     if not sess.get("language_locked"):
         sess["language"] = lang
@@ -860,10 +1017,6 @@ async def handle_booking_dialog(
         lang = _norm_lang(sess.get("language"))
     if client_id is not None:
         sess["client_id"] = str(client_id)
-
-    tz_name = await _salon_tz(db)
-    z = ZoneInfo(tz_name)
-    today = clock.utc_now().astimezone(z).date()
 
     state = str(sess.get("state") or "idle")
 
@@ -880,6 +1033,11 @@ async def handle_booking_dialog(
             "buttons": buttons,
             "booking_state": "selecting_category",
         }
+
+    if state not in ("idle", "done"):
+        hybrid = await _maybe_hybrid_interrupt(db, redis, session_id, sess, text, lang)
+        if hybrid is not None:
+            return hybrid
 
     if state == "selecting_category":
         cat_ids = {c["id"] for c in sess.get("available_categories") or []}
@@ -1047,3 +1205,118 @@ def in_active_booking_dialog(session_data: dict[str, Any] | None) -> bool:
         return False
     state = session_data.get("state")
     return state not in ("idle", "done", None)
+
+
+def is_booking_paused(session_data: dict[str, Any] | None) -> bool:
+    return bool(session_data and session_data.get("paused"))
+
+
+async def process_ai_chat_booking_layer(
+    *,
+    db: AsyncSession,
+    redis: Redis | None,
+    session_id: str,
+    user_text: str,
+    client_id: UUID,
+    booking_lang: str,
+    booking_via_ai: bool,
+    telegram_bot: Any | None = None,
+) -> dict[str, Any] | None:
+    """
+    Booking/hybrid layer for AI chat. None → caller should use standard AIService.ask().
+    Otherwise returns:
+      mode "dialog" — keys: response, buttons, booking_state, …
+      mode "consult" — keys: language, show_continue (bool)
+    """
+    if not booking_via_ai or redis is None:
+        return None
+
+    text = (user_text or "").strip()
+    session_data = await load_booking_session(redis, session_id)
+
+    if text == CONTINUE_BOOKING_VALUE:
+        result = await handle_booking_dialog(
+            session_id,
+            text,
+            client_id,
+            booking_lang,
+            db,
+            redis,
+            telegram_bot=telegram_bot,
+        )
+        return {"mode": "dialog", **result}
+
+    if is_booking_paused(session_data):
+        lang = _norm_lang(str(session_data.get("language") or booking_lang)) if session_data else booking_lang
+        return {"mode": "consult", "language": lang, "show_continue": True}
+
+    if in_active_booking_dialog(session_data):
+        result = await handle_booking_dialog(
+            session_id,
+            text,
+            client_id,
+            booking_lang,
+            db,
+            redis,
+            telegram_bot=telegram_bot,
+        )
+        action = result.get("action")
+        if action == "consult_pause":
+            lang = _norm_lang(str(result.get("language") or booking_lang))
+            return {"mode": "consult", "language": lang, "show_continue": True}
+        if action == "consult_reset":
+            lang = _norm_lang(str(result.get("language") or booking_lang))
+            return {"mode": "consult", "language": lang, "show_continue": False}
+        return {"mode": "dialog", **result}
+
+    if text:
+        intent = await detect_booking_intent(db, text)
+        if intent == "BOOK":
+            result = await handle_booking_dialog(
+                session_id,
+                text,
+                client_id,
+                booking_lang,
+                db,
+                redis,
+                telegram_bot=telegram_bot,
+                force_start=True,
+            )
+            action = result.get("action")
+            if action in ("consult_pause", "consult_reset"):
+                lang = _norm_lang(str(result.get("language") or booking_lang))
+                return {
+                    "mode": "consult",
+                    "language": lang,
+                    "show_continue": action == "consult_pause",
+                }
+            return {"mode": "dialog", **result}
+
+    return None
+
+
+async def hybrid_standard_ai_reply(
+    db: AsyncSession,
+    redis: Redis | None,
+    client_id: UUID,
+    question: str,
+    *,
+    image_base64: str | None = None,
+    image_mime_type: str = "image/jpeg",
+    show_continue_button: bool = False,
+    continue_lang: str = "ru",
+) -> tuple[str, list[dict[str, str]]]:
+    """Standard AIService.ask() with optional «Continue booking» button."""
+    from app.services.ai_service import AIService
+
+    svc = AIService(db=db, redis=redis)
+    reply_text, _, _ = await svc.ask(
+        client_id=client_id,
+        question=question,
+        image_base64=image_base64,
+        image_mime_type=image_mime_type,
+    )
+    buttons: list[dict[str, str]] = []
+    if show_continue_button:
+        buttons.append(continue_booking_button(_norm_lang(continue_lang)))
+    return reply_text, buttons

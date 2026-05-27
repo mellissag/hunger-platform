@@ -331,13 +331,11 @@ async def public_ai_chat(
     client = await _get_or_create_site_client(db, redis, session_id, "ru")
 
     from app.services.ai_booking_dialog import (
-        detect_booking_intent,
-        handle_booking_dialog,
-        in_active_booking_dialog,
+        hybrid_standard_ai_reply,
         load_booking_session,
+        process_ai_chat_booking_layer,
         resolve_booking_language,
     )
-    from app.services.ai_service import AIService
 
     booking_via_ai = bool(settings_row.ai_allow_booking)
     chat_session = f"site:{session_id}"
@@ -352,42 +350,55 @@ async def public_ai_chat(
     )
     client.lang = booking_lang
 
-    if booking_via_ai and redis is not None:
-        if in_active_booking_dialog(session_data):
-            result = await handle_booking_dialog(
-                chat_session,
-                user_text,
-                client.id,
-                booking_lang,
-                db,
-                redis,
-                telegram_bot=getattr(request.app.state, "bot", None),
-            )
-            return _public_ai_response_from_dialog(result, session_id)
-        if user_text and not payload.image_base64:
-            intent = await detect_booking_intent(db, user_text)
-            if intent == "BOOK":
-                result = await handle_booking_dialog(
-                    chat_session,
-                    user_text,
-                    client.id,
-                    booking_lang,
+    question = user_text or "Photo"
+    if booking_via_ai and redis is not None and not payload.image_base64:
+        layer = await process_ai_chat_booking_layer(
+            db=db,
+            redis=redis,
+            session_id=chat_session,
+            user_text=user_text,
+            client_id=client.id,
+            booking_lang=booking_lang,
+            booking_via_ai=True,
+            telegram_bot=getattr(request.app.state, "bot", None),
+        )
+        if layer is not None:
+            if layer.get("mode") == "dialog":
+                return _public_ai_response_from_dialog(layer, session_id)
+            try:
+                reply_text, btn_dicts = await hybrid_standard_ai_reply(
                     db,
                     redis,
-                    telegram_bot=getattr(request.app.state, "bot", None),
-                    force_start=True,
+                    client.id,
+                    question,
+                    show_continue_button=bool(layer.get("show_continue")),
+                    continue_lang=str(layer.get("language") or booking_lang),
                 )
-                return _public_ai_response_from_dialog(result, session_id)
+                return PublicAiChatResponse(
+                    reply=reply_text,
+                    session_id=session_id,
+                    buttons=[PublicAiChatButton(**b) for b in btn_dicts],
+                )
+            except Exception:  # noqa: BLE001
+                return PublicAiChatResponse(
+                    reply="Sorry, the AI assistant is temporarily unavailable.",
+                    session_id=session_id,
+                )
 
     try:
-        svc = AIService(db=db, redis=redis)
-        reply_text, _, _ = await svc.ask(
-            client_id=client.id,
-            question=user_text or "Photo",
+        reply_text, btn_dicts = await hybrid_standard_ai_reply(
+            db,
+            redis,
+            client.id,
+            question,
             image_base64=payload.image_base64,
             image_mime_type=payload.image_mime_type or "image/jpeg",
         )
-        return PublicAiChatResponse(reply=reply_text, session_id=session_id)
+        return PublicAiChatResponse(
+            reply=reply_text,
+            session_id=session_id,
+            buttons=[PublicAiChatButton(**b) for b in btn_dicts],
+        )
     except Exception:  # noqa: BLE001
         return PublicAiChatResponse(
             reply="Sorry, the AI assistant is temporarily unavailable.",

@@ -1485,14 +1485,11 @@ async def ai_chat(
 
     from app.models.salon import Settings as SettingsModel
     from app.services.ai_booking_dialog import (
-        detect_booking_intent,
-        handle_booking_dialog,
-        in_active_booking_dialog,
+        hybrid_standard_ai_reply,
         load_booking_session,
+        process_ai_chat_booking_layer,
         resolve_booking_language,
     )
-    from app.services.ai_service import AIService
-    from google.genai.errors import ClientError as _GenAIClientError
 
     settings_row = (
         await db.execute(select(SettingsModel).limit(1))
@@ -1511,43 +1508,61 @@ async def ai_chat(
         existing_session=session_data,
     )
 
-    if booking_via_ai and redis is not None:
-        in_dialog = in_active_booking_dialog(session_data)
-        if in_dialog:
-            result = await handle_booking_dialog(
-                session_id,
-                user_text,
-                client.id,
-                booking_lang,
-                db,
-                redis,
-                telegram_bot=getattr(request.app.state, "bot", None),
-            )
-            return _ai_response_from_dialog(result)
-        if user_text and not payload.image_base64:
-            intent = await detect_booking_intent(db, user_text)
-            if intent == "BOOK":
-                result = await handle_booking_dialog(
-                    session_id,
-                    user_text,
-                    client.id,
-                    booking_lang,
+    question = user_text or (payload.message or "Проанализируй это фото")
+    if booking_via_ai and redis is not None and not payload.image_base64:
+        layer = await process_ai_chat_booking_layer(
+            db=db,
+            redis=redis,
+            session_id=session_id,
+            user_text=user_text,
+            client_id=client.id,
+            booking_lang=booking_lang,
+            booking_via_ai=True,
+            telegram_bot=getattr(request.app.state, "bot", None),
+        )
+        if layer is not None:
+            if layer.get("mode") == "dialog":
+                return _ai_response_from_dialog(layer)
+            try:
+                reply_text, btn_dicts = await hybrid_standard_ai_reply(
                     db,
                     redis,
-                    telegram_bot=getattr(request.app.state, "bot", None),
-                    force_start=True,
+                    client.id,
+                    question,
+                    show_continue_button=bool(layer.get("show_continue")),
+                    continue_lang=str(layer.get("language") or booking_lang),
                 )
-                return _ai_response_from_dialog(result)
+                return MiniAppAiResponse(
+                    reply=reply_text,
+                    conversation_id=None,
+                    buttons=[AiChatButton(**b) for b in btn_dicts],
+                )
+            except Exception as _exc:  # noqa: BLE001
+                _msg = str(_exc)
+                if "RESOURCE_EXHAUSTED" in _msg or "429" in _msg:
+                    return MiniAppAiResponse(
+                        reply="AI-консультант временно перегружен. Попробуйте через несколько минут.",
+                        conversation_id=None,
+                    )
+                return MiniAppAiResponse(
+                    reply="Извините, AI-консультант временно недоступен. Попробуйте позже.",
+                    conversation_id=None,
+                )
 
     try:
-        svc = AIService(db=db, redis=redis)
-        reply_text, _chunks, _msg_id = await svc.ask(
-            client_id=client.id,
-            question=user_text or (payload.message or "Проанализируй это фото"),
+        reply_text, btn_dicts = await hybrid_standard_ai_reply(
+            db,
+            redis,
+            client.id,
+            question,
             image_base64=payload.image_base64,
             image_mime_type=payload.image_mime_type or "image/jpeg",
         )
-        return MiniAppAiResponse(reply=reply_text, conversation_id=None, buttons=[])
+        return MiniAppAiResponse(
+            reply=reply_text,
+            conversation_id=None,
+            buttons=[AiChatButton(**b) for b in btn_dicts],
+        )
     except Exception as _exc:  # noqa: BLE001
         _msg = str(_exc)
         if "RESOURCE_EXHAUSTED" in _msg or "429" in _msg:

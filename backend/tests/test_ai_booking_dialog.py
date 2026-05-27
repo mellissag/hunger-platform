@@ -4,13 +4,17 @@ from __future__ import annotations
 
 from app.services.ai_booking_dialog import (
     BOOKING_MESSAGES,
+    CONTINUE_BOOKING_VALUE,
     _category_emoji,
     _filter_slots_by_preference,
     _format_date_button,
     _is_cancel_command,
+    _is_structured_booking_input,
     _map_lang_code,
     _norm_lang,
+    continue_booking_button,
     in_active_booking_dialog,
+    is_booking_paused,
 )
 
 
@@ -18,6 +22,27 @@ def test_booking_messages_all_langs() -> None:
     for lang in ("ru", "en", "uk", "bg"):
         assert "select_category" in BOOKING_MESSAGES[lang]
         assert "confirm_yes" in BOOKING_MESSAGES[lang]
+        assert "continue_booking" in BOOKING_MESSAGES[lang]
+
+
+def test_continue_booking_button() -> None:
+    btn = continue_booking_button("uk")
+    assert btn["value"] == CONTINUE_BOOKING_VALUE
+    assert "запис" in btn["label"].lower()
+
+
+def test_is_structured_booking_input() -> None:
+    sess = {
+        "state": "selecting_category",
+        "available_categories": [{"id": "cat-1", "name": "Nails"}],
+    }
+    assert _is_structured_booking_input("cat-1", sess)
+    assert not _is_structured_booking_input("сколько стоит?", sess)
+
+
+def test_is_booking_paused() -> None:
+    assert not is_booking_paused({"state": "selecting_service"})
+    assert is_booking_paused({"state": "selecting_service", "paused": True})
 
 
 def test_category_emoji_mapping() -> None:
