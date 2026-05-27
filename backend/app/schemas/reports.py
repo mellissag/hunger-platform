@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date
+from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -12,8 +13,8 @@ from app.models.enums import ExpenseCategory, PaymentMethod, SalaryType
 
 
 class PeriodQuery(BaseModel):
-    period_start: date
-    period_end: date
+    period_start: Date
+    period_end: Date
 
 
 class PnlRevenueOut(BaseModel):
@@ -100,16 +101,16 @@ class MarkSalaryPaidIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     master_id: UUID
-    period_start: date
-    period_end: date
+    period_start: Date
+    period_end: Date
     paid_amount: Decimal = Field(ge=0)
     note: str | None = None
 
 
 class SalaryPaymentHistoryOut(BaseModel):
     id: UUID
-    period_start: date
-    period_end: date
+    period_start: Date
+    period_end: Date
     revenue_amount: Decimal
     calculated_amount: Decimal
     paid_amount: Decimal
@@ -144,7 +145,7 @@ class ExpenseOut(BaseModel):
     category: ExpenseCategory
     amount: Decimal
     description: str
-    date: date
+    date: Date
     created_by_id: UUID
     created_at: datetime
     created_by_name: str | None = None
@@ -156,7 +157,7 @@ class ExpenseCreate(BaseModel):
     category: ExpenseCategory
     amount: Decimal = Field(gt=0)
     description: str = Field(min_length=1, max_length=2000)
-    date: date
+    date: Date
 
 
 class ExpenseUpdate(BaseModel):
@@ -165,7 +166,7 @@ class ExpenseUpdate(BaseModel):
     category: ExpenseCategory | None = None
     amount: Decimal | None = Field(default=None, gt=0)
     description: str | None = Field(default=None, min_length=1, max_length=2000)
-    date: date | None = None
+    date: Date | None = None
 
 
 class ReportsAccessUpdate(BaseModel):
