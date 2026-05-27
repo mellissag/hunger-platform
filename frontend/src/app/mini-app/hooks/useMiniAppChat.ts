@@ -97,6 +97,7 @@ export function useAiChat() {
 
         const res = await fetch(`${API}/api/v1/mini-app/ai`, {
           method: 'POST',
+          credentials: 'same-origin',
           headers: {
             'Content-Type': 'application/json',
             ...authHeaders(),

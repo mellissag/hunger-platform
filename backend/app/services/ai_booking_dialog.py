@@ -603,6 +603,8 @@ async def detect_booking_intent(db: AsyncSession, text: str) -> str:
 
 async def detect_booking_flow_action(db: AsyncSession, message: str) -> str:
     """A = continue booking script, B = consult first, C = reset."""
+    if _wants_booking_buttons(message):
+        return "A"
     prompt = (
         f'The client is in a booking flow. Their message: "{message[:800]}"\n'
         "Should we:\n"
@@ -636,6 +638,51 @@ async def detect_booking_flow_action(db: AsyncSession, message: str) -> str:
 
 def continue_booking_button(lang: str) -> dict[str, str]:
     return _button(_msg(lang, "continue_booking"), CONTINUE_BOOKING_VALUE)
+
+
+def _wants_booking_buttons(message: str) -> bool:
+    """User asks to see booking UI buttons again."""
+    t = message.lower()
+    return any(
+        x in t
+        for x in (
+            "кнопк",
+            "button",
+            "не вижу",
+            "нету",
+            "нет ",
+            "пропали",
+            "исчез",
+            "where are",
+            "don't see",
+        )
+    )
+
+
+def _message_implies_booking(message: str) -> bool:
+    t = message.lower()
+    return any(
+        x in t
+        for x in (
+            "запис",
+            "запиш",
+            "book",
+            "appointment",
+            "хочу на",
+            "хочу к",
+            "можно на",
+            "запази",
+            "заброн",
+        )
+    )
+
+
+def _is_price_or_info_question(message: str) -> bool:
+    t = message.lower()
+    return any(
+        x in t
+        for x in ("сколько", "цена", "стоит", "price", "cost", "колко", "прайс", "сколько ст")
+    )
 
 
 def _is_structured_booking_input(text: str, sess: dict[str, Any]) -> bool:
@@ -714,7 +761,7 @@ async def _maybe_hybrid_interrupt(
     state = str(sess.get("state") or "idle")
     if state in ("idle", "done"):
         return None
-    if _is_structured_booking_input(text, sess):
+    if _wants_booking_buttons(text) or _is_structured_booking_input(text, sess):
         return None
     flow = await detect_booking_flow_action(db, text)
     if flow == "B":
@@ -1034,6 +1081,12 @@ async def handle_booking_dialog(
             "booking_state": "selecting_category",
         }
 
+    if state not in ("idle", "done") and _wants_booking_buttons(text):
+        sess["paused"] = False
+        result = await _resume_booking_step(db, sess, lang, today, tz_name)
+        await _session_save(redis, session_id, sess)
+        return result
+
     if state not in ("idle", "done"):
         hybrid = await _maybe_hybrid_interrupt(db, redis, session_id, sess, text, lang)
         if hybrid is not None:
@@ -1271,7 +1324,11 @@ async def process_ai_chat_booking_layer(
 
     if text:
         intent = await detect_booking_intent(db, text)
-        if intent == "BOOK":
+        start_booking = intent == "BOOK" or (
+            _wants_booking_buttons(text)
+            or (_message_implies_booking(text) and not _is_price_or_info_question(text))
+        )
+        if start_booking:
             result = await handle_booking_dialog(
                 session_id,
                 text,

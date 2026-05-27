@@ -12,6 +12,7 @@ from app.services.ai_booking_dialog import (
     _is_structured_booking_input,
     _map_lang_code,
     _norm_lang,
+    _wants_booking_buttons,
     continue_booking_button,
     in_active_booking_dialog,
     is_booking_paused,
@@ -43,6 +44,12 @@ def test_is_structured_booking_input() -> None:
 def test_is_booking_paused() -> None:
     assert not is_booking_paused({"state": "selecting_service"})
     assert is_booking_paused({"state": "selecting_service", "paused": True})
+
+
+def test_wants_booking_buttons() -> None:
+    assert _wants_booking_buttons("а где кнопки?")
+    assert _wants_booking_buttons("раньше были кнопки")
+    assert not _wants_booking_buttons("сколько стоит маникюр?")
 
 
 def test_category_emoji_mapping() -> None:

@@ -37,11 +37,12 @@ NO_BOOKING_VIA_AI_INSTRUCTION = (
     "Tell the user to tap «Book» / «Записаться» in the bot menu for booking.\n"
 )
 
-BOOKING_MODE_ACTIVE_INSTRUCTION = (
-    "\n## Booking Mode — ACTIVE\n"
-    "You can now book appointments directly in this chat. When a client wants to book, "
-    "respond warmly and the system will automatically start the booking dialog. "
-    'Do NOT say "go to the app". Instead say: "Отлично, запишем вас прямо здесь."\n'
+BOOKING_VIA_CHAT_INSTRUCTION = (
+    "\n## Booking in this chat\n"
+    "When the client wants to book, the app shows category buttons below your message — "
+    "do NOT list service categories or masters only in text. "
+    "Answer briefly and let them use the buttons. "
+    "For prices, duration, or advice without booking, answer normally.\n"
 )
 
 _EMBED_MODEL = "gemini-embedding-001"
@@ -320,7 +321,7 @@ class AIService:
         if not salon_settings.ai_allow_booking:
             system += NO_BOOKING_VIA_AI_INSTRUCTION
         else:
-            system += BOOKING_MODE_ACTIVE_INSTRUCTION
+            system += BOOKING_VIA_CHAT_INSTRUCTION
 
         conv, conv_is_new = await _get_or_create_conversation(self.db, client_id, lang)
         if conv_is_new:
@@ -615,7 +616,7 @@ class AIService:
         if not salon_settings.ai_allow_booking:
             system += NO_BOOKING_VIA_AI_INSTRUCTION
         else:
-            system += BOOKING_MODE_ACTIVE_INSTRUCTION
+            system += BOOKING_VIA_CHAT_INSTRUCTION
 
         raw_model = (salon_settings.ai_model or "").strip()
         temperature = float(salon_settings.ai_temperature or 0.7)
