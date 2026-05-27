@@ -24,7 +24,7 @@ from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.enums import BookingCreatedVia, BookingStatus, PrepaymentStatus
+from app.models.enums import BookingCreatedVia, BookingStatus, PaymentMethod, PrepaymentStatus
 from app.models.mixins import CreatedAtMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
@@ -119,6 +119,18 @@ class Booking(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     points_spent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     points_spent_discount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     points_earned: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    payment_method: Mapped[PaymentMethod] = mapped_column(
+        SQLEnum(
+            PaymentMethod,
+            name="payment_method",
+            native_enum=True,
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+        default=PaymentMethod.unpaid,
+    )
+    payment_cash: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    payment_card: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
 
     reminder_sent_24h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     reminder_sent_2h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

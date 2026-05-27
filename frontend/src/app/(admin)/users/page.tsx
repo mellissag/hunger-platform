@@ -51,6 +51,7 @@ function UserDrawer({
   const [email, setEmail] = useState(user.email);
   const [role, setRole] = useState(user.role);
   const [isActive, setIsActive] = useState(user.is_active);
+  const [reportsAccess, setReportsAccess] = useState(Boolean(user.reports_access));
 
   const [oldPwd, setOldPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
@@ -173,6 +174,25 @@ function UserDrawer({
                   </button>
                   <span className="text-sm">{t("active")}</span>
                 </div>
+
+                {isOwner && user.role === "admin" && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReportsAccess((v) => !v)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                        reportsAccess ? "bg-primary" : "bg-muted-foreground/40"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                          reportsAccess ? "translate-x-4" : "translate-x-0.5"
+                        }`}
+                      />
+                    </button>
+                    <span className="text-sm">{t("reportsAccess")}</span>
+                  </div>
+                )}
               </div>
 
               <Button
@@ -185,6 +205,9 @@ function UserDrawer({
                     email: email.trim() || undefined,
                     role: isOwner && user.role !== "owner" ? role : undefined,
                     is_active: isActive,
+                    ...(isOwner && user.role === "admin"
+                      ? { reports_access: reportsAccess }
+                      : {}),
                   })
                 }
               >

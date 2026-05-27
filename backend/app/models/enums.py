@@ -84,6 +84,37 @@ class BookingCreatedVia(str, enum.Enum):
     ai_chat = "ai_chat"
 
 
+class PaymentMethod(str, enum.Enum):
+    unpaid = "unpaid"
+    cash = "cash"
+    card = "card"
+    mixed = "mixed"
+
+
+class ExpenseCategory(str, enum.Enum):
+    rent = "rent"
+    utilities = "utilities"
+    supplies = "supplies"
+    advertising = "advertising"
+    equipment = "equipment"
+    taxes = "taxes"
+    software = "software"
+    training = "training"
+    salary_bonus = "salary_bonus"
+    other = "other"
+
+
+class SalaryType(str, enum.Enum):
+    percent = "percent"
+    fixed = "fixed"
+    mixed = "mixed"
+
+
+class SalaryPaymentStatus(str, enum.Enum):
+    calculated = "calculated"
+    paid = "paid"
+
+
 class AIMessageRole(str, enum.Enum):
     user = "user"
     assistant = "assistant"

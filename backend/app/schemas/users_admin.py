@@ -26,6 +26,7 @@ class UserStaffOut(BaseModel):
     permissions: dict | None = None
     effective_permissions: dict | None = None
     page_permissions: dict | None = None
+    reports_access: bool = False
 
 
 class UserStaffCreate(BaseModel):
@@ -50,6 +51,7 @@ class UserStaffPatch(BaseModel):
     lang: str | None = Field(None, min_length=2, max_length=5)
     is_active: bool | None = None
     master_id: UUID | None = None
+    reports_access: bool | None = None
 
 
 class UserPasswordChange(BaseModel):

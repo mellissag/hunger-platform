@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { getPublicApiBaseUrl } from "@/lib/env";
 import type { MasterOut, MasterStats, ReviewsPage, UserMe } from "@/types/admin-api";
 
+import { MasterSalarySection } from "@/components/masters/MasterSalarySection";
 import { StarRating } from "@/components/masters/StarRating";
 import { uploadImageFile } from "@/lib/api";
 
@@ -476,6 +477,7 @@ export function MasterDetail({ masterId }: { masterId: string }) {
                     <Input type="number" {...profileForm.register("payroll_percent")} />
                   </div>
                 ) : null}
+                {ownerOnly ? <MasterSalarySection masterId={masterId} /> : null}
                 <div className="flex flex-wrap gap-2">
                   <Button type="submit" disabled={saveProfile.isPending}>
                     {t("save")}

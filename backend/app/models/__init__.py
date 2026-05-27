@@ -25,6 +25,7 @@ from app.models.loyalty import (
     ReferralCode,
 )
 from app.models.master import Master
+from app.models.reports import Expense, SalaryPayment, SalarySettings
 from app.models.salon import Salon, Settings
 from app.models.schedule import ScheduleSlot
 from app.models.stats import BotVisitStat
@@ -59,7 +60,10 @@ __all__ = [
     "LoyaltyTransaction",
     "PromoCode",
     "ReferralCode",
+    "Expense",
     "Master",
+    "SalaryPayment",
+    "SalarySettings",
     "MasterService",
     "Product",
     "ProductWriteOff",

@@ -184,6 +184,9 @@ export function usePatchBooking() {
         service_id: string;
         needs_consultation: boolean;
         price: number | string;
+        payment_method?: string;
+        payment_cash?: number | null;
+        payment_card?: number | null;
       }>;
     }) =>
       apiJson<BookingOut>(`/bookings/${id}`, {

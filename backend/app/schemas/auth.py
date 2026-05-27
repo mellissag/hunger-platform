@@ -56,3 +56,4 @@ class UserMeResponse(BaseModel):
     effective_permissions: dict | None = None
     page_permissions: dict | None = None
     salon_role_permissions: dict | None = None
+    reports_access: bool = False

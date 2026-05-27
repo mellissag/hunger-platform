@@ -53,6 +53,7 @@ class User(UUIDPrimaryKeyMixin, Base):
     )
     lang: Mapped[str] = mapped_column(String(5), nullable=False, default="en")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    reports_access: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # Гранулярные права — JSON вида {"clients_view_phones": false, "inventory_view": true, ...}
     # None = использовать дефолт роли. owner всегда получает все права.

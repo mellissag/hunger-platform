@@ -508,6 +508,82 @@ export function BookingDetailDrawer({
                         : undefined
                     }
                   />
+                  {(me?.role === "owner" || me?.role === "admin") && (
+                    <div className="space-y-1.5 border-t border-border pt-3">
+                      <Label className="text-xs">{t("paymentMethod")}</Label>
+                      <select
+                        className="h-9 w-full rounded-md border border-input bg-background px-2 text-xs"
+                        value={data.payment_method ?? "unpaid"}
+                        onChange={(e) => {
+                          const method = e.target.value;
+                          patch.mutate({
+                            id: bookingId!,
+                            body: {
+                              payment_method: method,
+                              ...(method !== "mixed"
+                                ? { payment_cash: null, payment_card: null }
+                                : {}),
+                            },
+                          });
+                        }}
+                      >
+                        <option value="unpaid">{t("paymentUnpaid")}</option>
+                        <option value="cash">{t("paymentCash")}</option>
+                        <option value="card">{t("paymentCard")}</option>
+                        <option value="mixed">{t("paymentMixed")}</option>
+                      </select>
+                      {data.payment_method === "mixed" && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">{t("paymentCashAmount")}</Label>
+                            <Input
+                              type="number"
+                              className="h-9"
+                              defaultValue={data.payment_cash ?? ""}
+                              onBlur={(e) => {
+                                const cash = e.target.value ? Number(e.target.value) : null;
+                                const card =
+                                  data.payment_card != null
+                                    ? Number(data.payment_card)
+                                    : Number(data.price) - Number(cash ?? 0);
+                                patch.mutate({
+                                  id: bookingId!,
+                                  body: {
+                                    payment_method: "mixed",
+                                    payment_cash: cash,
+                                    payment_card: card,
+                                  },
+                                });
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">{t("paymentCardAmount")}</Label>
+                            <Input
+                              type="number"
+                              className="h-9"
+                              defaultValue={data.payment_card ?? ""}
+                              onBlur={(e) => {
+                                const card = e.target.value ? Number(e.target.value) : null;
+                                const cash =
+                                  data.payment_cash != null
+                                    ? Number(data.payment_cash)
+                                    : Number(data.price) - Number(card ?? 0);
+                                patch.mutate({
+                                  id: bookingId!,
+                                  body: {
+                                    payment_method: "mixed",
+                                    payment_cash: cash,
+                                    payment_card: card,
+                                  },
+                                });
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">

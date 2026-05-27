@@ -11,6 +11,7 @@ export type Resource =
   | "broadcasts"
   | "chats"
   | "statistics"
+  | "reports"
   | "ai"
   | "blacklist"
   | "users"
@@ -170,6 +171,12 @@ export function can(user: PermUser, action: Action, resource: Resource): boolean
 
   if (resource === "statistics") {
     return pget(p, "analytics", "enabled");
+  }
+
+  if (resource === "reports") {
+    if (user.role === "owner") return true;
+    if (user.role === "admin") return Boolean(user.reports_access);
+    return false;
   }
 
   if (resource === "chats") {

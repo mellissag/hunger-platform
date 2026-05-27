@@ -15,6 +15,7 @@ from app.models.mixins import UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from app.models.catalog import MasterService
+    from app.models.reports import SalaryPayment, SalarySettings
     from app.models.user import User
 
 
@@ -37,6 +38,7 @@ class Master(UUIDPrimaryKeyMixin, Base):
     payroll_percent: Mapped[Decimal] = mapped_column(
         Numeric(5, 2), nullable=False, default=Decimal("40.00")
     )
+    reports_access: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     working_hours: Mapped[dict[str, Any]] = mapped_column(
         JSONB, nullable=False, server_default=text("'{}'::jsonb")
     )
@@ -58,6 +60,17 @@ class Master(UUIDPrimaryKeyMixin, Base):
     users: Mapped[list["User"]] = relationship("User", back_populates="master_profile")
     master_services: Mapped[list["MasterService"]] = relationship(
         "MasterService",
+        back_populates="master",
+        passive_deletes=True,
+    )
+    salary_settings: Mapped["SalarySettings | None"] = relationship(
+        "SalarySettings",
+        back_populates="master",
+        uselist=False,
+        passive_deletes=True,
+    )
+    salary_payments: Mapped[list["SalaryPayment"]] = relationship(
+        "SalaryPayment",
         back_populates="master",
         passive_deletes=True,
     )

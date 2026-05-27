@@ -17,6 +17,91 @@ export type UserMe = {
   effective_permissions: Record<string, boolean> | null;
   page_permissions?: Record<string, Record<string, boolean>> | null;
   salon_role_permissions?: Record<string, unknown> | null;
+  reports_access?: boolean;
+};
+
+export type ReportsPnl = {
+  period: { start: string; end: string };
+  revenue: { services: string; products: string; total: string };
+  expenses: {
+    salaries: string;
+    rent: string;
+    utilities: string;
+    supplies: string;
+    advertising: string;
+    equipment: string;
+    taxes: string;
+    software: string;
+    training: string;
+    other: string;
+    total: string;
+  };
+  gross_profit: string;
+  profit_margin_percent: number;
+  prev_period_profit: string;
+  growth_percent: number | null;
+};
+
+export type ReportsSalaries = {
+  period: { start: string; end: string };
+  masters: Array<{
+    master_id: string;
+    name: string;
+    salary_type: string;
+    revenue: string;
+    bookings_count: number;
+    calculated_salary: string;
+    paid: boolean;
+    payment_id: string | null;
+  }>;
+  total_calculated: string;
+  total_paid: string;
+};
+
+export type ReportsCash = {
+  summary: {
+    total_income: string;
+    income_cash: string;
+    income_card: string;
+    total_expenses: string;
+    balance: string;
+  };
+  by_day: Array<{
+    date: string;
+    income: string;
+    income_cash: string;
+    income_card: string;
+    expenses: string;
+    balance: string;
+    transactions: Array<{
+      type: string;
+      source: string;
+      amount: string;
+      cash?: string;
+      card?: string;
+      description: string;
+    }>;
+  }>;
+};
+
+export type ReportExpense = {
+  id: string;
+  category: string;
+  amount: string;
+  description: string;
+  date: string;
+  created_by_id: string;
+  created_at: string;
+  created_by_name?: string | null;
+};
+
+export type SalarySettings = {
+  master_id: string;
+  salary_type: "percent" | "fixed" | "mixed";
+  percent_value: string | null;
+  fixed_amount: string | null;
+  monthly_norm: string | null;
+  updated_at: string | null;
 };
 
 export type CalendarBooking = {
@@ -301,6 +386,9 @@ export type BookingOut = {
   cancelled_at?: string | null;
   cancellation_reason?: string | null;
   needs_consultation?: boolean;
+  payment_method?: string;
+  payment_cash?: string | null;
+  payment_card?: string | null;
 };
 
 export type BookingDetailClient = {
@@ -608,6 +696,7 @@ export type UserStaffOut = {
   permissions: Record<string, unknown> | null;
   effective_permissions: Record<string, boolean> | null;
   page_permissions?: Record<string, Record<string, boolean>> | null;
+  reports_access?: boolean;
 };
 
 export type AuditLogOut = {

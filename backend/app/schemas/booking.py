@@ -9,7 +9,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.enums import BookingCreatedVia, BookingStatus, PrepaymentStatus
+from app.models.enums import BookingCreatedVia, BookingStatus, PaymentMethod, PrepaymentStatus
 
 
 class BookingCreate(BaseModel):
@@ -36,6 +36,9 @@ class BookingUpdate(BaseModel):
     notes: str | None = None
     prepayment_status: PrepaymentStatus | None = None
     needs_consultation: bool | None = None
+    payment_method: PaymentMethod | None = None
+    payment_cash: Decimal | None = Field(default=None, ge=0)
+    payment_card: Decimal | None = Field(default=None, ge=0)
 
 
 class BookingCancel(BaseModel):
@@ -85,6 +88,9 @@ class BookingOut(BaseModel):
     points_spent: int = 0
     points_spent_discount: Decimal = Decimal("0")
     points_earned: int = 0
+    payment_method: PaymentMethod = PaymentMethod.unpaid
+    payment_cash: Decimal | None = None
+    payment_card: Decimal | None = None
 
 
 class BookingStatsOut(BaseModel):

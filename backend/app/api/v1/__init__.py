@@ -29,6 +29,7 @@ from app.api.v1 import (
     service_categories,
     services,
     settings as settings_routes,
+    reports,
     stats,
     tg,
     upload,
@@ -55,6 +56,8 @@ api_router.include_router(segments.router)
 api_router.include_router(broadcasts.router)
 api_router.include_router(broadcasts.triggers_router)
 api_router.include_router(stats.router)
+api_router.include_router(reports.router)
+api_router.include_router(reports.salary_router, prefix="/admin")
 api_router.include_router(tg.router)
 api_router.include_router(salon.router)
 api_router.include_router(settings_routes.router)

@@ -12,4 +12,5 @@ export type SessionUser = {
   master_id: string | null;
   effective_permissions?: Record<string, boolean> | null;
   page_permissions?: PagePermissions;
+  reports_access?: boolean;
 };
