@@ -242,6 +242,19 @@ async def _add_transaction(
     return tx
 
 
+async def _referral_bonus_already_granted_for_invited(
+    db: AsyncSession, invited_id: UUID
+) -> bool:
+    """Idempotent guard: invited client gets at most one referral_bonus payout."""
+    row = await db.execute(
+        select(LoyaltyTransaction.id).where(
+            LoyaltyTransaction.client_id == invited_id,
+            LoyaltyTransaction.type == LoyaltyTransactionType.referral_bonus,
+        ).limit(1)
+    )
+    return row.scalar_one_or_none() is not None
+
+
 async def _grant_referral_bonuses(
     db: AsyncSession,
     *,
@@ -252,6 +265,8 @@ async def _grant_referral_bonuses(
     referrer_description: str | None = None,
 ) -> None:
     if not settings.referral_enabled or invited.referred_by_client_id is None:
+        return
+    if await _referral_bonus_already_granted_for_invited(db, invited.id):
         return
 
     referrer_id = invited.referred_by_client_id
@@ -332,7 +347,10 @@ async def process_registration_referral_code(
         ref.uses_count = int(ref.uses_count) + 1
         await db.flush()
         settings = await get_loyalty_settings(db)
-        if settings.referral_enabled:
+        if (
+            settings.referral_enabled
+            and settings.referral_trigger == ReferralTrigger.on_registration
+        ):
             invited_name = (client.first_name or "").strip() or "друг"
             await _grant_referral_bonuses(
                 db,
@@ -398,8 +416,6 @@ async def on_booking_completed(db: AsyncSession, booking: Booking) -> None:
     if client is None or service is None:
         return
 
-    was_first_visit = int(client.total_visits or 0) == 0
-
     base_points = int(service.loyalty_points or 0)
     multiplier = Decimal("1.0")
     if client.status_id:
@@ -430,15 +446,19 @@ async def on_booking_completed(db: AsyncSession, booking: Booking) -> None:
     await _auto_assign_status(db, client)
 
     settings = await get_loyalty_settings(db)
-    if was_first_visit and client.referred_by_client_id:
-        trigger_ok = settings.referral_trigger == ReferralTrigger.on_first_visit
-        if trigger_ok and settings.referral_enabled:
-            await _grant_referral_bonuses(
-                db,
-                invited=client,
-                settings=settings,
-                booking_id=booking.id,
-            )
+    if (
+        int(client.total_visits) == 1
+        and client.referred_by_client_id is not None
+        and settings.referral_enabled
+        and settings.referral_trigger == ReferralTrigger.on_first_visit
+        and not await _referral_bonus_already_granted_for_invited(db, client.id)
+    ):
+        await _grant_referral_bonuses(
+            db,
+            invited=client,
+            settings=settings,
+            booking_id=booking.id,
+        )
 
     await db.flush()
 
