@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { getInitData } from './useTelegram';
+import type { ChatButtonItem } from '@/components/chat/ChatButtons';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 
@@ -14,17 +15,37 @@ export interface AiChatMsg {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  imageDataUrl?: string; // for display in chat
+  imageDataUrl?: string;
+  buttons?: ChatButtonItem[];
+  buttonsDisabled?: boolean;
 }
+
+type AiApiResponse = {
+  reply: string;
+  conversation_id?: string | null;
+  buttons?: ChatButtonItem[];
+  booking_state?: string | null;
+};
 
 export function useAiChat() {
   const [messages, setMessages] = useState<AiChatMsg[]>([]);
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [bookingViaAi, setBookingViaAi] = useState(false);
+
+  const fetchSalonFlags = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/api/v1/mini-app/salon?lang=ru`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = (await res.json()) as { ai_allow_booking?: boolean };
+      setBookingViaAi(Boolean(data.ai_allow_booking));
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const send = useCallback(
-    async (text: string, imageDataUrl?: string) => {
-      // Extract base64 from data URL (e.g. "data:image/jpeg;base64,/9j/...")
+    async (text: string, imageDataUrl?: string, buttonMeta?: { value: string; label: string }) => {
       let imageBase64: string | undefined;
       let imageMimeType = 'image/jpeg';
       if (imageDataUrl) {
@@ -35,38 +56,61 @@ export function useAiChat() {
         }
       }
 
-      const userMsg: AiChatMsg = {
-        id: crypto.randomUUID(),
-        role: 'user',
-        content: text,
-        imageDataUrl,
-      };
-      setMessages((prev) => [...prev, userMsg]);
+      const displayText = buttonMeta?.label ?? text;
+
+      setMessages((prev) => {
+        const withDisabled = prev.map((m, i) =>
+          i === prev.length - 1 && m.role === 'assistant'
+            ? { ...m, buttonsDisabled: true }
+            : m,
+        );
+        return [
+          ...withDisabled,
+          {
+            id: crypto.randomUUID(),
+            role: 'user' as const,
+            content: displayText,
+            imageDataUrl: buttonMeta ? undefined : imageDataUrl,
+          },
+        ];
+      });
       setLoading(true);
 
       try {
+        const body: Record<string, unknown> = {
+          message: buttonMeta ? '' : text || (imageDataUrl ? 'Проанализируй это фото' : ''),
+          conversation_id: conversationId ?? undefined,
+          image_base64: imageBase64 ?? null,
+          image_mime_type: imageMimeType,
+        };
+        if (buttonMeta) {
+          body.button_value = buttonMeta.value;
+          body.button_label = buttonMeta.label;
+        }
+
         const res = await fetch(`${API}/api/v1/mini-app/ai`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...authHeaders(),
           },
-          body: JSON.stringify({
-            message: text || (imageDataUrl ? 'Проанализируй это фото' : ''),
-            conversation_id: conversationId ?? undefined,
-            image_base64: imageBase64 ?? null,
-            image_mime_type: imageMimeType,
-          }),
+          body: JSON.stringify(body),
         });
 
         if (!res.ok) throw new Error(`status ${res.status}`);
-        const data = (await res.json()) as { reply: string; conversation_id?: string | null };
+        const data = (await res.json()) as AiApiResponse;
 
         if (data.conversation_id) setConversationId(data.conversation_id);
 
         setMessages((prev) => [
           ...prev,
-          { id: crypto.randomUUID(), role: 'assistant', content: data.reply ?? '...' },
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: data.reply ?? '...',
+            buttons: data.buttons?.length ? data.buttons : undefined,
+            buttonsDisabled: false,
+          },
         ]);
       } catch {
         setMessages((prev) => [
@@ -89,7 +133,7 @@ export function useAiChat() {
     setConversationId(null);
   }, []);
 
-  return { messages, loading, send, reset };
+  return { messages, loading, send, reset, bookingViaAi, fetchSalonFlags };
 }
 
 export function useContactMaster() {

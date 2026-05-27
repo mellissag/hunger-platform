@@ -426,6 +426,7 @@ async def validate_booking_window(
         BookingCreatedVia.bot,
         BookingCreatedVia.whatsapp,
         BookingCreatedVia.instagram,
+        BookingCreatedVia.ai_chat,
     ):
         if starts_at < clock.utc_now() + timedelta(minutes=ctx.lead_time_minutes):
             raise InvalidScheduleError("Inside booking lead time")

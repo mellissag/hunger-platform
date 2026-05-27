@@ -156,6 +156,7 @@ async def create_booking(db: AsyncSession, user: User, data: BookingCreate) -> B
         BookingCreatedVia.bot,
         BookingCreatedVia.whatsapp,
         BookingCreatedVia.instagram,
+        BookingCreatedVia.ai_chat,
     ):
         await schedule_service.validate_booking_window(
             db,
@@ -582,6 +583,7 @@ async def reschedule_booking(
         BookingCreatedVia.bot,
         BookingCreatedVia.whatsapp,
         BookingCreatedVia.instagram,
+        BookingCreatedVia.ai_chat,
     ):
         await schedule_service.validate_booking_window(
             db,

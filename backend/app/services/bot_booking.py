@@ -80,6 +80,29 @@ async def create_wa_booking(
     return b
 
 
+async def create_ai_chat_booking(
+    db: AsyncSession,
+    *,
+    client_id: UUID,
+    master_id: UUID,
+    service_id: UUID,
+    starts_at: datetime,
+    telegram_bot: "Bot | None" = None,
+) -> Booking:
+    """Booking from AI chat (Mini App / site widget)."""
+    actor = await get_bot_actor_user(db)
+    data = BookingCreate(
+        client_id=client_id,
+        master_id=master_id,
+        service_id=service_id,
+        starts_at=starts_at,
+        created_via=BookingCreatedVia.ai_chat,
+    )
+    b = await booking_service.create_booking(db, actor, data)
+    await notify_master_new_booking(b.id, telegram_bot, db)
+    return b
+
+
 async def create_ig_booking(
     db: AsyncSession,
     *,

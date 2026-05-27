@@ -14,6 +14,7 @@ export const CHAT_I18N = {
     placeholder: 'Напишите сообщение...',
     typing: 'Печатает...',
     backToBook: 'Вернуться к записи',
+    bookingViaAiBanner: '✦ Запись через AI — просто напишите что вас интересует',
   },
   en: {
     chooseTitle: 'How can we help?',
@@ -30,6 +31,7 @@ export const CHAT_I18N = {
     placeholder: 'Type a message...',
     typing: 'Typing...',
     backToBook: 'Back to booking',
+    bookingViaAiBanner: '✦ Book via AI — just tell us what you are interested in',
   },
   uk: {
     chooseTitle: 'Чим можемо допомогти?',
@@ -46,6 +48,7 @@ export const CHAT_I18N = {
     placeholder: 'Напишіть повідомлення...',
     typing: 'Друкує...',
     backToBook: 'Повернутися до запису',
+    bookingViaAiBanner: '✦ Запис через AI — просто напишіть що вас цікавить',
   },
   bg: {
     chooseTitle: 'Как можем да помогнем?',
@@ -62,6 +65,7 @@ export const CHAT_I18N = {
     placeholder: 'Напишете съобщение...',
     typing: 'Пише...',
     backToBook: 'Обратно към записа',
+    bookingViaAiBanner: '✦ Записване през AI — просто кажете какво ви интересува',
   },
 } as const;
 

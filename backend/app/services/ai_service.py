@@ -37,6 +37,13 @@ NO_BOOKING_VIA_AI_INSTRUCTION = (
     "Tell the user to tap «Book» / «Записаться» in the bot menu for booking.\n"
 )
 
+BOOKING_MODE_ACTIVE_INSTRUCTION = (
+    "\n## Booking Mode — ACTIVE\n"
+    "You can now book appointments directly in this chat. When a client wants to book, "
+    "respond warmly and the system will automatically start the booking dialog. "
+    'Do NOT say "go to the app". Instead say: "Отлично, запишем вас прямо здесь."\n'
+)
+
 _EMBED_MODEL = "gemini-embedding-001"
 _DEFAULT_GEN_MODEL = "gemini-2.5-flash-lite"
 _DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
@@ -308,6 +315,8 @@ class AIService:
         system += f"\nKnowledge base excerpts:\n{kb_text}\n"
         if not salon_settings.ai_allow_booking:
             system += NO_BOOKING_VIA_AI_INSTRUCTION
+        else:
+            system += BOOKING_MODE_ACTIVE_INSTRUCTION
 
         conv, conv_is_new = await _get_or_create_conversation(self.db, client_id, lang)
         if conv_is_new:
@@ -597,6 +606,8 @@ class AIService:
         system += f"\nKnowledge base excerpts:\n{kb_text}\n"
         if not salon_settings.ai_allow_booking:
             system += NO_BOOKING_VIA_AI_INSTRUCTION
+        else:
+            system += BOOKING_MODE_ACTIVE_INSTRUCTION
 
         raw_model = (salon_settings.ai_model or "").strip()
         temperature = float(salon_settings.ai_temperature or 0.7)

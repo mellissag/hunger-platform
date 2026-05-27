@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
+import { ChatButtons } from '@/components/chat/ChatButtons';
 import { getChatT } from '@/lib/chatI18n';
 import { useAiChat, useContactMaster } from '../hooks/useMiniAppChat';
 
@@ -98,14 +99,29 @@ interface Props {
 
 // ── Chat bubble ───────────────────────────────────────────────────────────────
 
-function ChatBubble({ role, content, imageDataUrl }: {
+function ChatBubble({
+  role,
+  content,
+  imageDataUrl,
+  buttons,
+  buttonsDisabled,
+  isLastAssistant,
+  onButtonSelect,
+}: {
   role: string;
   content: string;
   imageDataUrl?: string;
+  buttons?: { label: string; value: string }[];
+  buttonsDisabled?: boolean;
+  isLastAssistant?: boolean;
+  onButtonSelect?: (value: string, label: string) => void;
 }) {
   const isUser = role === 'user';
+  const showButtons =
+    !isUser && isLastAssistant && buttons?.length && onButtonSelect && !buttonsDisabled;
+
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
       <div
         className={`max-w-[78%] rounded-2xl px-3 py-2 text-sm leading-snug whitespace-pre-wrap ${
           isUser
@@ -126,6 +142,15 @@ function ChatBubble({ role, content, imageDataUrl }: {
         )}
         {content && <span>{content}</span>}
       </div>
+      {showButtons && (
+        <div className="max-w-[92%] w-full pl-0.5">
+          <ChatButtons
+            buttons={buttons}
+            disabled={buttonsDisabled}
+            onSelect={onButtonSelect}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -141,7 +166,7 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { messages, loading, send: sendAi, reset: resetAi } = useAiChat();
+  const { messages, loading, send: sendAi, reset: resetAi, bookingViaAi, fetchSalonFlags } = useAiChat();
   const { send: sendContact, sending, sent, resetState: resetContact } = useContactMaster();
 
   // Reset state when drawer closes
@@ -170,6 +195,12 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
     }
   }, [mode]);
 
+  useEffect(() => {
+    if (isOpen && mode === 'ai') {
+      void fetchSalonFlags();
+    }
+  }, [isOpen, mode, fetchSalonFlags]);
+
   // Handle image file selection
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -188,14 +219,16 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
     e.target.value = '';
   }
 
-  const handleSendAi = () => {
+  const handleSendAi = (buttonMeta?: { value: string; label: string }) => {
     const text = input.trim();
-    if ((!text && !pendingImage) || loading) return;
+    if ((!text && !pendingImage && !buttonMeta) || loading) return;
     const img = pendingImage ?? undefined;
     setPendingImage(null);
     setInput('');
-    sendAi(text, img);
+    sendAi(text, img, buttonMeta);
   };
+
+  const lastAssistantId = [...messages].reverse().find((m) => m.role === 'assistant')?.id;
 
   const handleSendMaster = () => {
     const text = input.trim();
@@ -307,6 +340,10 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
                   role={m.role}
                   content={m.content}
                   imageDataUrl={m.imageDataUrl}
+                  buttons={m.buttons}
+                  buttonsDisabled={m.buttonsDisabled}
+                  isLastAssistant={m.role === 'assistant' && m.id === lastAssistantId}
+                  onButtonSelect={(value, label) => handleSendAi({ value, label })}
                 />
               ))}
               {loading && (
@@ -347,6 +384,15 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
               </div>
             )}
 
+            {bookingViaAi && (
+              <p
+                className="text-center text-xs px-3 py-1 flex-shrink-0"
+                style={{ color: '#C9A84C' }}
+              >
+                {t.bookingViaAiBanner}
+              </p>
+            )}
+
             {/* Input bar */}
             <div
               className="flex gap-2 px-3 py-3 flex-shrink-0 items-end"
@@ -377,13 +423,13 @@ export default function ChatDrawer({ isOpen, onClose, lang, salonName }: Props) 
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendAi()}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendAi(undefined)}
                 placeholder={pendingImage ? 'Добавьте комментарий...' : t.placeholder}
                 className="flex-1 rounded-xl border border-[#E4DDD0] px-3 py-2 text-sm
                            focus:outline-none focus:border-[#C9A84C] bg-[#FAF8F3] text-[#1C1408]"
               />
               <button
-                onClick={handleSendAi}
+                onClick={() => handleSendAi(undefined)}
                 disabled={(!input.trim() && !pendingImage) || loading}
                 className="p-2.5 rounded-xl text-white disabled:opacity-40 transition-colors flex-shrink-0"
                 style={{ background: 'linear-gradient(135deg,#C9A84C,#9A7230)' }}

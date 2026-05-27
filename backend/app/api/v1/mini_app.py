@@ -1080,6 +1080,8 @@ class MiniAppSalonInfo(_BM):
     working_hours: dict[str, Any] = Field(default_factory=dict)
     logo_url: str = ""
     favicon_url: str = ""
+    ai_enabled: bool = False
+    ai_allow_booking: bool = False
 
 
 @router.get("/salon", response_model=MiniAppSalonInfo)
@@ -1119,6 +1121,8 @@ async def get_salon_info(
         working_hours=wh,
         logo_url=(salon.logo_url or "").strip(),
         favicon_url=(salon.favicon_url or "").strip(),
+        ai_enabled=bool(settings_row.ai_enabled) if settings_row else False,
+        ai_allow_booking=bool(settings_row.ai_allow_booking) if settings_row else False,
     )
 
 
@@ -1409,27 +1413,42 @@ async def delete_daily_pick(
 # ─── AI chat ─────────────────────────────────────────────────────────────────
 
 
+class AiChatButton(_BM):
+    label: str
+    value: str
+
+
 class MiniAppAiRequest(_BM):
     message: str
     conversation_id: str | None = None
     image_base64: str | None = None
     image_mime_type: str | None = "image/jpeg"
+    button_value: str | None = None
+    button_label: str | None = None
 
 
 class MiniAppAiResponse(_BM):
     reply: str
     conversation_id: str | None = None
+    buttons: list[AiChatButton] = Field(default_factory=list)
+    booking_state: str | None = None
+
+
+async def _resolve_ai_chat_message(payload: MiniAppAiRequest) -> str:
+    if payload.button_value:
+        return payload.button_value.strip()
+    return (payload.message or "").strip()
 
 
 @router.post("/ai", response_model=MiniAppAiResponse)
 async def ai_chat(
     payload: MiniAppAiRequest,
+    request: Request,
     current_user: MiniAppUser,
     db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
 ) -> MiniAppAiResponse:
-    """Authenticated: chat with AI assistant."""
-    import uuid
-
+    """Authenticated: chat with AI assistant (optional interactive booking buttons)."""
     if not current_user.tg_user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No Telegram user")
 
@@ -1442,18 +1461,76 @@ async def ai_chat(
             conversation_id=None,
         )
 
-    try:
-        from app.services.ai_service import AIService
-        from google.genai.errors import ClientError as _GenAIClientError
+    user_text = await _resolve_ai_chat_message(payload)
+    if not user_text and not payload.image_base64:
+        return MiniAppAiResponse(reply="", conversation_id=None)
 
-        svc = AIService(db=db, redis=None)
+    lang = (client.lang or current_user.language_code or "ru").split("-")[0].lower()
+    if lang not in _SUPPORTED_LANGS:
+        lang = "ru"
+
+    from app.models.salon import Settings as SettingsModel
+    from app.services.ai_booking_dialog import (
+        detect_booking_intent,
+        handle_booking_dialog,
+        in_active_booking_dialog,
+        load_booking_session,
+    )
+    from app.services.ai_service import AIService
+    from google.genai.errors import ClientError as _GenAIClientError
+
+    settings_row = (
+        await db.execute(select(SettingsModel).limit(1))
+    ).scalar_one_or_none()
+    session_id = str(current_user.tg_user_id)
+    booking_via_ai = bool(settings_row and settings_row.ai_allow_booking)
+
+    if booking_via_ai and redis is not None:
+        session_data = await load_booking_session(redis, session_id)
+        in_dialog = in_active_booking_dialog(session_data)
+        if in_dialog:
+            result = await handle_booking_dialog(
+                session_id,
+                user_text,
+                client.id,
+                lang,
+                db,
+                redis,
+                telegram_bot=getattr(request.app.state, "bot", None),
+            )
+            return MiniAppAiResponse(
+                reply=result["response"],
+                buttons=[AiChatButton(**b) for b in result.get("buttons") or []],
+                booking_state=result.get("booking_state"),
+            )
+        if user_text and not payload.image_base64:
+            intent = await detect_booking_intent(db, user_text)
+            if intent == "BOOK":
+                result = await handle_booking_dialog(
+                    session_id,
+                    user_text,
+                    client.id,
+                    lang,
+                    db,
+                    redis,
+                    telegram_bot=getattr(request.app.state, "bot", None),
+                    force_start=True,
+                )
+                return MiniAppAiResponse(
+                    reply=result["response"],
+                    buttons=[AiChatButton(**b) for b in result.get("buttons") or []],
+                    booking_state=result.get("booking_state"),
+                )
+
+    try:
+        svc = AIService(db=db, redis=redis)
         reply_text, _chunks, _msg_id = await svc.ask(
             client_id=client.id,
-            question=payload.message,
+            question=user_text or (payload.message or "Проанализируй это фото"),
             image_base64=payload.image_base64,
             image_mime_type=payload.image_mime_type or "image/jpeg",
         )
-        return MiniAppAiResponse(reply=reply_text, conversation_id=None)
+        return MiniAppAiResponse(reply=reply_text, conversation_id=None, buttons=[])
     except Exception as _exc:  # noqa: BLE001
         _msg = str(_exc)
         if "RESOURCE_EXHAUSTED" in _msg or "429" in _msg:

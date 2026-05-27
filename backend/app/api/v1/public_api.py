@@ -6,15 +6,22 @@ import os
 import urllib.parse
 import uuid
 from decimal import Decimal
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+import uuid as uuid_mod
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.deps import get_db
+from app.deps import get_db, get_redis
 from app.models.catalog import MasterService, Service
+from app.models.client import Client
+from app.models.enums import ClientSource
 from app.models.master import Master
+from app.models.salon import Settings as SalonSettings
 from app.schemas.public_master import (
     PublicMasterCertificateItem,
     PublicMasterProfileOut,
@@ -26,6 +33,9 @@ from app.schemas.loyalty import PromoValidateIn, PromoValidateOut
 from app.services.loyalty_service import PromoValidationError
 
 router = APIRouter(prefix="/public", tags=["public"])
+
+_SUPPORTED_LANGS = frozenset({"ru", "en", "uk", "bg"})
+_SITE_CLIENT_PREFIX = "ai_site_client:"
 
 
 def _public_origin_for_media(request: Request) -> str:
@@ -193,6 +203,183 @@ async def public_master_profile(
         certificates=certs_out,
         portfolio_urls=portfolio_urls,
     )
+
+
+class PublicAiChatButton(BaseModel):
+    label: str
+    value: str
+
+
+class PublicAiChatRequest(BaseModel):
+    message: str = ""
+    button_value: str | None = None
+    button_label: str | None = None
+    image_base64: str | None = None
+    image_mime_type: str | None = "image/jpeg"
+
+
+class PublicAiChatResponse(BaseModel):
+    reply: str
+    buttons: list[PublicAiChatButton] = Field(default_factory=list)
+    booking_state: str | None = None
+    session_id: str | None = None
+
+
+class PublicSalonAiFlags(BaseModel):
+    ai_enabled: bool = False
+    ai_allow_booking: bool = False
+
+
+@router.get("/ai/flags", response_model=PublicSalonAiFlags)
+async def public_ai_flags(db: AsyncSession = Depends(get_db)) -> PublicSalonAiFlags:
+    row = (await db.execute(select(SalonSettings).limit(1))).scalar_one_or_none()
+    if row is None:
+        return PublicSalonAiFlags()
+    return PublicSalonAiFlags(
+        ai_enabled=bool(row.ai_enabled),
+        ai_allow_booking=bool(row.ai_allow_booking),
+    )
+
+
+def _resolve_lang(accept_language: str | None, client_lang: str | None) -> str:
+    if client_lang and client_lang.split("-")[0].lower() in _SUPPORTED_LANGS:
+        return client_lang.split("-")[0].lower()
+    if accept_language:
+        for part in accept_language.split(","):
+            code = part.strip().split(";")[0].split("-")[0].lower()
+            if code in _SUPPORTED_LANGS:
+                return code
+    return "ru"
+
+
+async def _get_or_create_site_client(
+    db: AsyncSession,
+    redis,
+    session_id: str,
+    lang: str,
+) -> Client:
+    if redis is not None:
+        raw = await redis.get(f"{_SITE_CLIENT_PREFIX}{session_id}")
+        if raw:
+            try:
+                cid = uuid_mod.UUID(str(raw))
+                c = await db.get(Client, cid)
+                if c is not None:
+                    return c
+            except ValueError:
+                pass
+    c = Client(
+        first_name="Guest",
+        lang=lang,
+        source=ClientSource.manual,
+    )
+    db.add(c)
+    await db.flush()
+    if redis is not None:
+        await redis.set(f"{_SITE_CLIENT_PREFIX}{session_id}", str(c.id), ex=86400 * 30)
+    return c
+
+
+@router.post("/ai/chat", response_model=PublicAiChatResponse)
+async def public_ai_chat(
+    payload: PublicAiChatRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
+    x_ai_session: Annotated[str | None, Header(alias="X-Ai-Session")] = None,
+    accept_language: Annotated[str | None, Header(alias="Accept-Language")] = None,
+) -> PublicAiChatResponse:
+    """Site widget AI chat (session via X-Ai-Session header or cookie)."""
+    session_id = (x_ai_session or "").strip() or request.cookies.get("ai_chat_session", "").strip()
+    if not session_id:
+        session_id = str(uuid_mod.uuid4())
+        response.set_cookie(
+            key="ai_chat_session",
+            value=session_id,
+            max_age=86400 * 30,
+            httponly=True,
+            samesite="lax",
+        )
+
+    user_text = (payload.button_value or payload.message or "").strip()
+    if not user_text and not payload.image_base64:
+        return PublicAiChatResponse(reply="", session_id=session_id)
+
+    settings_row = (await db.execute(select(SalonSettings).limit(1))).scalar_one_or_none()
+    if settings_row is None or not settings_row.ai_enabled:
+        return PublicAiChatResponse(
+            reply="AI assistant is not available.",
+            session_id=session_id,
+        )
+
+    client = await _get_or_create_site_client(db, redis, session_id, "ru")
+    lang = _resolve_lang(accept_language, client.lang)
+    client.lang = lang
+
+    from app.services.ai_booking_dialog import (
+        detect_booking_intent,
+        handle_booking_dialog,
+        in_active_booking_dialog,
+        load_booking_session,
+    )
+    from app.services.ai_service import AIService
+
+    booking_via_ai = bool(settings_row.ai_allow_booking)
+    chat_session = f"site:{session_id}"
+
+    if booking_via_ai and redis is not None:
+        session_data = await load_booking_session(redis, chat_session)
+        if in_active_booking_dialog(session_data):
+            result = await handle_booking_dialog(
+                chat_session,
+                user_text,
+                client.id,
+                lang,
+                db,
+                redis,
+                telegram_bot=getattr(request.app.state, "bot", None),
+            )
+            return PublicAiChatResponse(
+                reply=result["response"],
+                buttons=[PublicAiChatButton(**b) for b in result.get("buttons") or []],
+                booking_state=result.get("booking_state"),
+                session_id=session_id,
+            )
+        if user_text and not payload.image_base64:
+            intent = await detect_booking_intent(db, user_text)
+            if intent == "BOOK":
+                result = await handle_booking_dialog(
+                    chat_session,
+                    user_text,
+                    client.id,
+                    lang,
+                    db,
+                    redis,
+                    telegram_bot=getattr(request.app.state, "bot", None),
+                    force_start=True,
+                )
+                return PublicAiChatResponse(
+                    reply=result["response"],
+                    buttons=[PublicAiChatButton(**b) for b in result.get("buttons") or []],
+                    booking_state=result.get("booking_state"),
+                    session_id=session_id,
+                )
+
+    try:
+        svc = AIService(db=db, redis=redis)
+        reply_text, _, _ = await svc.ask(
+            client_id=client.id,
+            question=user_text or "Photo",
+            image_base64=payload.image_base64,
+            image_mime_type=payload.image_mime_type or "image/jpeg",
+        )
+        return PublicAiChatResponse(reply=reply_text, session_id=session_id)
+    except Exception:  # noqa: BLE001
+        return PublicAiChatResponse(
+            reply="Sorry, the AI assistant is temporarily unavailable.",
+            session_id=session_id,
+        )
 
 
 @router.post("/promo-codes/validate", response_model=PromoValidateOut)

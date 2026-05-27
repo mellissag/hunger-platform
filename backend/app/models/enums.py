@@ -81,6 +81,7 @@ class BookingCreatedVia(str, enum.Enum):
     whatsapp = "whatsapp"
     instagram = "instagram"
     broadcast = "broadcast"
+    ai_chat = "ai_chat"
 
 
 class AIMessageRole(str, enum.Enum):
