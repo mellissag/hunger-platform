@@ -8,7 +8,6 @@ import {
   hasMiniAppAuth,
   miniAppAuthHeaders,
 } from '../lib/guest-client';
-import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
 import { getInitData } from './useTelegram';
 
 function authHeaders(): Record<string, string> {
