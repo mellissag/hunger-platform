@@ -273,12 +273,7 @@ async def _sync_client_lang(client: Client, payload: InitDataPayload, db: AsyncS
         await db.flush()
 
 
-async def _get_or_create_client(
-    payload: InitDataPayload,
-    db: AsyncSession,
-    *,
-    start_param: str | None = None,
-) -> Client:
+async def _get_or_create_client(payload: InitDataPayload, db: AsyncSession) -> Client:
     client = (
         await db.execute(select(Client).where(Client.tg_user_id == payload.tg_user_id))
     ).scalar_one_or_none()
@@ -294,9 +289,6 @@ async def _get_or_create_client(
         db.add(client)
         await db.flush()
         await db.refresh(client)
-        sp = start_param or payload.start_param
-        if sp:
-            await loyalty_service.process_referral_start_param(db, client, sp)
         return client
 
     changed = False
@@ -326,9 +318,6 @@ async def _get_or_create_client(
         changed = True
     if changed:
         await db.flush()
-    sp = start_param or payload.start_param
-    if sp and client.referred_by_client_id is None:
-        await loyalty_service.process_referral_start_param(db, client, sp)
     return client
 
 

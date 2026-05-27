@@ -192,6 +192,7 @@ async def process_referral_start_param(
     client: Client,
     start_param: str | None,
 ) -> None:
+    """Legacy Telegram start_param hook — not used; referral only via registration form."""
     if not start_param or client.referred_by_client_id is not None:
         return
     code = start_param.strip().upper()
@@ -329,8 +330,8 @@ async def process_registration_referral_code(
     client: Client,
     code: str | None,
 ) -> None:
-    """Apply referral or promo code from onboarding registration form."""
-    if not code or not code.strip():
+    """Apply referral/promo only when the client explicitly submitted a code (registration form)."""
+    if not code or not str(code).strip():
         return
     if client.referred_by_client_id is not None:
         return

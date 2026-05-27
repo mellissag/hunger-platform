@@ -9,8 +9,6 @@ import ChatDrawer from './components/ChatDrawer';
 import { salonMediaSrcForApiOrigin } from '@/lib/salon-branding';
 import { miniAppRequestUrl } from '@/lib/mini-app-api-url';
 import { useSalonInfo } from './hooks/useMiniAppData';
-import { getInitData } from './hooks/useTelegram';
-import { tryApplyReferralForOnboardedUser } from './lib/referral';
 import './styles/miniapp.css';
 import './styles/theme.css';
 import { ThemeProvider, useTheme } from './providers/ThemeProvider';
@@ -237,20 +235,6 @@ function MiniAppInner({ children }: { children: ReactNode }) {
 
   const { data: salonInfo } = useSalonInfo(lang);
   const salonName = salonInfo?.name ?? 'Салон';
-
-  useEffect(() => {
-    void tryApplyReferralForOnboardedUser(async (code) => {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      const initData = getInitData();
-      if (initData) headers['X-Telegram-Init-Data'] = initData;
-      return fetch(miniAppRequestUrl('/api/v1/mini-app/client/profile'), {
-        method: 'PATCH',
-        credentials: 'same-origin',
-        headers,
-        body: JSON.stringify({ referral_code: code }),
-      });
-    });
-  }, []);
 
   useEffect(() => {
     const fav = salonMediaSrcForApiOrigin(salonInfo?.favicon_url ?? null, MINI_API);

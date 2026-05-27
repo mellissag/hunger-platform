@@ -59,6 +59,26 @@ async def _seed_referral_pair(
 
 
 @pytest.mark.asyncio
+async def test_empty_registration_code_does_not_link_referral() -> None:
+    factory, _referrer_id, invited_id, _code = await _seed_referral_pair(
+        trigger=ReferralTrigger.on_first_visit,
+    )
+
+    async with factory() as session:
+        invited = await session.get(Client, invited_id)
+        assert invited is not None
+        await loyalty_service.process_registration_referral_code(session, invited, None)
+        await loyalty_service.process_registration_referral_code(session, invited, "   ")
+        await session.commit()
+
+    async with factory() as session:
+        invited = await session.get(Client, invited_id)
+        assert invited is not None
+        assert invited.referred_by_client_id is None
+        assert invited.loyalty_points == 0
+
+
+@pytest.mark.asyncio
 async def test_registration_code_no_bonus_on_first_visit_trigger() -> None:
     factory, _referrer_id, invited_id, code = await _seed_referral_pair(
         trigger=ReferralTrigger.on_first_visit,
